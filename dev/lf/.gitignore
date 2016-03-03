@@ -1,0 +1,6 @@
+*.swp
+*.glob
+*.v.d
+*.vo
+_CoqProject
+makefile
