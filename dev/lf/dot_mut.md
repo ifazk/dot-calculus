@@ -12,20 +12,20 @@
                        ∀(x: S)T                     dependent function
                        Top                          top type
                        Bot                          bottom type
-		       Ref T			    reference type
+                       Ref T                        reference type
 
     Value          v = ν(x: T)d                     object
-                       λ(x: T)t                	    lambda abstraction
-		       l    	                    location
+                       λ(x: T)t                     lambda abstraction
+                       l                            location
 
     Term     s, t, u = x                            variable
                        v                            value
                        x.a                          selection
                        x y                          application
                        let x = t in u               let
-		       ref x			    reference
-		       !x			    dereference
-		       x := y			    assignment		
+                       ref x                        reference
+                       !x                           dereference
+                       x := y                       assignment                
 
     Definition     d = {a = t}                      field definition
                        {A = T}                      type definition
@@ -50,23 +50,23 @@
                   s·σ | let x = v in t  -->  (s, x = v)·σ  | t
     (Ctx)
                                s·σ | t  -->  s'·σ' | t'
-                        --------------------------------------------------
-                        s·σ | let x = t in u  -->  s'·σ' | let x = t' in u		
+                  --------------------------------------------------
+                  s·σ | let x = t in u  -->  s'·σ' | let x = t' in u
 
     (Ref-Var)
-    			        s(x) = v       l ∉ dom(σ)
-		            --------------------------------
-			    s·σ | ref x --> s·(σ, l = v) | l		
+                                s(x) = v       l ∉ dom(σ)
+                            --------------------------------
+                            s·σ | ref x --> s·(σ, l = v) | l
 
     (Asgn)
-				s(x) = l   s(y) = v
-			---------------------------------
-       			s·σ | x := y --> s·(σ, l = v) | v
+                                  s(x) = l   s(y) = v
+                           ---------------------------------
+                           s·σ | x := y --> s·(σ, l = v) | v
 
     (Deref-Var)
-    			  	s(x) = l   σ(l) = v
-			       --------------------
-			       s·σ | !x --> s·σ | v
+                                s(x) = l   σ(l) = v
+                               --------------------
+                               s·σ | !x --> s·σ | v
 
 
 ***
@@ -79,7 +79,7 @@
                             (Γ, x: T, Γ') | Σ ⊢ x: T
 
     (Ref)
-			  Γ | (Σ, l: T, Σ') ⊢ l: Ref T
+                          Γ | (Σ, l: T, Σ') ⊢ l: Ref T
     
     (All-I)
                        (Γ, x: T) | Σ ⊢ t: U      x ∉ fv(T)
@@ -126,20 +126,20 @@
                            -----------------------------
                                   Γ | Σ ⊢ t: U
 
-    (Ref)		   
-    				    Γ | Σ ⊢ x: T
-				--------------------
-				Γ | Σ ⊢ ref x: Ref T
+    (Ref)                   
+                                    Γ | Σ ⊢ x: T
+                                --------------------
+                                Γ | Σ ⊢ ref x: Ref T
 
     (Deref)
-    				Γ | Σ ⊢ x: Ref T
-				----------------
-				 Γ | Σ ⊢ !x: T
+                                    Γ | Σ ⊢ x: Ref T
+                                ----------------
+                                 Γ | Σ ⊢ !x: T
 
     (Asgn)
-    			Γ | Σ ⊢ x: Ref T     Γ | Σ ⊢ y: T
-			---------------------------------
-				Γ | Σ ⊢ (x := y): T
+                        Γ | Σ ⊢ x: Ref T     Γ | Σ ⊢ y: T
+                        ---------------------------------
+                                Γ | Σ ⊢ (x := y): T
     
 
 ***
@@ -216,5 +216,6 @@
 
 *Note:* `Γ, x: T` is well-defined only if `x` is neither in the domain of `Γ` nor in
 its free variables.
+
 
 
