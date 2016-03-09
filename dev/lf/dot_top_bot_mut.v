@@ -14,6 +14,8 @@ Require Import LibList.
 Parameter typ_label: Set.
 Parameter trm_label: Set.
 
+Definition addr := var.
+
 Inductive label: Set :=
 | label_typ: typ_label -> label
 | label_trm: trm_label -> label.
@@ -47,7 +49,7 @@ Inductive trm : Set :=
 with val : Set :=
   | val_new  : typ -> defs -> val
   | val_lambda : typ -> trm -> val
-  | val_loc : nat -> val
+  | val_loc : addr -> val
 with def : Set :=
   | def_typ  : typ_label -> typ -> def
   | def_trm  : trm_label -> trm -> def
@@ -56,7 +58,7 @@ with defs : Set :=
   | defs_cons : defs -> def -> defs.
 
 
-(* Definition loc_env (A:Type) := list (nat * A). *)
+(* Definition loc_env (A:Type) := list (r * A). *)
 
 (** *** Typing environment (Γ) *)
 Definition ctx := env typ.
@@ -241,7 +243,15 @@ Inductive red : trm -> stack -> store -> trm -> stack -> store -> Prop :=
 | red_ref_var : forall x v s sto l,
     binds x v s ->
     l # sto ->
-    red (trm_ref (avar_f x)) s sto l s (sto & l ~ v).
+    red (trm_ref (avar_f x)) s sto (trm_val (val_loc l)) s ((l ~ v) ++ sto)
+| red_asgn : forall x y l v s sto,
+    binds x (val_loc l) s ->
+    binds y v s ->
+    red (trm_asg (avar_f x) (avar_f y)) s sto (trm_val v) s ((l ~ v) ++ sto)
+| red_deref : forall x l s v sto,
+    binds x (val_loc l) s ->
+    binds l v sto ->
+    red (trm_der (avar_f x)) s sto (trm_val v) s sto.
 
 (* ###################################################################### *)
 (** ** Typing *)
