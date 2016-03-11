@@ -110,9 +110,9 @@ Here is [the corresponding Coq script](dot_top_bot.v).
     (Typ-I)
                            Γ ⊢ {A = T}: {A: T..T}
     (AndDef-I)
-           Γ ⊢ d<sub>1</sub>: T<sub>1</sub>   Γ ⊢ d<sub>2</sub>: T<sub>2</sub>   (dom(d<sub>1</sub>), dom(d<sub>2</sub>) disjoint)
+           Γ ⊢ d1: T1   Γ ⊢ d2: T2   (dom(d1), dom(d2) disjoint)
            -------------------------------------------------------
-                            Γ ⊢ d<sub>1</sub> & d<sub>2</sub>: T<sub>1</sub> & T<sub>2</sub>
+                            Γ ⊢ d1 & d2: T1 & T2
 
 
 ***
@@ -142,9 +142,9 @@ Here is [the corresponding Coq script](dot_top_bot.v).
                             ---------------------
                             Γ ⊢ {a: T} <: {a: U}
     (Typ-<:-Typ)
-                        Γ ⊢ S<sub>2</sub> <: S<sub>1</sub>   Γ ⊢ T<sub>1</sub> <: T<sub>2</sub>
+                        Γ ⊢ S2 <: S1   Γ ⊢ T1 <: T2
                        -------------------------------
-                       Γ ⊢ {A: S<sub>1</sub>..T<sub>1</sub>} <: {A: S<sub>2</sub>..T<sub>2</sub>}
+                       Γ ⊢ {A: S1..T1} <: {A: S2..T2}
     (<:-Sel)
                               Γ ⊢ x: {A: S..T}
                               -----------------
@@ -154,9 +154,9 @@ Here is [the corresponding Coq script](dot_top_bot.v).
                               -----------------
                                Γ ⊢ x.A <: T
     (All-<:-All)
-                     Γ ⊢ S<sub>2</sub> <: S<sub>1</sub>   Γ, x: S<sub>2</sub> ⊢ T<sub>1</sub> <: T<sub>2</sub>
+                     Γ ⊢ S2 <: S1   Γ, x: S2 ⊢ T1 <: T2
                      ------------------------------------
-                      Γ ⊢ ∀(x: S<sub>1</sub>)T<sub>1</sub> <: ∀(x: S<sub>2</sub>)T<sub>2</sub>
+                      Γ ⊢ ∀(x: S1)T1 <: ∀(x: S2)T2
 
 
 *Note:* `Γ, x: T` is well-defined only if `x` is neither in the domain of `Γ` nor in
@@ -184,7 +184,7 @@ Expand type ascriptions to applications:
 Shorthand syntax for object types and values:
 
          { z => D1; ...; Dn }  ===  μ(z: D1 & ... & Dn)
-     new { z => d<sub>1</sub>; ...; dn }  ===  new(x: D1 & ... & Dn)d<sub>1</sub> & ... & dn
+     new { z => d1; ...; dn }  ===  new(x: D1 & ... & Dn)d1 & ... & dn
                                     where Di derived from di. (di needs to have full type info)
 
 One can leave out the `z =>` if `z` does not appear in the rest of the term.
@@ -373,7 +373,7 @@ If `Γ <: Γ'` then:
     [x:=y]Γ = [[x:=y]z: [x:=y]T | z: T in Γ]
 
 ### Lemma (Renaming)
-Let [s] be a renaming `[x<sub>0</sub>:=y<sub>0</sub>]` for arbitrary variables `x<sub>0</sub>`, `y<sub>0</sub>`. Then
+Let [s] be a renaming `[x0:=y0]` for arbitrary variables `x0`, `y0`. Then
 
  - `     [s]μ(x: T)  =  μ([s]x: [s]T)`
  - `    [s]∀(x: T)U  =  ∀([s]x: [s]T): [s]U`
@@ -381,25 +381,25 @@ Let [s] be a renaming `[x<sub>0</sub>:=y<sub>0</sub>]` for arbitrary variables `
  - ` [s]λ(x: T)t  =  λ([s]x: [s]T): [s]t`
  - `[s]let x = t in u  =  let [s]x = [s]t in [s]u`
 
-*Proof*. We prove the first equation; the others are analogous. We distinguish whether or not `x<sub>0</sub> = x`.
+*Proof*. We prove the first equation; the others are analogous. We distinguish whether or not `x0 = x`.
 
-If `x<sub>0</sub> = x` then
+If `x0 = x` then
 
-      [s]μ(x<sub>0</sub>: T)
+      [s]μ(x0: T)
     = (by definition of substitution)
-      μ(x<sub>0</sub>: T)
-    = (by alpha renaming x<sub>0</sub> to y<sub>0</sub>)
-      μ(y<sub>0</sub>: [y<sub>0</sub>:=x<sub>0</sub>]T)
+      μ(x0: T)
+    = (by alpha renaming x0 to y0)
+      μ(y0: [y0:=x0]T)
     = (by rewriting)
-      μ([s]x<sub>0</sub>: [s]T)
+      μ([s]x0: [s]T)
 
-If `x<sub>0</sub> != x` then
+If `x0 != x` then
 
       [s]μ(x: T)
     = (by definition of substitution)
       μ(x: [s]T)
-    = (since x<sub>0</sub> != x)
-      μ([s]x<sub>0</sub>: [s]T)
+    = (since x0 != x)
+      μ([s]x0: [s]T)
 
 ### Lemma (Subst)
  1. If `Γ, x: S ⊢ t: T` and `Γ ⊢ y: [x:=y]S`
@@ -413,69 +413,69 @@ If `Γ, x: S, Γ' ⊢ t: T` and `Γ, [x:=y]Γ' ⊢ y: [x:=y]S`, then
 `Γ, [x:=y]Γ' ⊢ [x:=y]t: [x:=y]T`. (and the same for `d` instead of `t`).
 
 Proof by mutual induction on derivations.
-Let `[s] = [x<sub>0</sub>:=y<sub>0</sub>]`.
-Assume `Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ t<sub>0</sub>: T<sub>0</sub>` and `Γ, [s]Γ' ⊢ y<sub>0</sub>: [s]S<sub>0</sub>`.
-To show: `Γ, [s]Γ' ⊢ [s]t<sub>0</sub>: [s]T<sub>0</sub>`.
+Let `[s] = [x0:=y0]`.
+Assume `Γ, x0: S0, Γ' ⊢ t0: T0` and `Γ, [s]Γ' ⊢ y0: [s]S0`.
+To show: `Γ, [s]Γ' ⊢ [s]t0: [s]T0`.
 
-We distinguish according to the last rule in the derivation of `Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ t<sub>0</sub>: T<sub>0</sub>`
+We distinguish according to the last rule in the derivation of `Γ, x0: S0, Γ' ⊢ t0: T0`
 
-**Case (Var)**: We have in this case: `t = x<sub>0</sub>`, `T<sub>0</sub> = S<sub>0</sub>`,
-`Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ x: S<sub>0</sub>`, and `Γ, [s]Γ' ⊢ y<sub>0</sub>: [s]S<sub>0</sub>`.
-Together, `Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ [s]x<sub>0</sub>: [s]S<sub>0</sub>`.
+**Case (Var)**: We have in this case: `t = x0`, `T0 = S0`,
+`Γ, x0: S0, Γ' ⊢ x: S0`, and `Γ, [s]Γ' ⊢ y0: [s]S0`.
+Together, `Γ, x0: S0, Γ' ⊢ [s]x0: [s]S0`.
 
-**Case (All-I)** Then `t<sub>0</sub> = λ(x: T)t` and the last rule is
+**Case (All-I)** Then `t0 = λ(x: T)t` and the last rule is
 
-                     Γ, x<sub>0</sub>: S<sub>0</sub>, Γ', x: T ⊢ t: U
+                     Γ, x0: S0, Γ', x: T ⊢ t: U
               ------------------------------------------
-              Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ λ(x: T)t: ∀(x: T)U
+              Γ, x0: S0, Γ' ⊢ λ(x: T)t: ∀(x: T)U
 
 By the I.H., `Γ, [s]Γ', [s]x: [s]T ⊢ [s]t: [s]U`.
 By (All-I), `Γ, [s]Γ' ⊢ λ([s]x: [s]T)[s]t): ∀([s]x: [s]T)[s]U`.
 By applying Lemma (Renaming) twice to the RHS, `Γ, [s]Γ' ⊢ [s]λ(x: T)t): [s]∀(x: T)U`.
 
-**Case (All-E)** Then `t<sub>0</sub> = x y` and the last rule is
+**Case (All-E)** Then `t0 = x y` and the last rule is
 
-       Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ x: ∀(y: S)T    Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ y: S
+       Γ, x0: S0, Γ' ⊢ x: ∀(y: S)T    Γ, x0: S0, Γ' ⊢ y: S
        -------------------------------------------------------
-                    Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ x y: [z:=y]T
+                    Γ, x0: S0, Γ' ⊢ x y: [z:=y]T
 
 By the. I.H., `Γ, [s]Γ' ⊢ [s]x: ∀(z: [s]S)[s]T` and `Γ, [s]Γ' ⊢ [s]y: [s]S`.
 By (All-E), `Γ, [s]Γ' ⊢ [s]x [s]y: [z:=[s]y][s]T`.
-W.l.o.g choose `z` so that `z != x<sub>0</sub>`, `z != y`.
+W.l.o.g choose `z` so that `z != x0`, `z != y`.
 Hence, `[z:=[s]z][s]` = [s][z:=y]. Together,
 `Γ,[s]Γ' ⊢ [s](x y): [s][z:=y]T`.
 
-**Case ({}-I)**: Then `t<sub>0</sub> = new(x: T)d` and the last rule is
+**Case ({}-I)**: Then `t0 = new(x: T)d` and the last rule is
 
-                     Γ, x<sub>0</sub>: S<sub>0</sub>, Γ', x: T ⊢ d: T
+                     Γ, x0: S0, Γ', x: T ⊢ d: T
                 --------------------------------------
-                Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ new(x: T)d: μ(x: T)
+                Γ, x0: S0, Γ' ⊢ new(x: T)d: μ(x: T)
 
 By the I.H., `Γ, [s]Γ', [s]x: [s]T ⊢ [s]d: [s]T`.
 By ({}-I), `Γ, [s]Γ' ⊢ new([s]x: [s]T)[s]d: μ([s]x: [s]T)`
 By applying Lemma (Renaming) twice to the RHS,
 `Γ, [s]Γ' ⊢ [s]new(x: T)d: [s]μ(x: T)`.
 
-**Case ({}-E)** Then `t<sub>0</sub> = x.a` and the last rule is:
+**Case ({}-E)** Then `t0 = x.a` and the last rule is:
 
-                     Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ x: {a: T}
+                     Γ, x0: S0, Γ' ⊢ x: {a: T}
                      ---------------------------
-                       Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ x.a: T
+                       Γ, x0: S0, Γ' ⊢ x.a: T
 
 By the I.H., `Γ, [s]Γ' ⊢ [s]x: {a: [s]T}`.
 By ({}-E), `Γ, [s]Γ' ⊢ [s]x.a: [s]T`.
 
-**Case (Let)**: Then `t<sub>0</sub> = let x = t in u` and the last rule is:
+**Case (Let)**: Then `t0 = let x = t in u` and the last rule is:
 
-    Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ t: T   Γ, x<sub>0</sub>: S<sub>0</sub>, Γ', x: T ⊢ u: U   (x ∉ fv(U))
+    Γ, x0: S0, Γ' ⊢ t: T   Γ, x0: S0, Γ', x: T ⊢ u: U   (x ∉ fv(U))
     ----------------------------------------------------------------------
-                      Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ let x = t in u: U
+                      Γ, x0: S0, Γ' ⊢ let x = t in u: U
 
 By the I.H., `Γ, [s]Γ' ⊢ [s]t: [s]T` and `Γ, [s]Γ', [s]x: [s]T ⊢ [s]u: [s]U`.
 With (Let) it follows that `Γ, [s]Γ' ⊢ let [s]x = [s]t in [s]u: [s]U`.
 By (Renaming), `Γ, [s]Γ' ⊢ [s]let x = t in u: [s]U`.
 
-**Case (Rec-I)**: Then `t<sub>0</sub> = x` and the last rule is:
+**Case (Rec-I)**: Then `t0 = x` and the last rule is:
 
                               Γ ⊢ x: T
                           -----------------
@@ -485,17 +485,17 @@ By the I.H., `Γ, [s]Γ' ⊢ [s]x: [s]T`.
 By (Rec-I), `Γ, [s]Γ' ⊢ [s]x: μ([s]x: [s]T)`.
 By applying Lemma (Renaming) to the `rec` term, `Γ, [s]Γ' ⊢ [s]x: [s]μ(x: T)`.
 
-**Case (Rec-E)**: Then `t<sub>0</sub> = x` and the last rule is:
+**Case (Rec-E)**: Then `t0 = x` and the last rule is:
 
-                    Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ x: μ(x: T)
+                    Γ, x0: S0, Γ' ⊢ x: μ(x: T)
                     -----------------------------
-                        Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ x: T
+                        Γ, x0: S0, Γ' ⊢ x: T
 
 By the I.H., `Γ, [s]Γ' ⊢ [s]x: [s]μ(x: T)`.
 By applying Lemma (Renaming) to the `rec` term, `Γ, [s]Γ' ⊢ [s]x: μ([s]x: [s]T)`.
 By (Rec-E), `Γ, [s]Γ' ⊢ [s]x: [s]T`.
 
-**Case (&=I)**. Then `t<sub>0</sub> = x` amd the last rule is:
+**Case (&=I)**. Then `t0 = x` amd the last rule is:
 
                         Γ ⊢ x: T   Γ ⊢ x: U
                         ---------------------
@@ -504,21 +504,21 @@ By (Rec-E), `Γ, [s]Γ' ⊢ [s]x: [s]T`.
 By the I.H., `Γ, [s]Γ' ⊢ [s]x: [s]T` and `Γ, [s]Γ' ⊢ [s]x: [s]U`.
 By (&=I), `Γ, [s]Γ' ⊢ [s]x: [s]T & [s]U`.
 
-**Case (Sub)** Then `t<sub>0</sub> = t` and the last rule is:
+**Case (Sub)** Then `t0 = t` and the last rule is:
 
-           Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ t: T   Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ T <: U
+           Γ, x0: S0, Γ' ⊢ t: T   Γ, x0: S0, Γ' ⊢ T <: U
            -----------------------------------------------
-                        Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ t: U
+                        Γ, x0: S0, Γ' ⊢ t: U
 
 By the I.H., `Γ, [s]Γ' ⊢ [s]t: [s]T`.
 By (Subst-<:), `Γ, [s]Γ' ⊢ [s]T <: [s]U`.
 By (Sub), `Γ, [s]Γ' ⊢ [s]T: [s]U`.
 
-**Case (Fld)**. Then `t<sub>0</sub> = {a = t}` and the last rule is:
+**Case (Fld)**. Then `t0 = {a = t}` and the last rule is:
 
-                        Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ t: S
+                        Γ, x0: S0, Γ' ⊢ t: S
                    --------------------------------
-                   Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ {a = t}: {a: T}
+                   Γ, x0: S0, Γ' ⊢ {a = t}: {a: T}
 
 By the I.H, `Γ, [s]Γ' ⊢ [s]t: [s]S`.
 By (Fld), `Γ, [s]Γ' ⊢ {a = [s]t}: {a: [s]T}`.
@@ -536,38 +536,38 @@ If `Γ, x: S, Γ' ⊢ T <: U` and
 `Γ, [x:=y]Γ' ⊢ [x:=y]T <: [x:=y]U`.
 
 Proof by mutual induction on derivations.
-Let [s] = [x<sub>0</sub>:=y<sub>0</sub>].
-Assume `Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ T<sub>0</sub> <: U<sub>0</sub>` and `Γ, [s]Γ' ⊢ y<sub>0</sub>: [s]S<sub>0</sub>`.
-To show: `Γ [s]Γ' ⊢ [s]T<sub>0</sub> <: [s]U<sub>0</sub>`.
+Let [s] = [x0:=y0].
+Assume `Γ, x0: S0, Γ' ⊢ T0 <: U0` and `Γ, [s]Γ' ⊢ y0: [s]S0`.
+To show: `Γ [s]Γ' ⊢ [s]T0 <: [s]U0`.
 
 We only show two cases; the others are similar.
 
-**Case(<:-Sel)**: Then `T<sub>0</sub> = S` and the last rule of `D` is:
+**Case(<:-Sel)**: Then `T0 = S` and the last rule of `D` is:
 
-                    Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ x: {A: S..T}
+                    Γ, x0: S0, Γ' ⊢ x: {A: S..T}
                     -----------------------------
-                      Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ S <: x.A
+                      Γ, x0: S0, Γ' ⊢ S <: x.A
 
 By the I.H., `Γ, [s]Γ' ⊢ [s]x: {A: [s]S..[s]T}`.
 By (<:-Sel), `Γ, [s]Γ' ⊢ [s]S <: [s]x.A`.
 
-**Case (All-<:-All)** Then `T<sub>0</sub> = ∀(x: S<sub>1</sub>)T<sub>1</sub>` and the last rule is:
+**Case (All-<:-All)** Then `T0 = ∀(x: S1)T1` and the last rule is:
 
-     Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ S<sub>2</sub> <: S<sub>1</sub>   Γ, x<sub>0</sub>: S<sub>0</sub>, Γ', x: S<sub>2</sub> ⊢ T<sub>1</sub> <: T<sub>2</sub>
+     Γ, x0: S0, Γ' ⊢ S2 <: S1   Γ, x0: S0, Γ', x: S2 ⊢ T1 <: T2
      ------------------------------------------------------------
-            Γ, x<sub>0</sub>: S<sub>0</sub>, Γ' ⊢ ∀(x: S<sub>1</sub>)T<sub>1</sub> <: ∀(x: S<sub>2</sub>)T<sub>2</sub>
+            Γ, x0: S0, Γ' ⊢ ∀(x: S1)T1 <: ∀(x: S2)T2
 
-By the I.H., `Γ, [s]Γ' ⊢ [s]S<sub>2</sub> <: [s]S<sub>1</sub>` and
-`Γ, [s]Γ', [s]x: [s]S<sub>2</sub> ⊢ [s]T<sub>1</sub> <: [s]T<sub>2</sub>`.
-By (All-<:-All), `Γ, [s]Γ' ⊢ ∀([s]x: [s]S<sub>1</sub>)[s]T<sub>1</sub> <: ∀([s]x: [s]S<sub>1</sub>)[s]T<sub>1</sub>`.
-By (Renaming), `Γ, [s]Γ' ⊢ [s]∀(x: S<sub>1</sub>)T<sub>1</sub> <: [s]∀(x: S<sub>2</sub>)T<sub>2</sub>`.
+By the I.H., `Γ, [s]Γ' ⊢ [s]S2 <: [s]S1` and
+`Γ, [s]Γ', [s]x: [s]S2 ⊢ [s]T1 <: [s]T2`.
+By (All-<:-All), `Γ, [s]Γ' ⊢ ∀([s]x: [s]S1)[s]T1 <: ∀([s]x: [s]S1)[s]T1`.
+By (Renaming), `Γ, [s]Γ' ⊢ [s]∀(x: S1)T1 <: [s]∀(x: S2)T2`.
 
 
 ### Lemma (Corresponding Definition Types)
 
-If `Γ ~ s` and `s(x) = new(x: S)d` for some definitions `d = d<sub>1</sub> & ... & dn` then
+If `Γ ~ s` and `s(x) = new(x: S)d` for some definitions `d = d1 & ... & dn` then
  1. `x: μ(x: S) in Γ`.
- 2. `S = S<sub>1</sub> & ... & Sn` where for each `i` either
+ 2. `S = S1 & ... & Sn` where for each `i` either
 
     - `di` is of the form `{a = t}` and `Si = {a: T}` for some `T` such that `Γ ⊢ t: T`, or
     - `di` is of the form `{A = T}` and `Si = {A: T..T}`.
@@ -600,7 +600,7 @@ Hence, `T = μ(x: S)`.
 
 ### Lemma (Unique tight bounds)
 
-If `Γ ~ s` and `Γ ⊢! x: {A: T<sub>1</sub>..T<sub>1</sub>}` and `Γ ⊢! x: {A: T<sub>2</sub>..T<sub>2</sub>}` then `T<sub>1</sub> = T<sub>2</sub>`.
+If `Γ ~ s` and `Γ ⊢! x: {A: T1..T1}` and `Γ ⊢! x: {A: T2..T2}` then `T1 = T2`.
 
 *Proof*
 Since `Γ ⊢! x: {A: Ti..Ti}` (i = 1,2), `Γ` contains a binding for `x`, say `x: T in Γ`.
@@ -612,8 +612,8 @@ By (Corresponding Types) one of the following alternatives applies.
 
  2. `s(x) = new(x:S)d` and `T = μ(x:S)`. By (Corresponding Definition Types),
     `T` is of the form
-    `μ(x: S<sub>1</sub> & ... & Sn)` where exactly one `Si` defines a label `A`. Let `Si = {A: U..U}`.
-    It follows that `T<sub>1</sub> = U = T<sub>2</sub>`.
+    `μ(x: S1 & ... & Sn)` where exactly one `Si` defines a label `A`. Let `Si = {A: U..U}`.
+    It follows that `T1 = U = T2`.
 
 
 ### Definition (Tight bound typing)
@@ -647,13 +647,13 @@ the judgement is derivable by the following rules.
     (Refl-has)
                         Γ ⊢# x: {A: S..U} has A: S..U
     (&-has)
-                           Γ ⊢# x: T<sub>1</sub> has A: S..U
+                           Γ ⊢# x: T1 has A: S..U
                          ----------------------------
-                         Γ ⊢# x: T<sub>1</sub> & T<sub>2</sub> has A: S..U
+                         Γ ⊢# x: T1 & T2 has A: S..U
 
-                           Γ ⊢# x: T<sub>2</sub> has A: S..U
+                           Γ ⊢# x: T2 has A: S..U
                          ----------------------------
-                         Γ ⊢# x: T<sub>1</sub> & T<sub>2</sub> has A: S..U
+                         Γ ⊢# x: T1 & T2 has A: S..U
     (rec-has)
                             Γ ⊢# x: T has A: S..U
                         ------------------------------
@@ -669,7 +669,7 @@ the judgement is derivable by the following rules.
 If `Γ ⊢ x: T has A: S..U` then one of the following cases applies:
 
  1. `T = {A: S..U}`.
- 2. `T = T<sub>1</sub> & T<sub>2</sub>` and `Γ ⊢# x: T<sub>1</sub> has A: S..U` or `Γ ⊢# x: T<sub>2</sub> has A: S..U`.
+ 2. `T = T1 & T2` and `Γ ⊢# x: T1 has A: S..U` or `Γ ⊢# x: T2 has A: S..U`.
  3. `T = μ(x: T')` and `Γ ⊢# x: T' has A: S..U`.
  4. `T = y.B` and there exists a type `T'` such that
     `Γ ⊢! y: {B: T'..T'}` and `Γ ⊢# x: T' has A: S..U`.
@@ -685,9 +685,9 @@ there is a type `T'` such that `S = T'` and `U = T'`.
 *Proof:* By inspection of definition typing.
 
 ### Lemma (Has member covariance)
-If `Γ ~ s`, `Γ ⊢# T<sub>1</sub> <: T<sub>2</sub>` and `Γ ⊢# x: T<sub>1</sub>` and `Γ ⊢# x: T<sub>2</sub> has A: S<sub>2</sub>..U2` then
-there exist types `S<sub>1</sub>`, `U1` such that `Γ ⊢# x: T<sub>1</sub> has A: S<sub>1</sub>..U1`
-and `Γ ⊢# S<sub>2</sub> <: S<sub>1</sub>` and `Γ ⊢# U1 <: U2`.
+If `Γ ~ s`, `Γ ⊢# T1 <: T2` and `Γ ⊢# x: T1` and `Γ ⊢# x: T2 has A: S2..U2` then
+there exist types `S1`, `U1` such that `Γ ⊢# x: T1 has A: S1..U1`
+and `Γ ⊢# S2 <: S1` and `Γ ⊢# U1 <: U2`.
 
 *Proof:* by induction on subtyping derivations.
 
@@ -699,58 +699,58 @@ and `Γ ⊢# S<sub>2</sub> <: S<sub>1</sub>` and `Γ ⊢# U1 <: U2`.
 
 **Case (Trans-<:)**. Then the last rule is:
 
-                    Γ ⊢# T<sub>1</sub> <: T3   Γ ⊢# T3 <: T<sub>2</sub>
+                    Γ ⊢# T1 <: T3   Γ ⊢# T3 <: T2
                     -------------------------------
-                            Γ ⊢# T<sub>1</sub> <: T<sub>2</sub>
+                            Γ ⊢# T1 <: T2
 
-By subsumption, since `Γ ⊢# x: T<sub>1</sub>` we have also `Γ ⊢# x: T3`.
+By subsumption, since `Γ ⊢# x: T1` we have also `Γ ⊢# x: T3`.
 By the I.H. there exist types `S3`, `U3` such that
-`Γ ⊢# x: T3 has A: S3..U3` and `Γ ⊢ S<sub>2</sub> <: S3` and `Γ ⊢ U3 <: U2`.
-By the I.H. again, `Γ ⊢ x: T<sub>1</sub> has A: S<sub>1</sub>..U1` with `Γ ⊢ S3 <: S<sub>1</sub>` and `Γ ⊢ U1 <: U3`.
-By (Trans-<:), `Γ ⊢ S<sub>2</sub> <: S<sub>1</sub>` and `Γ ⊢ U1 <: U2`.
+`Γ ⊢# x: T3 has A: S3..U3` and `Γ ⊢ S2 <: S3` and `Γ ⊢ U3 <: U2`.
+By the I.H. again, `Γ ⊢ x: T1 has A: S1..U1` with `Γ ⊢ S3 <: S1` and `Γ ⊢ U1 <: U3`.
+By (Trans-<:), `Γ ⊢ S2 <: S1` and `Γ ⊢ U1 <: U2`.
 
-**Case (And-<:)**. Then the last rule is one of the axioms `Γ ⊢# T<sub>2</sub> & U <: T<sub>2</sub>` or
-`Γ ⊢# U & T<sub>2</sub> <: T<sub>2</sub>`. Assume the first, the second is analogous. By rule (has-&),
-`Γ ⊢# x: T<sub>2</sub> & U has A: S<sub>2</sub>..U2`.
+**Case (And-<:)**. Then the last rule is one of the axioms `Γ ⊢# T2 & U <: T2` or
+`Γ ⊢# U & T2 <: T2`. Assume the first, the second is analogous. By rule (has-&),
+`Γ ⊢# x: T2 & U has A: S2..U2`.
 
-**Case (<:-And)**. Then `T<sub>2</sub> = T<sub>2</sub>1 & T<sub>2</sub>2` and the last rule is:
+**Case (<:-And)**. Then `T2 = T21 & T22` and the last rule is:
 
-                  Γ ⊢# T<sub>1</sub> <: T<sub>2</sub>1   Γ ⊢# T<sub>1</sub> <: T<sub>2</sub>2
+                  Γ ⊢# T1 <: T21   Γ ⊢# T1 <: T22
                   ---------------------------------
-                        Γ ⊢# T<sub>1</sub> <: T<sub>2</sub>1 & T<sub>2</sub>2
+                        Γ ⊢# T1 <: T21 & T22
 
-By (Has member inversion), there exists `i in {1,2}` such that `Γ ⊢# x: T<sub>2</sub>i has A: S<sub>2</sub>..U2`.
-By the I.H., `Γ ⊢# x: T<sub>1</sub> has S<sub>2</sub>..U2`.
+By (Has member inversion), there exists `i in {1,2}` such that `Γ ⊢# x: T2i has A: S2..U2`.
+By the I.H., `Γ ⊢# x: T1 has S2..U2`.
 
 **Case (Fld-<:-Fld)**. Does not apply since `{a: U}` cannot appear in a `has` judgement.
 
-**Case (Typ-<:-Typ)**. Then `T<sub>1</sub> = {A1: S<sub>1</sub>..U1}` and `T<sub>2</sub> = {A2: S<sub>2</sub>'..U2'}`
+**Case (Typ-<:-Typ)**. Then `T1 = {A1: S1..U1}` and `T2 = {A2: S2'..U2'}`
 and the last rule is:
 
-                  Γ ⊢# S<sub>2</sub>' <: S<sub>1</sub>   Γ ⊢# U1 <: U2'
+                  Γ ⊢# S2' <: S1   Γ ⊢# U1 <: U2'
                   ----------------------------------
-                  Γ ⊢# {A: S<sub>1</sub>..U1} <: {A: S<sub>2</sub>'..U2'}
+                  Γ ⊢# {A: S1..U1} <: {A: S2'..U2'}
 
-By (Has member inversion) on `T<sub>2</sub>`, `S<sub>2</sub>' = S<sub>2</sub>` and `U2' = U2`.
-By definition of (Has member) on `T<sub>1</sub>`, `Γ ⊢# x: T<sub>1</sub> has A: S<sub>1</sub>..U1`.
+By (Has member inversion) on `T2`, `S2' = S2` and `U2' = U2`.
+By definition of (Has member) on `T1`, `Γ ⊢# x: T1 has A: S1..U1`.
 By inversion of the subtyping rule, the result follows.
 
-**Case (<:-Sel-tight)**. Then `T<sub>2</sub> = y.B` and the last rule is:
+**Case (<:-Sel-tight)**. Then `T2 = y.B` and the last rule is:
 
-                         Γ ⊢! y: {B: T<sub>1</sub>..T<sub>1</sub>}
+                         Γ ⊢! y: {B: T1..T1}
                          -------------------
-                           Γ ⊢# T<sub>1</sub> <: y.B
+                           Γ ⊢# T1 <: y.B
 
 By (has member inversion), there exists a type `T` such that
-`Γ ⊢! y: {B: T..T}` and `Γ ⊢# x: T has A: S<sub>2</sub>..U2`.
-By (Unique tight bounds), `T = T<sub>1</sub>`, which proves the case.
+`Γ ⊢! y: {B: T..T}` and `Γ ⊢# x: T has A: S2..U2`.
+By (Unique tight bounds), `T = T1`, which proves the case.
 
 
-**Case (Sel-<:-tight)**. Then `T<sub>1</sub> = y.B` and the last rule is:
+**Case (Sel-<:-tight)**. Then `T1 = y.B` and the last rule is:
 
-                         Γ ⊢! y: {B: T<sub>2</sub>..T<sub>2</sub>}
+                         Γ ⊢! y: {B: T2..T2}
                          -------------------
-                           Γ ⊢# y.B <: T<sub>2</sub>
+                           Γ ⊢# y.B <: T2
 
 By definition of (Has member), case (sel-has), the result follows.
 
@@ -758,10 +758,10 @@ By definition of (Has member), case (sel-has), the result follows.
 
 ### Lemma (Has member monotonicity)
 
-If `Γ ~ s` and `s(x) = new(x: T<sub>0</sub>)d` and
-`Γ ⊢# x: T has A: S..U` then there exists a type `T<sub>1</sub>` such that
-`Γ ⊢# x: μ(x: T<sub>0</sub>) has {A: T<sub>1</sub>..T<sub>1</sub>}`
-and `Γ ⊢# S <: T<sub>1</sub>` and `Γ ⊢# T<sub>1</sub> <: U`.
+If `Γ ~ s` and `s(x) = new(x: T0)d` and
+`Γ ⊢# x: T has A: S..U` then there exists a type `T1` such that
+`Γ ⊢# x: μ(x: T0) has {A: T1..T1}`
+and `Γ ⊢# S <: T1` and `Γ ⊢# T1 <: U`.
 
 *Proof:* By induction of `Γ ⊢# x: T`.
 
@@ -769,19 +769,19 @@ and `Γ ⊢# S <: T<sub>1</sub>` and `Γ ⊢# T<sub>1</sub> <: U`.
 
                          Γ, x: T, Γ' ⊢ x: T
 
-Since `Γ ~ s`, `T = μ(x: T<sub>0</sub>)`. By (Has member tightness), there is a type `T<sub>1</sub>` such that
-`S = T<sub>1</sub>` and `U = T<sub>1</sub>`.
+Since `Γ ~ s`, `T = μ(x: T0)`. By (Has member tightness), there is a type `T1` such that
+`S = T1` and `U = T1`.
 
 **Case (Sub)**. Then the last rule is:
 
-                     Γ ⊢# x: T<sub>2</sub>   Γ ⊢# T<sub>2</sub> <: T
+                     Γ ⊢# x: T2   Γ ⊢# T2 <: T
                      ---------------------------
                               Γ ⊢# x: T
 
-By (Has member covariance) there are types `S<sub>1</sub>`, `U1` such that
-`Γ ⊢ x: T<sub>2</sub> has A: S<sub>1</sub>..T<sub>1</sub>` and `Γ ⊢ S <: S<sub>1</sub>` and `Γ ⊢ U1 <: U`.
-By the I.H. there exists a type  `T<sub>1</sub>` such that `Γ ⊢ x: μ(x: T<sub>0</sub>) has {A: T<sub>1</sub>..T<sub>1</sub>}`
-and `Γ ⊢ S <: T<sub>1</sub>` and `Γ ⊢ T<sub>1</sub> <: U1`. By (Trans) `Γ ⊢ S <: T<sub>1</sub>` and `Γ ⊢ T<sub>1</sub> <: U`.
+By (Has member covariance) there are types `S1`, `U1` such that
+`Γ ⊢ x: T2 has A: S1..T1` and `Γ ⊢ S <: S1` and `Γ ⊢ U1 <: U`.
+By the I.H. there exists a type  `T1` such that `Γ ⊢ x: μ(x: T0) has {A: T1..T1}`
+and `Γ ⊢ S <: T1` and `Γ ⊢ T1 <: U1`. By (Trans) `Γ ⊢ S <: T1` and `Γ ⊢ T1 <: U`.
 
 **Case (Rec-I)**. Then `T = μ(x: T')` and the last rule is:
 
@@ -790,8 +790,8 @@ and `Γ ⊢ S <: T<sub>1</sub>` and `Γ ⊢ T<sub>1</sub> <: U1`. By (Trans) `Γ
                          Γ ⊢# x: μ(x: T')
 
 By (Has member inversion), `Γ ⊢# x: T' has A: S..U`.
-By the I.H., there exists a type `T<sub>1</sub>` such that
-`Γ ⊢# x: μ(x: T<sub>0</sub>) has {A: T<sub>1</sub>..T<sub>1</sub>}` and `Γ ⊢# S <: T<sub>1</sub>` and `Γ ⊢# T<sub>1</sub> <: U`.
+By the I.H., there exists a type `T1` such that
+`Γ ⊢# x: μ(x: T0) has {A: T1..T1}` and `Γ ⊢# S <: T1` and `Γ ⊢# T1 <: U`.
 
 **Case (Rec-E)**. Then the last rule is:
 
@@ -800,35 +800,35 @@ By the I.H., there exists a type `T<sub>1</sub>` such that
                               Γ ⊢# x: T
 
 By (has-rec), `Γ ⊢# x: μ(x: T) has A: S..U`.
-By the I.H. there exists a type `T<sub>1</sub>` such that
-`Γ ⊢# x: μ(x: T<sub>0</sub>) has {A: T<sub>1</sub>..T<sub>1</sub>}` and `Γ ⊢# S <: T<sub>1</sub>` and `Γ ⊢# T<sub>1</sub> <: U`.
+By the I.H. there exists a type `T1` such that
+`Γ ⊢# x: μ(x: T0) has {A: T1..T1}` and `Γ ⊢# S <: T1` and `Γ ⊢# T1 <: U`.
 
-**Case (&-I)**. Then `T = T<sub>1</sub> & T<sub>2</sub>` and the last rule is:
+**Case (&-I)**. Then `T = T1 & T2` and the last rule is:
 
-                      Γ ⊢# x: T<sub>1</sub>   Γ ⊢# x: T<sub>2</sub>
+                      Γ ⊢# x: T1   Γ ⊢# x: T2
                       -------------------------
-                           Γ ⊢ x: T<sub>1</sub> & T<sub>2</sub>
+                           Γ ⊢ x: T1 & T2
 
 By (Has member inversion), there exists `i in {1,2}` such that `Γ ⊢# x: Ti has A: S..U`.
-By the I.H. there exists a type  `T<sub>1</sub>` such that `Γ ⊢ x: μ(x: T') has {A: T<sub>1</sub>..T<sub>1</sub>}`
-and `Γ ⊢ S <: T<sub>1</sub>` and `Γ ⊢ T<sub>1</sub> <: U`.
+By the I.H. there exists a type  `T1` such that `Γ ⊢ x: μ(x: T') has {A: T1..T1}`
+and `Γ ⊢ S <: T1` and `Γ ⊢ T1 <: U`.
 
 ### Lemma (Tight bound completeness)
 
 If `Γ ~ s` and `s(x) = new(x: T)d` and `Γ ⊢# x: {A: S..U}` then `Γ ⊢# x.A <: U` and `Γ ⊢# S <: x.A`.
 
 *Proof:* Since `Γ ⊢# x: {A: S..U}`, we have also `Γ ⊢# x: {A: S..U} has A: S..U`.
-By (Has member monotonicity), there exists a type  `T<sub>1</sub>` such that
-`Γ ⊢# x: μ(x: T) has {A: T<sub>1</sub>..T<sub>1</sub>}` and `Γ ⊢# S <: T<sub>1</sub>` and `Γ ⊢# T<sub>1</sub> <: U`.
-By (Has member inversion, case 3), `Γ ⊢# x: T has A: T<sub>1</sub>..T<sub>1</sub>`.
-By (Corresponding Definition Types) `T` is of the form `S<sub>1</sub> & ... & Sn` where each
+By (Has member monotonicity), there exists a type  `T1` such that
+`Γ ⊢# x: μ(x: T) has {A: T1..T1}` and `Γ ⊢# S <: T1` and `Γ ⊢# T1 <: U`.
+By (Has member inversion, case 3), `Γ ⊢# x: T has A: T1..T1`.
+By (Corresponding Definition Types) `T` is of the form `S1 & ... & Sn` where each
 `Si` is of the form `{A: Ti..Ti}` or `{a: Ti}`.
 By (Has member inversion, case 2), there must exist a `Si` such that
-`Γ ⊢ x: Si has A: T<sub>1</sub>..T<sub>1</sub>`.
-By (Has member inversion), `Si = {A: T<sub>1</sub>..T<sub>1</sub>}`.
-By Definition of (⊢!), `Γ ⊢! x: {A: T<sub>1</sub>..T<sub>1</sub>}`.
+`Γ ⊢ x: Si has A: T1..T1`.
+By (Has member inversion), `Si = {A: T1..T1}`.
+By Definition of (⊢!), `Γ ⊢! x: {A: T1..T1}`.
 By definition of (Sel-<:-tight) and (<:-Sel-tight),
-`Γ ⊢# x.A <: T<sub>1</sub>` and `Γ ⊢# T<sub>1</sub> <: x.A`.
+`Γ ⊢# x.A <: T1` and `Γ ⊢# T1 <: x.A`.
 By (Trans)
 `Γ ⊢# x.A <: U` and `Γ ⊢# S <: x.A`.
 
@@ -839,7 +839,7 @@ If `Γ ⊢! λ(x: S)t: U` then `U = ∀(x: S)T` for some type `T` such that
 
 ### Lemma ({}-I Inversion)
 
-If `Γ ⊢! new(x: T)(d<sub>1</sub> & ... & dn): U` then `U = μ(x: T)` and `T` is of the form `S<sub>1</sub> & ... & Sn`, where each `Si` corresponds to exactly one definition `di` in the following way:
+If `Γ ⊢! new(x: T)(d1 & ... & dn): U` then `U = μ(x: T)` and `T` is of the form `S1 & ... & Sn`, where each `Si` corresponds to exactly one definition `di` in the following way:
 
  - if `di = {a = t}` then `Si = {a: T'}` for some `T'` such that `Γ ⊢ t: T'`.
  - if `di = {A = T}` then `Si = {A: T..T}`.
@@ -855,7 +855,7 @@ For a variable `x`, value `v`, environment `Γ`, the set
    then `{A: S..U} in SS`.
  4. If `v = λ(x: S)t` and `Γ, x: S ⊢ t: T` and
     `Γ ⊢ S' <: S` and `Γ, x: S' ⊢ T <: T'` then `∀(x: S')T' in SS`.
- 5. If `S<sub>1</sub> in SS` and `S<sub>2</sub> in SS` then `S<sub>1</sub> & S<sub>2</sub> in SS`.
+ 5. If `S1 in SS` and `S2 in SS` then `S1 & S2 in SS`.
  6. If `S in SS` and `Γ ⊢! y: {A: S..S}` then `y.A in SS`.
  7. If `T in SS` and then `μ(x: T) in SS`.
  8. `Top` in `SS`.
@@ -866,60 +866,60 @@ If `Γ ~ s` and `s(x) = v` then
 
 *Proof*: Let `SS = Ts(Γ, x, v)`. We show `SS` is closed wrt `Γ ⊢# _ <: _`.
 
-Assume `T<sub>0</sub> in SS` and `Γ ⊢ T<sub>0</sub> <: U<sub>0</sub>`.
-We show `U<sub>0</sub> in SS` by an induction on subtyping derivations of `Γ ⊢# T<sub>0</sub> <: U<sub>0</sub>`.
+Assume `T0 in SS` and `Γ ⊢ T0 <: U0`.
+We show `U0 in SS` by an induction on subtyping derivations of `Γ ⊢# T0 <: U0`.
 
-**Case (<:-Top)**. Then `U<sub>0</sub> = Top`. By (rule 8), `Top` in `SS`.
+**Case (<:-Top)**. Then `U0 = Top`. By (rule 8), `Top` in `SS`.
 
-**Case (Bot-<:)**. Does not apply, since assumption `T<sub>0</sub> in SS` cannot hold when `T<sub>0</sub> = Bot`.
+**Case (Bot-<:)**. Does not apply, since assumption `T0 in SS` cannot hold when `T0 = Bot`.
 
-**Case (Refl-<:)**. Then `U<sub>0</sub> = T<sub>0</sub>` hence `U<sub>0</sub> in SS`.
+**Case (Refl-<:)**. Then `U0 = T0` hence `U0 in SS`.
 
 **Case (Trans-<:)**. Then last last rule is:
 
-                          Γ ⊢ T<sub>0</sub> <: S   Γ ⊢ S <: U<sub>0</sub>
+                          Γ ⊢ T0 <: S   Γ ⊢ S <: U0
                           ---------------------------
-                                 Γ ⊢ T<sub>0</sub> <: U<sub>0</sub>
+                                 Γ ⊢ T0 <: U0
 
-Then by the I.H. (twice), `S in SS` and `U<sub>0</sub> in SS`.
+Then by the I.H. (twice), `S in SS` and `U0 in SS`.
 
-**Case (And-<:)**. Then `T<sub>0</sub> = U<sub>0</sub> & S` or `T<sub>0</sub> = S & U<sub>0</sub>` for some type
+**Case (And-<:)**. Then `T0 = U0 & S` or `T0 = S & U0` for some type
 `T`. Assume the first alternative, the second is analogous. The only ways a type `T & U` can
-be part of set `SS` is through rule (1) or (5). If `T<sub>0</sub>` is part of `SS` through rule (1), then `v = new(x: T<sub>0</sub>)d`, for some definitions `d`. By (Corresponding Definition Types) `T<sub>0</sub>` is of the form `S<sub>1</sub> & ... & Sn` where each `Si` corresponds to an atomic definition in `d`, and `U<sub>0</sub>` is the intersection of some subset of the `Si` types.
+be part of set `SS` is through rule (1) or (5). If `T0` is part of `SS` through rule (1), then `v = new(x: T0)d`, for some definitions `d`. By (Corresponding Definition Types) `T0` is of the form `S1 & ... & Sn` where each `Si` corresponds to an atomic definition in `d`, and `U0` is the intersection of some subset of the `Si` types.
 By rule (2) and (3) each of the `Si` types is in `SS`. Hence by applying
-rule (5) as often as necessary, `U<sub>0</sub> in SS`.
-If `T<sub>0</sub>` is part of `SS` because of rule (5),
-`U<sub>0</sub>` and `S` must both be in `SS`.
+rule (5) as often as necessary, `U0 in SS`.
+If `T0` is part of `SS` because of rule (5),
+`U0` and `S` must both be in `SS`.
 
-**Case (<:-And)**. Then `U<sub>0</sub> = T & U` and `Γ ⊢ T<sub>0</sub> <: T`, `Γ ⊢ T<sub>0</sub> <: U`.
-By the I.H. `T` and `U` are in `SS`. Hence, with rule (5), `U<sub>0</sub> in SS`.
+**Case (<:-And)**. Then `U0 = T & U` and `Γ ⊢ T0 <: T`, `Γ ⊢ T0 <: U`.
+By the I.H. `T` and `U` are in `SS`. Hence, with rule (5), `U0 in SS`.
 
-**Case (Fld-<:-Fld)**. Then `T<sub>0</sub> = {a: T<sub>1</sub>}` and `U<sub>0</sub> = {a: U1}` for types `T<sub>1</sub>`, `U1` such that
-`Γ ⊢ T<sub>1</sub> <: U1`. The only way `T<sub>0</sub>` can be in `SS` is through rule (2),
+**Case (Fld-<:-Fld)**. Then `T0 = {a: T1}` and `U0 = {a: U1}` for types `T1`, `U1` such that
+`Γ ⊢ T1 <: U1`. The only way `T0` can be in `SS` is through rule (2),
 or rule (1) convertible to rule (2) by `Γ ~ s`. That is,
-`v = new(x: T)d` and `{a = t}` in `d` and `Γ ⊢ t: T<sub>1</sub>`. Since `Γ ⊢ T<sub>1</sub> <: U1`
-we get with (Sub) that `Γ ⊢ t: U1`. With rule (2), `U<sub>0</sub> in SS`.
+`v = new(x: T)d` and `{a = t}` in `d` and `Γ ⊢ t: T1`. Since `Γ ⊢ T1 <: U1`
+we get with (Sub) that `Γ ⊢ t: U1`. With rule (2), `U0 in SS`.
 
-**Case (Typ-<:-Typ)** Then `T<sub>0</sub> = {A: T<sub>1</sub>..T<sub>2</sub>}` and `U<sub>0</sub> = {A: U1..U2}` for types
-`T<sub>1</sub>`, `T<sub>2</sub>`, `U1`, `U2` such that `Γ ⊢ U1 <: T<sub>1</sub>` and `Γ ⊢ T<sub>2</sub> <: U2`.
-The only way `T<sub>0</sub>` can be in `SS` is through rule (3) or rule (1) convertible to
+**Case (Typ-<:-Typ)** Then `T0 = {A: T1..T2}` and `U0 = {A: U1..U2}` for types
+`T1`, `T2`, `U1`, `U2` such that `Γ ⊢ U1 <: T1` and `Γ ⊢ T2 <: U2`.
+The only way `T0` can be in `SS` is through rule (3) or rule (1) convertible to
 rule (3) by `Γ ~ s`. That is,
-`v = new(x: T)d` and `{A = T'}` in `d` and `Γ ⊢ T<sub>1</sub> <: T'`, `Γ ⊢ T' <: T<sub>2</sub>`.
-With (Trans), `Γ ⊢ U1 <: T'` and `Γ ⊢ T' <: U2`. With rule (3), `U<sub>0</sub> in SS`.
+`v = new(x: T)d` and `{A = T'}` in `d` and `Γ ⊢ T1 <: T'`, `Γ ⊢ T' <: T2`.
+With (Trans), `Γ ⊢ U1 <: T'` and `Γ ⊢ T' <: U2`. With rule (3), `U0 in SS`.
 
-**Case (<:-Sel-tight)**. Then `U<sub>0</sub> = y.A` for some `y` such that `Γ ⊢! y: {A: T<sub>0</sub>..T<sub>0</sub>}`.
-With rule (6), `U<sub>0</sub> in SS`.
+**Case (<:-Sel-tight)**. Then `U0 = y.A` for some `y` such that `Γ ⊢! y: {A: T0..T0}`.
+With rule (6), `U0 in SS`.
 
-**Case (Sel-<:-tight)** Then `T<sub>0</sub> = y.A` for some `y` such that `Γ ⊢! y: {A: U<sub>0</sub>..U<sub>0</sub>}`.
+**Case (Sel-<:-tight)** Then `T0 = y.A` for some `y` such that `Γ ⊢! y: {A: U0..U0}`.
 The only way `y.A` can be in `SS` is through rule (6).
 That is, there is a type `S in SS` such that
-`Γ ⊢! y: {A: S..S}`. By (Unique tight bounds), `U<sub>0</sub> = S`, hence `U<sub>0</sub> in SS`.
+`Γ ⊢! y: {A: S..S}`. By (Unique tight bounds), `U0 = S`, hence `U0 in SS`.
 
-**Case (All-<:-All)**. Then `T<sub>0</sub> = ∀(y: T<sub>1</sub>)T<sub>2</sub>` and `U<sub>0</sub> = ∀(y: U1)U2`
-for some `T<sub>1</sub>`, `U1` such that `Γ ⊢ U1 <: T<sub>1</sub>` and for some `T<sub>2</sub>`, `U2`
-such that `Γ, y: U1 ⊢ T<sub>2</sub> <: U2`. The only way `T<sub>0</sub>` can be in `SS` is
-through rule (4). That is, `v = λ(x: T)d` and `Γ ⊢ T<sub>1</sub> <: T` and
-`Γ, x: T<sub>1</sub> ⊢ t: T<sub>2</sub>`. By (Narrowing), `Γ, x: U1 ⊢ t: T<sub>2</sub>`. With (Sub),
+**Case (All-<:-All)**. Then `T0 = ∀(y: T1)T2` and `U0 = ∀(y: U1)U2`
+for some `T1`, `U1` such that `Γ ⊢ U1 <: T1` and for some `T2`, `U2`
+such that `Γ, y: U1 ⊢ T2 <: U2`. The only way `T0` can be in `SS` is
+through rule (4). That is, `v = λ(x: T)d` and `Γ ⊢ T1 <: T` and
+`Γ, x: T1 ⊢ t: T2`. By (Narrowing), `Γ, x: U1 ⊢ t: T2`. With (Sub),
 `Γ, x: U1 ⊢ t: U2`. With (Trans), `Γ ⊢ U1 <: T`. With rule (4),
 `∀(x: U1)U2 in SS`.
 
@@ -1025,7 +1025,7 @@ if `v` is a `new`.
 So `v` must be of the form `λ(x: T')t`.
 Again by (Possible Types) the only way an `x` defined as a `λ(x: T')t`
 can have a type `∀(x: T)U` is
-if, for some `U<sub>0</sub>`, `Γ ⊢ T <: T'`, `Γ, x: T' ⊢ t: U<sub>0</sub>` and `Γ, x: T ⊢ U<sub>0</sub> <: U`.
+if, for some `U0`, `Γ ⊢ T <: T'`, `Γ, x: T' ⊢ t: U0` and `Γ, x: T ⊢ U0 <: U`.
 By (Sub) and (Narrowing), `Γ, x: T ⊢ t: U`.
 
 ### Lemma (Canonical forms 2)
@@ -1056,9 +1056,9 @@ Instead of (Ex-<:) and (<:-Ex) one may equivalently use the three rules below:
                             ---------------------
                              Γ ⊢ T <: ex(x: S)T
     (Ex-<:-Ex)
-                     Γ :- S<sub>1</sub> <: S<sub>2</sub>   Γ, x: S<sub>1</sub> ⊢ T<sub>1</sub> <: T<sub>2</sub>
+                     Γ :- S1 <: S2   Γ, x: S1 ⊢ T1 <: T2
                      ------------------------------------
-                       Γ ⊢ ex(x: S<sub>1</sub>)T<sub>1</sub> <: ex(x: S<sub>2</sub>)T<sub>2</sub>
+                       Γ ⊢ ex(x: S1)T1 <: ex(x: S2)T2
 
 Proof: we can derive each rule in one rule system using the rules of the other.
 -->
@@ -1161,5 +1161,6 @@ By the induction hypothesis there exist
  there exists an environment `Γ' = Γ, Γ''` such that `Γ' ⊢ t': T` and
  `Γ' ~ s'`. By (Weakening, 2nd clause), `Γ' ⊢ T <: U`.
 Then by (Sub) it follows that `Γ' ⊢ t: U`.
+
 
 
