@@ -3,6 +3,7 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import LibList.
+Close Scope list_scope.
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -233,8 +234,7 @@ Inductive red : trm -> stack -> store -> trm -> stack -> store -> Prop :=
     red (trm_app (avar_f f) (avar_f a)) s sto (open_trm a t) s sto
 | red_let : forall v t s sto x,
     x # s ->
-    red (trm_let (trm_val v) t) s sto (open_trm x t) ((x ~ v) ++ s) sto         
-    (* todo s & x ~ v didn't work for some reason *)
+    red (trm_let (trm_val v) t) s sto (open_trm x t) (s & x ~ v) sto         
 | red_let_var : forall t s sto x,
     red (trm_let (trm_var (avar_f x)) t) s sto (open_trm x t) s sto
 | red_let_tgt : forall t0 t s sto t0' s' sto',
@@ -243,11 +243,11 @@ Inductive red : trm -> stack -> store -> trm -> stack -> store -> Prop :=
 | red_ref_var : forall x v s sto l,
     binds x v s ->
     l # sto ->
-    red (trm_ref (avar_f x)) s sto (trm_val (val_loc l)) s ((l ~ v) ++ sto)
+    red (trm_ref (avar_f x)) s sto (trm_val (val_loc l)) s (sto & l ~ v)
 | red_asgn : forall x y l v s sto,
     binds x (val_loc l) s ->
     binds y v s ->
-    red (trm_asg (avar_f x) (avar_f y)) s sto (trm_val v) s ((l ~ v) ++ sto)
+    red (trm_asg (avar_f x) (avar_f y)) s sto (trm_val v) s (sto & l ~ v)
 | red_deref : forall x l s v sto,
     binds x (val_loc l) s ->
     binds l v sto ->
@@ -268,7 +268,7 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
     ty_trm m1 m2 G S (trm_val (val_loc l)) T
 | ty_all_intro : forall L m1 m2 G S T t U,
     (forall x, x \notin L ->
-      ty_trm ty_general sub_general ((x ~ T) ++ G) S (open_trm x t) (open_typ x U)) ->
+      ty_trm ty_general sub_general (G & x ~ T) S (open_trm x t) (open_typ x U)) ->
     ty_trm m1 m2 G S (trm_val (val_lambda T t)) (typ_all T U)
 | ty_all_elim : forall m2 G S x z U T,
     ty_trm ty_general m2 G S (trm_var (avar_f x)) (typ_all U T) ->
@@ -276,7 +276,7 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
     ty_trm ty_general m2 G S (trm_app (avar_f x) (avar_f z)) (open_typ z T)
 | ty_new_intro : forall L m1 m2 G S T ds,
     (forall x, x \notin L ->
-      ty_defs ((x ~ open_typ x T) ++ G) (open_defs x ds) (open_typ x T)) ->
+      ty_defs (G & x ~ (open_typ x T)) (open_defs x ds) (open_typ x T)) ->
     ty_trm m1 m2 G S (trm_val (val_new T ds)) (typ_bnd T)
 | ty_new_elim : forall m2 G S x m T,
     ty_trm ty_general m2 G S (trm_var (avar_f x)) (typ_rcd (dec_trm m T)) ->
@@ -284,7 +284,7 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
 | ty_let : forall L m2 G S t u T U,
     ty_trm ty_general m2 G S t T ->
     (forall x, x \notin L ->
-      ty_trm ty_general sub_general ((x ~ T) ++ G) S (open_trm x u) U) ->
+      ty_trm ty_general sub_general (G & x ~ T) S (open_trm x u) U) ->
     ty_trm ty_general m2 G S (trm_let t u) U
 | ty_rec_intro : forall m2 G S x T,
     ty_trm ty_general m2 G S (trm_var (avar_f x)) (open_typ x T) ->
@@ -369,16 +369,16 @@ with subtyp : tymode -> submode -> ctx -> sigma -> typ -> typ -> Prop :=
 | subtyp_all: forall L m2 G S S1 T1 S2 T2,
     subtyp ty_general m2 G S S2 S1 ->
     (forall x, x \notin L ->
-       subtyp ty_general sub_general ((x ~ S2) ++ G) S (open_typ x T1) (open_typ x T2)) ->
+       subtyp ty_general sub_general (G & x ~ S2) S (open_typ x T1) (open_typ x T2)) ->
     subtyp ty_general m2 G S (typ_all S1 T1) (typ_all S2 T2).
 
 Inductive wf_stack: ctx -> stack -> Prop :=
 | wf_stack_empty: wf_stack empty empty
-| wf_stack_push: forall G s x T v,
+| wf_stack_push: forall G S s x T v,
     wf_stack G s ->
     x # G ->
     x # s ->
-    ty_trm ty_precise sub_general G (trm_val v) T ->
+    ty_trm ty_precise sub_general G S (trm_val v) T ->
     wf_stack (G & x ~ T) (s & x ~ v).
 
 (* ###################################################################### *)
@@ -472,10 +472,10 @@ Qed.
 (** ** Weakening *)
 
 Lemma weaken_rules:
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G1 G2 G3,
+  (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    ty_trm m1 m2 (G1 & G2 & G3) t T) /\
+    ty_trm m1 m2 (G1 & G2 & G3) S t T) /\
   (forall G d D, ty_def G d D -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
@@ -484,10 +484,10 @@ Lemma weaken_rules:
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
     ty_defs (G1 & G2 & G3) ds T) /\
-  (forall m1 m2 G T U, subtyp m1 m2 G T U -> forall G1 G2 G3,
+  (forall m1 m2 G S T U, subtyp m1 m2 G S T U -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    subtyp m1 m2 (G1 & G2 & G3) T U).
+    subtyp m1 m2 (G1 & G2 & G3) S T U).
 Proof.
   apply rules_mutind; try solve [eauto].
   + intros. subst.
