@@ -372,14 +372,20 @@ with subtyp : tymode -> submode -> ctx -> sigma -> typ -> typ -> Prop :=
        subtyp ty_general sub_general (G & x ~ S2) S (open_typ x T1) (open_typ x T2)) ->
     subtyp ty_general m2 G S (typ_all S1 T1) (typ_all S2 T2).
 
-Inductive wf_stack: ctx -> stack -> Prop :=
-| wf_stack_empty: wf_stack empty empty
-| wf_stack_push: forall G S s x T v,
-    wf_stack G s ->
+Inductive wf_stack_store: ctx -> sigma -> stack -> store -> Prop :=
+| wf_stack_store_empty: wf_stack_store empty empty empty empty
+| wf_stack_push: forall G S stack store x T v,
+    wf_stack_store G S stack store ->
     x # G ->
-    x # s ->
+    x # stack ->
     ty_trm ty_precise sub_general G S (trm_val v) T ->
-    wf_stack (G & x ~ T) (s & x ~ v).
+    wf_stack_store (G & x ~ T) S (stack & x ~ v) store
+| wf_store_push: forall G S stack store l T v,
+    wf_stack_store G S stack store ->
+    l # S ->
+    l # store ->
+    ty_trm ty_precise sub_general G S (trm_val v) T ->
+    wf_stack_store G (S & l ~ T) stack (store & l ~ v).
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -455,7 +461,7 @@ Hint Constructors
   ty_trm ty_def ty_defs
   subtyp.
 
-Hint Constructors wf_stack.
+Hint Constructors wf_stack_store.
 
 Lemma fresh_push_eq_inv: forall A x a (E: env A),
   x # (E & x ~ a) -> False.
@@ -519,10 +525,10 @@ Proof.
     apply* H0.
 Qed.
 
-Lemma weaken_ty_trm:  forall m1 m2 G1 G2 t T,
-    ty_trm m1 m2 G1 t T ->
+Lemma weaken_ty_trm:  forall m1 m2 G1 G2 S t T,
+    ty_trm m1 m2 G1 S t T ->
     ok (G1 & G2) ->
-    ty_trm m1 m2 (G1 & G2) t T.
+    ty_trm m1 m2 (G1 & G2) S t T.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {
@@ -533,10 +539,10 @@ Proof.
   rewrite <- EqG. assumption.
 Qed.
 
-Lemma weaken_subtyp: forall m1 m2 G1 G2 S U,
-  subtyp m1 m2 G1 S U ->
+Lemma weaken_subtyp: forall m1 m2 G1 G2 S T U,
+  subtyp m1 m2 G1 S T U ->
   ok (G1 & G2) ->
-  subtyp m1 m2 (G1 & G2) S U.
+  subtyp m1 m2 (G1 & G2) S T U.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {
