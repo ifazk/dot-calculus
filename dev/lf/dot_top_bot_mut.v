@@ -276,7 +276,7 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
     ty_trm ty_general m2 G S (trm_app (avar_f x) (avar_f z)) (open_typ z T)
 | ty_new_intro : forall L m1 m2 G S T ds,
     (forall x, x \notin L ->
-      ty_defs (G & x ~ (open_typ x T)) (open_defs x ds) (open_typ x T)) ->
+      ty_defs (G & x ~ (open_typ x T)) S (open_defs x ds) (open_typ x T)) ->
     ty_trm m1 m2 G S (trm_val (val_new T ds)) (typ_bnd T)
 | ty_new_elim : forall m2 G S x m T,
     ty_trm ty_general m2 G S (trm_var (avar_f x)) (typ_rcd (dec_trm m T)) ->
@@ -312,21 +312,21 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
     ty_trm m1 m2 G S (trm_var (avar_f y)) (typ_ref T) ->
     ty_trm m1 m2 G S (trm_asg (avar_f x) (avar_f y)) T
 
-with ty_def : ctx -> def -> dec -> Prop :=
-| ty_def_typ : forall G A T,
-    ty_def G (def_typ A T) (dec_typ A T T)
+with ty_def : ctx -> sigma -> def -> dec -> Prop :=
+| ty_def_typ : forall G S A T,
+    ty_def G S (def_typ A T) (dec_typ A T T)
 | ty_def_trm : forall G S a t T,
     ty_trm ty_general sub_general G S t T ->
-    ty_def G (def_trm a t) (dec_trm a T)
-with ty_defs : ctx -> defs -> typ -> Prop :=
-| ty_defs_one : forall G d D,
-    ty_def G d D ->
-    ty_defs G (defs_cons defs_nil d) (typ_rcd D)
-| ty_defs_cons : forall G ds d T D,
-    ty_defs G ds T ->
-    ty_def G d D ->
+    ty_def G S (def_trm a t) (dec_trm a T)
+with ty_defs : ctx -> sigma -> defs -> typ -> Prop :=
+| ty_defs_one : forall G S d D,
+    ty_def G S d D ->
+    ty_defs G S (defs_cons defs_nil d) (typ_rcd D)
+| ty_defs_cons : forall G S ds d T D,
+    ty_defs G S ds T ->
+    ty_def G S d D ->
     defs_hasnt ds (label_of_def d) ->
-    ty_defs G (defs_cons ds d) (typ_and T (typ_rcd D))
+    ty_defs G S (defs_cons ds d) (typ_and T (typ_rcd D))
 
 with subtyp : tymode -> submode -> ctx -> sigma -> typ -> typ -> Prop :=
 | subtyp_top: forall m2 G S T,
@@ -477,19 +477,24 @@ Qed.
 (* ###################################################################### *)
 (** ** Weakening *)
 
-Lemma weaken_rules:
+Lemma weaken_rules_gamma:
+  (* G = G' & x: S *)
+  (* G', S |- t: T   =>   G, S |- t: T*)
   (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
     ty_trm m1 m2 (G1 & G2 & G3) S t T) /\
-  (forall G d D, ty_def G d D -> forall G1 G2 G3,
+  (* G', S |-! v: T   => G, S |-! v: T *)
+  (forall G S d D, ty_def G S d D -> forall G1 G2 G3, (* todo: is ty_def really |-!? *)
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    ty_def (G1 & G2 & G3) d D) /\
-  (forall G ds T, ty_defs G ds T -> forall G1 G2 G3,
+    ty_def (G1 & G2 & G3) S d D) /\
+  (* G', S |- T <: U   =>   G, S |- T <: U *)
+  (forall G S ds T, ty_defs G S ds T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    ty_defs (G1 & G2 & G3) ds T) /\
+    ty_defs (G1 & G2 & G3) S ds T) /\
+  (* G', S ~ stack, store   =>   G, S ~ stack, store *)
   (forall m1 m2 G S T U, subtyp m1 m2 G S T U -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
@@ -523,6 +528,34 @@ Proof.
     specialize (H0 z zL G1 G2 (G3 & z ~ S2)).
     repeat rewrite concat_assoc in H0.
     apply* H0.
+Qed.
+
+Lemma weaken_rules_sigma:
+  (* S = S' & l: T *)
+  (* G, S' |- t: T   =>   G, S |- t: T*)
+  (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall S1 S2 S3,
+    S = S1 & S3 ->
+    ok (S1 & S2 & S3) ->
+    ty_trm m1 m2 G (S1 & S2 & S3) t T) /\ 
+  (* G, S' |-! v: T   => G, S |-! v: T *)
+  (forall G S d D, ty_def G S d D -> forall S1 S2 S3,
+    S = S1 & S3 ->
+    ok (S1 & S2 & S3) ->
+    ty_def G (S1 & S2 & S3) d D) /\
+  (* G, S' |- T <: U   =>   G, S |- T <: U *)
+  (forall G S ds T, ty_defs G S ds T -> forall S1 S2 S3,
+    S = S1 & S3 ->
+    ok (S1 & S2 & S3) ->
+    ty_defs G (S1 & S2 & S3) ds T) /\
+  (* G, S' ~ stack, store   => G, S ~ stack, store *)
+  (forall m1 m2 G S T U, subtyp m1 m2 G S T U -> forall S1 S2 S3,
+    S = S1 & S3 ->
+    ok (S1 & S2 & S3) ->
+    subtyp m1 m2 G (S1 & S2 & S3) T U).
+Proof.
+  apply rules_mutind; try solve [eauto].
+  + intros. subst.
+    eapply ty_loc. eapply binds_weaken; eauto.
 Qed.
 
 Lemma weaken_ty_trm:  forall m1 m2 G1 G2 S t T,
