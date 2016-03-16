@@ -624,13 +624,13 @@ Proof.
      inversion_clear IHWf3 as [v0 IHWf]. exists G1 G2 v0.
      inversion IHWf. inversion H3. split. auto. split. auto.
      apply weaken_ty_trm_sigma. auto.
-     apply wf_stack_to_ok_G in Wf. inversion Wf. eauto.
+     apply wf_stack_to_ok_G in Wf. inversion Wf. auto.
 Qed.
 
-Lemma stack_binds_to_ctx_binds_raw: forall s G S x v,
-  wf_stack_store G S s ->
-  binds x v s ->
-  exists G1 G2 T, G = G1 & (x ~ T) & G2 /\ ty_trm ty_precise sub_general G1 (trm_val v) T.
+Lemma stack_binds_to_ctx_binds_raw: forall stack store G S x v,
+  wf_stack_store G S stack store ->
+  binds x v stack ->
+  exists G1 G2 T, G = G1 & (x ~ T) & G2 /\ ty_trm ty_precise sub_general G1 S (trm_val v) T.
 Proof.
   introv Wf Bi. gen x v Bi. induction Wf; intros.
   + false* binds_empty_inv.
@@ -639,6 +639,13 @@ Proof.
       rewrite concat_empty_r. auto.
     - specialize (IHWf _ _ Bi). destruct IHWf as [G1 [G2 [T0' [Eq Ty]]]].
       subst. exists G1 (G2 & x ~ T) T0'. rewrite concat_assoc. auto.
+  + specialize (IHWf _ _ Bi).
+    inversion_clear IHWf as [G1 IHWf2].
+    inversion_clear IHWf2 as [G2 IHWf3].
+    inversion_clear IHWf3 as [v1 IHWf]. exists G1 G2 v1.
+    inversion IHWf. split. auto. 
+    apply weaken_ty_trm_sigma. auto.
+    apply wf_stack_to_ok_G in Wf. inversion Wf. auto.
 Qed.
 
 Lemma invert_wf_stack_concat: forall s G1 G2,
