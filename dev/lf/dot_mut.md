@@ -1,4 +1,4 @@
-## Abstract Syntax
+# Abstract Syntax
 
     Term member     a, b, c
     Type member     A, B, C
@@ -78,7 +78,7 @@
     (Var)
                             (Γ, x: T, Γ') | Σ ⊢ x: T
 
-    (Ref)
+    (LOC)
                           Γ | (Σ, l: T, Σ') ⊢ l: Ref T
     
     (All-I)
@@ -132,7 +132,7 @@
                                 Γ | Σ ⊢ ref x: Ref T
 
     (Deref)
-                                    Γ | Σ ⊢ x: Ref T
+                                Γ | Σ ⊢ x: Ref T
                                 ----------------
                                  Γ | Σ ⊢ !x: T
 

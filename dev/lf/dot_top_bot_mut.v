@@ -419,6 +419,8 @@ with   rules_defs_mut   := Induction for ty_defs   Sort Prop
 with   rules_subtyp     := Induction for subtyp    Sort Prop.
 Combined Scheme rules_mutind from rules_trm_mut, rules_def_mut, rules_defs_mut, rules_subtyp.
 
+Combined Scheme rules_mutind2 from rules_trm_mut, rules_def_mut, rules_defs_mut, rules_subtyp, rules_trm_mut, rules_def_mut, rules_defs_mut, rules_subtyp.
+
 (* ###################################################################### *)
 (** ** Tactics *)
 
@@ -426,7 +428,7 @@ Ltac gather_vars :=
   let A := gather_vars_with (fun x : vars      => x         ) in
   let B := gather_vars_with (fun x : var       => \{ x }    ) in
   let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_ctx_types x)) in
-  let D := gather_vars_with (fun x : stack       => dom x     ) in
+  let D := gather_vars_with (fun x : stack     => dom x     ) in
   let E := gather_vars_with (fun x : avar      => fv_avar  x) in
   let F := gather_vars_with (fun x : trm       => fv_trm   x) in
   let G := gather_vars_with (fun x : val       => fv_val   x) in
@@ -477,29 +479,24 @@ Qed.
 (* ###################################################################### *)
 (** ** Weakening *)
 
-Lemma weaken_rules_gamma:
-  (* G = G' & x: S *)
-  (* G', S |- t: T   =>   G, S |- t: T*)
+Lemma weaken_rules:
   (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
     ty_trm m1 m2 (G1 & G2 & G3) S t T) /\
-  (* G', S |-! v: T   => G, S |-! v: T *)
-  (forall G S d D, ty_def G S d D -> forall G1 G2 G3, (* todo: is ty_def really |-!? *)
+  (forall G S d D, ty_def G S d D -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
     ty_def (G1 & G2 & G3) S d D) /\
-  (* G', S |- T <: U   =>   G, S |- T <: U *)
   (forall G S ds T, ty_defs G S ds T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
     ty_defs (G1 & G2 & G3) S ds T) /\
-  (* G', S ~ stack, store   =>   G, S ~ stack, store *)
   (forall m1 m2 G S T U, subtyp m1 m2 G S T U -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
     subtyp m1 m2 (G1 & G2 & G3) S T U).
-Proof.
+ Proof.
   apply rules_mutind; try solve [eauto].
   + intros. subst.
     eapply ty_var. eapply binds_weaken; eauto.
@@ -531,31 +528,26 @@ Proof.
 Qed.
 
 Lemma weaken_rules_sigma:
-  (* S = S' & l: T *)
-  (* G, S' |- t: T   =>   G, S |- t: T*)
   (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall S1 S2 S3,
     S = S1 & S3 ->
     ok (S1 & S2 & S3) ->
     ty_trm m1 m2 G (S1 & S2 & S3) t T) /\ 
-  (* G, S' |-! v: T   => G, S |-! v: T *)
   (forall G S d D, ty_def G S d D -> forall S1 S2 S3,
     S = S1 & S3 ->
     ok (S1 & S2 & S3) ->
     ty_def G (S1 & S2 & S3) d D) /\
-  (* G, S' |- T <: U   =>   G, S |- T <: U *)
   (forall G S ds T, ty_defs G S ds T -> forall S1 S2 S3,
     S = S1 & S3 ->
     ok (S1 & S2 & S3) ->
     ty_defs G (S1 & S2 & S3) ds T) /\
-  (* G, S' ~ stack, store   => G, S ~ stack, store *)
   (forall m1 m2 G S T U, subtyp m1 m2 G S T U -> forall S1 S2 S3,
     S = S1 & S3 ->
     ok (S1 & S2 & S3) ->
     subtyp m1 m2 G (S1 & S2 & S3) T U).
 Proof.
   apply rules_mutind; try solve [eauto].
-  + intros. subst.
-    eapply ty_loc. eapply binds_weaken; eauto.
+  intros. subst.
+  eapply ty_loc. eapply binds_weaken; eauto.
 Qed.
 
 Lemma weaken_ty_trm:  forall m1 m2 G1 G2 S t T,
@@ -568,6 +560,20 @@ Proof.
     rewrite concat_empty_r. reflexivity.
   }
   rewrite EqG. apply* weaken_rules.
+  rewrite concat_empty_r. reflexivity.
+  rewrite <- EqG. assumption.
+Qed.
+
+Lemma weaken_ty_trm_sigma: forall m1 m2 G S1 S2 t T,
+    ty_trm m1 m2 G S1 t T ->
+    ok (S1 & S2) ->
+    ty_trm m1 m2 G (S1 & S2) t T.
+Proof.
+  intros.
+    assert (S1 & S2 = S1 & S2 & empty) as EqG. {
+    rewrite concat_empty_r. reflexivity.
+  }
+  rewrite EqG. apply* weaken_rules_sigma.
   rewrite concat_empty_r. reflexivity.
   rewrite <- EqG. assumption.
 Qed.
@@ -589,20 +595,20 @@ Qed.
 (* ###################################################################### *)
 (** ** Well-formed stack *)
 
-Lemma wf_stack_to_ok_s: forall s G,
-  wf_stack G s -> ok s.
+Lemma wf_stack_to_ok_s: forall G S stack store,
+  wf_stack_store G S stack store -> ok stack /\ ok store.
 Proof. intros. induction H; jauto. Qed.
 
-Lemma wf_stack_to_ok_G: forall s G,
-  wf_stack G s -> ok G.
+Lemma wf_stack_to_ok_G: forall G S stack store,
+  wf_stack_store G S stack store -> ok G /\ ok S.
 Proof. intros. induction H; jauto. Qed.
 
 Hint Resolve wf_stack_to_ok_s wf_stack_to_ok_G.
 
-Lemma ctx_binds_to_stack_binds_raw: forall s G x T,
-  wf_stack G s ->
+Lemma ctx_binds_to_stack_binds_raw: forall stack store G S x T,
+  wf_stack_store G S stack store ->
   binds x T G ->
-  exists G1 G2 v, G = G1 & (x ~ T) & G2 /\ binds x v s /\ ty_trm ty_precise sub_general G1 (trm_val v) T.
+  exists G1 G2 v, G = G1 & (x ~ T) & G2 /\ binds x v stack /\ ty_trm ty_precise sub_general G1 S (trm_val v) T.
 Proof.
   introv Wf Bi. gen x T Bi. induction Wf; intros.
   + false* binds_empty_inv.
@@ -611,10 +617,18 @@ Proof.
       rewrite concat_empty_r. auto.
     - specialize (IHWf _ _ Bi). destruct IHWf as [G1 [G2 [ds' [Eq [Bi' Tyds]]]]].
       subst. exists G1 (G2 & x ~ T) ds'. rewrite concat_assoc. auto.
+(* todo: how to make this pretty? *)
+  +  specialize (IHWf _ _ Bi).
+     inversion_clear IHWf as [G1 IHWf2].
+     inversion_clear IHWf2 as [G2 IHWf3].
+     inversion_clear IHWf3 as [v0 IHWf]. exists G1 G2 v0.
+     inversion IHWf. inversion H3. split. auto. split. auto.
+     apply weaken_ty_trm_sigma. auto.
+     apply wf_stack_to_ok_G in Wf. inversion Wf. eauto.
 Qed.
 
-Lemma stack_binds_to_ctx_binds_raw: forall s G x v,
-  wf_stack G s ->
+Lemma stack_binds_to_ctx_binds_raw: forall s G S x v,
+  wf_stack_store G S s ->
   binds x v s ->
   exists G1 G2 T, G = G1 & (x ~ T) & G2 /\ ty_trm ty_precise sub_general G1 (trm_val v) T.
 Proof.
