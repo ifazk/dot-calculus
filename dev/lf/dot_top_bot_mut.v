@@ -617,14 +617,14 @@ Proof.
       rewrite concat_empty_r. auto.
     - specialize (IHWf _ _ Bi). destruct IHWf as [G1 [G2 [ds' [Eq [Bi' Tyds]]]]].
       subst. exists G1 (G2 & x ~ T) ds'. rewrite concat_assoc. auto.
-(* todo: how to make this pretty? *)
   +  specialize (IHWf _ _ Bi).
-     inversion_clear IHWf as [G1 IHWf2].
-     inversion_clear IHWf2 as [G2 IHWf3].
-     inversion_clear IHWf3 as [v0 IHWf]. exists G1 G2 v0.
-     inversion IHWf. inversion H3. split. auto. split. auto.
-     apply weaken_ty_trm_sigma. auto.
-     apply wf_stack_to_ok_G in Wf. inversion Wf. auto.
+     destruct IHWf as [G1 [G2 [v0 IHWf']]].
+     exists G1 G2 v0.
+     destruct IHWf' as [Heq [Hbinds Htrm]].
+     assert (ty_trm ty_precise sub_general G1 (S & l ~ T) (trm_val v0) T0).
+       apply weaken_ty_trm_sigma. assumption.
+       apply wf_stack_to_ok_G in Wf. inversion Wf. auto.
+     tauto.
 Qed.
 
 Lemma stack_binds_to_ctx_binds_raw: forall stack store G S x v,
@@ -648,20 +648,28 @@ Proof.
     apply wf_stack_to_ok_G in Wf. inversion Wf. auto.
 Qed.
 
-Lemma invert_wf_stack_concat: forall s G1 G2,
-  wf_stack (G1 & G2) s ->
-  exists s1 s2, s = s1 & s2 /\ wf_stack G1 s1.
+Lemma invert_wf_stack_concat: forall sta sto G1 G2 S,
+  wf_stack_store (G1 & G2) S sta sto ->
+  exists sta1 sta2, sta = sta1 & sta2 /\ wf_stack_store G1 S sta1 sto.
 Proof.
   introv Wf. gen_eq G: (G1 & G2). gen G1 G2. induction Wf; introv Eq; subst.
   - do 2 exists (@empty val). rewrite concat_empty_r.
     apply empty_concat_inv in Eq. destruct Eq. subst. auto.
   - destruct (env_case G2) as [Eq1 | [x' [T' [G2' Eq1]]]].
     * subst G2. rewrite concat_empty_r in Eq. subst G1.
-      exists (s & x ~ v) (@empty val). rewrite concat_empty_r. auto.
+      exists (stack0 & x ~ v) (@empty val). rewrite concat_empty_r. auto.
     * subst G2. rewrite concat_assoc in Eq. apply eq_push_inv in Eq.
       destruct Eq as [? [? ?]]. subst x' T' G. specialize (IHWf G1 G2' eq_refl).
       destruct IHWf as [s1 [s2 [Eq Wf']]]. subst.
       exists s1 (s2 & x ~ v). rewrite concat_assoc. auto.
+  - specialize (IHWf G1 G2 eq_refl). 
+    destruct IHWf as [sta1 [sta2 IHWf']].
+    exists sta1 sta2.
+    destruct IHWf'. split; auto.
+    apply wf_store_push. auto. auto. auto.
+    destruct (env_case G2).
+    * subst. rewrite concat_empty_r in *. assumption.
+    * destruct H4 as [x [v0 [E' H4']]]. subst. 
 Qed.
 
 Lemma stack_unbound_to_ctx_unbound: forall s G x,
