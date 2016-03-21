@@ -779,8 +779,8 @@ Proof.
 Qed.
 
 
-Lemma typing_implies_bound: forall m1 m2 G x T,
-  ty_trm m1 m2 G (trm_var (avar_f x)) T ->
+Lemma typing_implies_bound: forall m1 m2 G S x T,
+  ty_trm m1 m2 G S (trm_var (avar_f x)) T ->
   exists S, binds x S G.
 Proof.
   intros. remember (trm_var (avar_f x)) as t.
@@ -791,13 +791,27 @@ Proof.
   - inversion Heqt. subst. exists T. assumption.
 Qed.
 
-Lemma typing_bvar_implies_false: forall m1 m2 G a T,
-  ty_trm m1 m2 G (trm_var (avar_b a)) T ->
+Lemma typing_implies_bound_loc: forall m1 m2 G S l T,
+  ty_trm m1 m2 G S (trm_val (val_loc l)) T ->
+  exists T', binds l T' S.
+Proof.
+  intros. remember (trm_val (val_loc l)) as t.
+  induction H;
+    try solve [inversion Heqt];
+    try solve [inversion Heqt; eapply IHty_trm; eauto];
+    try solve [inversion Heqt; eapply IHty_trm1; eauto].
+  - inversion Heqt. subst. exists T. assumption.
+Qed.
+
+
+Lemma typing_bvar_implies_false: forall m1 m2 G S a T,
+  ty_trm m1 m2 G S (trm_var (avar_b a)) T ->
   False.
 Proof.
   intros. remember (trm_var (avar_b a)) as t. induction H; try solve [inversion Heqt].
   eapply IHty_trm. auto.
 Qed.
+
 
 (* ###################################################################### *)
 (** ** Extra Rec *)
