@@ -372,6 +372,7 @@ with subtyp : tymode -> submode -> ctx -> sigma -> typ -> typ -> Prop :=
        subtyp ty_general sub_general (G & x ~ S2) S (open_typ x T1) (open_typ x T2)) ->
     subtyp ty_general m2 G S (typ_all S1 T1) (typ_all S2 T2).
 
+
 Inductive wf_stack: ctx -> sigma -> stack -> Prop :=
 | wf_stack_empty: wf_stack empty empty empty 
 | wf_stack_push: forall G S stack x T v,
@@ -634,7 +635,10 @@ Proof. intros. induction H; jauto. Qed.
 
 Hint Resolve wf_stack_to_ok_stack wf_store_to_ok_store wf_stack_to_ok_G wf_store_to_ok_S.
 
-Lemma ctx_binds_to_stack_binds_raw: forall stack store G S x T,
+
+(* todo make wf definition more general since the next two proofs and the ones after are almost identical to each other *)
+
+Lemma ctx_binds_to_stack_binds_raw: forall stack G S x T,
   wf_stack G S stack ->
   binds x T G ->
   exists G1 G2 v, G = G1 & (x ~ T) & G2 /\ binds x v stack /\ ty_trm ty_precise sub_general G1 S (trm_val v) T.
@@ -646,18 +650,24 @@ Proof.
       rewrite concat_empty_r. auto.
     - specialize (IHWf _ _ Bi). destruct IHWf as [G1 [G2 [ds' [Eq [Bi' Tyds]]]]].
       subst. exists G1 (G2 & x ~ T) ds'. rewrite concat_assoc. auto.
-  +  specialize (IHWf _ _ Bi).
-     destruct IHWf as [G1 [G2 [v0 IHWf']]].
-     exists G1 G2 v0.
-     destruct IHWf' as [Heq [Hbinds Htrm]].
-     assert (ty_trm ty_precise sub_general G1 (S & l ~ T) (trm_val v0) T0).
-       apply weaken_ty_trm_sigma. assumption.
-       apply wf_stack_to_ok_G in Wf. inversion Wf. auto.
-     tauto.
 Qed.
 
-Lemma stack_binds_to_ctx_binds_raw: forall stack store G S x v,
-  wf_stack_store G S stack store ->
+Lemma sigma_binds_to_store_binds_raw: forall store G S l T,
+  wf_store G S store ->
+  binds l T S ->
+  exists S1 S2 v, S = S1 & (l ~ T) & S2 /\ binds l v store /\ ty_trm ty_precise sub_general G S1 (trm_val v) T.
+Proof.
+  introv Wf Bi. gen l T Bi. induction Wf; intros.
+  + false* binds_empty_inv.
+  + unfolds binds. rewrite get_push in *. case_if.
+    - inversions Bi. exists S (@empty typ) v.
+      rewrite concat_empty_r. auto.
+    -  specialize (IHWf _ _ Bi). destruct IHWf as [G1 [G2 [ds' [Eq [Bi' Tyds]]]]].
+      subst. exists G1 (G2 & l ~ T) ds'. rewrite concat_assoc. auto.
+Qed.
+
+Lemma stack_binds_to_ctx_binds_raw: forall stack G S x v,
+  wf_stack G S stack ->
   binds x v stack ->
   exists G1 G2 T, G = G1 & (x ~ T) & G2 /\ ty_trm ty_precise sub_general G1 S (trm_val v) T.
 Proof.
@@ -668,18 +678,25 @@ Proof.
       rewrite concat_empty_r. auto.
     - specialize (IHWf _ _ Bi). destruct IHWf as [G1 [G2 [T0' [Eq Ty]]]].
       subst. exists G1 (G2 & x ~ T) T0'. rewrite concat_assoc. auto.
-  + specialize (IHWf _ _ Bi).
-    inversion_clear IHWf as [G1 IHWf2].
-    inversion_clear IHWf2 as [G2 IHWf3].
-    inversion_clear IHWf3 as [v1 IHWf]. exists G1 G2 v1.
-    inversion IHWf. split. auto. 
-    apply weaken_ty_trm_sigma. auto.
-    apply wf_stack_to_ok_G in Wf. inversion Wf. auto.
 Qed.
 
-Lemma invert_wf_stack_concat: forall sta sto G1 G2 S,
-  wf_stack_store (G1 & G2) S sta sto ->
-  exists sta1 sta2, sta = sta1 & sta2 /\ wf_stack_store G1 S sta1 sto.
+Lemma store_binds_to_sigma_binds_raw: forall store G S l v,
+  wf_store G S store ->
+  binds l v store ->
+  exists S1 S2 T, S = S1 & (l ~ T) & S2 /\ ty_trm ty_precise sub_general G S1 (trm_val v) T.
+Proof.
+  introv Wf Bi. gen l v Bi. induction Wf; intros.
+  + false* binds_empty_inv.
+  + unfolds binds. rewrite get_push in *. case_if.
+    - inversions Bi. exists S (@empty typ) T.
+      rewrite concat_empty_r. auto.
+    - specialize (IHWf _ _ Bi). destruct IHWf as [S1 [S2 [T0' [Eq Ty]]]].
+      subst. exists S1 (S2 & l ~ T) T0'. rewrite concat_assoc. auto.
+Qed.
+
+Lemma invert_wf_stack_concat: forall sta G1 G2 S,
+  wf_stack (G1 & G2) S sta ->
+  exists sta1 sta2, sta = sta1 & sta2 /\ wf_stack G1 S sta1.
 Proof.
   introv Wf. gen_eq G: (G1 & G2). gen G1 G2. induction Wf; introv Eq; subst.
   - do 2 exists (@empty val). rewrite concat_empty_r.
@@ -691,12 +708,24 @@ Proof.
       destruct Eq as [? [? ?]]. subst x' T' G. specialize (IHWf G1 G2' eq_refl).
       destruct IHWf as [s1 [s2 [Eq Wf']]]. subst.
       exists s1 (s2 & x ~ v). rewrite concat_assoc. auto.
-  - specialize (IHWf G1 G2 eq_refl). 
-    destruct IHWf as [sta1 [sta2 IHWf']].
-    exists sta1 sta2.
-    destruct IHWf'. split; auto. subst.
-    apply wf_store_push. auto. auto. auto.  
 Qed.
+
+Lemma invert_wf_store_concat: forall sto G S1 S2,
+  wf_store G (S1 & S2) sto ->
+  exists sto1 sto2, sto = sto1 & sto2 /\ wf_store G S1 sto1.
+Proof.
+  introv Wf. gen_eq S: (S1 & S2). gen S1 S2. induction Wf; introv Eq; subst.
+  - do 2 exists (@empty val). rewrite concat_empty_r.
+    apply empty_concat_inv in Eq. destruct Eq. subst. auto.
+  - destruct (env_case S2) as [Eq1 | [x' [T' [S2' Eq1]]]].
+    * subst S2. rewrite concat_empty_r in Eq. subst S1.
+      exists (store0 & l ~ v) (@empty val). rewrite concat_empty_r. auto.
+    * subst S2. rewrite concat_assoc in Eq. apply eq_push_inv in Eq.
+      destruct Eq as [? [? ?]]. subst x' T' S. specialize (IHWf S1 S2' eq_refl).
+      destruct IHWf as [s1 [s2 [Eq Wf']]]. subst.
+      exists s1 (s2 & l ~ v). rewrite concat_assoc. auto.
+Qed.
+
 
 Lemma stack_unbound_to_ctx_unbound: forall s G x,
   wf_stack G s ->
