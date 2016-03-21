@@ -372,20 +372,23 @@ with subtyp : tymode -> submode -> ctx -> sigma -> typ -> typ -> Prop :=
        subtyp ty_general sub_general (G & x ~ S2) S (open_typ x T1) (open_typ x T2)) ->
     subtyp ty_general m2 G S (typ_all S1 T1) (typ_all S2 T2).
 
-Inductive wf_stack_store: ctx -> sigma -> stack -> store -> Prop :=
-| wf_stack_store_empty: wf_stack_store empty empty empty empty
-| wf_stack_push: forall G S stack store x T v,
-    wf_stack_store G S stack store ->
+Inductive wf_stack: ctx -> sigma -> stack -> Prop :=
+| wf_stack_empty: wf_stack empty empty empty 
+| wf_stack_push: forall G S stack x T v,
+    wf_stack G S stack ->
     x # G ->
     x # stack ->
     ty_trm ty_precise sub_general G S (trm_val v) T ->
-    wf_stack_store (G & x ~ T) S (stack & x ~ v) store
-| wf_store_push: forall G S stack store l T v,
-    wf_stack_store G S stack store ->
-    l # S ->
+    wf_stack (G & x ~ T) S (stack & x ~ v).
+
+Inductive wf_store: ctx -> sigma -> store -> Prop :=
+| wf_store_empty: wf_store empty empty empty
+| wf_store_push: forall G S store l T v,
+    wf_store G S store ->
+    l # G ->
     l # store ->
     ty_trm ty_precise sub_general G S (trm_val v) T ->
-    wf_stack_store G (S & l ~ T) stack (store & l ~ v).
+    wf_store G (S & l ~ T) (store & l ~ v).
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -463,7 +466,7 @@ Hint Constructors
   ty_trm ty_def ty_defs
   subtyp.
 
-Hint Constructors wf_stack_store.
+Hint Constructors wf_stack wf_store.
 
 Lemma fresh_push_eq_inv: forall A x a (E: env A),
   x # (E & x ~ a) -> False.
@@ -665,11 +668,8 @@ Proof.
   - specialize (IHWf G1 G2 eq_refl). 
     destruct IHWf as [sta1 [sta2 IHWf']].
     exists sta1 sta2.
-    destruct IHWf'. split; auto.
-    apply wf_store_push. auto. auto. auto.
-    destruct (env_case G2).
-    * subst. rewrite concat_empty_r in *. assumption.
-    * destruct H4 as [x [v0 [E' H4']]]. subst. 
+    destruct IHWf'. split; auto. subst.
+    apply wf_store_push. auto. auto. auto.  
 Qed.
 
 Lemma stack_unbound_to_ctx_unbound: forall s G x,
