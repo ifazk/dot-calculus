@@ -372,25 +372,28 @@ with subtyp : tymode -> submode -> ctx -> sigma -> typ -> typ -> Prop :=
        subtyp ty_general sub_general (G & x ~ S2) S (open_typ x T1) (open_typ x T2)) ->
     subtyp ty_general m2 G S (typ_all S1 T1) (typ_all S2 T2).
 
-
-Inductive wf_stack: ctx -> sigma -> stack -> Prop :=
-| wf_stack_empty: wf_stack empty empty empty 
-| wf_stack_push: forall G S stack x T v,
-    wf_stack G S stack ->
+(* generalization of well-formedness for stacks/stores; bool indicates whether we're dealing with a stack *)
+Inductive wf: bool -> ctx -> sigma -> env val -> Prop :=
+| wf_empty: forall b, wf b empty empty empty
+| wf_push_stack: forall G S stack x T v,
+    wf true G S stack ->
     x # G ->
     x # stack ->
     ty_trm ty_precise sub_general G S (trm_val v) T ->
-    wf_stack (G & x ~ T) S (stack & x ~ v).
-
-Inductive wf_store: ctx -> sigma -> store -> Prop :=
-| wf_store_empty: wf_store empty empty empty
-| wf_store_push: forall G S store l T v,
-    wf_store G S store ->
+    wf true (G & x ~ T) S (stack & x ~ v)
+| wf_push_store: forall G S store l T v,
+    wf false G S store ->
     l # S ->
     l # store ->
     ty_trm ty_precise sub_general G S (trm_val v) T ->
-    wf_store G (S & l ~ T) (store & l ~ v).
+    wf false G (S & l ~ T) (store & l ~ v).
 
+Definition wf_stack (G: ctx) (S: sigma) (s: stack): Prop :=
+  wf true G S s.
+
+Definition wf_store (G: ctx) (S: sigma) (s: store): Prop :=
+  wf false G S s.
+    
 Definition wf_stack_store(G: ctx) (S: sigma) (sta: stack) (sto: store): Prop := 
   wf_stack G S sta /\ wf_store G S sto.
 
@@ -817,22 +820,22 @@ Qed.
 (** ** Extra Rec *)
 
 Lemma extra_bnd_rules:
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G1 G2 x S G',
-    G = G1 & (x ~ open_typ x S) & G2 ->
-    G' = G1 & (x ~ typ_bnd S) & G2 ->
-    ty_trm m1 m2 G' t T)
-/\ (forall G d D, ty_def G d D -> forall G1 G2 x S G',
-    G = G1 & (x ~ open_typ x S) & G2 ->
-    G' = G1 & (x ~ typ_bnd S) & G2 ->
-    ty_def G' d D)
-/\ (forall G ds T, ty_defs G ds T -> forall G1 G2 x S G',
-    G = G1 & (x ~ open_typ x S) & G2 ->
-    G' = G1 & (x ~ typ_bnd S) & G2 ->
-    ty_defs G' ds T)
-/\ (forall m1 m2 G T U, subtyp m1 m2 G T U -> forall G1 G2 x S G',
-    G = G1 & (x ~ open_typ x S) & G2 ->
-    G' = G1 & (x ~ typ_bnd S) & G2 ->
-    subtyp m1 m2 G' T U).
+  (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 x U G',
+    G = G1 & (x ~ open_typ x U) & G2 ->
+    G' = G1 & (x ~ typ_bnd U) & G2 ->
+    ty_trm m1 m2 G' S t T)
+/\ (forall G S d D, ty_def G S d D -> forall G1 G2 x U G',
+    G = G1 & (x ~ open_typ x U) & G2 ->
+    G' = G1 & (x ~ typ_bnd U) & G2 ->
+    ty_def G' S d D)
+/\ (forall G S ds T, ty_defs G S ds T -> forall G1 G2 x U G',
+    G = G1 & (x ~ open_typ x U) & G2 ->
+    G' = G1 & (x ~ typ_bnd U) & G2 ->
+    ty_defs G' S ds T)
+/\ (forall m1 m2 G S T U, subtyp m1 m2 G S T U -> forall G1 G2 x V G',
+    G = G1 & (x ~ open_typ x V) & G2 ->
+    G' = G1 & (x ~ typ_bnd V) & G2 ->
+    subtyp m1 m2 G' S T U).
 Proof.
   apply rules_mutind; intros; eauto.
   - (* ty_var *)
@@ -846,7 +849,7 @@ Proof.
     apply_fresh ty_all_intro as y; eauto.
     assert (y \notin L) as FrL by eauto.
     specialize (H y FrL).
-    specialize (H G1 (G2 & y ~ T) x S).
+    specialize (H G1 (G2 & y ~ T) x U0).
     eapply H; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. reflexivity.
@@ -855,7 +858,7 @@ Proof.
     apply_fresh ty_new_intro as y; eauto;
     assert (y \notin L) as FrL by eauto.
     specialize (H y FrL).
-    specialize (H G1 (G2 & y ~ open_typ y T) x S).
+    specialize (H G1 (G2 & y ~ open_typ y T) x U).
     eapply H; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. reflexivity.
@@ -864,7 +867,7 @@ Proof.
     apply_fresh ty_let as y; eauto.
     assert (y \notin L) as FrL by eauto.
     specialize (H0 y FrL).
-    specialize (H0 G1 (G2 & y ~ T) x S).
+    specialize (H0 G1 (G2 & y ~ T) x U0).
     eapply H0; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. reflexivity.
@@ -873,11 +876,13 @@ Proof.
     apply_fresh subtyp_all as y; eauto.
     assert (y \notin L) as FrL by eauto.
     specialize (H0 y FrL).
-    specialize (H0 G1 (G2 & y ~ S2) x S).
+    specialize (H0 G1 (G2 & y ~ S2) x V).
     eapply H0; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. reflexivity.
 Qed.
+
+(* todo same for sigma *)
 
 (* ###################################################################### *)
 (** ** Substitution *)
@@ -897,6 +902,7 @@ Fixpoint subst_typ (z: var) (u: var) (T: typ) { struct T } : typ :=
   | typ_sel x L    => typ_sel (subst_avar z u x) L
   | typ_bnd T      => typ_bnd (subst_typ z u T)
   | typ_all T U    => typ_all (subst_typ z u T) (subst_typ z u U)
+  | typ_ref T      => typ_ref (subst_typ z u T)
   end
 with subst_dec (z: var) (u: var) (D: dec) { struct D } : dec :=
   match D with
@@ -911,11 +917,15 @@ Fixpoint subst_trm (z: var) (u: var) (t: trm) : trm :=
   | trm_sel x1 L     => trm_sel (subst_avar z u x1) L
   | trm_app x1 x2    => trm_app (subst_avar z u x1) (subst_avar z u x2)
   | trm_let t1 t2    => trm_let (subst_trm z u t1) (subst_trm z u t2)
+  | trm_ref x        => trm_ref (subst_avar z u x)
+  | trm_deref x      => trm_ref (subst_avar z u x)
+  | trm_asg x y      => trm_asg (subst_avar z u x) (subst_avar z u y)
   end
 with subst_val (z: var) (u: var) (v: val) : val :=
   match v with
   | val_new T ds     => val_new (subst_typ z u T) (subst_defs z u ds)
   | val_lambda T t   => val_lambda (subst_typ z u T) (subst_trm z u t)
+  | val_loc l        => val_loc l 
   end
 with subst_def (z: var) (u: var) (d: def) : def :=
   match d with
