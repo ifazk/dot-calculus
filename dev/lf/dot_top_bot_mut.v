@@ -385,10 +385,13 @@ Inductive wf_store: ctx -> sigma -> store -> Prop :=
 | wf_store_empty: wf_store empty empty empty
 | wf_store_push: forall G S store l T v,
     wf_store G S store ->
-    l # G ->
+    l # S ->
     l # store ->
     ty_trm ty_precise sub_general G S (trm_val v) T ->
     wf_store G (S & l ~ T) (store & l ~ v).
+
+Definition wf_stack_store(G: ctx) (S: sigma) (sta: stack) (sto: store): Prop := 
+  wf_stack G S sta /\ wf_store G S sto.
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -595,21 +598,44 @@ Proof.
   rewrite <- EqG. assumption.
 Qed.
 
+Lemma weaken_subtyp_sigma: forall m1 m2 G S1 S2 T U,
+  subtyp m1 m2 G S1 T U ->
+  ok (S1 & S2) ->
+  subtyp m1 m2 G (S1 & S2) T U.
+Proof.
+ intros.
+    assert (S1 & S2 = S1 & S2 & empty) as EqG. {
+    rewrite concat_empty_r. reflexivity.
+  }
+  rewrite EqG. apply* weaken_rules_sigma.
+  rewrite concat_empty_r. reflexivity.
+  rewrite <- EqG. assumption.
+Qed.
+
+
 (* ###################################################################### *)
-(** ** Well-formed stack *)
+(** ** Well-formed stack and store *)
 
-Lemma wf_stack_to_ok_s: forall G S stack store,
-  wf_stack_store G S stack store -> ok stack /\ ok store.
+Lemma wf_stack_to_ok_stack: forall G S stack,
+  wf_stack G S stack -> ok stack.
 Proof. intros. induction H; jauto. Qed.
 
-Lemma wf_stack_to_ok_G: forall G S stack store,
-  wf_stack_store G S stack store -> ok G /\ ok S.
+Lemma wf_store_to_ok_store: forall G S store,
+  wf_store G S store -> ok store.
 Proof. intros. induction H; jauto. Qed.
 
-Hint Resolve wf_stack_to_ok_s wf_stack_to_ok_G.
+Lemma wf_stack_to_ok_G: forall G S stack,
+  wf_stack G S stack -> ok G. 
+Proof. intros. induction H; jauto. Qed.
+
+Lemma wf_store_to_ok_S: forall G S store,
+  wf_store G S store -> ok S.
+Proof. intros. induction H; jauto. Qed.
+
+Hint Resolve wf_stack_to_ok_stack wf_store_to_ok_store wf_stack_to_ok_G wf_store_to_ok_S.
 
 Lemma ctx_binds_to_stack_binds_raw: forall stack store G S x T,
-  wf_stack_store G S stack store ->
+  wf_stack G S stack ->
   binds x T G ->
   exists G1 G2 v, G = G1 & (x ~ T) & G2 /\ binds x v stack /\ ty_trm ty_precise sub_general G1 S (trm_val v) T.
 Proof.
