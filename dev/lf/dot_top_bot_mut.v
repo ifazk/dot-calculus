@@ -726,9 +726,8 @@ Proof.
       exists s1 (s2 & l ~ v). rewrite concat_assoc. auto.
 Qed.
 
-
-Lemma stack_unbound_to_ctx_unbound: forall s G x,
-  wf_stack G s ->
+Lemma stack_unbound_to_ctx_unbound: forall s G S x,
+  wf_stack G S s ->
   x # s ->
   x # G.
 Proof.
@@ -740,8 +739,21 @@ Proof.
     - auto.
 Qed.
 
-Lemma ctx_unbound_to_stack_unbound: forall s G x,
-  wf_stack G s ->
+Lemma store_unbound_to_sigma_unbound: forall s G S l,
+  wf_store G S s ->
+  l # s ->
+  l # S.
+Proof.
+  introv Wf Ub_s.
+  induction Wf.
+  + auto.
+  + destruct (classicT (l0 = l)) as [Eq | Ne].
+    - subst. false (fresh_push_eq_inv Ub_s).
+    - auto.
+Qed.
+
+Lemma ctx_unbound_to_stack_unbound: forall s G S x,
+  wf_stack G S s ->
   x # G ->
   x # s.
 Proof.
@@ -752,6 +764,20 @@ Proof.
     - subst. false (fresh_push_eq_inv Ub).
     - auto.
 Qed.
+
+Lemma sigma_unbound_to_store_unbound: forall s G S l,
+  wf_store G S s ->
+  l # S ->
+  l # s.
+Proof.
+  introv Wf Ub.
+  induction Wf.
+  + auto.
+  + destruct (classicT (l0 = l)) as [Eq | Ne].
+    - subst. false (fresh_push_eq_inv Ub).
+    - auto.
+Qed.
+
 
 Lemma typing_implies_bound: forall m1 m2 G x T,
   ty_trm m1 m2 G (trm_var (avar_f x)) T ->
