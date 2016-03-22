@@ -372,27 +372,37 @@ with subtyp : tymode -> submode -> ctx -> sigma -> typ -> typ -> Prop :=
        subtyp ty_general sub_general (G & x ~ S2) S (open_typ x T1) (open_typ x T2)) ->
     subtyp ty_general m2 G S (typ_all S1 T1) (typ_all S2 T2).
 
-(* generalization of well-formedness for stacks/stores; bool indicates whether we're dealing with a stack *)
-Inductive wf: bool -> ctx -> sigma -> env val -> Prop :=
-| wf_empty: forall b, wf b empty empty empty
-| wf_push_stack: forall G S stack x T v,
-    wf true G S stack ->
-    x # G ->
-    x # stack ->
-    ty_trm ty_precise sub_general G S (trm_val v) T ->
-    wf true (G & x ~ T) S (stack & x ~ v)
-| wf_push_store: forall G S store l T v,
-    wf false G S store ->
-    l # S ->
-    l # store ->
-    ty_trm ty_precise sub_general G S (trm_val v) T ->
-    wf false G (S & l ~ T) (store & l ~ v).
+Inductive envmode : Set := env_stack : envmode | env_store : envmode.
+
+Definition get_ctx (m: envmode) (env1 env2: env typ) :=
+  match m with
+  | env_stack => env1
+  | env_store => env2
+  end.
+
+Definition get_sigma (m: envmode) (env1 env2: env typ) :=
+  match m with
+  | env_store => env1
+  | env_stack => env2
+  end.
+
+(* generalization of well-formedness for stacks/stores
+ * e1 denotes the main environment (for env_stack, it's ctx, for env_store, it's sigma),
+ * and e2 the other environment *)
+Inductive wf: envmode -> env typ -> env typ -> env val -> Prop :=
+| wf_empty: forall m, wf m empty empty empty
+| wf_push: forall m e1 e2 s x T v,
+    wf m e1 e2 s ->
+    x # e1 ->
+    x # s ->
+    ty_trm ty_precise sub_general (get_ctx m e1 e2) (get_sigma m e1 e2) (trm_val v) T ->
+    wf m (e1 & x ~ T) e2 (s & x ~ v).
 
 Definition wf_stack (G: ctx) (S: sigma) (s: stack): Prop :=
-  wf true G S s.
+  wf env_stack G S s.
 
 Definition wf_store (G: ctx) (S: sigma) (s: store): Prop :=
-  wf false G S s.
+  wf env_store G S s.
     
 Definition wf_stack_store(G: ctx) (S: sigma) (sta: stack) (sto: store): Prop := 
   wf_stack G S sta /\ wf_store G S sto.
@@ -473,7 +483,7 @@ Hint Constructors
   ty_trm ty_def ty_defs
   subtyp.
 
-Hint Constructors wf_stack wf_store.
+Hint Constructors wf.
 
 Lemma fresh_push_eq_inv: forall A x a (E: env A),
   x # (E & x ~ a) -> False.
@@ -560,6 +570,8 @@ Proof.
   eapply ty_loc. eapply binds_weaken; eauto.
 Qed.
 
+(* todo generalize the following lemmas? *)
+
 Lemma weaken_ty_trm:  forall m1 m2 G1 G2 S t T,
     ty_trm m1 m2 G1 S t T ->
     ok (G1 & G2) ->
@@ -620,29 +632,19 @@ Qed.
 (* ###################################################################### *)
 (** ** Well-formed stack and store *)
 
-Lemma wf_stack_to_ok_stack: forall G S stack,
-  wf_stack G S stack -> ok stack.
+Lemma wf_env_to_ok_env: forall m G S env,
+  wf m G S env -> ok env.
 Proof. intros. induction H; jauto. Qed.
 
-Lemma wf_store_to_ok_store: forall G S store,
-  wf_store G S store -> ok store.
+Lemma wf_s_to_ok_env: forall m e1 e2 s,
+  wf m e1 e2 s -> ok e1.
 Proof. intros. induction H; jauto. Qed.
 
-Lemma wf_stack_to_ok_G: forall G S stack,
-  wf_stack G S stack -> ok G. 
-Proof. intros. induction H; jauto. Qed.
+Hint Resolve wf_env_to_ok_env wf_s_to_ok_env.
 
-Lemma wf_store_to_ok_S: forall G S store,
-  wf_store G S store -> ok S.
-Proof. intros. induction H; jauto. Qed.
-
-Hint Resolve wf_stack_to_ok_stack wf_store_to_ok_store wf_stack_to_ok_G wf_store_to_ok_S.
-
-
-(* todo make wf definition more general since the next two proofs and the ones after are almost identical to each other *)
 
 Lemma ctx_binds_to_stack_binds_raw: forall stack G S x T,
-  wf_stack G S stack ->
+  wf_stack  G S stack ->
   binds x T G ->
   exists G1 G2 v, G = G1 & (x ~ T) & G2 /\ binds x v stack /\ ty_trm ty_precise sub_general G1 S (trm_val v) T.
 Proof.
