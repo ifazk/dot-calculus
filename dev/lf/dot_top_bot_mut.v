@@ -59,8 +59,6 @@ with defs : Set :=
   | defs_cons : defs -> def -> defs.
 
 
-(* Definition loc_env (A:Type) := list (r * A). *)
-
 (** *** Typing environment (Γ) *)
 Definition ctx := env typ.
 
@@ -372,7 +370,7 @@ with subtyp : tymode -> submode -> ctx -> sigma -> typ -> typ -> Prop :=
        subtyp ty_general sub_general (G & x ~ S2) S (open_typ x T1) (open_typ x T2)) ->
     subtyp ty_general m2 G S (typ_all S1 T1) (typ_all S2 T2).
 
-Inductive envmode : Set := env_stack : envmode | env_store : envmode.
+Inductive envmode : Set := env_stack | env_store .
 
 Definition get_ctx (m: envmode) (env1 env2: env typ) :=
   match m with
@@ -400,12 +398,120 @@ Inductive wf: envmode -> env typ -> env typ -> env val -> Prop :=
 
 Definition wf_stack (G: ctx) (S: sigma) (s: stack): Prop :=
   wf env_stack G S s.
+Hint Unfold wf_stack.
 
 Definition wf_store (G: ctx) (S: sigma) (s: store): Prop :=
-  wf env_store G S s.
+  wf env_store S G s.
+Hint Unfold wf_store.
     
 Definition wf_stack_store(G: ctx) (S: sigma) (sta: stack) (sto: store): Prop := 
-  wf_stack G S sta /\ wf_store G S sto.
+  wf_stack G S sta /\ wf_store S G sto.
+
+
+Theorem wf_stack_ind: 
+  forall P : ctx -> sigma -> stack -> Prop,
+  P empty empty empty ->
+  (forall (G : ctx) (S : sigma) (s : stack) (x : var) (T : typ) (v : val),
+    wf env_stack G S s ->
+    P G S s ->
+    x # G ->
+    x # s ->
+    ty_trm ty_precise sub_general G S (trm_val v) T ->
+    P (G & x ~ T) S (s & x ~ v)) ->
+    forall (G' : ctx) (S' : sigma) (s' : stack),
+      wf env_stack G' S' s' ->
+      P G' S' s'.
+Proof.
+  refine(
+    fun (P : ctx -> sigma -> stack -> Prop) (f : P empty empty empty)
+        (f' : forall (G : ctx) (S : sigma) (s : stack) (x : var) (T : typ) (v : val),
+          wf_stack G S s ->
+          P G S s ->
+          x # G ->
+          x # s ->
+          ty_trm ty_precise sub_general G S (trm_val v) T ->
+          P (G & x ~ T) S (s & x ~ v)) =>
+    fix F (G' : ctx) (S' : sigma) (s' : stack) (w : wf_stack G' S' s') {struct w} :
+      P G' S' s' :=
+        (match w in (wf m G'' S'' s'') return (m = env_stack) -> (P G'' S'' s'') with
+        | wf_empty m                         => fun _ => f
+        | wf_push m G S0 S'' x T v w0 n n0 t => fun _ => _
+        end) 
+    (eq_refl: env_stack = env_stack)) .
+  subst.
+  exact (f' G S0 S'' x T v w0 (F G S0 S'' w0) n n0 t).
+Qed.
+
+(* todo how to make G not type check with S, and do I want that? *)
+
+Theorem wf_store_ind: 
+  forall P : ctx -> sigma -> store -> Prop,
+  P empty empty empty ->
+  (forall (G : ctx) (S : sigma) (s : store) (l : var) (T : typ) (v : val),
+    wf env_store S G s ->
+    P G S s ->
+    l # S ->
+    l # s ->
+    ty_trm ty_precise sub_general G S (trm_val v) T ->
+    P G (S & l ~ T) (s & l ~ v)) ->
+    forall (G' : ctx) (S' : sigma) (s' : stack),
+      wf env_store S' G' s' ->
+      P G' S' s'.
+Proof.
+  refine(
+    fun (P : ctx -> sigma -> stack -> Prop) (f : P empty empty empty)
+        (f' : forall (G : ctx) (S : sigma) (s : store) (l : var) (T : typ) (v : val),
+          wf_store G S s ->
+          P G S s ->
+          l # S ->
+          l # s ->
+          ty_trm ty_precise sub_general G S (trm_val v) T ->
+          P G (S & l ~ T) (s & l ~ v)) =>
+    fix F (G' : ctx) (S' : sigma) (s' : store) (w : wf_store G' S' s') {struct w} :
+      P G' S' s' :=
+        (match w in (wf m S'' G'' s'') return (m = env_store) -> (P G'' S'' s'') with
+        | wf_empty m                         => fun _ => f
+        | wf_push m G S0 S'' x T v w0 n n0 t => fun _ => _
+        end) 
+    (eq_refl: env_store = env_store)) .
+  subst.
+  exact (f' S0 G S'' x T v w0 (F S0 G S'' w0) n n0 t).
+Qed.
+
+
+Lemma wf_rewrite_sta: forall G S st, wf env_stack G S st = wf_stack G S st.
+Proof.
+  intros. unfold wf_stack. reflexivity.
+Qed.
+
+Lemma wf_rewrite_sto: forall G S st, wf env_store S G st = wf_store G S st.
+Proof.
+  intros. unfold wf_store. reflexivity.
+Qed.
+
+Ltac induction__wf Wf :=
+  match type of Wf with
+  | (wf env_stack ?G ?S ?stack0) =>
+          rewrite wf_rewrite_sta in Wf;
+          pattern G,S,stack0;
+          eapply wf_stack_ind;
+          try eexact Wf
+  | (wf_stack ?G ?S ?stack0) =>
+          pattern G,S,stack0; 
+          eapply wf_stack_ind;
+          try eexact Wf;
+          clear Wf
+  | (wf env_store ?G ?S ?stack0) =>
+          rewrite wf_rewrite_sto in Wf;
+          pattern G,S,stack0;
+          eapply wf_store_ind;
+          try eexact Wf
+  | (wf_store ?G ?S ?store0) =>
+          pattern G,S,store0; 
+          eapply wf_store_ind;
+          try eexact Wf;
+          clear Wf
+  end.
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -632,8 +738,8 @@ Qed.
 (* ###################################################################### *)
 (** ** Well-formed stack and store *)
 
-Lemma wf_env_to_ok_env: forall m G S env,
-  wf m G S env -> ok env.
+Lemma wf_env_to_ok_env: forall m e1 e2 env,
+  wf m e1 e2 env -> ok env.
 Proof. intros. induction H; jauto. Qed.
 
 Lemma wf_s_to_ok_env: forall m e1 e2 s,
@@ -643,33 +749,52 @@ Proof. intros. induction H; jauto. Qed.
 Hint Resolve wf_env_to_ok_env wf_s_to_ok_env.
 
 
-Lemma ctx_binds_to_stack_binds_raw: forall stack G S x T,
-  wf_stack  G S stack ->
-  binds x T G ->
-  exists G1 G2 v, G = G1 & (x ~ T) & G2 /\ binds x v stack /\ ty_trm ty_precise sub_general G1 S (trm_val v) T.
+Lemma env_binds_to_st_binds_raw: forall m (st: env val) (env1: env typ) (env2: env typ) x T,
+  wf m env1 env2 st ->
+  binds x T env1 ->
+  exists env1' env1'' v, 
+    env1 = env1' & (x ~ T) & env1'' /\
+    binds x v st /\ 
+    ty_trm ty_precise sub_general (get_ctx m env1' env2) (get_sigma m env1' env2) (trm_val v) T.
 Proof.
-  introv Wf Bi. gen x T Bi. induction Wf; intros.
-  + false* binds_empty_inv.
-  + unfolds binds. rewrite get_push in *. case_if.
-    - inversions Bi. exists G (@empty typ) v.
-      rewrite concat_empty_r. auto.
-    - specialize (IHWf _ _ Bi). destruct IHWf as [G1 [G2 [ds' [Eq [Bi' Tyds]]]]].
-      subst. exists G1 (G2 & x ~ T) ds'. rewrite concat_assoc. auto.
+  introv Wf Bi. 
+  induction Wf.
+  - false* binds_empty_inv.
+  - unfolds binds. rewrite get_push in *. case_if.
+    + inversions Bi. exists e1 (@empty typ) v. 
+      rewrite concat_empty_r. split.
+      * auto.
+      * auto.
+    + apply IHWf in Bi; clear IHWf.
+      destruct Bi as [e1' [e2' [ds [Eq [Bi Tyds]]]]]. subst.
+      exists e1'. exists (e2' & x0 ~ T0). exists ds. split.
+      * rewrite concat_assoc. reflexivity.
+      * split. assumption. assumption.
+Qed.
+
+Lemma ctx_binds_to_stack_binds_raw: forall stack G S x T,
+  wf_stack G S stack ->
+  binds x T G ->
+  exists G1 G2 v,
+    G = G1 & (x ~ T) & G2 /\
+    binds x v stack /\ 
+    ty_trm ty_precise sub_general G1 S (trm_val v) T.
+Proof.
+  apply env_binds_to_st_binds_raw.
 Qed.
 
 Lemma sigma_binds_to_store_binds_raw: forall store G S l T,
-  wf_store G S store ->
+  wf env_store S G store ->
   binds l T S ->
-  exists S1 S2 v, S = S1 & (l ~ T) & S2 /\ binds l v store /\ ty_trm ty_precise sub_general G S1 (trm_val v) T.
+  exists S1 S2 v,
+    S = S1 & (l ~ T) & S2 /\
+    binds l v store /\ 
+    ty_trm ty_precise sub_general G S1 (trm_val v) T.
 Proof.
-  introv Wf Bi. gen l T Bi. induction Wf; intros.
-  + false* binds_empty_inv.
-  + unfolds binds. rewrite get_push in *. case_if.
-    - inversions Bi. exists S (@empty typ) v.
-      rewrite concat_empty_r. auto.
-    -  specialize (IHWf _ _ Bi). destruct IHWf as [G1 [G2 [ds' [Eq [Bi' Tyds]]]]].
-      subst. exists G1 (G2 & l ~ T) ds'. rewrite concat_assoc. auto.
+        intros.
+  apply env_binds_to_st_binds_raw.
 Qed.
+
 
 Lemma stack_binds_to_ctx_binds_raw: forall stack G S x v,
   wf_stack G S stack ->
