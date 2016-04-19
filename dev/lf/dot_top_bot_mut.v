@@ -843,36 +843,36 @@ Proof.
 Qed.
 
 
+Lemma invert_wf_concat: forall m st env1' env1'' env2,
+  wf m (env1' & env1'') env2 st ->
+  exists st1 st2, st = st1 & st2 /\ wf m env1' env2 st1.
+Proof.
+  introv Wf. gen_eq env1: (env1' & env1''). gen env1' env1''. induction Wf; introv Eq; subst.
+  - do 2 exists (@empty val). rewrite concat_empty_r.
+    apply empty_concat_inv in Eq. destruct Eq. subst. auto.
+  - destruct (env_case env1'') as [Eq1 | [x' [T' [env1''' Eq1]]]].
+    * subst env1''. rewrite concat_empty_r in Eq. subst env1'.
+      exists (s & x ~ v) (@empty val). rewrite concat_empty_r. auto.
+    * subst env1''. rewrite concat_assoc in Eq. apply eq_push_inv in Eq.
+      destruct Eq as [? [? ?]]. subst x' T' e1. specialize (IHWf env1' env1''' eq_refl).
+      destruct IHWf as [s1 [s2 [Eq Wf']]]. subst.
+      exists s1 (s2 & x ~ v). rewrite concat_assoc. auto.
+Qed.
+
 Lemma invert_wf_stack_concat: forall sta G1 G2 S,
   wf_stack (G1 & G2) S sta ->
   exists sta1 sta2, sta = sta1 & sta2 /\ wf_stack G1 S sta1.
 Proof.
-  introv Wf. gen_eq G: (G1 & G2). gen G1 G2. induction Wf; introv Eq; subst.
-  - do 2 exists (@empty val). rewrite concat_empty_r.
-    apply empty_concat_inv in Eq. destruct Eq. subst. auto.
-  - destruct (env_case G2) as [Eq1 | [x' [T' [G2' Eq1]]]].
-    * subst G2. rewrite concat_empty_r in Eq. subst G1.
-      exists (stack0 & x ~ v) (@empty val). rewrite concat_empty_r. auto.
-    * subst G2. rewrite concat_assoc in Eq. apply eq_push_inv in Eq.
-      destruct Eq as [? [? ?]]. subst x' T' G. specialize (IHWf G1 G2' eq_refl).
-      destruct IHWf as [s1 [s2 [Eq Wf']]]. subst.
-      exists s1 (s2 & x ~ v). rewrite concat_assoc. auto.
+  apply invert_wf_concat.
 Qed.
 
 Lemma invert_wf_store_concat: forall sto G S1 S2,
   wf_store G (S1 & S2) sto ->
   exists sto1 sto2, sto = sto1 & sto2 /\ wf_store G S1 sto1.
 Proof.
-  introv Wf. gen_eq S: (S1 & S2). gen S1 S2. induction Wf; introv Eq; subst.
-  - do 2 exists (@empty val). rewrite concat_empty_r.
-    apply empty_concat_inv in Eq. destruct Eq. subst. auto.
-  - destruct (env_case S2) as [Eq1 | [x' [T' [S2' Eq1]]]].
-    * subst S2. rewrite concat_empty_r in Eq. subst S1.
-      exists (store0 & l ~ v) (@empty val). rewrite concat_empty_r. auto.
-    * subst S2. rewrite concat_assoc in Eq. apply eq_push_inv in Eq.
-      destruct Eq as [? [? ?]]. subst x' T' S. specialize (IHWf S1 S2' eq_refl).
-      destruct IHWf as [s1 [s2 [Eq Wf']]]. subst.
-      exists s1 (s2 & l ~ v). rewrite concat_assoc. auto.
+  intros.
+  change (exists sto1 sto2, sto = sto1 & sto2 /\ wf env_store S1 G sto1).
+  apply invert_wf_concat with (env1'' := S2). assumption.
 Qed.
 
 Lemma stack_unbound_to_ctx_unbound: forall s G S x,
