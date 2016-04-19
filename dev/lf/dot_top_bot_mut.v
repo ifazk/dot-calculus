@@ -875,10 +875,11 @@ Proof.
   apply invert_wf_concat with (env1'' := S2). assumption.
 Qed.
 
-Lemma stack_unbound_to_ctx_unbound: forall s G S x,
-  wf_stack G S s ->
+
+Lemma st_unbound_to_env_unbound: forall m s env1 env2 x,
+  wf m env1 env2 s ->
   x # s ->
-  x # G.
+  x # env1.
 Proof.
   introv Wf Ub_s.
   induction Wf.
@@ -888,16 +889,34 @@ Proof.
     - auto.
 Qed.
 
+
+Lemma stack_unbound_to_ctx_unbound: forall s G S x,
+  wf_stack G S s ->
+  x # s ->
+  x # G.
+Proof.
+  apply st_unbound_to_env_unbound.
+Qed.
+
 Lemma store_unbound_to_sigma_unbound: forall s G S l,
   wf_store G S s ->
   l # s ->
   l # S.
 Proof.
-  introv Wf Ub_s.
-  induction Wf.
+  intros. apply st_unbound_to_env_unbound with env_store s G.
+  assumption. assumption.
+Qed.
+
+
+Lemma env_unbound_to_st_unbound: forall s m env1 env2 x,
+  wf m env1 env2 s ->
+  x # env1 ->
+  x # s.
+Proof.
+  introv Wf Ub. induction Wf.
   + auto.
-  + destruct (classicT (l0 = l)) as [Eq | Ne].
-    - subst. false (fresh_push_eq_inv Ub_s).
+  + destruct (classicT (x0 = x)) as [Eq | Ne].
+    - subst. false (fresh_push_eq_inv Ub).
     - auto.
 Qed.
 
@@ -906,12 +925,8 @@ Lemma ctx_unbound_to_stack_unbound: forall s G S x,
   x # G ->
   x # s.
 Proof.
-  introv Wf Ub.
-  induction Wf.
-  + auto.
-  + destruct (classicT (x0 = x)) as [Eq | Ne].
-    - subst. false (fresh_push_eq_inv Ub).
-    - auto.
+  intros. apply env_unbound_to_st_unbound with env_stack G S.
+  assumption. assumption.
 Qed.
 
 Lemma sigma_unbound_to_store_unbound: forall s G S l,
@@ -919,12 +934,8 @@ Lemma sigma_unbound_to_store_unbound: forall s G S l,
   l # S ->
   l # s.
 Proof.
-  introv Wf Ub.
-  induction Wf.
-  + auto.
-  + destruct (classicT (l0 = l)) as [Eq | Ne].
-    - subst. false (fresh_push_eq_inv Ub).
-    - auto.
+  intros. apply env_unbound_to_st_unbound with env_store S G.
+  assumption. assumption.
 Qed.
 
 
