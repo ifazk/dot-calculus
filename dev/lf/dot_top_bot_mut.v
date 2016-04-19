@@ -791,8 +791,10 @@ Lemma sigma_binds_to_store_binds_raw: forall store G S l T,
     binds l v store /\ 
     ty_trm ty_precise sub_general G S1 (trm_val v) T.
 Proof.
-        intros.
-  apply env_binds_to_st_binds_raw.
+  intros. change (exists S1 S2 v, S = S1 & l ~ T & S2
+    /\ binds l v store0 
+    /\ ty_trm ty_precise sub_general (get_ctx env_store S1 G) (get_sigma env_store S1 G) (trm_val v) T).
+  apply env_binds_to_st_binds_raw. assumption. assumption.
 Qed.
 
 
