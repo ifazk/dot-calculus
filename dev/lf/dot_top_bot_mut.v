@@ -2,8 +2,6 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import LibList.
-Close Scope list_scope.
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -214,10 +212,7 @@ with fv_defs(ds: defs) : vars :=
   | defs_cons tl d   => (fv_defs tl) \u (fv_def d)
   end.
 
-Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
-
-Definition fv_sigma_types(S: sigma): vars :=
-  fold_right (fun T L => (fv_typ T) \u L) \{} (map snd S).
+Definition fv_env_types(e: env typ): vars := (fv_in_values (fun T => fv_typ T) e).
 
 (* ###################################################################### *)
 (** ** Operational Semantics *)
@@ -553,7 +548,7 @@ Combined Scheme rules_mutind2 from rules_trm_mut, rules_def_mut, rules_defs_mut,
 Ltac gather_vars :=
   let A := gather_vars_with (fun x : vars      => x         ) in
   let B := gather_vars_with (fun x : var       => \{ x }    ) in
-  let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_ctx_types x)) in
+  let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_env_types x)) in
   let D := gather_vars_with (fun x : stack     => dom x     ) in
   let E := gather_vars_with (fun x : avar      => fv_avar  x) in
   let F := gather_vars_with (fun x : trm       => fv_trm   x) in
@@ -977,24 +972,32 @@ Qed.
 (** ** Extra Rec *)
 
 Lemma extra_bnd_rules:
-  (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 x U G',
-    G = G1 & (x ~ open_typ x U) & G2 ->
-    G' = G1 & (x ~ typ_bnd U) & G2 ->
-    ty_trm m1 m2 G' S t T)
-/\ (forall G S d D, ty_def G S d D -> forall G1 G2 x U G',
-    G = G1 & (x ~ open_typ x U) & G2 ->
-    G' = G1 & (x ~ typ_bnd U) & G2 ->
-    ty_def G' S d D)
-/\ (forall G S ds T, ty_defs G S ds T -> forall G1 G2 x U G',
-    G = G1 & (x ~ open_typ x U) & G2 ->
-    G' = G1 & (x ~ typ_bnd U) & G2 ->
-    ty_defs G' S ds T)
-/\ (forall m1 m2 G S T U, subtyp m1 m2 G S T U -> forall G1 G2 x V G',
-    G = G1 & (x ~ open_typ x V) & G2 ->
-    G' = G1 & (x ~ typ_bnd V) & G2 ->
-    subtyp m1 m2 G' S T U).
-Proof.
-  apply rules_mutind; intros; eauto.
+  (forall m m1 m2 env1 env2 t T, 
+    ty_trm m1 m2 (get_ctx m env1 env2) (get_sigma m env1 env2) t T ->
+    forall e1 e1' x U env1',
+    env1 = e1 & (x ~ open_typ x U) & e1' ->
+    env1' = e1 & (x ~ typ_bnd U) & e1' ->
+    ty_trm m1 m2 (get_ctx m env1' env2) (get_sigma m env1' env2) t T)
+/\ (forall m env1 env2 d D, 
+    ty_def (get_ctx m env1 env2) (get_sigma m env1 env2) d D -> 
+    forall e1 e1' x U env1',
+    env1 = e1 & (x ~ open_typ x U) & e1' ->
+    env1' = e1 & (x ~ typ_bnd U) & e1' ->
+    ty_def (get_ctx m env1' env2) (get_sigma m env1' env2) d D)
+/\ (forall m env1 env2 ds T, 
+    ty_defs (get_ctx m env1 env2) (get_sigma m env1 env2) ds T ->
+    forall e1 e1' x U env1',
+    env1 = e1 & (x ~ open_typ x U) & e1' ->
+    env1' = e1 & (x ~ typ_bnd U) & e1' ->
+    ty_defs (get_ctx m env1' env2) (get_sigma m env1' env2) ds T)
+/\ (forall m m1 m2 env1 env2 T U,
+    subtyp m1 m2 (get_ctx m env1 env2) (get_sigma m env1 env2) T U ->
+    forall e1 e1' x V env1',
+    env1 = e1 & (x ~ open_typ x V) & e1' ->
+    env1' = e1 & (x ~ typ_bnd V) & e1' ->
+    subtyp m1 m2 (get_ctx m env1' env2) (get_sigma m env1' env2) T U).
+Proof. Admitted.
+(*  apply rules_mutind; intros; eauto.
   - (* ty_var *)
     subst. apply binds_middle_inv in b. destruct b as [Bi | [Bi | Bi]].
     + apply ty_var. eauto.
@@ -1037,9 +1040,48 @@ Proof.
     eapply H0; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. reflexivity.
-Qed.
+Qed. *)
 
-(* todo same for sigma *)
+Lemma extra_bnd_rules_ctx:
+  (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 x U G',
+    G = G1 & (x ~ open_typ x U) & G2 ->
+    G' = G1 & (x ~ typ_bnd U) & G2 ->
+    ty_trm m1 m2 G' S t T)
+/\ (forall G S d D, ty_def G S d D -> forall G1 G2 x U G',
+    G = G1 & (x ~ open_typ x U) & G2 ->
+    G' = G1 & (x ~ typ_bnd U) & G2 ->
+    ty_def G' S d D)
+/\ (forall G S ds T, ty_defs G S ds T -> forall G1 G2 x U G',
+    G = G1 & (x ~ open_typ x U) & G2 ->
+    G' = G1 & (x ~ typ_bnd U) & G2 ->
+    ty_defs G' S ds T)
+/\ (forall m1 m2 G S T U, subtyp m1 m2 G S T U -> forall G1 G2 x V G',
+    G = G1 & (x ~ open_typ x V) & G2 ->
+    G' = G1 & (x ~ typ_bnd V) & G2 ->
+    subtyp m1 m2 G' S T U).
+Proof.
+Admitted.
+
+Lemma extra_bnd_rules_sigma:
+  (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall S1 S2 l U S',
+    S = S1 & (l ~ open_typ l U) & S2 ->
+    S' = S1 & (l ~ typ_bnd U) & S2 ->
+    ty_trm m1 m2 G S' t T)
+/\ (forall G S d D, ty_def G S d D -> forall S1 S2 l U S',
+    S = S1 & (l ~ open_typ l U) & S2 ->
+    S' = S1 & (l ~ typ_bnd U) & S2 ->
+    ty_def G S' d D)
+/\ (forall G S ds T, ty_defs G S ds T -> forall S1 S2 l U S',
+    S = S1 & (l ~ open_typ l U) & S2 ->
+    S' = S1 & (l ~ typ_bnd U) & S2 ->
+    ty_defs G S' ds T)
+/\ (forall m1 m2 G S T U, subtyp m1 m2 G S T U -> forall S1 S2 l V S',
+    S = S1 & (l ~ open_typ l V) & S2 ->
+    S' = S1 & (l ~ typ_bnd V) & S2 ->
+    subtyp m1 m2 G S' T U).
+Proof.
+Admitted.
+
 
 (* ###################################################################### *)
 (** ** Substitution *)
@@ -1075,7 +1117,7 @@ Fixpoint subst_trm (z: var) (u: var) (t: trm) : trm :=
   | trm_app x1 x2    => trm_app (subst_avar z u x1) (subst_avar z u x2)
   | trm_let t1 t2    => trm_let (subst_trm z u t1) (subst_trm z u t2)
   | trm_ref x        => trm_ref (subst_avar z u x)
-  | trm_deref x      => trm_ref (subst_avar z u x)
+  | trm_deref x      => trm_deref (subst_avar z u x)
   | trm_asg x y      => trm_asg (subst_avar z u x) (subst_avar z u y)
   end
 with subst_val (z: var) (u: var) (v: val) : val :=
@@ -1116,6 +1158,7 @@ Qed.
 Definition subst_fresh_typ(x y: var) := proj1 (subst_fresh_typ_dec x y).
 Definition subst_fresh_dec(x y: var) := proj2 (subst_fresh_typ_dec x y).
 
+
 Lemma subst_fresh_trm_val_def_defs: forall x y,
   (forall t : trm , x \notin fv_trm  t  -> subst_trm  x y t  = t ) /\
   (forall v : val , x \notin fv_val  v  -> subst_val  x y v  = v ) /\
@@ -1131,11 +1174,11 @@ Definition subst_fresh_val (x y: var) := proj42 (subst_fresh_trm_val_def_defs x 
 Definition subst_fresh_def (x y: var) := proj43 (subst_fresh_trm_val_def_defs x y).
 Definition subst_fresh_defs(x y: var) := proj44 (subst_fresh_trm_val_def_defs x y).
 
-Lemma invert_fv_ctx_types_push: forall x z T G,
-  x \notin fv_ctx_types (G & z ~ T) -> x \notin fv_typ T /\ x \notin (fv_ctx_types G).
+Lemma invert_fv_env_types_push: forall x z T e,
+  x \notin fv_env_types (e & z ~ T) -> x \notin fv_typ T /\ x \notin (fv_env_types e).
 Proof.
   introv N.
-  unfold fv_ctx_types in *.
+  unfold fv_env_types in *.
   unfold fv_in_values in *.
   rewrite <- cons_to_push in *.
   rewrite values_def in *.
