@@ -1137,7 +1137,7 @@ with subst_defs (z: var) (u: var) (ds: defs) : defs :=
   | defs_cons rest d => defs_cons (subst_defs z u rest) (subst_def z u d)
   end.
 
-Definition subst_ctx (z: var) (u: var) (G: ctx) : ctx := map (subst_typ z u) G.
+Definition subst_env (z: var) (u: var) (e: env typ) : env typ := map (subst_typ z u) e.
 
 (* ###################################################################### *)
 (** ** Lemmas for var-by-var substitution *)
@@ -1188,15 +1188,15 @@ Proof.
   apply notin_union in N. exact N.
 Qed.
 
-Lemma subst_fresh_ctx: forall x y G,
-  x \notin fv_ctx_types G -> subst_ctx x y G = G.
+Lemma subst_fresh_env: forall x y e,
+  x \notin fv_env_types e -> subst_env x y e = e.
 Proof.
   intros x y.
-  apply (env_ind (fun G => x \notin fv_ctx_types G -> subst_ctx x y G = G)).
-  + intro N. unfold subst_ctx. apply map_empty.
+  apply (env_ind (fun e => x \notin fv_env_types e -> subst_env x y e = e)).
+  + intro N. unfold subst_env. apply map_empty.
   + intros G z T IH N.
-    apply invert_fv_ctx_types_push in N. destruct N as [N1 N2].
-    unfold subst_ctx in *. rewrite map_push.
+    apply invert_fv_env_types_push in N. destruct N as [N1 N2].
+    unfold subst_env in *. rewrite map_push.
     rewrite (IH N2).
     rewrite ((proj1 (subst_fresh_typ_dec _ _)) _ N1).
     reflexivity.
@@ -1422,44 +1422,44 @@ Qed.
 (* ###################################################################### *)
 (** ** The substitution principle *)
 
-Lemma subst_rules: forall y S,
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G1 G2 x,
-    G = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2) ->
-    x \notin fv_ctx_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_var (avar_f y)) (subst_typ x y S) ->
+Lemma subst_rules: forall y U,
+  (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 x,
+    G = G1 & x ~ U & G2 ->
+    ok (G1 & x ~ U & G2) ->
+    x \notin fv_env_types G1 ->
+    ty_trm ty_general sub_general (G1 & (subst_env x y G2)) S (trm_var (avar_f y)) (subst_typ x y U) ->
     m1 = ty_general ->
     m2 = sub_general ->
-    ty_trm m1 m2 (G1 & (subst_ctx x y G2)) (subst_trm x y t) (subst_typ x y T)) /\
-  (forall G d D, ty_def G d D -> forall G1 G2 x,
-    G = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2) ->
-    x \notin fv_ctx_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_var (avar_f y)) (subst_typ x y S) ->
-    ty_def (G1 & (subst_ctx x y G2)) (subst_def x y d) (subst_dec x y D)) /\
-  (forall G ds T, ty_defs G ds T -> forall G1 G2 x,
-    G = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2) ->
-    x \notin fv_ctx_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_var (avar_f y)) (subst_typ x y S) ->
-    ty_defs (G1 & (subst_ctx x y G2)) (subst_defs x y ds) (subst_typ x y T)) /\
-  (forall m1 m2 G T U, subtyp m1 m2 G T U -> forall G1 G2 x,
-    G = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2) ->
-    x \notin fv_ctx_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_var (avar_f y)) (subst_typ x y S) ->
+    ty_trm m1 m2 (G1 & (subst_env x y G2)) S (subst_trm x y t) (subst_typ x y T)) /\
+  (forall G S d D, ty_def G S d D -> forall G1 G2 x,
+    G = G1 & x ~ U & G2 ->
+    ok (G1 & x ~ U & G2) ->
+    x \notin fv_env_types G1 ->
+    ty_trm ty_general sub_general (G1 & (subst_env x y G2)) S (trm_var (avar_f y)) (subst_typ x y U) ->
+    ty_def (G1 & (subst_env x y G2)) S (subst_def x y d) (subst_dec x y D)) /\
+  (forall G S ds T, ty_defs G S ds T -> forall G1 G2 x,
+    G = G1 & x ~ U & G2 ->
+    ok (G1 & x ~ U & G2) ->
+    x \notin fv_env_types G1 ->
+    ty_trm ty_general sub_general (G1 & (subst_env x y G2)) S (trm_var (avar_f y)) (subst_typ x y U) ->
+    ty_defs (G1 & (subst_env x y G2)) S (subst_defs x y ds) (subst_typ x y T)) /\
+  (forall m1 m2 G S T V, subtyp m1 m2 G S T V -> forall G1 G2 x,
+    G = G1 & x ~ U & G2 ->
+    ok (G1 & x ~ U & G2) ->
+    x \notin fv_env_types G1 ->
+    ty_trm ty_general sub_general (G1 & (subst_env x y G2)) S (trm_var (avar_f y)) (subst_typ x y U) ->
     m1 = ty_general ->
     m2 = sub_general ->
-    subtyp m1 m2 (G1 & (subst_ctx x y G2)) (subst_typ x y T) (subst_typ x y U)).
+    subtyp m1 m2 (G1 & (subst_env x y G2)) S (subst_typ x y T) (subst_typ x y V)).
 Proof.
   intros y S. apply rules_mutind; intros; subst.
   - (* ty_var *)
     simpl. case_if.
     + apply binds_middle_eq_inv in b. subst. assumption. assumption.
-    + apply subst_fresh_ctx with (y:=y) in H1.
+    + apply subst_fresh_env with (y:=y) in H1.
       apply binds_subst in b.
       apply ty_var. rewrite <- H1.
-      unfold subst_ctx. rewrite <- map_concat.
+      unfold subst_env. rewrite <- map_concat.
       apply binds_map. assumption. assumption.
   - (* ty_all_intro *)
     simpl.
@@ -1605,7 +1605,7 @@ Qed.
 Lemma subst_ty_trm: forall y S G x t T,
     ty_trm ty_general sub_general (G & x ~ S) t T -> 
     ok (G & x ~ S) ->
-    x \notin fv_ctx_types G ->
+    x \notin fv_env_types G ->
     ty_trm ty_general sub_general G (trm_var (avar_f y)) (subst_typ x y S) ->
     ty_trm ty_general sub_general G (subst_trm x y t) (subst_typ x y T).
 Proof.
@@ -1624,7 +1624,7 @@ Qed.
 Lemma subst_ty_defs: forall y S G x ds T,
     ty_defs (G & x ~ S) ds T ->
     ok (G & x ~ S) ->
-    x \notin fv_ctx_types G ->
+    x \notin fv_env_types G ->
     ty_trm ty_general sub_general G (trm_var (avar_f y)) (subst_typ x y S) ->
     ty_defs G (subst_defs x y ds) (subst_typ x y T).
 Proof.
