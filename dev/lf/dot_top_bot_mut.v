@@ -605,6 +605,8 @@ Qed.
 (* ###################################################################### *)
 (** ** Weakening *)
 
+(* todo rewrite in generic way *)
+
 Lemma weaken_rules:
   (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 G3,
     G = G1 & G3 ->
@@ -791,40 +793,55 @@ Lemma sigma_binds_to_store_binds_raw: forall store G S l T,
     binds l v store /\ 
     ty_trm ty_precise sub_general G S1 (trm_val v) T.
 Proof.
-  intros. change (exists S1 S2 v, S = S1 & l ~ T & S2
-    /\ binds l v store0 
-    /\ ty_trm ty_precise sub_general (get_ctx env_store S1 G) (get_sigma env_store S1 G) (trm_val v) T).
+  intros.
+  change (exists S1 S2 v, S = S1 & l ~ T & S2 /\
+    binds l v store0 /\
+    ty_trm ty_precise sub_general (get_ctx env_store S1 G) (get_sigma env_store S1 G) (trm_val v) T).
   apply env_binds_to_st_binds_raw. assumption. assumption.
 Qed.
 
+
+Lemma st_binds_to_env_binds_raw: forall st env1 env2 x v m,
+  wf m env1 env2 st ->
+  binds x v st ->
+  exists env1' env1'' T,
+    env1 = env1' & (x ~ T) & env1'' /\
+    ty_trm ty_precise sub_general (get_ctx m env1' env2) (get_sigma m env1' env2) (trm_val v) T.
+Proof.
+  introv Wf Bi. gen x v Bi. induction Wf; intros.
+  + false* binds_empty_inv.
+  + unfolds binds. rewrite get_push in *. case_if.
+    - inversions Bi. exists e1 (@empty typ) T.
+      rewrite concat_empty_r. auto.
+    - specialize (IHWf _ _ Bi). destruct IHWf as [e1' [e1'' [T0' [Eq Ty]]]].
+      subst. exists e1' (e1'' & x ~ T) T0'. rewrite concat_assoc. auto.
+Qed.
 
 Lemma stack_binds_to_ctx_binds_raw: forall stack G S x v,
   wf_stack G S stack ->
   binds x v stack ->
   exists G1 G2 T, G = G1 & (x ~ T) & G2 /\ ty_trm ty_precise sub_general G1 S (trm_val v) T.
 Proof.
-  introv Wf Bi. gen x v Bi. induction Wf; intros.
-  + false* binds_empty_inv.
-  + unfolds binds. rewrite get_push in *. case_if.
-    - inversions Bi. exists G (@empty typ) T.
-      rewrite concat_empty_r. auto.
-    - specialize (IHWf _ _ Bi). destruct IHWf as [G1 [G2 [T0' [Eq Ty]]]].
-      subst. exists G1 (G2 & x ~ T) T0'. rewrite concat_assoc. auto.
+  intros. change (
+    exists G1 G2 T,
+      G = G1 & x ~ T & G2 /\
+      ty_trm ty_precise sub_general (get_ctx env_stack G1 S) (get_sigma env_stack G1 S) (trm_val v) T).
+  apply st_binds_to_env_binds_raw with (st := stack0). assumption. assumption.
 Qed.
-
+  
 Lemma store_binds_to_sigma_binds_raw: forall store G S l v,
   wf_store G S store ->
   binds l v store ->
   exists S1 S2 T, S = S1 & (l ~ T) & S2 /\ ty_trm ty_precise sub_general G S1 (trm_val v) T.
 Proof.
-  introv Wf Bi. gen l v Bi. induction Wf; intros.
-  + false* binds_empty_inv.
-  + unfolds binds. rewrite get_push in *. case_if.
-    - inversions Bi. exists S (@empty typ) T.
-      rewrite concat_empty_r. auto.
-    - specialize (IHWf _ _ Bi). destruct IHWf as [S1 [S2 [T0' [Eq Ty]]]].
-      subst. exists S1 (S2 & l ~ T) T0'. rewrite concat_assoc. auto.
+  intros. 
+  change (
+    exists S1 S2 T,
+      S = S1 & l ~ T & S2 /\
+      ty_trm ty_precise sub_general (get_ctx env_store S1 G) (get_sigma env_store S1 G) (trm_val v) T).
+  apply st_binds_to_env_binds_raw with (st := store0). assumption. assumption.
 Qed.
+
 
 Lemma invert_wf_stack_concat: forall sta G1 G2 S,
   wf_stack (G1 & G2) S sta ->
