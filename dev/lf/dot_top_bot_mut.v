@@ -130,7 +130,7 @@ Fixpoint open_rec_trm (k: nat) (u: var) (t: trm): trm :=
   | trm_app f a    => trm_app (open_rec_avar k u f) (open_rec_avar k u a)
   | trm_let t1 t2  => trm_let (open_rec_trm k u t1) (open_rec_trm (S k) u t2)
   | trm_ref a      => trm_ref (open_rec_avar k u a)
-  | trm_deref a      => trm_deref (open_rec_avar k u a)
+  | trm_deref a    => trm_deref (open_rec_avar k u a)
   | trm_asg l r    => trm_asg (open_rec_avar k u l) (open_rec_avar k u r)
   end
 with open_rec_val (k: nat) (u: var) (v: val): val :=
@@ -379,6 +379,50 @@ Definition get_sigma (m: envmode) (env1 env2: env typ) :=
   | env_stack => env2
   end.
 
+Lemma gen_ty_trm_ctx: forall m1 m2 G S t T,
+  ty_trm m1 m2 G S t T = ty_trm m1 m2 (get_ctx env_stack G S) (get_sigma env_stack G S) t T.
+Proof.
+  intros. reflexivity.
+Qed.
+
+Lemma gen_ty_trm_sigma: forall m1 m2 G S t T,
+  ty_trm m1 m2 G S t T = ty_trm m1 m2 (get_ctx env_store S G) (get_sigma env_store S G) t T.
+Proof.
+  intros. reflexivity.
+Qed.
+
+Ltac gen_env m :=
+  repeat match goal with
+  | |- context ctx [ty_trm ?m1 ?m2 ?G ?S ?t ?T] =>
+      match G with
+      | get_ctx _ _ _ => fail 1
+      | _             =>
+        let c := match m with
+        | env_stack => 
+          context ctx[ty_trm m1 m2 (get_ctx env_stack G S) (get_sigma env_stack G S) t T]
+        | env_store =>
+          context ctx[ty_trm m1 m2 (get_ctx env_store S G) (get_sigma env_store S G) t T]
+        end
+        in change c
+      end
+  | |- context ctx [subtyp ?m1 ?m2 ?G ?S ?T ?U] =>
+      match G with
+      | get_ctx _ _ _ => fail 1
+      | _             =>
+        let c := match m with
+        | env_stack =>
+          context ctx[subtyp m1 m2 (get_ctx env_stack G S) (get_sigma env_stack G S) T U]
+        | env_store =>
+          context ctx[subtyp m1 m2 (get_ctx env_store S G) (get_sigma env_store S G) T U]
+        end
+        in change c
+      end
+  | |- ex (fun x =>_ ) =>
+       evar x
+  | _ => fail "Couldn't find non-generalized terms in goal"
+  end.
+
+
 (* generalization of well-formedness for stacks/stores
  * e1 denotes the main environment (for env_stack, it's ctx, for env_store, it's sigma),
  * and e2 the other environment *)
@@ -398,7 +442,6 @@ Hint Unfold wf_stack.
 Definition wf_store (G: ctx) (S: sigma) (s: store): Prop :=
   wf env_store S G s.
 Hint Unfold wf_store.
-    
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -491,36 +534,7 @@ Qed.
 (* ###################################################################### *)
 (** ** Weakening *)
 
-(*
-  Lemma weaken_rules:
-  (forall m m1 m2 env1 env2 t T, 
-    ty_trm m1 m2 (get_ctx m env1 env2) (get_sigma m env1 env2) t T -> 
-    forall e11 e12 e13,
-    env1 = e11 & e12 & e13 ->
-    ok (e11 & e12 & e13) ->
-    ty_trm m1 m2 (get_ctx m (e11 & e12 & e13) env2) (get_sigma m (e11 & e12 & e13) env2) t T) /\
-  (forall m env1 env2 d D, 
-    ty_def (get_ctx m env1 env2) (get_sigma m env1 env2) d D -> 
-    forall e11 e12 e13,
-    env1 = e11 & e12 & e13 ->
-    ok (e11 & e12 & e13) ->
-    ty_def (get_ctx m (e11 & e12 & e13) env2) (get_sigma m (e11 & e12 & e13) env2) d D) /\
-  (forall m env1 env2 ds T, 
-    ty_defs (get_ctx m env1 env2) (get_sigma m env1 env2) ds T -> 
-    forall e11 e12 e13,
-    env1 = e11 & e12 & e13 ->
-    ok (e11 & e12 & e13) ->
-    ty_defs (get_ctx m (e11 & e12 & e13) env2) (get_sigma m (e11 & e12 & e13) env2) ds T) /\
-  (forall m m1 m2 env1 env2 T U, 
-    subtyp m1 m2 (get_ctx m env1 env2) (get_sigma m env1 env2) T U -> 
-    forall e11 e12 e13,
-    env1 = e11 & e12 & e13 ->
-    ok (e11 & e12 & e13) ->
-    subtyp m1 m2 (get_ctx m (e11 & e12 & e13) env2) (get_sigma m (e11 & e12 & e13) env2) T U).
-*)
-  
-
-Lemma weaken_rules:
+Lemma weaken_rules_ctx:
   (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
@@ -602,7 +616,7 @@ Proof.
   }
   rewrite EqG.
   destruct m.
-  - apply* weaken_rules; rewrite concat_empty_r; auto.
+  - apply* weaken_rules_ctx; rewrite concat_empty_r; auto.
   - apply* weaken_rules_sigma; rewrite concat_empty_r; auto.
 Qed.
 
@@ -611,9 +625,7 @@ Lemma weaken_ty_trm_ctx:  forall m1 m2 G1 G2 S t T,
     ok (G1 & G2) ->
     ty_trm m1 m2 (G1 & G2) S t T.
 Proof.
-  intros.
-  change (ty_trm m1 m2 (get_ctx env_stack (G1 & G2) S) (get_sigma env_stack (G1 & G2) S) t T).
-  apply* weaken_ty_trm.
+  intros. gen_env env_stack. apply* weaken_ty_trm. 
 Qed.
 
 Lemma weaken_ty_trm_sigma: forall m1 m2 G S1 S2 t T,
@@ -621,24 +633,31 @@ Lemma weaken_ty_trm_sigma: forall m1 m2 G S1 S2 t T,
     ok (S1 & S2) ->
     ty_trm m1 m2 G (S1 & S2) t T.
 Proof.
-  intros.
-  change (ty_trm m1 m2 (get_ctx env_store (S1 & S2) G) (get_sigma env_store (S1 & S2) G) t T).
-  apply* weaken_ty_trm.
+  intros. gen_env env_store. apply* weaken_ty_trm.
 Qed.
 
 
-Lemma weaken_subtyp: forall m1 m2 G1 G2 S T U,
+Lemma weaken_subtyp: forall m m1 m2 e1 e1' e2 T U,
+  subtyp m1 m2 (get_ctx m e1 e2) (get_sigma m e1 e2) T U ->
+  ok (e1 & e1') ->
+  subtyp m1 m2 (get_ctx m (e1 & e1') e2) (get_sigma m (e1 & e1') e2) T U.
+Proof.
+  intros.
+  assert (e1 & e1' = e1 & e1' & empty) as EqG. {
+    rewrite concat_empty_r. reflexivity.
+  }
+  rewrite EqG. destruct m.
+  - apply* weaken_rules_ctx. rewrite concat_empty_r. reflexivity. rewrite <- EqG. assumption.
+  - apply* weaken_rules_sigma. rewrite concat_empty_r. reflexivity. rewrite <- EqG. assumption.
+Qed.
+
+Lemma weaken_subtyp_ctx: forall m1 m2 G1 G2 S T U,
   subtyp m1 m2 G1 S T U ->
   ok (G1 & G2) ->
   subtyp m1 m2 (G1 & G2) S T U.
 Proof.
   intros.
-    assert (G1 & G2 = G1 & G2 & empty) as EqG. {
-    rewrite concat_empty_r. reflexivity.
-  }
-  rewrite EqG. apply* weaken_rules.
-  rewrite concat_empty_r. reflexivity.
-  rewrite <- EqG. assumption.
+  gen_env env_stack. apply* weaken_subtyp.
 Qed.
 
 Lemma weaken_subtyp_sigma: forall m1 m2 G S1 S2 T U,
@@ -646,13 +665,7 @@ Lemma weaken_subtyp_sigma: forall m1 m2 G S1 S2 T U,
   ok (S1 & S2) ->
   subtyp m1 m2 G (S1 & S2) T U.
 Proof.
- intros.
-    assert (S1 & S2 = S1 & S2 & empty) as EqG. {
-    rewrite concat_empty_r. reflexivity.
-  }
-  rewrite EqG. apply* weaken_rules_sigma.
-  rewrite concat_empty_r. reflexivity.
-  rewrite <- EqG. assumption.
+ intros. gen_env env_store. apply* weaken_subtyp.
 Qed.
 
 
@@ -712,12 +725,70 @@ Lemma sigma_binds_to_store_binds_raw: forall store G S l T,
     binds l v store /\ 
     ty_trm ty_precise sub_general G S1 (trm_val v) T.
 Proof.
+Ltac gen_env' m :=
+  match goal with
+  | |- context ctx [ty_trm ?m1 ?m2 ?G ?S ?t ?T] =>
+      match G with
+      | get_ctx _ _ _ => fail 1
+      | _             =>
+        let c := match m with
+        | env_stack => 
+          context ctx[ty_trm m1 m2 (get_ctx env_stack G S) (get_sigma env_stack G S) t T]
+        | env_store =>
+          context ctx[ty_trm m1 m2 (get_ctx env_store S G) (get_sigma env_store S G) t T]
+        end
+        in change c
+      end
+  | |- context ctx [subtyp ?m1 ?m2 ?G ?S ?T ?U] =>
+      match G with
+      | get_ctx _ _ _ => fail 1
+      | _             =>
+        let c := match m with
+        | env_stack =>
+          context ctx[subtyp m1 m2 (get_ctx env_stack G S) (get_sigma env_stack G S) T U]
+        | env_store =>
+          context ctx[subtyp m1 m2 (get_ctx env_store S G) (get_sigma env_store S G) T U]
+        end
+        in change c
+      end
+  | |- ex (fun (x:?ty) =>_ ) =>
+       idtac x;
+       evar (x:ty); idtac "2"; exists x; idtac "3";
+       gen_env' m;
+       idtac "4"
+  | _ => fail "Couldn't find non-generalized terms in goal"
+  end.
   intros.
-  change (exists S1 S2 v, S = S1 & l ~ T & S2 /\
+  gen_env' env_store. 
+  assert 
+  (H_im: (exists S1 S2 v, S = S1 & l ~ T & S2 /\
+binds l v store0 /\
+ty_trm ty_precise sub_general (get_ctx env_store S1 G)
+  (get_sigma env_store S1 G) (trm_val v) T)
+       -> 
+S = S1 & l ~ T & S2 /\
+binds l v store0 /\
+ty_trm ty_precise sub_general (get_ctx env_store S1 G)
+  (get_sigma env_store S1 G) (trm_val v) T
+).
+intros.
+destruct H1 as [S1' [S2' [v']]].
+instantiate (1 := S1') in (Value of S1). (* THIS SHOULD BREAK *)
+
+(*change (S = S1 & l ~ T & S2 /\
+binds l v store0 /\
+ty_trm ty_precise sub_general (get_ctx env_store S1 G)
+  (get_sigma env_store S1 G) (trm_val v) T
+)
+  cut (exists S1 S2 v, S = S1 & l ~ T & S2 /\
+binds l v store0 /\
+ty_trm ty_precise sub_general (get_ctx env_store S1 G)
+  (get_sigma env_store S1 G) (trm_val v) T).
+  intros. change (exists S1 S2 v, S = S1 & l ~ T & S2 /\
     binds l v store0 /\
     ty_trm ty_precise sub_general (get_ctx env_store S1 G) (get_sigma env_store S1 G) (trm_val v) T).
   apply env_binds_to_st_binds_raw. assumption. assumption.
-Qed.
+Qed.*)
 
 
 Lemma st_binds_to_env_binds_raw: forall st env1 env2 x v m,
@@ -892,6 +963,10 @@ Proof.
 Qed.
 
 
+Lemma gen_ty_trm_ctx: forall m1 m2 G S t T,
+  ty_trm m1 m2 G S t T = ty_trm m1 m2 (get_ctx env_stack G S) (get_store env_stack G S) t T.
+
+
 (* ###################################################################### *)
 (** ** Extra Rec *)
 
@@ -920,7 +995,11 @@ Lemma extra_bnd_rules:
     env1 = e1 & (x ~ open_typ x V) & e1' ->
     env1' = e1 & (x ~ typ_bnd V) & e1' ->
     subtyp m1 m2 (get_ctx m env1' env2) (get_sigma m env1' env2) T U).
-Proof. 
+Proof.
+  split.
+
+dependent destruction m.
+  
   apply rules_mutind; intros; eauto.
   - (* ty_var *)
     subst. apply binds_middle_inv in b. destruct b as [Bi | [Bi | Bi]].
