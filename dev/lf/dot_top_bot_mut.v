@@ -399,114 +399,6 @@ Definition wf_store (G: ctx) (S: sigma) (s: store): Prop :=
   wf env_store S G s.
 Hint Unfold wf_store.
     
-Definition wf_stack_store(G: ctx) (S: sigma) (sta: stack) (sto: store): Prop := 
-  wf_stack G S sta /\ wf_store S G sto.
-
-
-Theorem wf_stack_ind: 
-  forall P : ctx -> sigma -> stack -> Prop,
-  P empty empty empty ->
-  (forall (G : ctx) (S : sigma) (s : stack) (x : var) (T : typ) (v : val),
-    wf env_stack G S s ->
-    P G S s ->
-    x # G ->
-    x # s ->
-    ty_trm ty_precise sub_general G S (trm_val v) T ->
-    P (G & x ~ T) S (s & x ~ v)) ->
-    forall (G' : ctx) (S' : sigma) (s' : stack),
-      wf env_stack G' S' s' ->
-      P G' S' s'.
-Proof.
-  refine(
-    fun (P : ctx -> sigma -> stack -> Prop) (f : P empty empty empty)
-        (f' : forall (G : ctx) (S : sigma) (s : stack) (x : var) (T : typ) (v : val),
-          wf_stack G S s ->
-          P G S s ->
-          x # G ->
-          x # s ->
-          ty_trm ty_precise sub_general G S (trm_val v) T ->
-          P (G & x ~ T) S (s & x ~ v)) =>
-    fix F (G' : ctx) (S' : sigma) (s' : stack) (w : wf_stack G' S' s') {struct w} :
-      P G' S' s' :=
-        (match w in (wf m G'' S'' s'') return (m = env_stack) -> (P G'' S'' s'') with
-        | wf_empty m                         => fun _ => f
-        | wf_push m G S0 S'' x T v w0 n n0 t => fun _ => _
-        end) 
-    (eq_refl: env_stack = env_stack)) .
-  subst.
-  exact (f' G S0 S'' x T v w0 (F G S0 S'' w0) n n0 t).
-Qed.
-
-(* todo how to make G not type check with S, and do I want that? *)
-
-Theorem wf_store_ind: 
-  forall P : ctx -> sigma -> store -> Prop,
-  P empty empty empty ->
-  (forall (G : ctx) (S : sigma) (s : store) (l : var) (T : typ) (v : val),
-    wf env_store S G s ->
-    P G S s ->
-    l # S ->
-    l # s ->
-    ty_trm ty_precise sub_general G S (trm_val v) T ->
-    P G (S & l ~ T) (s & l ~ v)) ->
-    forall (G' : ctx) (S' : sigma) (s' : stack),
-      wf env_store S' G' s' ->
-      P G' S' s'.
-Proof.
-  refine(
-    fun (P : ctx -> sigma -> stack -> Prop) (f : P empty empty empty)
-        (f' : forall (G : ctx) (S : sigma) (s : store) (l : var) (T : typ) (v : val),
-          wf_store G S s ->
-          P G S s ->
-          l # S ->
-          l # s ->
-          ty_trm ty_precise sub_general G S (trm_val v) T ->
-          P G (S & l ~ T) (s & l ~ v)) =>
-    fix F (G' : ctx) (S' : sigma) (s' : store) (w : wf_store G' S' s') {struct w} :
-      P G' S' s' :=
-        (match w in (wf m S'' G'' s'') return (m = env_store) -> (P G'' S'' s'') with
-        | wf_empty m                         => fun _ => f
-        | wf_push m G S0 S'' x T v w0 n n0 t => fun _ => _
-        end) 
-    (eq_refl: env_store = env_store)) .
-  subst.
-  exact (f' S0 G S'' x T v w0 (F S0 G S'' w0) n n0 t).
-Qed.
-
-
-Lemma wf_rewrite_sta: forall G S st, wf env_stack G S st = wf_stack G S st.
-Proof.
-  intros. unfold wf_stack. reflexivity.
-Qed.
-
-Lemma wf_rewrite_sto: forall G S st, wf env_store S G st = wf_store G S st.
-Proof.
-  intros. unfold wf_store. reflexivity.
-Qed.
-
-Ltac induction__wf Wf :=
-  match type of Wf with
-  | (wf env_stack ?G ?S ?stack0) =>
-          rewrite wf_rewrite_sta in Wf;
-          pattern G,S,stack0;
-          eapply wf_stack_ind;
-          try eexact Wf
-  | (wf_stack ?G ?S ?stack0) =>
-          pattern G,S,stack0; 
-          eapply wf_stack_ind;
-          try eexact Wf;
-          clear Wf
-  | (wf env_store ?G ?S ?stack0) =>
-          rewrite wf_rewrite_sto in Wf;
-          pattern G,S,stack0;
-          eapply wf_store_ind;
-          try eexact Wf
-  | (wf_store ?G ?S ?store0) =>
-          pattern G,S,store0; 
-          eapply wf_store_ind;
-          try eexact Wf;
-          clear Wf
-  end.
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -518,6 +410,7 @@ Ltac induction__wf Wf :=
 Scheme typ_mut := Induction for typ Sort Prop
 with   dec_mut := Induction for dec Sort Prop.
 Combined Scheme typ_mutind from typ_mut, dec_mut.
+
 
 Scheme trm_mut  := Induction for trm  Sort Prop
 with   val_mut  := Induction for val Sort Prop
@@ -539,8 +432,6 @@ with   rules_def_mut    := Induction for ty_def    Sort Prop
 with   rules_defs_mut   := Induction for ty_defs   Sort Prop
 with   rules_subtyp     := Induction for subtyp    Sort Prop.
 Combined Scheme rules_mutind from rules_trm_mut, rules_def_mut, rules_defs_mut, rules_subtyp.
-
-Combined Scheme rules_mutind2 from rules_trm_mut, rules_def_mut, rules_defs_mut, rules_subtyp, rules_trm_mut, rules_def_mut, rules_defs_mut, rules_subtyp.
 
 (* ###################################################################### *)
 (** ** Tactics *)
@@ -600,7 +491,34 @@ Qed.
 (* ###################################################################### *)
 (** ** Weakening *)
 
-(* todo rewrite in generic way *)
+(*
+  Lemma weaken_rules:
+  (forall m m1 m2 env1 env2 t T, 
+    ty_trm m1 m2 (get_ctx m env1 env2) (get_sigma m env1 env2) t T -> 
+    forall e11 e12 e13,
+    env1 = e11 & e12 & e13 ->
+    ok (e11 & e12 & e13) ->
+    ty_trm m1 m2 (get_ctx m (e11 & e12 & e13) env2) (get_sigma m (e11 & e12 & e13) env2) t T) /\
+  (forall m env1 env2 d D, 
+    ty_def (get_ctx m env1 env2) (get_sigma m env1 env2) d D -> 
+    forall e11 e12 e13,
+    env1 = e11 & e12 & e13 ->
+    ok (e11 & e12 & e13) ->
+    ty_def (get_ctx m (e11 & e12 & e13) env2) (get_sigma m (e11 & e12 & e13) env2) d D) /\
+  (forall m env1 env2 ds T, 
+    ty_defs (get_ctx m env1 env2) (get_sigma m env1 env2) ds T -> 
+    forall e11 e12 e13,
+    env1 = e11 & e12 & e13 ->
+    ok (e11 & e12 & e13) ->
+    ty_defs (get_ctx m (e11 & e12 & e13) env2) (get_sigma m (e11 & e12 & e13) env2) ds T) /\
+  (forall m m1 m2 env1 env2 T U, 
+    subtyp m1 m2 (get_ctx m env1 env2) (get_sigma m env1 env2) T U -> 
+    forall e11 e12 e13,
+    env1 = e11 & e12 & e13 ->
+    ok (e11 & e12 & e13) ->
+    subtyp m1 m2 (get_ctx m (e11 & e12 & e13) env2) (get_sigma m (e11 & e12 & e13) env2) T U).
+*)
+  
 
 Lemma weaken_rules:
   (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 G3,
@@ -673,20 +591,29 @@ Proof.
   eapply ty_loc. eapply binds_weaken; eauto.
 Qed.
 
-(* todo generalize the following lemmas? *)
+Lemma weaken_ty_trm: forall m m1 m2 e1 e1' e2 t T,
+  ty_trm m1 m2 (get_ctx m e1 e2) (get_sigma m e1 e2) t T ->
+  ok (e1 & e1') ->
+  ty_trm m1 m2 (get_ctx m (e1 & e1') e2) (get_sigma m (e1 & e1') e2) t T.
+Proof.
+  intros.
+  assert (e1 & e1' = e1 & e1' & empty) as EqG. {
+    rewrite concat_empty_r. reflexivity.
+  }
+  rewrite EqG.
+  destruct m.
+  - apply* weaken_rules; rewrite concat_empty_r; auto.
+  - apply* weaken_rules_sigma; rewrite concat_empty_r; auto.
+Qed.
 
-Lemma weaken_ty_trm:  forall m1 m2 G1 G2 S t T,
+Lemma weaken_ty_trm_ctx:  forall m1 m2 G1 G2 S t T,
     ty_trm m1 m2 G1 S t T ->
     ok (G1 & G2) ->
     ty_trm m1 m2 (G1 & G2) S t T.
 Proof.
   intros.
-    assert (G1 & G2 = G1 & G2 & empty) as EqG. {
-    rewrite concat_empty_r. reflexivity.
-  }
-  rewrite EqG. apply* weaken_rules.
-  rewrite concat_empty_r. reflexivity.
-  rewrite <- EqG. assumption.
+  change (ty_trm m1 m2 (get_ctx env_stack (G1 & G2) S) (get_sigma env_stack (G1 & G2) S) t T).
+  apply* weaken_ty_trm.
 Qed.
 
 Lemma weaken_ty_trm_sigma: forall m1 m2 G S1 S2 t T,
@@ -695,13 +622,10 @@ Lemma weaken_ty_trm_sigma: forall m1 m2 G S1 S2 t T,
     ty_trm m1 m2 G (S1 & S2) t T.
 Proof.
   intros.
-    assert (S1 & S2 = S1 & S2 & empty) as EqG. {
-    rewrite concat_empty_r. reflexivity.
-  }
-  rewrite EqG. apply* weaken_rules_sigma.
-  rewrite concat_empty_r. reflexivity.
-  rewrite <- EqG. assumption.
+  change (ty_trm m1 m2 (get_ctx env_store (S1 & S2) G) (get_sigma env_store (S1 & S2) G) t T).
+  apply* weaken_ty_trm.
 Qed.
+
 
 Lemma weaken_subtyp: forall m1 m2 G1 G2 S T U,
   subtyp m1 m2 G1 S T U ->
@@ -996,8 +920,8 @@ Lemma extra_bnd_rules:
     env1 = e1 & (x ~ open_typ x V) & e1' ->
     env1' = e1 & (x ~ typ_bnd V) & e1' ->
     subtyp m1 m2 (get_ctx m env1' env2) (get_sigma m env1' env2) T U).
-Proof. Admitted.
-(*  apply rules_mutind; intros; eauto.
+Proof. 
+  apply rules_mutind; intros; eauto.
   - (* ty_var *)
     subst. apply binds_middle_inv in b. destruct b as [Bi | [Bi | Bi]].
     + apply ty_var. eauto.
@@ -1040,7 +964,7 @@ Proof. Admitted.
     eapply H0; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. reflexivity.
-Qed. *)
+Qed.
 
 Lemma extra_bnd_rules_ctx:
   (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 x U G',
@@ -1461,8 +1385,15 @@ Proof.
       apply ty_var. rewrite <- H1.
       unfold subst_env. rewrite <- map_concat.
       apply binds_map. assumption. assumption.
+  - (* ty_loc *)
+    simpl. 
+    apply_fresh ty_loc as z; eauto. 
+    assert (subst_typ x y T = T). {
+  admit.    
+    }
+    rewrite* H.
   - (* ty_all_intro *)
-    simpl.
+    simpl.    
     apply_fresh ty_all_intro as z; eauto.
     assert (z \notin L) as FrL by eauto.
     assert (subst_fvar x y z = z) as A. {
@@ -1470,15 +1401,15 @@ Proof.
     }
     rewrite <- A at 2. rewrite <- subst_open_commute_trm.
     rewrite <- A at 3. rewrite <- subst_open_commute_typ.
-    assert (subst_ctx x y G2 & z ~ subst_typ x y T = subst_ctx x y (G2 & z ~ T)) as B. {
-      unfold subst_ctx. rewrite map_concat. rewrite map_single. reflexivity.
+    assert (subst_env x y G2 & z ~ subst_typ x y T = subst_env x y (G2 & z ~ T)) as B. {
+      unfold subst_env. rewrite map_concat. rewrite map_single. reflexivity.
     }
     rewrite <- concat_assoc. rewrite B.
     eapply H; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. apply ok_push. assumption. eauto.
     rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
-    apply ok_push. apply ok_concat_map. eauto. unfold subst_ctx. eauto.
+    apply ok_push. apply ok_concat_map. eauto. unfold subst_env. eauto.
   - (* ty_all_elim *)
     simpl. rewrite subst_open_commute_typ.
     eapply ty_all_elim.
@@ -1494,23 +1425,23 @@ Proof.
     }
     rewrite <- A at 2. rewrite <- A at 3. rewrite <- A at 4.
     rewrite <- subst_open_commute_typ. rewrite <- subst_open_commute_defs.
-    assert (subst_ctx x y G2 & z ~ subst_typ x y (open_typ z T) = subst_ctx x y (G2 & z ~ open_typ z T)) as B. {
-      unfold subst_ctx. rewrite map_concat. rewrite map_single. reflexivity.
+    assert (subst_env x y G2 & z ~ subst_typ x y (open_typ z T) = subst_env x y (G2 & z ~ open_typ z T)) as B. {
+      unfold subst_env. rewrite map_concat. rewrite map_single. reflexivity.
     }
     rewrite <- concat_assoc. rewrite B.
     apply H; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. apply ok_push. assumption. eauto.
     rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
-    apply ok_push. apply ok_concat_map. eauto. unfold subst_ctx. eauto.
+    apply ok_push. apply ok_concat_map. eauto. unfold subst_env. eauto.
   - (* ty_new_elim *)
     simpl. apply ty_new_elim.
     apply H; eauto.
   - (* ty_let *)
     simpl.
     apply_fresh ty_let as z; eauto.
-    assert (subst_ctx x y G2 & z ~ subst_typ x y T = subst_ctx x y (G2 & z ~ T)) as B. {
-      unfold subst_ctx. rewrite map_concat. rewrite map_single. reflexivity.
+    assert (subst_env x y G2 & z ~ subst_typ x y T = subst_env x y (G2 & z ~ T)) as B. {
+      unfold subst_env. rewrite map_concat. rewrite map_single. reflexivity.
     }
     rewrite <- concat_assoc. rewrite B.
     assert (subst_fvar x y z = z) as A. {
@@ -1521,7 +1452,7 @@ Proof.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. apply ok_push. assumption. eauto.
     rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
-    apply ok_push. apply ok_concat_map. eauto. unfold subst_ctx. eauto.
+    apply ok_push. apply ok_concat_map. eauto. unfold subst_env. eauto.
   - (* ty_rec_intro *)
     simpl. apply ty_rec_intro.
     assert (trm_var (avar_f (If x = x0 then y else x)) = subst_trm x0 y (trm_var (avar_f x))) as A. {
@@ -1591,15 +1522,15 @@ Proof.
     }
     rewrite <- A at 2. rewrite <- A at 3.
     rewrite <- subst_open_commute_typ. rewrite <- subst_open_commute_typ.
-    assert (subst_ctx x y G2 & z ~ subst_typ x y S2 = subst_ctx x y (G2 & z ~ S2)) as B. {
-      unfold subst_ctx. rewrite map_concat. rewrite map_single. reflexivity.
+    assert (subst_env x y G2 & z ~ subst_typ x y S2 = subst_env x y (G2 & z ~ S2)) as B. {
+      unfold subst_env. rewrite map_concat. rewrite map_single. reflexivity.
     }
     rewrite <- concat_assoc. rewrite B.
     apply H0; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. apply ok_push. assumption. eauto.
     rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
-    apply ok_push. apply ok_concat_map. eauto. unfold subst_ctx. eauto.
+    apply ok_push. apply ok_concat_map. eauto. unfold subst_env. eauto.
 Qed.
 
 Lemma subst_ty_trm: forall y S G x t T,
@@ -1611,12 +1542,12 @@ Lemma subst_ty_trm: forall y S G x t T,
 Proof.
   intros.
   apply (proj51 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H.
-  unfold subst_ctx in H. rewrite map_empty in H. rewrite concat_empty_r in H.
+  unfold subst_env in H. rewrite map_empty in H. rewrite concat_empty_r in H.
   apply H.
   rewrite concat_empty_r. reflexivity.
   rewrite concat_empty_r. assumption.
   assumption.
-  unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption.
+  unfold subst_env. rewrite map_empty. rewrite concat_empty_r. assumption.
   reflexivity.
   reflexivity.
 Qed.
@@ -1630,12 +1561,12 @@ Lemma subst_ty_defs: forall y S G x ds T,
 Proof.
   intros.
   apply (proj53 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H.
-  unfold subst_ctx in H. rewrite map_empty in H. rewrite concat_empty_r in H.
+  unfold subst_env in H. rewrite map_empty in H. rewrite concat_empty_r in H.
   apply H.
   rewrite concat_empty_r. reflexivity.
   rewrite concat_empty_r. assumption.
   assumption.
-  unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption.
+  unfold subst_env. rewrite map_empty. rewrite concat_empty_r. assumption.
 Qed.
 
 (* ###################################################################### *)
