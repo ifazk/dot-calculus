@@ -417,7 +417,35 @@ Proof.
   specialize (H x0 x0 eq_refl);
   apply H;
   assumption.
-Qed.   
+Qed. 
+
+
+(* generalization of well-formedness for stacks/stores
+ * e1 denotes the main environment (for env_stack, it's ctx, for env_store, it's sigma),
+ * and e2 the other environment *)
+Inductive wf: envmode -> env typ -> env typ -> env val -> Prop :=
+| wf_empty: forall m, wf m empty empty empty
+| wf_push: forall m e1 e2 s x T v,
+    wf m e1 e2 s ->
+    x # e1 ->
+    x # s ->
+    ty_trm ty_precise sub_general (get_ctx m e1 e2) (get_sigma m e1 e2) (trm_val v) T ->
+    wf m (e1 & x ~ T) e2 (s & x ~ v).
+
+Definition wf_stack (G: ctx) (S: sigma) (s: stack): Prop :=
+  wf env_stack G S s.
+Hint Unfold wf_stack.
+
+Definition wf_store (G: ctx) (S: sigma) (s: store): Prop :=
+  wf env_store S G s.
+Hint Unfold wf_store.
+
+Lemma wf_rewrite_ctx : forall G S s, wf_stack G S s = wf env_stack G S s.
+Proof. reflexivity. Qed.
+
+Lemma wf_rewrite_sigma : forall G S s, wf_store G S s = wf env_store S G s.
+Proof. reflexivity. Qed.
+
 
 Ltac gen_env m :=
   match goal with
@@ -448,33 +476,16 @@ Ltac gen_env m :=
   | |- ex (fun x =>_ ) =>
       match m with
       | env_stack =>
-        setoid_rewrite gen_ty_trm_ctx || setoid_rewrite gen_subtyp_ctx
+        setoid_rewrite gen_ty_trm_ctx ||
+        setoid_rewrite gen_subtyp_ctx ||
+        setoid_rewrite wf_rewrite_ctx
       | env_store =>
-        setoid_rewrite gen_ty_trm_sigma || setoid_rewrite gen_subtyp_sigma
+        setoid_rewrite gen_ty_trm_sigma ||
+        setoid_rewrite gen_subtyp_sigma ||
+        setoid_rewrite wf_rewrite_sigma
       end
   | _ => fail "Couldn't find non-generalized terms in goal"
   end.
-
-
-(* generalization of well-formedness for stacks/stores
- * e1 denotes the main environment (for env_stack, it's ctx, for env_store, it's sigma),
- * and e2 the other environment *)
-Inductive wf: envmode -> env typ -> env typ -> env val -> Prop :=
-| wf_empty: forall m, wf m empty empty empty
-| wf_push: forall m e1 e2 s x T v,
-    wf m e1 e2 s ->
-    x # e1 ->
-    x # s ->
-    ty_trm ty_precise sub_general (get_ctx m e1 e2) (get_sigma m e1 e2) (trm_val v) T ->
-    wf m (e1 & x ~ T) e2 (s & x ~ v).
-
-Definition wf_stack (G: ctx) (S: sigma) (s: stack): Prop :=
-  wf env_stack G S s.
-Hint Unfold wf_stack.
-
-Definition wf_store (G: ctx) (S: sigma) (s: store): Prop :=
-  wf env_store S G s.
-Hint Unfold wf_store.
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -761,7 +772,6 @@ Proof.
   intros. gen_env env_store. apply* env_binds_to_st_binds_raw.
 Qed.
 
-
 Lemma st_binds_to_env_binds_raw: forall st env1 env2 x v m,
   wf m env1 env2 st ->
   binds x v st ->
@@ -783,52 +793,9 @@ Lemma stack_binds_to_ctx_binds_raw: forall stack G S x v,
   binds x v stack ->
   exists G1 G2 T, G = G1 & (x ~ T) & G2 /\ ty_trm ty_precise sub_general G1 S (trm_val v) T.
 Proof.
-  intros. gen_env env_stack.
-  apply st_binds_to_env_binds_raw with (st := stack0). assumption. assumption.
+  intros. gen_env env_stack. 
+  apply st_binds_to_env_binds_raw with (st := stack0); assumption.
 Qed.
-  
-Lemma store_binds_to_sigma_binds_raw: forall store G S l v,
-  wf_store G S store ->
-  binds l v store ->
-  exists S1 S2 T, S = S1 & (l ~ T) & S2 /\ ty_trm ty_precise sub_general G S1 (trm_val v) T.
-Proof.
-  intros. gen_env env_store.
-  apply st_binds_to_env_binds_raw with (st := store0). assumption. assumption.
-Qed.
-
-
-Lemma invert_wf_concat: forall m st env1' env1'' env2,
-  wf m (env1' & env1'') env2 st ->
-  exists st1 st2, st = st1 & st2 /\ wf m env1' env2 st1.
-Proof.
-  introv Wf. gen_eq env1: (env1' & env1''). gen env1' env1''. induction Wf; introv Eq; subst.
-  - do 2 exists (@empty val). rewrite concat_empty_r.
-    apply empty_concat_inv in Eq. destruct Eq. subst. auto.
-  - destruct (env_case env1'') as [Eq1 | [x' [T' [env1''' Eq1]]]].
-    * subst env1''. rewrite concat_empty_r in Eq. subst env1'.
-      exists (s & x ~ v) (@empty val). rewrite concat_empty_r. auto.
-    * subst env1''. rewrite concat_assoc in Eq. apply eq_push_inv in Eq.
-      destruct Eq as [? [? ?]]. subst x' T' e1. specialize (IHWf env1' env1''' eq_refl).
-      destruct IHWf as [s1 [s2 [Eq Wf']]]. subst.
-      exists s1 (s2 & x ~ v). rewrite concat_assoc. auto.
-Qed.
-
-Lemma invert_wf_stack_concat: forall sta G1 G2 S,
-  wf_stack (G1 & G2) S sta ->
-  exists sta1 sta2, sta = sta1 & sta2 /\ wf_stack G1 S sta1.
-Proof.
-  apply invert_wf_concat.
-Qed.
-
-Lemma invert_wf_store_concat: forall sto G S1 S2,
-  wf_store G (S1 & S2) sto ->
-  exists sto1 sto2, sto = sto1 & sto2 /\ wf_store G S1 sto1.
-Proof.
-  intros.
-  change (exists sto1 sto2, sto = sto1 & sto2 /\ wf env_store S1 G sto1).
-  apply invert_wf_concat with (env1'' := S2). assumption.
-Qed.
-
 
 Lemma st_unbound_to_env_unbound: forall m s env1 env2 x,
   wf m env1 env2 s ->
@@ -857,8 +824,7 @@ Lemma store_unbound_to_sigma_unbound: forall s G S l,
   l # s ->
   l # S.
 Proof.
-  intros. apply st_unbound_to_env_unbound with env_store s G.
-  assumption. assumption.
+  intros. apply st_unbound_to_env_unbound with env_store s G; assumption.
 Qed.
 
 
@@ -879,8 +845,7 @@ Lemma ctx_unbound_to_stack_unbound: forall s G S x,
   x # G ->
   x # s.
 Proof.
-  intros. apply env_unbound_to_st_unbound with env_stack G S.
-  assumption. assumption.
+  intros. apply env_unbound_to_st_unbound with env_stack G S; assumption.
 Qed.
 
 Lemma sigma_unbound_to_store_unbound: forall s G S l,
@@ -888,8 +853,7 @@ Lemma sigma_unbound_to_store_unbound: forall s G S l,
   l # S ->
   l # s.
 Proof.
-  intros. apply env_unbound_to_st_unbound with env_store S G.
-  assumption. assumption.
+  intros. apply env_unbound_to_st_unbound with env_store S G; assumption.
 Qed.
 
 
@@ -3615,3 +3579,52 @@ Proof.
       rewrite <- IH2. eapply wf_stack_to_ok_G. eassumption.
 Qed.
 
+
+Set Implicit Arguments.
+
+Require Import Coq.Setoids.Setoid.
+Require Import LibLN.
+Require Import Coq.Program.Equality.
+
+(* ###################################################################### *)
+(* ###################################################################### *)
+(** * Definitions *)
+
+(* ###################################################################### *)
+(** ** Syntax *)
+
+Parameter typ_label: Set.
+Parameter trm_label: Set.
+
+Definition addr := var.
+
+Inductive label: Set :=
+| label_typ: typ_label -> label
+| label_trm: trm_label -> label.
+
+Inductive avar : Set :=
+  | avar_b : nat -> avar  (* bound var (de Bruijn index) *)
+  | avar_f : var -> avar. (* free var ("name"), refers to stack or ctx *)
+
+Inductive typ : Set :=
+  | typ_top  : typ
+  | typ_bot  : typ
+  | typ_ref  : typ -> typ (* Ref T *)
+  | typ_rcd  : dec -> typ (* { D } *)
+  | typ_and  : typ -> typ -> typ
+  | typ_sel  : avar -> typ_label -> typ (* x.L *)
+  | typ_bnd  : typ -> typ (* rec(x: T) *)
+  | typ_all  : typ -> typ -> typ (* all(x: S)T *)
+with dec : Set :=
+  | dec_typ  : typ_label -> typ -> typ -> dec (* A: S..U *)
+  | dec_trm  : trm_label -> typ -> dec (* a: T *).
+
+Inductive trm : Set :=
+  | trm_var  : avar -> trm
+      split; try split; try split; try assumption.
+      apply ty_sub with (T:=T).
+      intro Contra. inversion Contra.
+      assumption.
+      rewrite IH2. apply weaken_subtyp. assumption.
+      rewrite <- IH2. eapply wf_stack_to_ok_G. eassumption.
+Qed.
