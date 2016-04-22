@@ -1,5 +1,6 @@
 Set Implicit Arguments.
 
+Require Import Coq.Setoids.Setoid.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 
@@ -391,6 +392,33 @@ Proof.
   intros. reflexivity.
 Qed.
 
+Lemma gen_subtyp_ctx: forall m1 m2 G S T U,
+  subtyp m1 m2 G S T U = subtyp m1 m2 (get_ctx env_stack G S) (get_sigma env_stack G S) T U.
+Proof.
+  intros. reflexivity.
+Qed.
+
+Lemma gen_subtyp_sigma: forall m1 m2 G S T U,
+  subtyp m1 m2 G S T U = subtyp m1 m2 (get_ctx env_store S G) (get_sigma env_store S G) T U.
+Proof.
+  intros. reflexivity.
+Qed.
+
+
+(* equivalence between exists and setoids for setoid_rewrite in `gen_env` ltac *)
+Add Parametric Morphism (A : Type) : (@ex A)
+  with signature ((eq ==> iff) ==> iff)
+  as ex_intro_eq.
+Proof.
+  intros.
+  split; intros;
+  destruct H0;
+  exists x0;
+  specialize (H x0 x0 eq_refl);
+  apply H;
+  assumption.
+Qed.   
+
 Ltac gen_env m :=
   repeat match goal with
   | |- context ctx [ty_trm ?m1 ?m2 ?G ?S ?t ?T] =>
@@ -418,7 +446,14 @@ Ltac gen_env m :=
         in change c
       end
   | |- ex (fun x =>_ ) =>
-       evar x
+      match m with
+      | env_stack =>
+        try setoid_rewrite gen_ty_trm_ctx;
+        try setoid_rewrite gen_subtyp_ctx
+      | env_store =>
+        try setoid_rewrite gen_ty_trm_sigma;
+        try setoid_rewrite gen_subtyp_sigma
+      end
   | _ => fail "Couldn't find non-generalized terms in goal"
   end.
 
@@ -560,7 +595,7 @@ Lemma weaken_rules_ctx:
     assert (zL: z \notin L) by auto.
     specialize (H z zL G1 G2 (G3 & z ~ T)).
     repeat rewrite concat_assoc in H.
-    apply* H.
+    apply H. auto. auto.
   + intros. subst.
     apply_fresh ty_new_intro as z; assert (zL: z \notin L) by auto.
     - specialize (H z zL G1 G2 (G3 & z ~ open_typ z T)).
@@ -571,7 +606,7 @@ Lemma weaken_rules_ctx:
     assert (zL: z \notin L) by auto.
     specialize (H0 z zL G1 G2 (G3 & z ~ T)).
     repeat rewrite concat_assoc in H0.
-    apply* H0.
+    apply H0. auto. auto.
   + intros. subst.
     apply_fresh subtyp_all as z.
     eauto.
@@ -579,7 +614,7 @@ Lemma weaken_rules_ctx:
     assert (zL: z \notin L) by auto.
     specialize (H0 z zL G1 G2 (G3 & z ~ S2)).
     repeat rewrite concat_assoc in H0.
-    apply* H0.
+    apply H0. auto. auto.
 Qed.
 
 Lemma weaken_rules_sigma:
@@ -725,9 +760,10 @@ Lemma sigma_binds_to_store_binds_raw: forall store G S l T,
     binds l v store /\ 
     ty_trm ty_precise sub_general G S1 (trm_val v) T.
 Proof.
+
 Ltac gen_env' m :=
-  match goal with
-  | |- context ctx [ty_trm ?m1 ?m2 ?G ?S ?t ?T] =>
+  repeat match goal with
+  | |- context ctx [ty_trm ?m1 ?m2 ?G ?S ?t ?T] => idtac "1";
       match G with
       | get_ctx _ _ _ => fail 1
       | _             =>
@@ -739,7 +775,7 @@ Ltac gen_env' m :=
         end
         in change c
       end
-  | |- context ctx [subtyp ?m1 ?m2 ?G ?S ?T ?U] =>
+  | |- context ctx [subtyp ?m1 ?m2 ?G ?S ?T ?U] => idtac "2"
       match G with
       | get_ctx _ _ _ => fail 1
       | _             =>
@@ -751,26 +787,14 @@ Ltac gen_env' m :=
         end
         in change c
       end
-  | |- ex (fun (x:?ty) =>_ ) =>
-       idtac x;
-       evar (x:ty); idtac "2"; exists x; idtac "3";
-       gen_env' m;
-       idtac "4"
+  | |- ex (fun x =>_ ) =>
+      idtac "ex";
+        setoid_rewrite gen_ty_trm_ctx
+(*        try setoid_rewrite gen_subtyp_ctx *)
   | _ => fail "Couldn't find non-generalized terms in goal"
   end.
-  intros.
-  gen_env' env_store. 
-  assert 
-  (H_im: (exists S1 S2 v, S = S1 & l ~ T & S2 /\
-binds l v store0 /\
-ty_trm ty_precise sub_general (get_ctx env_store S1 G)
-  (get_sigma env_store S1 G) (trm_val v) T)
-       -> 
-S = S1 & l ~ T & S2 /\
-binds l v store0 /\
-ty_trm ty_precise sub_general (get_ctx env_store S1 G)
-  (get_sigma env_store S1 G) (trm_val v) T
-).
+
+  gen_env env_store. 
 intros.
 destruct H1 as [S1' [S2' [v']]].
 instantiate (1 := S1') in (Value of S1). (* THIS SHOULD BREAK *)
