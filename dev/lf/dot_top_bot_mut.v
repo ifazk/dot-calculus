@@ -420,7 +420,7 @@ Proof.
 Qed.   
 
 Ltac gen_env m :=
-  repeat match goal with
+  match goal with
   | |- context ctx [ty_trm ?m1 ?m2 ?G ?S ?t ?T] =>
       match G with
       | get_ctx _ _ _ => fail 1
@@ -448,11 +448,9 @@ Ltac gen_env m :=
   | |- ex (fun x =>_ ) =>
       match m with
       | env_stack =>
-        try setoid_rewrite gen_ty_trm_ctx;
-        try setoid_rewrite gen_subtyp_ctx
+        setoid_rewrite gen_ty_trm_ctx || setoid_rewrite gen_subtyp_ctx
       | env_store =>
-        try setoid_rewrite gen_ty_trm_sigma;
-        try setoid_rewrite gen_subtyp_sigma
+        setoid_rewrite gen_ty_trm_sigma || setoid_rewrite gen_subtyp_sigma
       end
   | _ => fail "Couldn't find non-generalized terms in goal"
   end.
@@ -760,59 +758,8 @@ Lemma sigma_binds_to_store_binds_raw: forall store G S l T,
     binds l v store /\ 
     ty_trm ty_precise sub_general G S1 (trm_val v) T.
 Proof.
-
-Ltac gen_env' m :=
-  repeat match goal with
-  | |- context ctx [ty_trm ?m1 ?m2 ?G ?S ?t ?T] => idtac "1";
-      match G with
-      | get_ctx _ _ _ => fail 1
-      | _             =>
-        let c := match m with
-        | env_stack => 
-          context ctx[ty_trm m1 m2 (get_ctx env_stack G S) (get_sigma env_stack G S) t T]
-        | env_store =>
-          context ctx[ty_trm m1 m2 (get_ctx env_store S G) (get_sigma env_store S G) t T]
-        end
-        in change c
-      end
-  | |- context ctx [subtyp ?m1 ?m2 ?G ?S ?T ?U] => idtac "2"
-      match G with
-      | get_ctx _ _ _ => fail 1
-      | _             =>
-        let c := match m with
-        | env_stack =>
-          context ctx[subtyp m1 m2 (get_ctx env_stack G S) (get_sigma env_stack G S) T U]
-        | env_store =>
-          context ctx[subtyp m1 m2 (get_ctx env_store S G) (get_sigma env_store S G) T U]
-        end
-        in change c
-      end
-  | |- ex (fun x =>_ ) =>
-      idtac "ex";
-        setoid_rewrite gen_ty_trm_ctx
-(*        try setoid_rewrite gen_subtyp_ctx *)
-  | _ => fail "Couldn't find non-generalized terms in goal"
-  end.
-
-  gen_env env_store. 
-intros.
-destruct H1 as [S1' [S2' [v']]].
-instantiate (1 := S1') in (Value of S1). (* THIS SHOULD BREAK *)
-
-(*change (S = S1 & l ~ T & S2 /\
-binds l v store0 /\
-ty_trm ty_precise sub_general (get_ctx env_store S1 G)
-  (get_sigma env_store S1 G) (trm_val v) T
-)
-  cut (exists S1 S2 v, S = S1 & l ~ T & S2 /\
-binds l v store0 /\
-ty_trm ty_precise sub_general (get_ctx env_store S1 G)
-  (get_sigma env_store S1 G) (trm_val v) T).
-  intros. change (exists S1 S2 v, S = S1 & l ~ T & S2 /\
-    binds l v store0 /\
-    ty_trm ty_precise sub_general (get_ctx env_store S1 G) (get_sigma env_store S1 G) (trm_val v) T).
-  apply env_binds_to_st_binds_raw. assumption. assumption.
-Qed.*)
+  intros. gen_env env_store. apply* env_binds_to_st_binds_raw.
+Qed.
 
 
 Lemma st_binds_to_env_binds_raw: forall st env1 env2 x v m,
@@ -836,10 +783,7 @@ Lemma stack_binds_to_ctx_binds_raw: forall stack G S x v,
   binds x v stack ->
   exists G1 G2 T, G = G1 & (x ~ T) & G2 /\ ty_trm ty_precise sub_general G1 S (trm_val v) T.
 Proof.
-  intros. change (
-    exists G1 G2 T,
-      G = G1 & x ~ T & G2 /\
-      ty_trm ty_precise sub_general (get_ctx env_stack G1 S) (get_sigma env_stack G1 S) (trm_val v) T).
+  intros. gen_env env_stack.
   apply st_binds_to_env_binds_raw with (st := stack0). assumption. assumption.
 Qed.
   
@@ -848,11 +792,7 @@ Lemma store_binds_to_sigma_binds_raw: forall store G S l v,
   binds l v store ->
   exists S1 S2 T, S = S1 & (l ~ T) & S2 /\ ty_trm ty_precise sub_general G S1 (trm_val v) T.
 Proof.
-  intros. 
-  change (
-    exists S1 S2 T,
-      S = S1 & l ~ T & S2 /\
-      ty_trm ty_precise sub_general (get_ctx env_store S1 G) (get_sigma env_store S1 G) (trm_val v) T).
+  intros. gen_env env_store.
   apply st_binds_to_env_binds_raw with (st := store0). assumption. assumption.
 Qed.
 
@@ -3674,3 +3614,4 @@ Proof.
       rewrite IH2. apply weaken_subtyp. assumption.
       rewrite <- IH2. eapply wf_stack_to_ok_G. eassumption.
 Qed.
+
