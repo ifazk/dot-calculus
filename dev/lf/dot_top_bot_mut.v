@@ -1494,7 +1494,7 @@ Proof.
   - (* ty_def_trm *)
     simpl. apply ty_def_trm; eauto.
   - (* ty_defs_one *)
-    simpl. apply ty_defs_one. apply* H.
+    simpl. apply ty_defs_one; eauto.
   - (* ty_defs_cons *)
     simpl. apply ty_defs_cons; eauto.
     rewrite <- subst_label_of_def.
@@ -1523,8 +1523,8 @@ Proof.
   - (* subtyp_sel1 *)
     eapply subtyp_sel1; eauto.
     eapply H; eauto.
-  - (* subtyp_sel2_tight *) inversion H5.
-  - (* subtyp_sel1_tight *) inversion H5.
+  - (* subtyp_sel2_tight *) inversion H7.
+  - (* subtyp_sel1_tight *) inversion H7.
   - (* subtyp_all *)
     simpl. apply_fresh subtyp_all as z; eauto.
     assert (z \notin L) as FrL by eauto.
@@ -1540,7 +1540,7 @@ Proof.
     apply H0; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. apply ok_push. assumption. eauto.
-    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
+    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm_ctx. assumption.
     apply ok_push. apply ok_concat_map. eauto. unfold subst_env. eauto.
 Qed.
 
