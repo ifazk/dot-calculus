@@ -1565,21 +1565,24 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma subst_ty_defs: forall y S G x ds T,
-    ty_defs (G & x ~ S) ds T ->
-    ok (G & x ~ S) ->
+Lemma subst_ty_defs: forall y U G S x ds T,
+    ty_defs (G & x ~ U) S ds T ->
+    ok (G & x ~ U) ->
     x \notin fv_env_types G ->
-    ty_trm ty_general sub_general G (trm_var (avar_f y)) (subst_typ x y S) ->
-    ty_defs G (subst_defs x y ds) (subst_typ x y T).
+    x \notin fv_env_types S ->
+    ty_trm ty_general sub_general G S (trm_var (avar_f y)) (subst_typ x y U) ->
+    ty_defs G S (subst_defs x y ds) (subst_typ x y T).
 Proof.
   intros.
-  apply (proj53 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H.
-  unfold subst_env in H. rewrite map_empty in H. rewrite concat_empty_r in H.
+  apply (proj53 (subst_rules y U)) with (G1:=G) (G2:=empty) (S1:=S) (S2:=empty) (x:=x) in H.
+  unfold subst_env in H. rewrite map_empty in H. repeat rewrite concat_empty_r in H.
   apply H.
   rewrite concat_empty_r. reflexivity.
   rewrite concat_empty_r. assumption.
   assumption.
-  unfold subst_env. rewrite map_empty. rewrite concat_empty_r. assumption.
+  rewrite concat_empty_r. reflexivity.
+  assumption.
+  unfold subst_env. rewrite map_empty. repeat rewrite concat_empty_r. assumption.
 Qed.
 
 (* ###################################################################### *)
