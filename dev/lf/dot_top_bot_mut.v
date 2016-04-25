@@ -1346,7 +1346,6 @@ Qed.
 (** ** The substitution principle *)
 
 (* todo check with Ondřej how subst_rules is redefined now *)
-
 Lemma subst_rules: forall y U,
   (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 S1 S2 x,
     G = G1 & x ~ U & G2 ->
@@ -1544,21 +1543,24 @@ Proof.
     apply ok_push. apply ok_concat_map. eauto. unfold subst_env. eauto.
 Qed.
 
-Lemma subst_ty_trm: forall y S G x t T,
-    ty_trm ty_general sub_general (G & x ~ S) t T -> 
-    ok (G & x ~ S) ->
+Lemma subst_ty_trm: forall y U G S x t T,
+    ty_trm ty_general sub_general (G & x ~ U) S t T -> 
+    ok (G & x ~ U) ->
     x \notin fv_env_types G ->
-    ty_trm ty_general sub_general G (trm_var (avar_f y)) (subst_typ x y S) ->
-    ty_trm ty_general sub_general G (subst_trm x y t) (subst_typ x y T).
+    x \notin fv_env_types S ->
+    ty_trm ty_general sub_general G S (trm_var (avar_f y)) (subst_typ x y U) ->
+    ty_trm ty_general sub_general G S (subst_trm x y t) (subst_typ x y T).
 Proof.
   intros.
-  apply (proj51 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H.
-  unfold subst_env in H. rewrite map_empty in H. rewrite concat_empty_r in H.
+  apply (proj51 (subst_rules y U)) with (G1:=G) (G2:=empty) (S1:=S) (S2:=empty) (x:=x) in H.
+  unfold subst_env in H. rewrite map_empty in H. repeat rewrite concat_empty_r in H.
   apply H.
   rewrite concat_empty_r. reflexivity.
   rewrite concat_empty_r. assumption.
   assumption.
-  unfold subst_env. rewrite map_empty. rewrite concat_empty_r. assumption.
+  rewrite concat_empty_r. reflexivity.
+  assumption.
+  unfold subst_env. rewrite map_empty. repeat rewrite concat_empty_r. assumption.
   reflexivity.
   reflexivity.
 Qed.
