@@ -891,10 +891,6 @@ Proof.
 Qed.
 
 
-Lemma gen_ty_trm_ctx: forall m1 m2 G S t T,
-  ty_trm m1 m2 G S t T = ty_trm m1 m2 (get_ctx env_stack G S) (get_store env_stack G S) t T.
-
-
 (* ###################################################################### *)
 (** ** Extra Rec *)
 
@@ -923,12 +919,8 @@ Lemma extra_bnd_rules:
     env1 = e1 & (x ~ open_typ x V) & e1' ->
     env1' = e1 & (x ~ typ_bnd V) & e1' ->
     subtyp m1 m2 (get_ctx m env1' env2) (get_sigma m env1' env2) T U).
-Proof.
-  split.
-
-dependent destruction m.
-  
-  apply rules_mutind; intros; eauto.
+Proof. Admitted.
+ (* apply rules_mutind; intros; eauto.
   - (* ty_var *)
     subst. apply binds_middle_inv in b. destruct b as [Bi | [Bi | Bi]].
     + apply ty_var. eauto.
@@ -971,7 +963,7 @@ dependent destruction m.
     eapply H0; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. reflexivity.
-Qed.
+Qed. *)
 
 Lemma extra_bnd_rules_ctx:
   (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 x U G',
@@ -1353,35 +1345,45 @@ Qed.
 (* ###################################################################### *)
 (** ** The substitution principle *)
 
+(* todo check with Ondřej how subst_rules is redefined now *)
+
 Lemma subst_rules: forall y U,
-  (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 x,
+  (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 S1 S2 x,
     G = G1 & x ~ U & G2 ->
     ok (G1 & x ~ U & G2) ->
     x \notin fv_env_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_env x y G2)) S (trm_var (avar_f y)) (subst_typ x y U) ->
+    S = S1 & S2 ->
+    x \notin fv_env_types S1 ->
+    ty_trm ty_general sub_general (G1 & subst_env x y G2) (S1 & subst_env x y S2) (trm_var (avar_f y)) (subst_typ x y U) ->
     m1 = ty_general ->
     m2 = sub_general ->
-    ty_trm m1 m2 (G1 & (subst_env x y G2)) S (subst_trm x y t) (subst_typ x y T)) /\
-  (forall G S d D, ty_def G S d D -> forall G1 G2 x,
+    ty_trm m1 m2 (G1 & subst_env x y G2) (S1 & subst_env x y S2) (subst_trm x y t) (subst_typ x y T)) /\
+  (forall G S d D, ty_def G S d D -> forall G1 G2 S1 S2 x,
     G = G1 & x ~ U & G2 ->
     ok (G1 & x ~ U & G2) ->
     x \notin fv_env_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_env x y G2)) S (trm_var (avar_f y)) (subst_typ x y U) ->
-    ty_def (G1 & (subst_env x y G2)) S (subst_def x y d) (subst_dec x y D)) /\
-  (forall G S ds T, ty_defs G S ds T -> forall G1 G2 x,
+    S = S1 & S2 ->
+    x \notin fv_env_types S1 ->
+    ty_trm ty_general sub_general (G1 & subst_env x y G2) (S1 & subst_env x y S2) (trm_var (avar_f y)) (subst_typ x y U) ->
+    ty_def (G1 & subst_env x y G2) (S1 & subst_env x y S2) (subst_def x y d) (subst_dec x y D)) /\
+  (forall G S ds T, ty_defs G S ds T -> forall G1 G2 S1 S2 x,
     G = G1 & x ~ U & G2 ->
     ok (G1 & x ~ U & G2) ->
     x \notin fv_env_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_env x y G2)) S (trm_var (avar_f y)) (subst_typ x y U) ->
-    ty_defs (G1 & (subst_env x y G2)) S (subst_defs x y ds) (subst_typ x y T)) /\
-  (forall m1 m2 G S T V, subtyp m1 m2 G S T V -> forall G1 G2 x,
+    S = S1 & S2 ->
+    x \notin fv_env_types S1 ->
+    ty_trm ty_general sub_general (G1 & subst_env x y G2) (S1 & (subst_env x y S2)) (trm_var (avar_f y)) (subst_typ x y U) ->
+    ty_defs (G1 & subst_env x y G2) (S1 & subst_env x y S2) (subst_defs x y ds) (subst_typ x y T)) /\
+  (forall m1 m2 G S T V, subtyp m1 m2 G S T V -> forall G1 G2 S1 S2 x,
     G = G1 & x ~ U & G2 ->
     ok (G1 & x ~ U & G2) ->
     x \notin fv_env_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_env x y G2)) S (trm_var (avar_f y)) (subst_typ x y U) ->
+    S = S1 & S2 ->
+    x \notin fv_env_types S1 ->
+    ty_trm ty_general sub_general (G1 & subst_env x y G2) (S1 & subst_env x y S2) (trm_var (avar_f y)) (subst_typ x y U) ->
     m1 = ty_general ->
     m2 = sub_general ->
-    subtyp m1 m2 (G1 & (subst_env x y G2)) S (subst_typ x y T) (subst_typ x y V)).
+    subtyp m1 m2 (G1 & subst_env x y G2) (S1 & subst_env x y S2) (subst_typ x y T) (subst_typ x y V)).
 Proof.
   intros y S. apply rules_mutind; intros; subst.
   - (* ty_var *)
@@ -1393,12 +1395,8 @@ Proof.
       unfold subst_env. rewrite <- map_concat.
       apply binds_map. assumption. assumption.
   - (* ty_loc *)
-    simpl. 
-    apply_fresh ty_loc as z; eauto. 
-    assert (subst_typ x y T = T). {
-  admit.    
-    }
-    rewrite* H.
+    simpl. apply ty_loc. apply subst_fresh_env with (y:=y) in H3.
+    rewrite <- H3. unfold subst_env. rewrite <- map_concat. apply binds_map. assumption.
   - (* ty_all_intro *)
     simpl.    
     apply_fresh ty_all_intro as z; eauto.
@@ -1415,7 +1413,7 @@ Proof.
     eapply H; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. apply ok_push. assumption. eauto.
-    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
+    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm_ctx. assumption.
     apply ok_push. apply ok_concat_map. eauto. unfold subst_env. eauto.
   - (* ty_all_elim *)
     simpl. rewrite subst_open_commute_typ.
@@ -1439,7 +1437,7 @@ Proof.
     apply H; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. apply ok_push. assumption. eauto.
-    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
+    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm_ctx. assumption.
     apply ok_push. apply ok_concat_map. eauto. unfold subst_env. eauto.
   - (* ty_new_elim *)
     simpl. apply ty_new_elim.
@@ -1458,7 +1456,7 @@ Proof.
     apply H0 with (x0:=z); eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. apply ok_push. assumption. eauto.
-    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
+    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm_ctx. assumption.
     apply ok_push. apply ok_concat_map. eauto. unfold subst_env. eauto.
   - (* ty_rec_intro *)
     simpl. apply ty_rec_intro.
@@ -1485,12 +1483,18 @@ Proof.
   - (* ty_sub *)
     eapply ty_sub; eauto.
     intro Contra. inversion Contra.
+  - (* ty_ref *)
+    apply ty_ref; eauto.
+  - (* ty_deref *)
+    apply ty_deref; eauto.
+  - (* ty_asgn *)
+    apply ty_asgn; eauto.
   - (* ty_def_typ *)
     simpl. apply ty_def_typ; eauto.
   - (* ty_def_trm *)
     simpl. apply ty_def_trm; eauto.
   - (* ty_defs_one *)
-    simpl. apply ty_defs_one; eauto.
+    simpl. apply ty_defs_one. apply* H.
   - (* ty_defs_cons *)
     simpl. apply ty_defs_cons; eauto.
     rewrite <- subst_label_of_def.
