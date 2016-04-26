@@ -3356,17 +3356,17 @@ If `G ~ s` and `G |- x: T` then, for some value `v`,
 `s(x) = v` and `T in Ts(G, x, v)`.
 *)
 
-Lemma possible_types_completeness_tight: forall G s x T,
-  wf_stack G s ->
-  ty_trm ty_general sub_tight G (trm_var (avar_f x)) T ->
-  exists v, binds x v s /\ possible_types G x v T.
+Lemma possible_types_completeness_tight: forall G S s x T,
+  wf_stack G S s ->
+  ty_trm ty_general sub_tight G S (trm_var (avar_f x)) T ->
+  exists v, binds x v s /\ possible_types G S x v T.
 Proof.
   introv Hwf H. dependent induction H.
-  - assert (exists v, binds x v s /\ ty_trm ty_precise sub_general G (trm_val v) T) as A. {
+  - assert (exists v, binds x v s /\ ty_trm ty_precise sub_general G S (trm_val v) T) as A. {
       destruct (ctx_binds_to_stack_binds_raw Hwf H) as [G1 [? [v [? [Bi Hty]]]]].
       exists v. split. apply Bi. subst. rewrite <- concat_assoc.
-      eapply weaken_ty_trm. assumption. rewrite concat_assoc.
-      eapply wf_stack_to_ok_G. eassumption.
+      eapply weaken_ty_trm_ctx. assumption. rewrite concat_assoc.
+      eapply wf_to_ok_e1. eassumption.
     }
     destruct A as [v [Bis Hty]].
     exists v. split. apply Bis. eapply possible_types_completeness_for_values; eauto.
@@ -3376,7 +3376,7 @@ Proof.
   - specialize (IHty_trm Hwf).
     destruct IHty_trm as [v [Bis Hp]].
     exists v. split. assumption. inversion Hp; subst.
-    + lets Htype: (record_type_new Hwf Bis). rewrite H4 in Htype. inversion Htype. inversion H0.
+    + lets Htype: (record_type_new Hwf Bis). rewrite H5 in Htype. inversion Htype. inversion H0.
     + assumption.
   - specialize (IHty_trm1 Hwf). destruct IHty_trm1 as [v [Bis1 Hp1]].
     specialize (IHty_trm2 Hwf). destruct IHty_trm2 as [v' [Bis2 Hp2]].
@@ -3386,9 +3386,9 @@ Proof.
     exists v. split. apply Bis. eapply possible_types_closure_tight; eauto.
 Qed.
 
-Lemma tight_ty_rcd_typ__new: forall G s x A S U,
-  wf_stack G s ->
-  ty_trm ty_general sub_tight G (trm_var (avar_f x)) (typ_rcd (dec_typ A S U)) ->
+Lemma tight_ty_rcd_typ__new: forall G S s x A V U,
+  wf_stack G S s ->
+  ty_trm ty_general sub_tight G S (trm_var (avar_f x)) (typ_rcd (dec_typ A V U)) ->
   exists T ds, binds x (val_new T ds) s.
 Proof.
   introv Hwf Hty.
@@ -3397,22 +3397,24 @@ Proof.
 Qed.
 
 
-Lemma general_to_tight: forall G0 s0,
-  wf_stack G0 s0 ->
-  (forall m1 m2 G t T,
-     ty_trm m1 m2 G t T ->
+Lemma general_to_tight: forall G0 S0 s0,
+  wf_stack G0 S0 s0 ->
+  (forall m1 m2 G S t T,
+     ty_trm m1 m2 G S t T ->
      G = G0 ->
+     S = S0 ->
      m1 = ty_general ->
      m2 = sub_general ->
-     ty_trm ty_general sub_tight G t T) /\
-  (forall m1 m2 G S U,
-     subtyp m1 m2 G S U ->
+     ty_trm ty_general sub_tight G S t T) /\
+  (forall m1 m2 G S V U,
+     subtyp m1 m2 G S V U ->
      G = G0 ->
+     S = S0 ->
      m1 = ty_general ->
      m2 = sub_general ->
-     subtyp ty_general sub_tight G S U).
+     subtyp ty_general sub_tight G S V U).
 Proof.
-  intros G0 s0 Hwf.
+  intros G0 S0 s0 Hwf.
   apply ts_mutind; intros; subst; eauto.
   - assert (exists S ds, binds x (val_new S ds) s0) as Bis. {
       eapply tight_ty_rcd_typ__new; eauto.
@@ -3426,20 +3428,30 @@ Proof.
     eapply proj1. eapply tight_bound_completeness; eauto.
 Qed.
 
-Lemma general_to_tight_subtyping: forall G s S U,
-   wf_stack G s ->
-  subtyp ty_general sub_general G S U ->
-  subtyp ty_general sub_tight G S U.
+Lemma general_to_tight_subtyping: forall G S s V U,
+  wf_stack G S s ->
+  subtyp ty_general sub_general G S V U ->
+  subtyp ty_general sub_tight G S V U.
 Proof.
-  intros. apply* general_to_tight.
+  intros. (* todo why does apply* general_to_tight not work right away? *)
+  assert (forall m1 m2 G1 S1 V1 U1,
+    subtyp m1 m2 G1 S1 V1 U1 ->
+    G1 = G ->
+    S1 = S ->
+    m1 = ty_general ->
+    m2 = sub_general ->
+    subtyp ty_general sub_tight G1 S1 V1 U1). {
+      apply* general_to_tight.
+  }
+  specialize (H1 ty_general sub_general G S V U). apply* H1.
 Qed.
 
-Lemma possible_types_closure: forall G s x v S T,
-  wf_stack G s ->
+Lemma possible_types_closure: forall G S s x v V T,
+  wf_stack G S s ->
   binds x v s ->
-  possible_types G x v S ->
-  subtyp ty_general sub_general G S T ->
-  possible_types G x v T.
+  possible_types G S x v V ->
+  subtyp ty_general sub_general G S V T ->
+  possible_types G S x v T.
 Proof.
   intros. eapply possible_types_closure_tight; eauto.
   eapply general_to_tight_subtyping; eauto.
@@ -3455,7 +3467,7 @@ Proof.
       destruct (ctx_binds_to_stack_binds_raw Hwf H) as [G1 [? [v [? [Bi Hty]]]]].
       exists v. split. apply Bi. subst. rewrite <- concat_assoc.
       eapply weaken_ty_trm. assumption. rewrite concat_assoc.
-      eapply wf_stack_to_ok_G. eassumption.
+      eapply wf_to_ok_e1. eassumption.
     }
     destruct A as [v [Bis Hty]].
     exists v. split. apply Bis. eapply possible_types_completeness_for_values; eauto.
@@ -3500,7 +3512,7 @@ Proof.
   subst. rewrite <- concat_assoc.
   apply weaken_ty_trm; eauto.
   rewrite concat_assoc.
-  eapply wf_stack_to_ok_G; eauto.
+  eapply wf_to_ok_e1; eauto.
 Qed.
 
 (*
@@ -3528,8 +3540,8 @@ Proof.
     eapply narrow_typing.
     eapply H1; eauto.
     apply subenv_last. apply H5.
-    apply ok_push. eapply wf_stack_to_ok_G; eauto. eauto.
-    apply ok_push. eapply wf_stack_to_ok_G; eauto. eauto.
+    apply ok_push. eapply wf_to_ok_e1; eauto. eauto.
+    apply ok_push. eapply wf_to_ok_e1; eauto. eauto.
     eapply H6; eauto.
 Qed.
 
@@ -3616,7 +3628,7 @@ Proof.
     pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
     rewrite subst_intro_typ with (x:=y). rewrite subst_intro_trm with (x:=y).
     eapply subst_ty_trm. eapply Hty.
-    apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto. eauto.
+    apply ok_push. eapply wf_to_ok_e1. eassumption. eauto. eauto.
     rewrite subst_fresh_typ.
     apply ty_sub with (T:=S).
     intro Contra. inversion Contra.
@@ -3650,7 +3662,7 @@ Proof.
       rewrite subst_intro_trm with (x:=y).
       rewrite <- subst_fresh_typ with (x:=y) (y:=x).
       eapply subst_ty_trm. eapply H0.
-      apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto. eauto.
+      apply ok_push. eapply wf_to_ok_e1. eassumption. eauto. eauto.
       rewrite subst_fresh_typ. assumption. eauto. eauto. eauto. eauto.
     + lets Hv: (val_typing H).
       destruct Hv as [T' [Htyp Hsub]].
@@ -3662,8 +3674,8 @@ Proof.
       apply narrow_typing with (G:=G & x ~ T).
       assumption.
       apply subenv_last. assumption.
-      apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
-      apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
+      apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
+      apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
       apply wf_stack_push. assumption. eauto. eauto. assumption.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
       destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
@@ -3672,7 +3684,7 @@ Proof.
       split. assumption. split.
       apply ty_let with (L:=L \u dom G') (T:=T); eauto.
       intros. rewrite IH2. eapply (proj51 weaken_rules). apply H0. auto. reflexivity.
-      rewrite <- IH2. apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
+      rewrite <- IH2. apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
       rewrite IH2.
       rewrite <- IH2. eauto.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
@@ -3682,7 +3694,7 @@ Proof.
       split. assumption. split.
       apply ty_let with (L:=L \u dom G') (T:=T); eauto.
       intros. rewrite IH2. eapply (proj51 weaken_rules). apply H0. auto. reflexivity.
-      rewrite <- IH2. apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
+      rewrite <- IH2. apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
       rewrite IH2.
       rewrite <- IH2. eauto.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
@@ -3692,7 +3704,7 @@ Proof.
       split. assumption. split.
       apply ty_let with (L:=L \u dom G') (T:=T); eauto.
       intros. rewrite IH2. eapply (proj51 weaken_rules). apply H0. auto. reflexivity.
-      rewrite <- IH2. apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
+      rewrite <- IH2. apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
       rewrite IH2.
       rewrite <- IH2. eauto.
   - specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH].
@@ -3704,7 +3716,7 @@ Proof.
       intro Contra. inversion Contra.
       assumption.
       rewrite IH2. apply weaken_subtyp. assumption.
-      rewrite <- IH2. eapply wf_stack_to_ok_G. eassumption.
+      rewrite <- IH2. eapply wf_to_ok_e1. eassumption.
 Qed.
 
 
@@ -3754,5 +3766,5 @@ Inductive trm : Set :=
       intro Contra. inversion Contra.
       assumption.
       rewrite IH2. apply weaken_subtyp. assumption.
-      rewrite <- IH2. eapply wf_stack_to_ok_G. eassumption.
+      rewrite <- IH2. eapply wf_to_ok_e1. eassumption.
 Qed.
