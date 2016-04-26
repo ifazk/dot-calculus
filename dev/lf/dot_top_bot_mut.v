@@ -3659,16 +3659,14 @@ Proof.
     assumption. apply subtyp_refl.
     eauto. eauto. eauto. eauto.
   - (* Fld-E *) right.
-    lets C: (canonical_forms_2 Hwf H).
-    destruct C as [S [ds [t [Bis [Tyds [Has Ty]]]]]].
-    exists s t G (@empty typ).
-    split.
-    apply red_sel with (T:=S) (ds:=ds); try assumption.
-    split.
-    rewrite concat_empty_r. reflexivity.
-    split.
-    assumption.
-    assumption.
+    lets C: (canonical_forms_2 HWfSta H).
+    destruct C as [V [ds [t [Bis [Tyds [Has Ty]]]]]].
+    exists sta sto t G (@empty typ) S. exists (@empty typ).
+    split. apply red_sel with (T:=V) (ds:=ds); try assumption.
+    split. rewrite concat_empty_r. reflexivity.
+    split. rewrite concat_empty_r. reflexivity.
+    split. assumption.
+    split. assumption. assumption.
   - (* Let *) right.
     destruct t.
     + (* var *)
