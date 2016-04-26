@@ -259,7 +259,7 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
     ty_trm m1 m2 G S (trm_var (avar_f x)) T
 | ty_loc : forall m1 m2 G S l T,
     binds l T S ->
-    ty_trm m1 m2 G S (trm_val (val_loc l)) T
+    ty_trm m1 m2 G S (trm_val (val_loc l)) (typ_ref T)
 | ty_all_intro : forall L m1 m2 G S T t U,
     (forall x, x \notin L ->
       ty_trm ty_general sub_general (G & x ~ T) S (open_trm x t) (open_typ x U)) ->
@@ -716,15 +716,20 @@ Qed.
 (* ###################################################################### *)
 (** ** Well-formed stack and store *)
 
-Lemma wf_env_to_ok_env: forall m e1 e2 env,
-  wf m e1 e2 env -> ok env.
+Lemma wf_to_ok_s: forall m e1 e2 s,
+  wf m e1 e2 s -> ok s.
 Proof. intros. induction H; jauto. Qed.
 
-Lemma wf_s_to_ok_env: forall m e1 e2 s,
+Lemma wf_to_ok_e1: forall m e1 e2 s,
   wf m e1 e2 s -> ok e1.
 Proof. intros. induction H; jauto. Qed.
 
-Hint Resolve wf_env_to_ok_env wf_s_to_ok_env.
+Lemma wf_to_ok_e2: forall m e1 e2 s,
+  wf m e1 e2 s -> ok e2.
+Proof. intros. induction H; jauto. Qed.
+
+
+Hint Resolve wf_to_ok_s wf_to_ok_e1 wf_to_ok_e2.
 
 
 Lemma env_binds_to_st_binds_raw: forall m (st: env val) (env1: env typ) (env2: env typ) x T,
@@ -1588,44 +1593,170 @@ Qed.
 (* ###################################################################### *)
 (** ** Some Lemmas *)
 
-Lemma corresponding_types: forall G s x T,
-  wf_stack G s ->
-  binds x T G ->
-  ((exists S U t, binds x (val_lambda S t) s /\
-                  ty_trm ty_precise sub_general G (trm_val (val_lambda S t)) (typ_all S U) /\
-                  T = typ_all S U) \/
-   (exists S ds, binds x (val_new S ds) s /\
-                 ty_trm ty_precise sub_general G (trm_val (val_new S ds)) (typ_bnd S) /\
-                 T = typ_bnd S)).
+Theorem wf_stack_ind: 
+  forall P : ctx -> sigma -> stack -> Prop,
+  P empty empty empty ->
+  (forall (G : ctx) (S : sigma) (s : stack) (x : var) (T : typ) (v : val),
+    wf env_stack G S s ->
+    P G S s ->
+    x # G ->
+    x # s ->
+    ty_trm ty_precise sub_general G S (trm_val v) T ->
+    P (G & x ~ T) S (s & x ~ v)) ->
+    forall (G' : ctx) (S' : sigma) (s' : stack),
+      wf env_stack G' S' s' ->
+      P G' S' s'.
 Proof.
-  introv H Bi. induction H.
+  refine(
+    fun (P : ctx -> sigma -> stack -> Prop) (f : P empty empty empty)
+        (f' : forall (G : ctx) (S : sigma) (s : stack) (x : var) (T : typ) (v : val),
+          wf_stack G S s ->
+          P G S s ->
+          x # G ->
+          x # s ->
+          ty_trm ty_precise sub_general G S (trm_val v) T ->
+          P (G & x ~ T) S (s & x ~ v)) =>
+    fix F (G' : ctx) (S' : sigma) (s' : stack) (w : wf_stack G' S' s') {struct w} :
+      P G' S' s' :=
+        (match w in (wf m G'' S'' s'') return (m = env_stack) -> (P G'' S'' s'') with
+        | wf_empty m                         => fun _ => f
+        | wf_push m G S0 S'' x T v w0 n n0 t => fun _ => _
+        end) 
+    (eq_refl: env_stack = env_stack)) .
+  subst.
+  exact (f' G S0 S'' x T v w0 (F G S0 S'' w0) n n0 t).
+Qed.
+
+(* todo how to make G not type check with S, and do I want that? *)
+
+Theorem wf_store_ind: 
+  forall P : ctx -> sigma -> store -> Prop,
+  P empty empty empty ->
+  (forall (G : ctx) (S : sigma) (s : store) (l : var) (T : typ) (v : val),
+    wf env_store S G s ->
+    P G S s ->
+    l # S ->
+    l # s ->
+    ty_trm ty_precise sub_general G S (trm_val v) T ->
+    P G (S & l ~ T) (s & l ~ v)) ->
+    forall (G' : ctx) (S' : sigma) (s' : stack),
+      wf env_store S' G' s' ->
+      P G' S' s'.
+Proof.
+  refine(
+    fun (P : ctx -> sigma -> stack -> Prop) (f : P empty empty empty)
+        (f' : forall (G : ctx) (S : sigma) (s : store) (l : var) (T : typ) (v : val),
+          wf_store G S s ->
+          P G S s ->
+          l # S ->
+          l # s ->
+          ty_trm ty_precise sub_general G S (trm_val v) T ->
+          P G (S & l ~ T) (s & l ~ v)) =>
+    fix F (G' : ctx) (S' : sigma) (s' : store) (w : wf_store G' S' s') {struct w} :
+      P G' S' s' :=
+        (match w in (wf m S'' G'' s'') return (m = env_store) -> (P G'' S'' s'') with
+        | wf_empty m                         => fun _ => f
+        | wf_push m G S0 S'' x T v w0 n n0 t => fun _ => _
+        end) 
+    (eq_refl: env_store = env_store)) .
+  subst.
+  exact (f' S0 G S'' x T v w0 (F S0 G S'' w0) n n0 t).
+Qed.
+
+
+Lemma wf_rewrite_sta: forall G S st, wf env_stack G S st = wf_stack G S st.
+Proof.
+  intros. unfold wf_stack. reflexivity.
+Qed.
+
+Lemma wf_rewrite_sto: forall G S st, wf env_store S G st = wf_store G S st.
+Proof.
+  intros. unfold wf_store. reflexivity.
+Qed.
+
+Ltac induction__wf Wf :=
+  match type of Wf with
+  | (wf env_stack ?G ?S ?stack0) =>
+          rewrite wf_rewrite_sta in Wf;
+          pattern G,S,stack0;
+          eapply wf_stack_ind;
+          try eexact Wf
+  | (wf_stack ?G ?S ?stack0) =>
+          pattern G,S,stack0; 
+          eapply wf_stack_ind;
+          try eexact Wf;
+          clear Wf
+  | (wf env_store ?G ?S ?stack0) =>
+          rewrite wf_rewrite_sto in Wf;
+          pattern G,S,stack0;
+          eapply wf_store_ind;
+          try eexact Wf
+  | (wf_store ?G ?S ?store0) =>
+          pattern G,S,store0; 
+          eapply wf_store_ind;
+          try eexact Wf;
+          clear Wf
+  end.
+
+Lemma corresponding_types_stack: forall G S s x T,
+  wf_stack G S s ->
+  binds x T G ->
+  ((exists V U t, binds x (val_lambda V t) s /\
+                  ty_trm ty_precise sub_general G S (trm_val (val_lambda V t)) (typ_all V U) /\
+                  T = typ_all V U) \/
+   (exists V ds, binds x (val_new V ds) s /\
+                 ty_trm ty_precise sub_general G S (trm_val (val_new V ds)) (typ_bnd V) /\
+                 T = typ_bnd V)) \/
+   (exists V l, binds x (val_loc l) s /\
+                 ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref V) /\
+                 T = typ_ref V).
+Proof.
+  introv H Bi.
+  assert (exists m, wf m G S s /\ m = env_stack). {
+    exists env_stack. auto.
+  }
+  clear H. destruct H0 as [m [H]].
+  induction H.
   - false* binds_empty_inv.
   - unfolds binds. rewrite get_push in *. case_if.
-    + inversions Bi. inversion H2; subst.
-      * left. exists T0. exists U. exists t.
-        split. auto. split.
-        apply weaken_ty_trm. assumption. apply ok_push. eapply wf_stack_to_ok_G. eassumption. assumption.
+    + inversions Bi. inversion H3; subst.
+      * right. exists T0 l. split.
         reflexivity.
-      * right. exists T0. exists ds.
+        split. apply weaken_ty_trm_ctx. assumption.
+        constructor. apply wf_to_ok_e1 in H. assumption. assumption.
+        reflexivity.
+      * left. left. exists T0. exists U. exists t.
         split. auto. split.
-        apply weaken_ty_trm. assumption. apply ok_push. eapply wf_stack_to_ok_G. eassumption. assumption.
+        apply weaken_ty_trm_ctx. assumption. apply ok_push. eapply wf_to_ok_e1. eassumption. assumption.
+        reflexivity.
+      * left. right. exists T0. exists ds.
+        split. auto. split.
+        apply weaken_ty_trm_ctx. assumption. apply ok_push. eapply wf_to_ok_e1. eassumption. assumption.
         reflexivity.
       * assert (exists x, trm_val v = trm_var (avar_f x)) as A. {
-          apply H3. reflexivity.
+          apply H0. reflexivity.
         }
         destruct A as [? A]. inversion A.
-    + specialize (IHwf_stack Bi).
-      inversion IHwf_stack as [IH | IH].
-      * destruct IH as [S [U [t [IH1 [IH2 IH3]]]]].
-        left. exists S. exists U. exists t.
+    + specialize (IHwf Bi).
+      apply IHwf in H0; clear IHwf.
+      inversion H0 as [IH | IH]. inversion IH as [IH' | IH'].
+      * destruct IH' as [S [U [t [IH1 [IH2 IH3]]]]].
+        left. left. exists S. exists U. exists t.
         split. assumption. split.
-        apply weaken_ty_trm. assumption. apply ok_push. eapply wf_stack_to_ok_G. eassumption. assumption.
+        apply weaken_ty_trm_ctx. assumption.
+        apply ok_push. eapply wf_to_ok_e1. eassumption. assumption.
         assumption.
-      * destruct IH as [S [ds [IH1 [IH2 IH3]]]].
-        right. exists S. exists ds.
+      * destruct IH' as [S [ds [IH1 [IH2 IH3]]]].
+        left. right. exists S. exists ds.
         split. assumption. split.
-        apply weaken_ty_trm. assumption. apply ok_push. eapply wf_stack_to_ok_G. eassumption. assumption.
+        apply weaken_ty_trm_ctx. assumption.
+        apply ok_push. eapply wf_to_ok_e1. eassumption. assumption.
         assumption.
+      * destruct IH as [S [l [t [IH2 IH3]]]].
+        right. exists S. exists l. split.
+        assumption. split.
+        apply weaken_ty_trm_ctx. assumption.
+        apply wf_to_ok_e1 in H. constructor. assumption. assumption. assumption.
 Qed.
 
 Lemma unique_rec_subtyping: forall G S T,
