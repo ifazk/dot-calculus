@@ -1698,6 +1698,8 @@ Ltac induction__wf Wf :=
           clear Wf
   end.
 
+(* todo something similar for store necessary? *)
+
 Lemma corresponding_types_stack: forall G S s x T,
   wf_stack G S s ->
   binds x T G ->
@@ -1759,12 +1761,12 @@ Proof.
         apply wf_to_ok_e1 in H. constructor. assumption. assumption. assumption.
 Qed.
 
-Lemma unique_rec_subtyping: forall G S T,
-  subtyp ty_precise sub_general G (typ_bnd S) T ->
-  T = typ_bnd S.
+Lemma unique_rec_subtyping: forall G S U T,
+  subtyp ty_precise sub_general G S (typ_bnd U) T ->
+  T = typ_bnd U.
 Proof.
   introv Hsub.
-  remember (typ_bnd S) as T'.
+  remember (typ_bnd U) as T'.
   remember ty_precise as m1.
   remember sub_general as m2.
   induction Hsub; try solve [inversion Heqm1].
@@ -1774,12 +1776,12 @@ Proof.
   - inversion HeqT'.
 Qed.
 
-Lemma unique_all_subtyping: forall G S U T,
-  subtyp ty_precise sub_general G (typ_all S U) T ->
-  T = typ_all S U.
+Lemma unique_all_subtyping: forall G S V U T,
+  subtyp ty_precise sub_general G S (typ_all V U) T ->
+  T = typ_all V U.
 Proof.
   introv Hsub.
-  remember (typ_all S U) as T'.
+  remember (typ_all V U) as T'.
   remember ty_precise as m1.
   remember sub_general as m2.
   induction Hsub; try solve [inversion Heqm1].
@@ -1789,10 +1791,13 @@ Proof.
   - inversion HeqT'.
 Qed.
 
-Lemma unique_lambda_typing: forall G x S U T,
-  binds x (typ_all S U) G ->
-  ty_trm ty_precise sub_general G (trm_var (avar_f x)) T ->
-  T = typ_all S U.
+
+(* todo same for store *)
+
+Lemma unique_lambda_typing: forall G S x V U T,
+  binds x (typ_all V U) G ->
+  ty_trm ty_precise sub_general G S (trm_var (avar_f x)) T ->
+  T = typ_all V U.
 Proof.
   introv Bi Hty.
   remember (trm_var (avar_f x)) as t.
@@ -1811,13 +1816,15 @@ Proof.
     apply H0.
 Qed.
 
-Lemma lambda_not_rcd: forall G x S U A T,
-  binds x (typ_all S U) G ->
-  ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A T T)) ->
+(* todo same for store *)
+
+Lemma lambda_not_rcd: forall G S x V U A T,
+  binds x (typ_all V U) G ->
+  ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A T T)) ->
   False.
 Proof.
   introv Bi Hty.
-  assert (typ_rcd (dec_typ A T T) = typ_all S U) as Contra. {
+  assert (typ_rcd (dec_typ A T T) = typ_all V U) as Contra. {
     eapply unique_lambda_typing; eassumption.
   }
   inversion Contra.
@@ -1887,6 +1894,7 @@ Proof.
   - subst. reflexivity.
 Qed.
 
+
 Lemma open_eq_typ_dec: forall x,
   (forall T1, x \notin fv_typ T1 ->
    forall T2, x \notin fv_typ T2 ->
@@ -1902,6 +1910,8 @@ Proof.
     reflexivity.
   - simpl in H1. induction T2; simpl in H1; inversion H1.
     reflexivity.
+  - simpl in H2. induction T2; simpl in H2; inversion H2.
+    f_equal. eapply H; eauto.
   - simpl in H2. induction T2; simpl in H2; inversion H2.
     f_equal. eapply H; eauto.
   - simpl in H3; induction T2; simpl in H3; inversion H3.
@@ -1992,15 +2002,15 @@ Proof.
   introv Fr H. destruct H as [ls H]. exists ls. eapply open_record_typ_rev; eauto.
 Qed.
 
-Lemma label_same_typing: forall G d D,
-  ty_def G d D -> label_of_def d = label_of_dec D.
+Lemma label_same_typing: forall G S d D,
+  ty_def G S d D -> label_of_def d = label_of_dec D.
 Proof.
   intros. inversion H; subst; simpl; reflexivity.
 Qed.
 
-Lemma record_defs_typing_rec: forall G ds S,
-  ty_defs G ds S ->
-  exists ls, record_typ S ls /\ forall l, l \notin ls <-> defs_hasnt ds l.
+Lemma record_defs_typing_rec: forall G S ds U,
+  ty_defs G S ds U ->
+  exists ls, record_typ U ls /\ forall l, l \notin ls <-> defs_hasnt ds l.
 Proof.
   intros. induction H.
   - eexists. split.
@@ -2042,28 +2052,28 @@ Proof.
         apply notin_singleton. eauto.
 Qed.
 
-Lemma record_defs_typing: forall G ds S,
-  ty_defs G ds S ->
-  record_type S.
+Lemma record_defs_typing: forall G S ds U,
+  ty_defs G S ds U ->
+  record_type U.
 Proof.
   intros.
-  assert (exists ls, record_typ S ls /\ forall l, l \notin ls <-> defs_hasnt ds l) as A.
+  assert (exists ls, record_typ U ls /\ forall l, l \notin ls <-> defs_hasnt ds l) as A.
   eapply record_defs_typing_rec; eauto.
   destruct A as [ls [A1 A2]].
   exists ls. apply A1.
 Qed.
 
-Lemma record_new_typing: forall G S ds,
-  ty_trm ty_precise sub_general G (trm_val (val_new S ds)) (typ_bnd S) ->
-  record_type S.
+Lemma record_new_typing: forall G S U ds,
+  ty_trm ty_precise sub_general G S (trm_val (val_new U ds)) (typ_bnd U) ->
+  record_type U.
 Proof.
   intros.
   inversion H; subst.
   + pick_fresh x.
     apply open_record_type_rev with (x:=x).
     eauto.
-    eapply record_defs_typing. eapply H4. eauto.
-  + assert (exists x, trm_val (val_new S ds) = trm_var (avar_f x)) as Contra. {
+    eapply record_defs_typing. eapply H5. eauto.
+  + assert (exists x, trm_val (val_new U ds) = trm_var (avar_f x)) as Contra. {
       apply H0; eauto.
     }
     destruct Contra as [? Contra]. inversion Contra.
