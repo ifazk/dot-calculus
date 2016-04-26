@@ -2864,6 +2864,16 @@ Proof.
     specialize (H0 Heqm1). destruct H0. inversion H0.
 Qed.
 
+Lemma loc_intro_inversion: forall G S l U,
+  ty_trm ty_precise sub_general G S (trm_val (val_loc l)) U ->
+  exists T, U = typ_ref T.
+Proof.
+  intros. dependent induction H.
+  - eexists. reflexivity.
+  - assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
+    specialize (H Heqm1). destruct H. inversion H.
+Qed.
+
 (* ###################################################################### *)
 (** ** Possible types *)
 
@@ -2876,11 +2886,13 @@ If v = new(x: T)d then T in SS.
 If v = new(x: T)d and {a = t} in d and G, S |- t: T' then {a: T'} in SS.
 If v = new(x: T)d and {A = T'} in d and G, S |- V <: T', G |- T' <: U then {A: V..U} in SS.
 If v = lambda(x: S)t and (G, x: V), S |- t: T and G, S |- V' <: V and G, x: V' |- T <: T' then all(x: V')T' in SS.
+If v = loc l, and G, S |- l: Ref T, then Ref T in SS.
 If S1 in SS and S2 in SS then S1 & S2 in SS.
 If S in SS and G |-! y: {A: S..S} then y.A in SS.
 If S in SS then rec(x: S) in SS.
 *)
 
+(* todo check def of pt_loc *)
 Inductive possible_types: ctx -> sigma -> var -> val -> typ -> Prop :=
 | pt_top : forall G S x v,
   possible_types G S x v typ_top
@@ -2902,6 +2914,9 @@ Inductive possible_types: ctx -> sigma -> var -> val -> typ -> Prop :=
   (forall y, y \notin L ->
    subtyp ty_general sub_general (G & y ~ V') S (open_typ y T) (open_typ y T')) ->
   possible_types G S x (val_lambda V t) (typ_all V' T')
+| pt_loc : forall G S x l T,
+  ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
+  possible_types G S x (val_loc l) (typ_ref T)
 | pt_and : forall G S x v V1 V2,
   possible_types G S x v V1 ->
   possible_types G S x v V2 ->
@@ -3146,18 +3161,18 @@ Proof.
     + apply rh_and. apply IHHsub. assumption.
 Qed.
 
-Lemma pt_record_sub_has: forall G x v T1 T2,
-  (forall D, record_has T1 D -> possible_types G x v (typ_rcd D)) ->
+Lemma pt_record_sub_has: forall G S x v T1 T2,
+  (forall D, record_has T1 D -> possible_types G S x v (typ_rcd D)) ->
   record_sub T1 T2 ->
-  (forall D, record_has T2 D -> possible_types G x v (typ_rcd D)).
+  (forall D, record_has T2 D -> possible_types G S x v (typ_rcd D)).
 Proof.
   introv HP Hsub. intros D Hhas. apply HP; eauto using record_sub_has.
 Qed.
 
-Lemma pt_has_record: forall G x v T,
-  (forall D, record_has T D -> possible_types G x v (typ_rcd D)) ->
+Lemma pt_has_record: forall G S x v T,
+  (forall D, record_has T D -> possible_types G S x v (typ_rcd D)) ->
   record_type T ->
-  possible_types G x v T.
+  possible_types G S x v T.
 Proof.
   introv HP Htype. destruct Htype as [ls Htyp]. induction Htyp.
   - apply HP; eauto. apply rh_one.
@@ -3167,11 +3182,11 @@ Proof.
     + apply HP; eauto. apply rh_andl.
 Qed.
 
-Lemma pt_has_sub: forall G x v T U,
-  (forall D, record_has T D -> possible_types G x v (typ_rcd D)) ->
+Lemma pt_has_sub: forall G S x v T U,
+  (forall D, record_has T D -> possible_types G S x v (typ_rcd D)) ->
   record_type T ->
   record_sub T U ->
-  possible_types G x v U.
+  possible_types G S x v U.
 Proof.
   introv HP Htype Hsub. induction Hsub.
   - apply pt_has_record; eauto.
@@ -3188,11 +3203,11 @@ Proof.
     + apply HP; eauto. apply rh_andl.
 Qed.
 
-Lemma possible_types_closure_record: forall G s x T ds U,
-  wf_stack G s ->
+Lemma possible_types_closure_record: forall G S s x T ds U,
+  wf_stack G S s ->
   binds x (val_new T ds) s ->
   record_sub (open_typ x T) U ->
-  possible_types G x (val_new T ds) U.
+  possible_types G S x (val_new T ds) U.
 Proof.
   introv Hwf Bis Hsub.
   apply pt_has_sub with (T:=open_typ x T).
@@ -3201,11 +3216,11 @@ Proof.
   assumption.
 Qed.
 
-Lemma pt_and_inversion: forall G s x v T1 T2,
-  wf_stack G s ->
+Lemma pt_and_inversion: forall G S s x v T1 T2,
+  wf_stack G S s ->
   binds x v s ->
-  possible_types G x v (typ_and T1 T2) ->
-  possible_types G x v T1 /\ possible_types G x v T2.
+  possible_types G S x v (typ_and T1 T2) ->
+  possible_types G S x v T1 /\ possible_types G S x v T2.
 Proof.
   introv Hwf Bis Hp. dependent induction Hp.
   - assert (record_type (open_typ x0 T)) as Htype. {
@@ -3221,25 +3236,25 @@ Qed.
 (*
 Lemma (Possible types closure)
 
-If G ~ s and G |- x: T and s |- x = v then Ts(G, x, v) is closed wrt G |- _ <: _.
+If G, S ~ s and G, S |- x: T and s |- x = v then Ts(G, S, x, v) is closed wrt G, S |- _ <: _.
 
-Let SS = Ts(G, x, v). We first show SS is closed wrt G |-# _ <: _.
+Let SS = Ts(G, S, x, v). We first show SS is closed wrt G, S |-# _ <: _.
 
-Assume T0 in SS and G |- T0 <: U0.s We show U0 in SS by an induction on subtyping derivations of G |-# T0 <: U0.
+Assume T0 in SS and G, S |- T0 <: U0.s We show U0 in SS by an induction on subtyping derivations of G, S |-# T0 <: U0.
 *)
 
-Lemma possible_types_closure_tight: forall G s x v T0 U0,
-  wf_stack G s ->
+Lemma possible_types_closure_tight: forall G S s x v T0 U0,
+  wf_stack G S s ->
   binds x v s ->
-  possible_types G x v T0 ->
-  subtyp ty_general sub_tight G T0 U0 ->
-  possible_types G x v U0.
+  possible_types G S x v T0 ->
+  subtyp ty_general sub_tight G S T0 U0 ->
+  possible_types G S x v U0.
 Proof.
   introv Hwf Bis HT0 Hsub. dependent induction Hsub.
   - (* Top *) apply pt_top.
   - (* Bot *) inversion HT0; subst.
     lets Htype: (open_record_type x (record_new_typing (val_new_typing Hwf Bis))).
-    destruct Htype as [ls Htyp]. rewrite H3 in Htyp. inversion Htyp.
+    destruct Htype as [ls Htyp]. rewrite H4 in Htyp. inversion Htyp.
   - (* Refl-<: *) assumption.
   - (* Trans-<: *)
     apply IHHsub2; try assumption.
@@ -3256,7 +3271,7 @@ Proof.
     apply pt_and. apply IHHsub1; assumption. apply IHHsub2; assumption.
   - (* Fld-<:-Fld *)
     apply pt_rcd_trm_inversion with (s:=s) in HT0; eauto.
-    destruct HT0 as [S [ds [t [Heq [Hhas Hty]]]]].
+    destruct HT0 as [V [ds [t [Heq [Hhas Hty]]]]].
     subst.
     eapply pt_rcd_trm.
     eassumption.
@@ -3279,8 +3294,8 @@ Proof.
     assert (record_type (open_typ x T0)) as B. {
       eapply record_type_new; eassumption.
     }
-    rewrite H4 in B. destruct B as [? B]. inversion B.
-    assert (T = S) as B. {
+    rewrite H5 in B. destruct B as [? B]. inversion B.
+    assert (T = V) as B. {
       eapply unique_tight_bounds; eauto.
     }
     subst. assumption.
@@ -3289,39 +3304,43 @@ Proof.
     assert (record_type (open_typ x T)) as B. {
       eapply record_type_new; eassumption.
     }
-    rewrite H5 in B. destruct B as [? B]. inversion B.
+    rewrite H6 in B. destruct B as [? B]. inversion B.
     apply_fresh pt_lambda as y.
     eapply H3; eauto.
     eapply subtyp_trans. eapply tight_to_general_subtyping. eassumption. eassumption.
     eapply subtyp_trans.
-    eapply narrow_subtyping. eapply H8; eauto.
+    eapply narrow_subtyping. eapply H9; eauto.
     eapply subenv_last. eapply tight_to_general_subtyping. eapply Hsub.
-    eapply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
-    eapply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
+    eapply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
+    eapply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
     eapply H; eauto.
 Qed.
 
 (*
 Lemma (Possible types completeness for values)
 
-If `G ~ s` and `x = v in s` and  `G |-! v: T` then `T in Ts(G, x, v)`.
+If `G, S ~ s` and `x = v in s` and  `G, S |-! v: T` then `T in Ts(G, S, x, v)`.
  *)
 
-Lemma possible_types_completeness_for_values: forall G s x v T,
-  wf_stack G s ->
+Lemma possible_types_completeness_for_values: forall G S s x v T,
+  wf_stack G S s ->
   binds x v s ->
-  ty_trm ty_precise sub_general G (trm_val v) T ->
-  possible_types G x v T.
+  ty_trm ty_precise sub_general G S (trm_val v) T ->
+  possible_types G S x v T.
 Proof.
-  introv Hwf Bis Hty. destruct v as [S ds | S t].
+  introv Hwf Bis Hty. destruct v as [V ds | V t | V l].
   - apply new_intro_inversion in Hty. destruct Hty as [Heq Htype]. subst.
     eapply pt_bnd. eapply pt_new. reflexivity.
   - remember Hty as Hty'. clear HeqHty'. inversion Hty'; subst.
     + apply all_intro_inversion in Hty. destruct Hty as [T' Heq]. subst.
       apply_fresh pt_lambda as y.
-      eapply H5; eauto.
+      eapply H6; eauto.
       apply subtyp_refl.
       apply subtyp_refl.
+    + assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
+      specialize (H Heqm1). destruct H. inversion H.
+  - remember Hty as Hty'. clear HeqHty'. inversion Hty'; subst.
+    + apply pt_loc. apply precise_to_general_typing. assumption.
     + assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
       specialize (H Heqm1). destruct H. inversion H.
 Qed.
