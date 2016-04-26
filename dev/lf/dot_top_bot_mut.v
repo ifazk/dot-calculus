@@ -1593,111 +1593,6 @@ Qed.
 (* ###################################################################### *)
 (** ** Some Lemmas *)
 
-Theorem wf_stack_ind: 
-  forall P : ctx -> sigma -> stack -> Prop,
-  P empty empty empty ->
-  (forall (G : ctx) (S : sigma) (s : stack) (x : var) (T : typ) (v : val),
-    wf env_stack G S s ->
-    P G S s ->
-    x # G ->
-    x # s ->
-    ty_trm ty_precise sub_general G S (trm_val v) T ->
-    P (G & x ~ T) S (s & x ~ v)) ->
-    forall (G' : ctx) (S' : sigma) (s' : stack),
-      wf env_stack G' S' s' ->
-      P G' S' s'.
-Proof.
-  refine(
-    fun (P : ctx -> sigma -> stack -> Prop) (f : P empty empty empty)
-        (f' : forall (G : ctx) (S : sigma) (s : stack) (x : var) (T : typ) (v : val),
-          wf_stack G S s ->
-          P G S s ->
-          x # G ->
-          x # s ->
-          ty_trm ty_precise sub_general G S (trm_val v) T ->
-          P (G & x ~ T) S (s & x ~ v)) =>
-    fix F (G' : ctx) (S' : sigma) (s' : stack) (w : wf_stack G' S' s') {struct w} :
-      P G' S' s' :=
-        (match w in (wf m G'' S'' s'') return (m = env_stack) -> (P G'' S'' s'') with
-        | wf_empty m                         => fun _ => f
-        | wf_push m G S0 S'' x T v w0 n n0 t => fun _ => _
-        end) 
-    (eq_refl: env_stack = env_stack)) .
-  subst.
-  exact (f' G S0 S'' x T v w0 (F G S0 S'' w0) n n0 t).
-Qed.
-
-(* todo how to make G not type check with S, and do I want that? *)
-
-Theorem wf_store_ind: 
-  forall P : ctx -> sigma -> store -> Prop,
-  P empty empty empty ->
-  (forall (G : ctx) (S : sigma) (s : store) (l : var) (T : typ) (v : val),
-    wf env_store S G s ->
-    P G S s ->
-    l # S ->
-    l # s ->
-    ty_trm ty_precise sub_general G S (trm_val v) T ->
-    P G (S & l ~ T) (s & l ~ v)) ->
-    forall (G' : ctx) (S' : sigma) (s' : stack),
-      wf env_store S' G' s' ->
-      P G' S' s'.
-Proof.
-  refine(
-    fun (P : ctx -> sigma -> stack -> Prop) (f : P empty empty empty)
-        (f' : forall (G : ctx) (S : sigma) (s : store) (l : var) (T : typ) (v : val),
-          wf_store G S s ->
-          P G S s ->
-          l # S ->
-          l # s ->
-          ty_trm ty_precise sub_general G S (trm_val v) T ->
-          P G (S & l ~ T) (s & l ~ v)) =>
-    fix F (G' : ctx) (S' : sigma) (s' : store) (w : wf_store G' S' s') {struct w} :
-      P G' S' s' :=
-        (match w in (wf m S'' G'' s'') return (m = env_store) -> (P G'' S'' s'') with
-        | wf_empty m                         => fun _ => f
-        | wf_push m G S0 S'' x T v w0 n n0 t => fun _ => _
-        end) 
-    (eq_refl: env_store = env_store)) .
-  subst.
-  exact (f' S0 G S'' x T v w0 (F S0 G S'' w0) n n0 t).
-Qed.
-
-
-Lemma wf_rewrite_sta: forall G S st, wf env_stack G S st = wf_stack G S st.
-Proof.
-  intros. unfold wf_stack. reflexivity.
-Qed.
-
-Lemma wf_rewrite_sto: forall G S st, wf env_store S G st = wf_store G S st.
-Proof.
-  intros. unfold wf_store. reflexivity.
-Qed.
-
-Ltac induction__wf Wf :=
-  match type of Wf with
-  | (wf env_stack ?G ?S ?stack0) =>
-          rewrite wf_rewrite_sta in Wf;
-          pattern G,S,stack0;
-          eapply wf_stack_ind;
-          try eexact Wf
-  | (wf_stack ?G ?S ?stack0) =>
-          pattern G,S,stack0; 
-          eapply wf_stack_ind;
-          try eexact Wf;
-          clear Wf
-  | (wf env_store ?G ?S ?stack0) =>
-          rewrite wf_rewrite_sto in Wf;
-          pattern G,S,stack0;
-          eapply wf_store_ind;
-          try eexact Wf
-  | (wf_store ?G ?S ?store0) =>
-          pattern G,S,store0; 
-          eapply wf_store_ind;
-          try eexact Wf;
-          clear Wf
-  end.
-
 (* todo something similar for store necessary? *)
 
 Lemma corresponding_types_stack: forall G S s x T,
@@ -2291,6 +2186,7 @@ Proof.
       eapply open_record_type. assumption.
 Qed.
 
+(* todo same for sigma? *)
 Lemma unique_tight_bounds: forall G S s x T1 T2 A,
   wf_stack G S s ->
   ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A T1 T1)) ->
@@ -2329,82 +2225,82 @@ Proof.
 Qed.
 
 Lemma precise_to_general:
-  (forall m1 m2 G t T,
-     ty_trm m1 m2 G t T ->
+  (forall m1 m2 G S t T,
+     ty_trm m1 m2 G S t T ->
      m1 = ty_precise ->
      m2 = sub_general ->
-     ty_trm ty_general sub_general G t T) /\
-  (forall m1 m2 G S U,
-     subtyp m1 m2 G S U ->
+     ty_trm ty_general sub_general G S t T) /\
+  (forall m1 m2 G S V U,
+     subtyp m1 m2 G S V U ->
      m1 = ty_precise ->
      m2 = sub_general ->
-     subtyp ty_general sub_general G S U).
+     subtyp ty_general sub_general G S V U).
 Proof.
   apply ts_mutind; intros; subst; eauto.
 Qed.
 
-Lemma precise_to_general_typing: forall G t T,
-  ty_trm ty_precise sub_general G t T ->
-  ty_trm ty_general sub_general G t T.
+Lemma precise_to_general_typing: forall G S t T,
+  ty_trm ty_precise sub_general G S t T ->
+  ty_trm ty_general sub_general G S t T.
 Proof.
   intros. apply* precise_to_general.
 Qed.
 
 Lemma tight_to_general:
-  (forall m1 m2 G t T,
-     ty_trm m1 m2 G t T ->
+  (forall m1 m2 G S t T,
+     ty_trm m1 m2 G S t T ->
      m1 = ty_general ->
      m2 = sub_tight ->
-     ty_trm ty_general sub_general G t T) /\
-  (forall m1 m2 G S U,
-     subtyp m1 m2 G S U ->
+     ty_trm ty_general sub_general G S t T) /\
+  (forall m1 m2 G S V U,
+     subtyp m1 m2 G S V U ->
      m1 = ty_general ->
      m2 = sub_tight ->
-     subtyp ty_general sub_general G S U).
+     subtyp ty_general sub_general G S V U).
 Proof.
   apply ts_mutind; intros; subst; eauto.
   - apply precise_to_general in t; eauto.
   - apply precise_to_general in t; eauto.
 Qed.
 
-Lemma tight_to_general_typing: forall G t T,
-  ty_trm ty_general sub_tight G t T ->
-  ty_trm ty_general sub_general G t T.
+Lemma tight_to_general_typing: forall G S t T,
+  ty_trm ty_general sub_tight G S t T ->
+  ty_trm ty_general sub_general G S t T.
 Proof.
   intros. apply* tight_to_general.
 Qed.
 
-Lemma tight_to_general_subtyping: forall G S U,
-  subtyp ty_general sub_tight G S U ->
-  subtyp ty_general sub_general G S U.
+Lemma tight_to_general_subtyping: forall G S V U,
+  subtyp ty_general sub_tight G S V U ->
+  subtyp ty_general sub_general G S V U.
 Proof.
   intros. apply* tight_to_general.
 Qed.
 
 Lemma precise_to_tight:
-  (forall m1 m2 G t T,
-     ty_trm m1 m2 G t T ->
+  (forall m1 m2 G S t T,
+     ty_trm m1 m2 G S t T ->
      m1 = ty_precise ->
      m2 = sub_general ->
-     ty_trm ty_general sub_tight G t T) /\
-  (forall m1 m2 G S U,
-     subtyp m1 m2 G S U ->
+     ty_trm ty_general sub_tight G S t T) /\
+  (forall m1 m2 G S V U,
+     subtyp m1 m2 G S V U ->
      m1 = ty_precise ->
      m2 = sub_general ->
-     subtyp ty_general sub_tight G S U).
+     subtyp ty_general sub_tight G S V U).
 Proof.
   apply ts_mutind; intros; subst; eauto; inversion H0.
 Qed.
 
-Lemma precise_to_tight_typing: forall G t T,
-  ty_trm ty_precise sub_general G t T ->
-  ty_trm ty_general sub_tight G t T.
+Lemma precise_to_tight_typing: forall G S t T,
+  ty_trm ty_precise sub_general G S t T ->
+  ty_trm ty_general sub_tight G S t T.
 Proof.
   intros. apply* precise_to_tight.
 Qed.
 
-Lemma stack_binds_to_ctx_binds: forall G s x v,
-  wf_stack G s -> binds x v s -> exists S, binds x S G.
+Lemma stack_binds_to_ctx_binds: forall G S s x v,
+  wf_stack G S s -> binds x v s -> exists V, binds x V G.
 Proof.
   introv Hwf Bis.
   remember Hwf as Hwf'. clear HeqHwf'.
@@ -2412,13 +2308,13 @@ Proof.
   destruct Hwf as [G1 [G2 [T [EqG Hty]]]].
   subst.
   exists T.
-  eapply binds_middle_eq. apply wf_stack_to_ok_G in Hwf'.
+  eapply binds_middle_eq. apply wf_to_ok_e1 in Hwf'.
   apply ok_middle_inv in Hwf'. destruct Hwf'. assumption.
   assumption.
 Qed.
 
-Lemma ctx_binds_to_stack_binds: forall G s x T,
-  wf_stack G s -> binds x T G -> exists v, binds x v s.
+Lemma ctx_binds_to_stack_binds: forall G S s x T,
+  wf_stack G S s -> binds x T G -> exists v, binds x v s.
 Proof.
   introv Hwf Bi.
   remember Hwf as Hwf'. clear HeqHwf'.
@@ -2430,20 +2326,23 @@ Proof.
   assumption.
 Qed.
 
-Lemma record_type_new: forall G s x T ds,
-  wf_stack G s ->
+Lemma record_type_new: forall G S s x T ds,
+  wf_stack G S s ->
   binds x (val_new T ds) s ->
   record_type (open_typ x T).
 Proof.
   introv Hwf Bis.
-  destruct (stack_binds_to_ctx_binds Hwf Bis) as [S Bi].
-  destruct (corresponding_types Hwf Bi) as [Hlambda | Hnew].
+  destruct (stack_binds_to_ctx_binds Hwf Bis) as [V Bi].
+  destruct (corresponding_types_stack Hwf Bi) as [Hrest | Hloc].
+  destruct Hrest as [Hlambda | Hnew].
   destruct Hlambda as [? [? [? [Bis' ?]]]].
-  unfold binds in Bis'. unfold binds in Bis. rewrite Bis' in Bis. inversions Bis.
-  destruct Hnew as [? [? [Bis' [? ?]]]]. subst.
-  unfold binds in Bis'. unfold binds in Bis. rewrite Bis' in Bis. inversions Bis.
-  apply record_new_typing in H.
-  apply open_record_type. assumption.
+  - unfold binds in Bis'. unfold binds in Bis. rewrite Bis' in Bis. inversions Bis.
+  - destruct Hnew as [? [? [Bis' [? ?]]]]. subst.
+    unfold binds in Bis'. unfold binds in Bis. rewrite Bis' in Bis. inversions Bis.
+    apply record_new_typing in H.
+    apply open_record_type. assumption.
+  - destruct Hloc as [? [? [Bil [?]]]].
+    unfold binds in *. rewrite Bil in Bis. inversion Bis.
 Qed.
 
 (* ###################################################################### *)
