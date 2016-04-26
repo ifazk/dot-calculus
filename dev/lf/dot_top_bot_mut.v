@@ -3674,17 +3674,16 @@ Proof.
         eapply var_typing_implies_avar_f. eassumption.
       }
       destruct A as [x A]. subst a.
-      exists s (open_trm x u) G (@empty typ).
-      split.
-      apply red_let_var.
-      split.
-      rewrite concat_empty_r. reflexivity.
+      exists sta sto (open_trm x u) G (@empty typ) S. exists (@empty typ).
+      split. apply red_let_var.
+      split. rewrite concat_empty_r. reflexivity.
+      split. rewrite concat_empty_r. reflexivity. 
       split.
       pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H0 y FrL).
       rewrite subst_intro_trm with (x:=y).
       rewrite <- subst_fresh_typ with (x:=y) (y:=x).
       eapply subst_ty_trm. eapply H0.
-      apply ok_push. eapply wf_to_ok_e1. eassumption. eauto. eauto.
+      apply ok_push. eapply wf_to_ok_e1. eassumption. eauto. eauto. auto.
       rewrite subst_fresh_typ. assumption. eauto. eauto. eauto. eauto.
     + lets Hv: (val_typing H).
       destruct Hv as [T' [Htyp Hsub]].
