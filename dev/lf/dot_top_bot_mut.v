@@ -3683,21 +3683,23 @@ Proof.
       rewrite subst_intro_trm with (x:=y).
       rewrite <- subst_fresh_typ with (x:=y) (y:=x).
       eapply subst_ty_trm. eapply H0.
-      apply ok_push. eapply wf_to_ok_e1. eassumption. eauto. eauto. auto.
-      rewrite subst_fresh_typ. assumption. eauto. eauto. eauto. eauto.
-    + lets Hv: (val_typing H).
+      apply ok_push. eapply wf_to_ok_e1. eassumption. auto. auto. auto.
+      rewrite subst_fresh_typ. assumption. auto. auto. auto. auto.
+    + (* val *)
+      lets Hv: (val_typing H).
       destruct Hv as [T' [Htyp Hsub]].
       pick_fresh x. assert (x \notin L) as FrL by auto. specialize (H0 x FrL).
-      exists (s & x ~ v) (open_trm x u) (G & (x ~ T')) (x ~ T').
+      exists (sta & x ~ v) sto (open_trm x u) (G & (x ~ T')) (x ~ T') S. exists (@empty typ).
       split.
-      apply red_let. eauto.
-      split. reflexivity. split.
-      apply narrow_typing with (G:=G & x ~ T).
+      apply red_let. auto.
+      split. reflexivity. split. rewrite concat_empty_r. reflexivity.
+      split. apply narrow_typing with (G:=G & x ~ T).
       assumption.
       apply subenv_last. assumption.
       apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
       apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
-      apply wf_stack_push. assumption. eauto. eauto. assumption.
+      split. constructor. assumption. auto. auto. assumption.
+     
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
       destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
       exists s' (trm_let t' u) G' G''.
