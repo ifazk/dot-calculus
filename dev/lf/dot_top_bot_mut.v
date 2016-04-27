@@ -3603,6 +3603,27 @@ Inductive normal_form: trm -> Prop :=
 
 Hint Constructors normal_form.
 
+
+
+Lemma help: forall G S x T sto, 
+  wf_store G S sto ->
+  x \notin fv_env_types S ->
+  wf_store (G & x ~ T) S sto.
+Proof.
+  intros. dependent induction H.
+  
+
+(*
+ * idea: define wf like this
+ forall G,
+ x \notin fv_env_types G ->
+ wf_store G empty empty
+ *)
+
+
+
+
+
 (* todo correct reformulation? *)
 
 (*
@@ -3699,7 +3720,9 @@ Proof.
       apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
       apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
       split. constructor. assumption. auto. auto. assumption.
-     
+    
+
+
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
       destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
       exists s' (trm_let t' u) G' G''.
