@@ -3624,28 +3624,6 @@ Inductive normal_form: trm -> Prop :=
 Hint Constructors normal_form.
 
 
-
-Lemma wf_weaken_e2: forall G S x T sto, 
-  wf_store G S sto ->
-  x \notin fv_env_types S ->
-  x # G ->
-  wf_store (G & x ~ T) S sto.
-Proof.
-  intros. dependent induction H; rewrite* wf_rewrite_sigma.
-  constructor*.
-  - 
-
-(*
- * idea: define wf like this
- forall G,
- x \notin fv_env_types G ->
- wf_store G empty empty
- *)
-
-
-
-
-
 (* todo correct reformulation? *)
 
 (*
@@ -3741,20 +3719,20 @@ Proof.
       apply subenv_last. assumption.
       apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
       apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
-      split. constructor. assumption. auto. auto. assumption.
-    
-
-
-    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
-      destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
-      exists s' (trm_let t' u) G' G''.
+      split; auto. auto.
+    + specialize (IHty_trm HWfSta HWfSto). destruct IHty_trm as [IH | IH]. inversion IH.
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
+      exists sta' sto' (trm_let t' u) G' G'' S'. exists S''.
       split. apply red_let_tgt. assumption.
-      split. assumption. split.
-      apply ty_let with (L:=L \u dom G') (T:=T); eauto.
-      intros. rewrite IH2. eapply (proj51 weaken_rules). apply H0. auto. reflexivity.
-      rewrite <- IH2. apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
-      rewrite IH2.
-      rewrite <- IH2. eauto.
+      split. assumption. split. assumption.
+      split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
+      intros. inversion H2. assumption.
+      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
+        weaken_ty_trm_sigma.
+      * reflexivity.
+      * subst. inversion H2. inversion H5. apply ok_push. eauto. auto.
+      * subst. inversion H2. inversion H4. split; assumption.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
       destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
       exists s' (trm_let t' u) G' G''.
