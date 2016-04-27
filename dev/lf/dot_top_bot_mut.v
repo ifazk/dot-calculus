@@ -2388,7 +2388,7 @@ Proof.
     unfold subenv in H. specialize (H xb Tb Bi2). destruct H as [Bi' | Bi'].
     * left. auto.
     * right. destruct Bi' as [T' [Bi1' Bi2']].
-      exists T'. split. auto. apply weaken_subtyp_ctx. assumption. auto.
+      exists T'. split. auto. weaken_subtyp_ctx.
 Qed.
 
 Lemma subenv_last: forall G S x V U,
@@ -2399,7 +2399,7 @@ Proof.
   intros. unfold subenv. intros y T Bi.
   apply binds_push_inv in Bi. destruct Bi as [Bi | Bi].
   - destruct Bi. subst. right. exists V. split; auto.
-    apply weaken_subtyp_ctx; auto.
+    weaken_subtyp_ctx; auto.
   - destruct Bi. left. auto.
 Qed.
 
@@ -3385,7 +3385,7 @@ Proof.
   - assert (exists v, binds x v s /\ ty_trm ty_precise sub_general G S (trm_val v) T) as A. {
       destruct (ctx_binds_to_stack_binds_raw Hwf H) as [G1 [? [v [? [Bi Hty]]]]].
       exists v. split. apply Bi. subst. rewrite <- concat_assoc.
-      eapply weaken_ty_trm_ctx. assumption. rewrite concat_assoc.
+      weaken_ty_trm_ctx. rewrite concat_assoc.
       eapply wf_to_ok_e1. eassumption.
     }
     destruct A as [v [Bis Hty]].
@@ -3486,7 +3486,7 @@ Proof.
   - assert (exists v, binds x v s /\ ty_trm ty_precise sub_general G S (trm_val v) T) as A. {
       destruct (ctx_binds_to_stack_binds_raw Hwf H) as [G1 [? [v [? [Bi Hty]]]]].
       exists v. split. apply Bi. subst. rewrite <- concat_assoc.
-      eapply weaken_ty_trm_ctx. assumption. rewrite concat_assoc.
+      weaken_ty_trm_ctx. rewrite concat_assoc.
       eapply wf_to_ok_e1. eassumption.
     }
     destruct A as [v [Bis Hty]].
@@ -3530,7 +3530,7 @@ Proof.
   destruct A as [G1 [G2 [v [HeqG [Bis Hty]]]]].
   exists v. split; eauto.
   subst. rewrite <- concat_assoc.
-  apply weaken_ty_trm_ctx; eauto.
+  weaken_ty_trm_ctx.
   rewrite concat_assoc.
   eapply wf_to_ok_e1; eauto.
 Qed.
