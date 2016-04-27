@@ -686,23 +686,11 @@ Proof.
   - apply* weaken_rules_ctx; rewrite concat_empty_r; auto.
 Qed.
 
+Ltac weaken_ty_trm_ctx :=
+  gen_env env_stack; apply* weaken_ty_trm || apply* weaken_ty_trm2.
 
-Lemma weaken_ty_trm_ctx:  forall m1 m2 G1 G2 S t T,
-    ty_trm m1 m2 G1 S t T ->
-    ok (G1 & G2) ->
-    ty_trm m1 m2 (G1 & G2) S t T.
-Proof.
-  intros. gen_env env_stack. apply* weaken_ty_trm. 
-Qed.
-
-Lemma weaken_ty_trm_sigma: forall m1 m2 G S1 S2 t T,
-    ty_trm m1 m2 G S1 t T ->
-    ok (S1 & S2) ->
-    ty_trm m1 m2 G (S1 & S2) t T.
-Proof.
-  intros. gen_env env_store. apply* weaken_ty_trm.
-Qed.
-
+Ltac weaken_ty_trm_sigma :=
+  gen_env env_store; apply* weaken_ty_trm || apply* weaken_ty_trm2.
 
 Lemma weaken_subtyp: forall m m1 m2 e1 e1' e2 T U,
   subtyp m1 m2 (get_ctx m e1 e2) (get_sigma m e1 e2) T U ->
@@ -718,23 +706,11 @@ Proof.
   - apply* weaken_rules_sigma. rewrite concat_empty_r. reflexivity. rewrite <- EqG. assumption.
 Qed.
 
-Lemma weaken_subtyp_ctx: forall m1 m2 G1 G2 S T U,
-  subtyp m1 m2 G1 S T U ->
-  ok (G1 & G2) ->
-  subtyp m1 m2 (G1 & G2) S T U.
-Proof.
-  intros.
-  gen_env env_stack. apply* weaken_subtyp.
-Qed.
+Ltac weaken_subtyp_ctx :=
+  gen_env env_stack; apply* weaken_subtyp.
 
-Lemma weaken_subtyp_sigma: forall m1 m2 G S1 S2 T U,
-  subtyp m1 m2 G S1 T U ->
-  ok (S1 & S2) ->
-  subtyp m1 m2 G (S1 & S2) T U.
-Proof.
- intros. gen_env env_store. apply* weaken_subtyp.
-Qed.
-
+Ltac weaken_subtyp_sigma :=
+  gen_env env_store; apply* weaken_subtyp.
 
 (* ###################################################################### *)
 (** ** Well-formed stack and store *)
@@ -783,6 +759,7 @@ Proof.
     + split. assumption. subst. apply* weaken_ty_trm2.
 Qed.
 
+(* todo remove *)
 Lemma ctx_binds_to_stack_binds_raw: forall stack G S x T,
   wf_stack G S stack ->
   binds x T G ->
@@ -794,6 +771,7 @@ Proof.
   apply env_binds_to_st_binds_raw.
 Qed.
 
+(* todo remove *)
 Lemma sigma_binds_to_store_binds_raw: forall store G S l T,
   wf env_store S G store ->
   binds l T S ->
@@ -1451,7 +1429,7 @@ Proof.
     eapply H; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. apply ok_push. assumption. eauto.
-    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm_ctx. assumption.
+    rewrite <- B. rewrite concat_assoc. weaken_ty_trm_ctx.
     apply ok_push. apply ok_concat_map. eauto. unfold subst_env. eauto.
   - (* ty_all_elim *)
     simpl. rewrite subst_open_commute_typ.
@@ -1475,7 +1453,7 @@ Proof.
     apply H; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. apply ok_push. assumption. eauto.
-    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm_ctx. assumption.
+    rewrite <- B. rewrite concat_assoc. weaken_ty_trm_ctx.
     apply ok_push. apply ok_concat_map. eauto. unfold subst_env. eauto.
   - (* ty_new_elim *)
     simpl. apply ty_new_elim.
@@ -1494,7 +1472,7 @@ Proof.
     apply H0 with (x0:=z); eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. apply ok_push. assumption. eauto.
-    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm_ctx. assumption.
+    rewrite <- B. rewrite concat_assoc. weaken_ty_trm_ctx.
     apply ok_push. apply ok_concat_map. eauto. unfold subst_env. eauto.
   - (* ty_rec_intro *)
     simpl. apply ty_rec_intro.
@@ -1578,7 +1556,7 @@ Proof.
     apply H0; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. apply ok_push. assumption. eauto.
-    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm_ctx. assumption.
+    rewrite <- B. rewrite concat_assoc. weaken_ty_trm_ctx.
     apply ok_push. apply ok_concat_map. eauto. unfold subst_env. eauto.
 Qed.
 
@@ -1627,8 +1605,6 @@ Qed.
 (* ###################################################################### *)
 (** ** Some Lemmas *)
 
-(* todo something similar for store necessary? *)
-
 Lemma corresponding_types_stack: forall G S s x T,
   wf_stack G S s ->
   binds x T G ->
@@ -1650,45 +1626,61 @@ Proof.
   induction H.
   - false* binds_empty_inv.
   - unfolds binds. rewrite get_push in *. case_if.
-    + inversions Bi. inversion H5; subst.
+    + inversions Bi. inversion H4; subst.
       * right. exists T0 l. split.
         reflexivity.
-        split. apply weaken_ty_trm_ctx. assumption.
-        constructor. apply wf_to_ok_e1 in H. assumption. assumption.
+        split. weaken_ty_trm_ctx.
+        apply wf_to_ok_e1 in H.
         reflexivity.
       * left. left. exists T0. exists U. exists t.
         split. auto. split.
-        apply weaken_ty_trm_ctx. assumption. apply ok_push. eapply wf_to_ok_e1. eassumption. assumption.
+        weaken_ty_trm_ctx.
         reflexivity.
       * left. right. exists T0. exists ds.
         split. auto. split.
-        apply weaken_ty_trm_ctx. assumption. apply ok_push. eapply wf_to_ok_e1. eassumption. assumption.
-        reflexivity.
+        weaken_ty_trm_ctx. reflexivity.
       * assert (exists x, trm_val v = trm_var (avar_f x)) as A. {
           apply H0. reflexivity.
         }
         destruct A as [? A]. inversion A.
-    + specialize (IHwf Bi).
-      apply IHwf in H0; clear IHwf.
-      inversion H0 as [IH | IH]. inversion IH as [IH' | IH'].
+    + specialize (IHwf Bi H0). (* todo how to not repeat this here and below? *)
+      inversion IHwf as [IH | IH]. inversion IH as [IH' | IH']. (* todo better syntax? *)
       * destruct IH' as [S [U [t [IH1 [IH2 IH3]]]]].
-        left. left. exists S. exists U. exists t.
+        left. left. exists S. exists U t. 
         split. assumption. split.
-        apply weaken_ty_trm_ctx. assumption.
-        apply ok_push. eapply wf_to_ok_e1. eassumption. assumption.
+        weaken_ty_trm_ctx.
         assumption.
       * destruct IH' as [S [ds [IH1 [IH2 IH3]]]].
-        left. right. exists S. exists ds.
+        left. right. exists S ds.
         split. assumption. split.
-        apply weaken_ty_trm_ctx. assumption.
-        apply ok_push. eapply wf_to_ok_e1. eassumption. assumption.
+        weaken_ty_trm_ctx. 
         assumption.
       * destruct IH as [S [l [t [IH2 IH3]]]].
-        right. exists S. exists l. split.
+        right. exists S l. split.
         assumption. split.
-        apply weaken_ty_trm_ctx. assumption.
-        apply wf_to_ok_e1 in H. constructor. assumption. assumption. assumption.
+        weaken_ty_trm_ctx.
+        apply wf_to_ok_e1 in H. assumption.
+  - specialize (IHwf Bi H0).
+      inversion IHwf as [IH | IH]. inversion IH as [IH' | IH']. (* todo better syntax? *)
+      * destruct IH' as [S [U [t [IH1 [IH2 IH3]]]]].
+        left. left. exists S. exists U t. 
+        split. assumption. split.
+        weaken_ty_trm_ctx.
+        assumption.
+      * destruct IH' as [S [ds [IH1 [IH2 IH3]]]].
+        left. right. exists S ds.
+        split. assumption. split.
+        weaken_ty_trm_ctx. 
+        assumption.
+      * destruct IH as [S [l [t [IH2 IH3]]]].
+        right. exists S l. split.
+        assumption. split.
+        weaken_ty_trm_ctx.
+        apply wf_to_ok_e1 in H. assumption.
 Qed.
+
+(* todo check if unused lemmas present *)
+
 
 Lemma unique_rec_subtyping: forall G S U T,
   subtyp ty_precise sub_general G S (typ_bnd U) T ->
@@ -1737,8 +1729,6 @@ Proof.
 Qed.
 
 
-(* todo same for store *)
-
 Lemma unique_lambda_typing: forall G S x V U T,
   binds x (typ_all V U) G ->
   ty_trm ty_precise sub_general G S (trm_var (avar_f x)) T ->
@@ -1782,8 +1772,6 @@ Proof.
     apply unique_ref_subtyping in H0.
     apply H0.
 Qed.
-
-(* todo same for store *)
 
 Lemma lambda_not_rcd: forall G S x V U A T,
   binds x (typ_all V U) G ->
@@ -2193,7 +2181,6 @@ Proof.
   - inversion Hsub; subst. apply IHHtyp. assumption.
 Qed.
 
-(* todo same for sigma *)
 Lemma shape_new_typing: forall G S x U T,
   binds x (typ_bnd U) G ->
   record_type U ->
@@ -2220,7 +2207,6 @@ Proof.
       eapply open_record_type. assumption.
 Qed.
 
-(* todo same for sigma? *)
 Lemma unique_tight_bounds: forall G S s x T1 T2 A,
   wf_stack G S s ->
   ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A T1 T1)) ->
