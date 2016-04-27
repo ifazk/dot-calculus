@@ -420,17 +420,24 @@ Proof.
 Qed. 
 
 
+(* todo is this right? *)
 (* generalization of well-formedness for stacks/stores
  * e1 denotes the main environment (for env_stack, it's ctx, for env_store, it's sigma),
  * and e2 the other environment *)
 Inductive wf: envmode -> env typ -> env typ -> env val -> Prop :=
-| wf_empty: forall m, wf m empty empty empty
+| wf_empty: forall m,
+    wf m empty empty empty
 | wf_push: forall m e1 e2 s x T v,
     wf m e1 e2 s ->
     x # e1 ->
     x # s ->
+    x \notin fv_env_types e2 -> (* todo is this necessary? *)
     ty_trm ty_precise sub_general (get_ctx m e1 e2) (get_sigma m e1 e2) (trm_val v) T ->
-    wf m (e1 & x ~ T) e2 (s & x ~ v).
+    wf m (e1 & x ~ T) e2 (s & x ~ v)
+| wf_push_e2: forall m e1 e2 s x T,
+    wf m e1 e2 s ->
+    x # e2 ->
+    wf m e1 (e2 & x ~ T) s.
 
 Definition wf_stack (G: ctx) (S: sigma) (s: stack): Prop :=
   wf env_stack G S s.
@@ -664,6 +671,22 @@ Proof.
   - apply* weaken_rules_sigma; rewrite concat_empty_r; auto.
 Qed.
 
+Lemma weaken_ty_trm2: forall m m1 m2 e1 e2 e2' t T,
+  ty_trm m1 m2 (get_ctx m e1 e2) (get_sigma m e1 e2) t T ->
+  ok (e2 & e2') ->
+  ty_trm m1 m2 (get_ctx m e1 (e2 & e2')) (get_sigma m e1 (e2 & e2')) t T.
+Proof.
+  intros.
+  assert (e2 & e2' = e2 & e2' & empty) as EqG. {
+    rewrite concat_empty_r. reflexivity.
+  }
+  rewrite EqG.
+  destruct m.
+  - apply* weaken_rules_sigma; rewrite concat_empty_r; auto.
+  - apply* weaken_rules_ctx; rewrite concat_empty_r; auto.
+Qed.
+
+
 Lemma weaken_ty_trm_ctx:  forall m1 m2 G1 G2 S t T,
     ty_trm m1 m2 G1 S t T ->
     ok (G1 & G2) ->
@@ -753,6 +776,11 @@ Proof.
       exists e1'. exists (e2' & x0 ~ T0). exists ds. split.
       * rewrite concat_assoc. reflexivity.
       * split. assumption. assumption.
+  - apply IHWf in Bi; clear IHWf.
+    destruct Bi as [env1' [env1'' [v [Eq [Bi Tyds]]]]].
+    exists env1' env1'' v. split.
+    + assumption.
+    + split. assumption. subst. apply* weaken_ty_trm2.
 Qed.
 
 Lemma ctx_binds_to_stack_binds_raw: forall stack G S x T,
@@ -791,6 +819,10 @@ Proof.
       rewrite concat_empty_r. auto.
     - specialize (IHWf _ _ Bi). destruct IHWf as [e1' [e1'' [T0' [Eq Ty]]]].
       subst. exists e1' (e1'' & x ~ T) T0'. rewrite concat_assoc. auto.
+  + specialize (IHWf _ _ Bi). destruct IHWf as [e1' [e1'' [T0' [Eq Ty]]]].
+    subst. exists e1' e1'' T0'. split.
+    reflexivity.
+    apply* weaken_ty_trm2.
 Qed.
 
 Lemma stack_binds_to_ctx_binds_raw: forall stack G S x v,
@@ -813,6 +845,7 @@ Proof.
   + destruct (classicT (x0 = x)) as [Eq | Ne].
     - subst. false (fresh_push_eq_inv Ub_s).
     - auto.
+  + apply IHWf in Ub_s. assumption.
 Qed.
 
 
@@ -843,6 +876,7 @@ Proof.
   + destruct (classicT (x0 = x)) as [Eq | Ne].
     - subst. false (fresh_push_eq_inv Ub).
     - auto.
+  + apply IHWf in Ub. assumption.
 Qed.
 
 Lemma ctx_unbound_to_stack_unbound: forall s G S x,
@@ -1616,7 +1650,7 @@ Proof.
   induction H.
   - false* binds_empty_inv.
   - unfolds binds. rewrite get_push in *. case_if.
-    + inversions Bi. inversion H3; subst.
+    + inversions Bi. inversion H5; subst.
       * right. exists T0 l. split.
         reflexivity.
         split. apply weaken_ty_trm_ctx. assumption.
@@ -2363,12 +2397,12 @@ Proof.
   unfold subenv. intros xb Tb Bi. apply binds_push_inv in Bi.
   destruct Bi as [Bi | Bi].
   + destruct Bi as [Bi1 Bi2]. subst.
-    left. eauto.
+    left. auto.
   + destruct Bi as [Bi1 Bi2].
     unfold subenv in H. specialize (H xb Tb Bi2). destruct H as [Bi' | Bi'].
-    * left. eauto.
+    * left. auto.
     * right. destruct Bi' as [T' [Bi1' Bi2']].
-      exists T'. split. eauto. apply weaken_subtyp_ctx. assumption. eauto.
+      exists T'. split. auto. apply weaken_subtyp_ctx. assumption. auto.
 Qed.
 
 Lemma subenv_last: forall G S x V U,
@@ -2378,9 +2412,9 @@ Lemma subenv_last: forall G S x V U,
 Proof.
   intros. unfold subenv. intros y T Bi.
   apply binds_push_inv in Bi. destruct Bi as [Bi | Bi].
-  - destruct Bi. subst. right. exists V. split; eauto.
-    apply weaken_subtyp_ctx; eauto.
-  - destruct Bi. left. eauto.
+  - destruct Bi. subst. right. exists V. split; auto.
+    apply weaken_subtyp_ctx; auto.
+  - destruct Bi. left. auto.
 Qed.
 
 Lemma narrow_rules:
@@ -2409,27 +2443,27 @@ Proof.
   - (* ty_var *)
     subst. unfold subenv in H2. specialize (H2 x T b).
     destruct H2.
-    + eauto.
+    + auto.
     + destruct H as [T' [Bi Hsub]].
       eapply ty_sub; eauto.
   - (* ty_all_intro *)
     subst.
-    apply_fresh ty_all_intro as y; eauto.
-    eapply H; eauto. apply subenv_push; eauto.
+    apply_fresh ty_all_intro as y; auto.
+    apply H; auto. apply subenv_push; auto.
   - (* ty_new_intro *)
     subst.
-    apply_fresh ty_new_intro as y; eauto.
-    apply H; eauto. apply subenv_push; eauto.
+    apply_fresh ty_new_intro as y; auto.
+    apply H; auto. apply subenv_push; auto.
   - (* ty_let *)
     subst.
-    apply_fresh ty_let as y; eauto.
-    apply H0 with (x:=y); eauto. apply subenv_push; eauto.
+    apply_fresh ty_let as y; auto.
+    apply H0 with (x:=y); auto. apply subenv_push; auto.
   - inversion H1 (* sub_tight *).
   - inversion H1 (* sub_tight *).
   - (* subtyp_all *)
     subst.
-    apply_fresh subtyp_all as y; eauto.
-    apply H0; eauto. apply subenv_push; eauto.
+    apply_fresh subtyp_all as y; auto.
+    apply H0; auto. apply subenv_push; auto.
 Qed.
 
 Lemma narrow_typing: forall G G' S t T,
@@ -2492,11 +2526,11 @@ Lemma has_member_rules_inv: forall G S x T A V U, has_member_rules G S x T A V U
   (T = typ_bot).
 Proof.
   intros. inversion H; subst.
-  - left. eauto.
-  - right. left. exists T1 T2. eauto.
-  - right. left. exists T1 T2. eauto.
-  - right. right. left. exists T0. eauto.
-  - right. right. right. left. exists y B T'. eauto.
+  - left. auto.
+  - right. left. exists T1 T2. auto.
+  - right. left. exists T1 T2. auto.
+  - right. right. left. exists T0. auto.
+  - right. right. right. left. exists y B T'. auto.
   - right. right. right. right. reflexivity.
 Qed.
 
@@ -2547,7 +2581,7 @@ Proof.
   destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Hsub; subst.
   - inversion H; subst. reflexivity.
   - inversion H; subst. reflexivity.
-  - apply IHHtyp with (A:=A); eauto.
+  - apply IHHtyp with (A:=A); auto.
 Qed.
 
 Lemma has_member_rcd_typ_sub_mut:
@@ -2564,10 +2598,10 @@ Proof.
   - apply H; eauto.
   - apply rs_refl.
   - inversion H0; subst. inversion H1; subst. apply rs_drop.
-    apply H; eauto.
+    apply H; auto.
     exists ls. assumption.
   - inversion H0; subst. inversion H1; subst. inversion h; subst. inversion H3; subst.
-    eapply rs_dropl. eapply rs_refl.
+    eapply rs_dropl. apply rs_refl.
   - inversion H0. inversion H1.
   - inversion H0. inversion H1.
   - destruct H as [ls H]. inversion H.
@@ -2593,7 +2627,7 @@ Proof.
     destruct has_member_rcd_typ_sub_mut as [HL _].
     eapply HL; eauto.
   }
-  eapply rcd_typ_eq_bounds. eapply Htypex. eapply Hsub.
+  eapply rcd_typ_eq_bounds. apply Htypex. apply Hsub.
 Qed.
 
 Lemma has_member_covariance: forall G S s T1 T2 x A S2 U2,
@@ -3605,13 +3639,15 @@ Hint Constructors normal_form.
 
 
 
-Lemma help: forall G S x T sto, 
+Lemma wf_weaken_e2: forall G S x T sto, 
   wf_store G S sto ->
   x \notin fv_env_types S ->
+  x # G ->
   wf_store (G & x ~ T) S sto.
 Proof.
-  intros. dependent induction H.
-  
+  intros. dependent induction H; rewrite* wf_rewrite_sigma.
+  constructor*.
+  - 
 
 (*
  * idea: define wf like this
