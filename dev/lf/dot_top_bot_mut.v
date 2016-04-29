@@ -218,6 +218,12 @@ Definition fv_env_types(e: env typ): vars := (fv_in_values (fun T => fv_typ T) e
 (* ###################################################################### *)
 (** ** Operational Semantics *)
 
+Inductive updated : store -> addr -> val -> store -> Prop:=
+  | upd_exist : forall s l v s' s'' v',
+    s = s' & l ~ v' & s'' ->
+    updated s l v (s' & l ~ v & s'').
+
+
 Inductive red : trm -> stack -> store -> trm -> stack -> store -> Prop :=
 | red_sel : forall x m s sto t T ds,
     binds x (val_new T ds) s ->
@@ -238,10 +244,11 @@ Inductive red : trm -> stack -> store -> trm -> stack -> store -> Prop :=
     binds x v s ->
     l # sto ->
     red (trm_ref (avar_f x)) s sto (trm_val (val_loc l)) s (sto & l ~ v)
-| red_asgn : forall x y l v s sto,
+| red_asgn : forall x y l v s sto sto',
     binds x (val_loc l) s ->
     binds y v s ->
-    red (trm_asg (avar_f x) (avar_f y)) s sto (trm_val v) s (sto & l ~ v)
+    updated sto l v sto' ->
+    red (trm_asg (avar_f x) (avar_f y)) s sto (trm_var (avar_f y)) s sto'
 | red_deref : forall x l s v sto,
     binds x (val_loc l) s ->
     binds l v sto ->
@@ -303,7 +310,7 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
     ty_trm m1 m2 G S (trm_deref (avar_f x)) T
 | ty_asgn : forall m1 m2 G S x y T,
     ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_ref T) ->
-    ty_trm m1 m2 G S (trm_var (avar_f y)) (typ_ref T) ->
+    ty_trm m1 m2 G S (trm_var (avar_f y)) T ->
     ty_trm m1 m2 G S (trm_asg (avar_f x) (avar_f y)) T
 
 with ty_def : ctx -> sigma -> def -> dec -> Prop :=
@@ -452,7 +459,6 @@ Proof. reflexivity. Qed.
 
 Lemma wf_rewrite_sigma : forall G S s, wf_store G S s = wf env_store S G s.
 Proof. reflexivity. Qed.
-
 
 Ltac gen_env m :=
   match goal with
@@ -730,7 +736,6 @@ Proof. intros. induction H; jauto. Qed.
 
 Hint Resolve wf_to_ok_s wf_to_ok_e1 wf_to_ok_e2.
 
-
 Lemma env_binds_to_st_binds_raw: forall m (st: env val) (env1: env typ) (env2: env typ) x T,
   wf m env1 env2 st ->
   binds x T env1 ->
@@ -758,6 +763,22 @@ Proof.
     + assumption.
     + split. assumption. subst. apply* weaken_ty_trm2.
 Qed.
+
+Lemma destruct_store: forall (st: store) l (v: val),
+  binds l v st ->
+  exists st' st'', st = st' & l ~ v & st''.
+Proof.
+  intros.
+  induction st using env_ind.
+  - false* binds_empty_inv.
+  - unfolds binds. rewrite get_push in *. case_if.
+    + inversion H; subst. exists st (@empty val).
+      rewrite concat_empty_r. reflexivity.
+    + apply IHst in H. clear IHst.
+      destruct H as [st' [st'' H]]. subst.
+      exists st' (st'' & x ~ v0). rewrite concat_assoc. reflexivity.
+Qed.
+  
 
 (* todo remove *)
 Lemma ctx_binds_to_stack_binds_raw: forall stack G S x T,
@@ -906,6 +927,16 @@ Proof.
   intros. remember (trm_var (avar_b a)) as t. induction H; try solve [inversion Heqt].
   eapply IHty_trm. auto.
 Qed.
+
+Lemma update_to_wf_store: forall G S s s' l v,
+  wf_store G S s ->
+  updated s l v s' ->
+  wf_store G S s'.
+Proof.
+  intros. induction s' using env_ind.
+  - inversion H0. subst. apply eq_sym in H1. apply empty_middle_inv in H1. false.
+  - admit. (* TODO !!! *)
+Qed. 
 
 
 (* ###################################################################### *)
@@ -3520,6 +3551,7 @@ Proof.
   assumption.
 Qed.
 
+(* todo gen *)
 Lemma ctx_binds_to_stack_binds_typing: forall G S s x T,
   wf_stack G S s ->
   binds x T G ->
@@ -3531,6 +3563,21 @@ Proof.
   exists v. split; eauto.
   subst. rewrite <- concat_assoc.
   weaken_ty_trm_ctx.
+  rewrite concat_assoc.
+  eapply wf_to_ok_e1; eauto.
+Qed.
+
+Lemma sigma_binds_to_store_binds_typing: forall G S s l T,
+  wf_store G S s ->
+  binds l T S ->
+  exists v, binds l v s /\ ty_trm ty_precise sub_general G S (trm_val v) T.
+Proof.
+  introv Hwf Bi.
+  lets A: (sigma_binds_to_store_binds_raw Hwf Bi).
+  destruct A as [S1 [S2 [v [HeqG [Bis Hty]]]]].
+  exists v. split; eauto.
+  subst. rewrite <- concat_assoc.
+  weaken_ty_trm_sigma.
   rewrite concat_assoc.
   eapply wf_to_ok_e1; eauto.
 Qed.
@@ -3568,7 +3615,7 @@ Qed.
 (*
 Lemma (Canonical forms 2)
 
-If G, S ~ s and G, S |- x: {a: T} then s(x) = new(x: V)d for some type V, definition d such that G |- d: V and d contains a definition {a = t} where G, S |- t: T.
+If G, S ~ s and G, S |- x: {a: T} then s(x) = new(x: V)d for some type V, definition d such that G, S |- d: V and d contains a definition {a = t} where G, S |- t: T.
 
 *)
 Lemma canonical_forms_2: forall G S s x a T,
@@ -3586,6 +3633,38 @@ Proof.
   exists V' ds t'.
   split; try split; try split; try assumption.
   eapply new_ty_defs; eauto.
+Qed.
+
+
+(*
+Lemma (Canonical forms 3)
+
+If G, S ~ stack, G, S ~ store, and G, S |- x: Ref T then 
+  stack(x) = loc l for some address l, such that G, S |- l: Ref T, and
+  there exists a value v such that
+  store(l) = v and G, S |- v: T.
+*)
+Lemma canonical_forms_3: forall G S sta sto x T,
+  wf_stack G S sta ->
+  wf_store G S sto ->
+  ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_ref T) ->
+  exists l v,
+    binds x (val_loc l) sta /\
+    ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) /\
+    binds l v sto /\
+    ty_trm ty_general sub_general G S (trm_val v) T.
+Proof.
+  introv HWfSta HWfSto Hty.
+  lets Bi: (typing_implies_bound Hty). destruct Bi as [V Bi].
+  lets A: (ctx_binds_to_stack_binds_typing HWfSta Bi). destruct A as [v [Bis Htyv]].
+  lets Hp: (possible_types_lemma HWfSta Bis Hty).
+  inversion Hp; subst.
+  - lets Htype: (record_type_new HWfSta Bis). rewrite H4 in Htype.
+    destruct Htype as [ls Htyp]. inversion Htyp.
+  - lets Bi': (typing_implies_bound_loc H4). destruct Bi' as [Tl Bi'].
+    lets B: (sigma_binds_to_store_binds_typing HWfSto Bi'). destruct B as [vl [Bil Htyl]].
+    exists l vl. split. assumption. split. assumption. split. assumption.
+    admit. (* todo *)
 Qed.
 
 (* ###################################################################### *)
@@ -3644,6 +3723,7 @@ Then either
       G', S' ~ sto'
 The proof is by a induction on typing derivations of G, S |- t: T.
 *)
+
 
 Lemma safety: forall G S sta sto t T,
   wf_stack G S sta ->
@@ -3719,8 +3799,9 @@ Proof.
       apply subenv_last. assumption.
       apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
       apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
-      split; auto. auto.
-    + specialize (IHty_trm HWfSta HWfSto). destruct IHty_trm as [IH | IH]. inversion IH.
+      split; auto.
+    + (* sel *)
+      specialize (IHty_trm HWfSta HWfSto). destruct IHty_trm as [IH | IH]. inversion IH.
       destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
       exists sta' sto' (trm_let t' u) G' G'' S'. exists S''.
       split. apply red_let_tgt. assumption.
@@ -3733,35 +3814,126 @@ Proof.
       * reflexivity.
       * subst. inversion H2. inversion H5. apply ok_push. eauto. auto.
       * subst. inversion H2. inversion H4. split; assumption.
-    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
-      destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
-      exists s' (trm_let t' u) G' G''.
+    + (* app *)
+      specialize (IHty_trm HWfSta HWfSto). destruct IHty_trm as [IH | IH]. inversion IH.
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
+      exists sta' sto' (trm_let t' u) G' G'' S'. exists S''.
       split. apply red_let_tgt. assumption.
-      split. assumption. split.
-      apply ty_let with (L:=L \u dom G') (T:=T); eauto.
-      intros. rewrite IH2. eapply (proj51 weaken_rules). apply H0. auto. reflexivity.
-      rewrite <- IH2. apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
-      rewrite IH2.
-      rewrite <- IH2. eauto.
-    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
-      destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
-      exists s' (trm_let t' u) G' G''.
+      split. assumption. split. assumption.
+      split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
+      intros. inversion H2. assumption.
+      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
+        weaken_ty_trm_sigma.
+      * reflexivity.
+      * subst. inversion H2. inversion H5. apply ok_push. eauto. auto.
+      * subst. inversion H2. inversion H4. split; assumption. 
+    + (* let *)
+      specialize (IHty_trm HWfSta HWfSto). destruct IHty_trm as [IH | IH]. inversion IH.
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
+      exists sta' sto' (trm_let t' u) G' G'' S'. exists S''.
       split. apply red_let_tgt. assumption.
-      split. assumption. split.
-      apply ty_let with (L:=L \u dom G') (T:=T); eauto.
-      intros. rewrite IH2. eapply (proj51 weaken_rules). apply H0. auto. reflexivity.
-      rewrite <- IH2. apply ok_push. eapply wf_to_ok_e1. eassumption. eauto.
-      rewrite IH2.
-      rewrite <- IH2. eauto.
-  - specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH].
+      split. assumption. split. assumption.
+      split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
+      intros. inversion H2. assumption.
+      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
+        weaken_ty_trm_sigma.
+      * reflexivity.
+      * subst. inversion H2. inversion H5. apply ok_push. eauto. auto.
+      * subst. inversion H2. inversion H4. split; assumption. 
+    + (* ref *)
+      specialize (IHty_trm HWfSta HWfSto). destruct IHty_trm as [IH | IH]. inversion IH.
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
+      exists sta' sto' (trm_let t' u) G' G'' S'. exists S''.
+      split. apply red_let_tgt. assumption.
+      split. assumption. split. assumption.
+      split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
+      intros. inversion H2. assumption.
+      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
+        weaken_ty_trm_sigma.
+      * reflexivity.
+      * subst. inversion H2. inversion H5. apply ok_push. eauto. auto.
+      * subst. inversion H2. inversion H4. split; assumption. 
+    + (* deref *) 
+      specialize (IHty_trm HWfSta HWfSto). destruct IHty_trm as [IH | IH]. inversion IH.
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
+      exists sta' sto' (trm_let t' u) G' G'' S'. exists S''.
+      split. apply red_let_tgt. assumption.
+      split. assumption. split. assumption.
+      split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
+      intros. inversion H2. assumption.
+      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
+        weaken_ty_trm_sigma.
+      * reflexivity.
+      * subst. inversion H2. inversion H5. apply ok_push. eauto. auto.
+      * subst. inversion H2. inversion H4. split; assumption. 
+    + (* asgn *)
+      specialize (IHty_trm HWfSta HWfSto). destruct IHty_trm as [IH | IH]. inversion IH.
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
+      exists sta' sto' (trm_let t' u) G' G'' S'. exists S''.
+      split. apply red_let_tgt. assumption.
+      split. assumption. split. assumption.
+      split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
+      intros. inversion H2. assumption.
+      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
+        weaken_ty_trm_sigma.
+      * reflexivity.
+      * subst. inversion H2. inversion H5. apply ok_push. eauto. auto.
+      * subst. inversion H2. inversion H4. split; assumption. 
+  - (* sub *)
+    specialize (IHty_trm HWfSta HWfSto). destruct IHty_trm as [IH | IH].
     + left. assumption.
-    + right. destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
-      exists s' t' G' G''.
-      split; try split; try split; try assumption.
+    + right. 
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 [IH5 IH6]]]]]]]]]]]].
+      exists sta' sto' t' G' G'' S'. exists S''.
+      split; try split; try split; try split; try split; try assumption.
       apply ty_sub with (T:=T).
-      intro Contra. inversion Contra.
-      assumption.
-      rewrite IH2. apply weaken_subtyp. assumption.
-      rewrite <- IH2. eapply wf_to_ok_e1. eassumption.
+      intro Contra. inversion Contra. assumption.
+      subst. weaken_subtyp_ctx. simpl. weaken_subtyp_sigma.
+  - (* ref *)
+    right. pick_fresh l.
+    lets Bi: (typing_implies_bound H). destruct Bi as [V Bi].
+    lets A: (ctx_binds_to_stack_binds_typing HWfSta Bi). destruct A as [v [Bis Htyv]].
+    lets Hp: (possible_types_lemma HWfSta Bis H).
+    exists sta (sto & l ~ v) (trm_val (val_loc l)) G (@empty typ) (S & l ~ T). exists (l ~ T).
+    split. apply* red_ref_var.
+    split. rewrite concat_empty_r. reflexivity.
+    split. reflexivity.
+    split. auto.
+    split. auto.
+    constructor. assumption. auto. auto. auto.
+    simpl.
+    (* todo *) admit.
+  - (* deref *) 
+    right.
+    lets C: (canonical_forms_3 HWfSta HWfSto H).
+    destruct C as [l [v [BiLoc [Htyloc [BiVal Htyval]]]]].
+    exists sta sto (trm_val v) G (@empty typ) S. exists (@empty typ).
+    split. apply red_deref with (l:=l). assumption. assumption.
+    split. rewrite concat_empty_r. reflexivity.
+    split. rewrite concat_empty_r. reflexivity.
+    split. assumption. split. assumption. assumption.
+  - (* asg *)
+    right.
+    lets C: (canonical_forms_3 HWfSta HWfSto H).
+    destruct C as [l [v [BiLoc [Hty [BiSto HtyVal]]]]].
+    lets D: (destruct_store BiSto). destruct D as [st' [st'' D]].
+    lets Bi: (typing_implies_bound H0). destruct Bi as [Ty Bi].
+    lets Bi': (ctx_binds_to_stack_binds_typing HWfSta Bi). destruct Bi' as [v0 [Bi' _]].
+    exists sta (st' & l ~ v0 & st'') (trm_var (avar_f y)) G (@empty typ) S. exists (@empty typ).
+    split.
+    apply red_asgn with (l:=l) (v:=v0).
+    assumption. assumption.
+    apply upd_exist with (v':=v). assumption.
+    split. rewrite concat_empty_r. reflexivity.
+    split. rewrite concat_empty_r. reflexivity.
+    split. assumption.
+    split. assumption.
+    apply update_to_wf_store with (s:=sto) (l:=l) (v:=v0). assumption.
+    apply upd_exist with (v':=v). assumption.
 Qed.
 
