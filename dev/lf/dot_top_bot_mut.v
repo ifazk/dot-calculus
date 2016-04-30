@@ -827,11 +827,108 @@ Qed.
 Lemma stack_binds_to_ctx_binds_raw: forall stack G S x v,
   wf_stack G S stack ->
   binds x v stack ->
-  exists G1 G2 T, G = G1 & (x ~ T) & G2 /\ ty_trm ty_precise sub_general G1 S (trm_val v) T.
+  exists G1 G2 T, G = G1 & x ~ T & G2 /\ ty_trm ty_precise sub_general G1 S (trm_val v) T.
 Proof.
   intros. gen_env env_stack. 
   apply st_binds_to_env_binds_raw with (st := stack0); assumption.
 Qed.
+
+Lemma store_binds_to_sigma_binds_raw: forall store G S l v,
+  wf_store G S store ->
+  binds l v store ->
+  exists S1 S2 T, S = S1 & l ~ T & S2 /\ ty_trm ty_precise sub_general G S1 (trm_val v) T.
+Proof.
+  intros. gen_env env_store.
+  apply st_binds_to_env_binds_raw with (st := store0); assumption.
+Qed.
+
+Lemma wf_change_value: forall G S s  l v vOld T m1 m2, (* todo do m1 & m2 have to be something specific? *)
+  wf_store G S (s & l ~ vOld) ->
+  ty_trm m1 m2 G S (trm_val v) T ->
+  wf_store G S (s & l ~ v).
+Proof.
+  intros G S s l v vOld T m1 m2 HWf HTy.
+  dependent induction HWf.
+  - apply empty_push_inv in x. false.
+  - specialize (IHHWf s l vOld). admit. (* TODO!! *)
+  - admit.
+Qed.
+
+Lemma wf_prefix: forall G S S' s s',
+  wf_store G S s ->
+  dom S' = dom s' ->
+  forall l T m1 m2 v,
+  binds l v s' ->
+  binds l T S' ->
+  ty_trm m1 m2 G (S & S') (trm_val v) T ->
+  wf_store G (S & S') (s & s').
+Proof. Admitted. (* TODO *)
+
+
+Lemma wf_destruct: forall G S S' s s' l v T,
+  wf_store G (S & l ~ T & S') (s & l ~ v & s') ->
+  wf_store G S s.
+Proof. Admitted.
+
+Lemma update_to_wf_store: forall G S s s' l v T, (* todo do m1 & m2 have to be something specific? *)
+  wf_store G S s ->
+  updated s l v s' ->
+  forall S1 S2 s1 s2 vOld,
+  s = s1 & l ~ vOld & s2 ->
+  S = S1 & l ~ T & S2 ->
+  ty_trm ty_precise sub_general G S1 (trm_val vOld) T ->
+  ty_trm ty_precise sub_general G S1 (trm_val v) T ->
+  wf_store G S s'.
+Proof.
+  intros G S s s' l v T HWf Hupd S1 S2 s1 s2 vOld Hs HS HTyOld HTyNew. destruct Hupd. subst.
+  assert (binds l v (s' & l ~ v & s'')) as BiNew. {
+    apply binds_middle_eq. apply wf_to_ok_s in HWf. apply ok_middle_inv in HWf. destruct HWf. assumption.
+  }
+  assert (s' = s1 /\ s'' = s2 /\ v' = vOld). admit (* TODO *).
+  destruct H as [H1 [H2 H3]]. subst. clear Hs.
+  assert (binds l vOld (s1 & l ~ vOld & s2)) as Bi. admit. (* TODO *)
+  lets HS: (store_binds_to_sigma_binds_raw HWf Bi). destruct HS as [S0 [S3 [T0 [HS HTy]]]].
+  assert (T = T0 /\ S2 = S3 /\ S0 = S1). admit (* TODO *).
+  destruct H as [H1 [H2 H]]. subst.  clear HS.
+
+  lets Hd: (wf_destruct HWf).
+  assert (wf_store G (S1 & l ~ T0) (s1 & l ~ v)). {
+    assert (l # S1). admit. (* TODO *)
+    assert (l # s1). admit. (* TODO *)
+    assert (l \notin fv_env_types G). admit. 
+    lets Hp: (wf_push Hd H H0 H1 HTyNew). rewrite <- wf_rewrite_sigma in Hp. assumption.
+  }
+    constructor. assumption.
+    - apply wf_to_ok_e1 in HWf. apply ok_middle_inv in HWf. destruct HWf. assumption.
+    - apply wf_to_ok_s in HWf. apply ok_middle_inv in HWf. destruct HWf. assumption.
+    - destruct HWf. 
+    inversion HWf. apply empty_middle_inv in H1. false. 
+
+      subst.
+  assert (forall l' T' v', binds l' v' (
+  apply wf_prefix in Hd with (S':=l ~ T0 & S2) (s':=l ~ v & s'') (l:=l) (T:=T0) (m1:=m1) (m2:=m2) (v:=v).
+
+
+  lets H: (store_binds_to_sigma_binds_raw HWf Bi). destruct H as [S1 [S2 [T' [HS _]]]].
+  induction s'' using env_ind.
+  - rewrite concat_empty_r in *.
+    lets Hok: (wf_to_ok_s HWf).
+    apply ok_push_inv in Hok.
+    apply binds_push_inv in Bi. destruct Bi; apply binds_push_inv in BiNew; destruct BiNew.
+    + destruct H. destruct H0; subst.
+      apply wf_change_value with (vOld:=v') (T:=T) (m1:=m1) (m2:=m2).
+      assumption. assumption.
+    + inversion H0. false.
+    + inversion H. false.
+    + inversion H. false.
+  - rewrite concat_assoc in HWf.
+    lets HWf': (wf_change_value HWf HTyNew).
+
+
+
+Qed.
+
+
 
 Lemma st_unbound_to_env_unbound: forall m s env1 env2 x,
   wf m env1 env2 s ->
@@ -927,17 +1024,6 @@ Proof.
   intros. remember (trm_var (avar_b a)) as t. induction H; try solve [inversion Heqt].
   eapply IHty_trm. auto.
 Qed.
-
-Lemma update_to_wf_store: forall G S s s' l v,
-  wf_store G S s ->
-  updated s l v s' ->
-  wf_store G S s'.
-Proof.
-  intros. induction s' using env_ind.
-  - inversion H0. subst. apply eq_sym in H1. apply empty_middle_inv in H1. false.
-  - admit. (* TODO !!! *)
-Qed. 
-
 
 (* ###################################################################### *)
 (** ** Extra Rec *)
