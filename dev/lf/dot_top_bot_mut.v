@@ -1,8 +1,10 @@
 Set Implicit Arguments.
 
 Require Import Coq.Setoids.Setoid.
-Require Import LibLN.
+Require Import LibLN LibList.
 Require Import Coq.Program.Equality.
+
+Close Scope nat_scope. Close Scope comp_scope. Close Scope list_scope.
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -842,35 +844,70 @@ Proof.
   apply st_binds_to_env_binds_raw with (st := store0); assumption.
 Qed.
 
-Lemma wf_change_value: forall G S s  l v vOld T m1 m2, (* todo do m1 & m2 have to be something specific? *)
+Lemma wf_change_value: forall G S s  l v vOld T,
   wf_store G S (s & l ~ vOld) ->
-  ty_trm m1 m2 G S (trm_val v) T ->
+  ty_trm ty_precise sub_general G S (trm_val v) T ->
   wf_store G S (s & l ~ v).
 Proof.
-  intros G S s l v vOld T m1 m2 HWf HTy.
+  intros G S s l v vOld T HWf HTy.
   dependent induction HWf.
   - apply empty_push_inv in x. false.
   - specialize (IHHWf s l vOld). admit. (* TODO!! *)
-  - admit.
+  - admit. (* TODO *)
 Qed.
 
-Lemma wf_prefix: forall G S S' s s',
+Lemma keys_destruct: forall {A B} (s s1: env A) (s': env B) x x' (v: B) (v': A),
+  keys s = keys (s' & x ~ v)%env ->
+  s = s1 & x' ~ v' ->
+  x = x'.
+Proof.
+  intros. induction s using env_ind.
+  - rew_env_defs. inversion H.
+  - unfold keys in *. rew_env_defs. rew_list in *. inversion H0. subst. inversion H. reflexivity.
+Qed.
+
+(* all this is ugly and needs to be rewritten *)
+Lemma wf_prefix: forall G S s (s': store),
   wf_store G S s ->
-  dom S' = dom s' ->
+  forall (S': env typ),
+  keys S' = keys s' ->
   forall l T v,
   binds l v s' ->
   binds l T S' ->
   ty_trm ty_precise sub_general G (S & S') (trm_val v) T ->
   wf_store G (S & S') (s & s').
-Proof. Admitted. (* TODO *)
-
+Proof.
+  intros.
+  lets Hok: (wf_to_ok_s H). lets Hok': (wf_to_ok_e1 H). gen S'.
+  induction s' using env_ind.
+  - inversion H; subst; apply binds_empty_inv in H1; false.
+  - intros. apply binds_push_inv in H1. destruct H1. destruct H1. subst.
+    + assert (exists l' T' S'', S' = S'' & l' ~ T') as Hs. {
+        unfold keys in H0. destruct S' using env_ind.
+          * rew_list in H0. rew_env_defs. unfold fst in H0. inversion H0.
+          * exists x0 v S'. reflexivity.
+      }
+      destruct Hs as [l' [T' [S'' Hs]]].
+      lets Hk: (keys_destruct s' x v0 H0 Hs). subst.
+      repeat rewrite concat_assoc. constructor.
+      apply IHs'.
+      admit (* TODO *).
+      admit.
+      admit.
+      admit.
+      admit.
+      admit.
+      admit.
+      admit.
+    + admit.
+Qed.
 
 Lemma wf_destruct: forall G S S' s s' l v T,
   wf_store G (S & l ~ T & S') (s & l ~ v & s') ->
   wf_store G S s.
 Proof. Admitted.
 
-Lemma update_to_wf_store: forall G S s s' l v T, (* todo do m1 & m2 have to be something specific? *)
+Lemma update_to_wf_store: forall G S s s' l v T,
   wf_store G S s ->
   updated s l v s' ->
   forall S1 S2 s1 s2 vOld,
@@ -884,33 +921,37 @@ Proof.
   assert (binds l v (s' & l ~ v & s'')) as BiNew. {
     apply binds_middle_eq. apply wf_to_ok_s in HWf. apply ok_middle_inv in HWf. destruct HWf. assumption.
   }
-  assert (s' = s1 /\ s'' = s2 /\ v' = vOld). admit (* TODO *).
-  destruct H as [H1 [H2 H3]]. subst. clear Hs.
-  assert (binds l vOld (s1 & l ~ vOld & s2)) as Bi. admit. (* TODO *)
+  lets Hoks: (wf_to_ok_s HWf). lets HokS: (wf_to_ok_e1 HWf).
+  assert (s' = s1 /\ s'' = s2 /\ v' = vOld) as Heq. {
+    admit (* TODO *).
+  } destruct Heq as [He1 [He2 He3]]. subst.
+  lets Hne: (ok_middle_inv Hoks). destruct Hne as [Hs1 Hs2].
+  lets Hne: (ok_middle_inv HokS). destruct Hne as [HS1 HS2].
+  assert (binds l vOld (s1 & l ~ vOld & s2)) as Bi. {
+    apply binds_middle_eq. assumption.
+  }
   lets HS: (store_binds_to_sigma_binds_raw HWf Bi). destruct HS as [S0 [S3 [T0 [HS HTy]]]].
   assert (T = T0 /\ S2 = S3 /\ S0 = S1). admit (* TODO *).
   destruct H as [H1 [H2 H]]. subst.  clear HS.
-  assert (l # S1). admit. (* TODO *)
-  assert (l # s1). admit. (* TODO *)
   lets Hd: (wf_destruct HWf).
   assert (wf_store G (S1 & l ~ T0) (s1 & l ~ v)). {
     assert (l \notin fv_env_types G). admit. 
-    lets Hp: (wf_push Hd H H0 H1 HTyNew). rewrite <- wf_rewrite_sigma in Hp. assumption.
+    lets Hp: (wf_push Hd HS1 Hs1 H HTyNew). rewrite <- wf_rewrite_sigma in Hp. assumption.
   }
   assert (forall l T v,
     binds l v s2 -> 
     binds l T S3 -> 
-    ty_trm ty_precise sub_general G (S1 & l ~ T0 & S3) (trm_val v) T). admit. (* TODO *)
-  assert (dom (l ~ T0 & S3) = dom (l ~ v & s2)). admit (* TODO *).
-  lets Hp: (wf_prefix Hd H3).
+    ty_trm ty_precise sub_general G (S1 & l ~ T0 & S3) (trm_val v) T) as Hty. admit. (* TODO *)
+  assert (keys (l ~ T0 & S3)%env = keys (l ~ v & s2)%env) as Hkeys. {
+    admit.
+  }
+  lets Hp: (wf_prefix Hd Hkeys).
   rewrite concat_assoc in Hp. rewrite concat_assoc in Hp.
   lets Hres: (Hp l T0 v).
   apply Hres.
-  - assert (l # s2). admit. (* TODO *)
-    rewrite <- concat_empty_l. rewrite concat_assoc.
+  - rewrite <- concat_empty_l. rewrite concat_assoc.
     apply binds_middle_eq. assumption.
-  - assert (l # S3). admit. (* TODO *)
-    rewrite <- concat_empty_l. rewrite concat_assoc.
+  - rewrite <- concat_empty_l. rewrite concat_assoc.
     apply binds_middle_eq. assumption.
   - weaken_ty_trm_sigma. simpl. weaken_ty_trm_sigma.
 Qed.
