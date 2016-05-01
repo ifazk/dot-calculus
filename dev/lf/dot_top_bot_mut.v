@@ -857,10 +857,10 @@ Qed.
 Lemma wf_prefix: forall G S S' s s',
   wf_store G S s ->
   dom S' = dom s' ->
-  forall l T m1 m2 v,
+  forall l T v,
   binds l v s' ->
   binds l T S' ->
-  ty_trm m1 m2 G (S & S') (trm_val v) T ->
+  ty_trm ty_precise sub_general G (S & S') (trm_val v) T ->
   wf_store G (S & S') (s & s').
 Proof. Admitted. (* TODO *)
 
@@ -890,42 +890,29 @@ Proof.
   lets HS: (store_binds_to_sigma_binds_raw HWf Bi). destruct HS as [S0 [S3 [T0 [HS HTy]]]].
   assert (T = T0 /\ S2 = S3 /\ S0 = S1). admit (* TODO *).
   destruct H as [H1 [H2 H]]. subst.  clear HS.
-
+  assert (l # S1). admit. (* TODO *)
+  assert (l # s1). admit. (* TODO *)
   lets Hd: (wf_destruct HWf).
   assert (wf_store G (S1 & l ~ T0) (s1 & l ~ v)). {
-    assert (l # S1). admit. (* TODO *)
-    assert (l # s1). admit. (* TODO *)
     assert (l \notin fv_env_types G). admit. 
     lets Hp: (wf_push Hd H H0 H1 HTyNew). rewrite <- wf_rewrite_sigma in Hp. assumption.
   }
-    constructor. assumption.
-    - apply wf_to_ok_e1 in HWf. apply ok_middle_inv in HWf. destruct HWf. assumption.
-    - apply wf_to_ok_s in HWf. apply ok_middle_inv in HWf. destruct HWf. assumption.
-    - destruct HWf. 
-    inversion HWf. apply empty_middle_inv in H1. false. 
-
-      subst.
-  assert (forall l' T' v', binds l' v' (
-  apply wf_prefix in Hd with (S':=l ~ T0 & S2) (s':=l ~ v & s'') (l:=l) (T:=T0) (m1:=m1) (m2:=m2) (v:=v).
-
-
-  lets H: (store_binds_to_sigma_binds_raw HWf Bi). destruct H as [S1 [S2 [T' [HS _]]]].
-  induction s'' using env_ind.
-  - rewrite concat_empty_r in *.
-    lets Hok: (wf_to_ok_s HWf).
-    apply ok_push_inv in Hok.
-    apply binds_push_inv in Bi. destruct Bi; apply binds_push_inv in BiNew; destruct BiNew.
-    + destruct H. destruct H0; subst.
-      apply wf_change_value with (vOld:=v') (T:=T) (m1:=m1) (m2:=m2).
-      assumption. assumption.
-    + inversion H0. false.
-    + inversion H. false.
-    + inversion H. false.
-  - rewrite concat_assoc in HWf.
-    lets HWf': (wf_change_value HWf HTyNew).
-
-
-
+  assert (forall l T v,
+    binds l v s2 -> 
+    binds l T S3 -> 
+    ty_trm ty_precise sub_general G (S1 & l ~ T0 & S3) (trm_val v) T). admit. (* TODO *)
+  assert (dom (l ~ T0 & S3) = dom (l ~ v & s2)). admit (* TODO *).
+  lets Hp: (wf_prefix Hd H3).
+  rewrite concat_assoc in Hp. rewrite concat_assoc in Hp.
+  lets Hres: (Hp l T0 v).
+  apply Hres.
+  - assert (l # s2). admit. (* TODO *)
+    rewrite <- concat_empty_l. rewrite concat_assoc.
+    apply binds_middle_eq. assumption.
+  - assert (l # S3). admit. (* TODO *)
+    rewrite <- concat_empty_l. rewrite concat_assoc.
+    apply binds_middle_eq. assumption.
+  - weaken_ty_trm_sigma. simpl. weaken_ty_trm_sigma.
 Qed.
 
 
