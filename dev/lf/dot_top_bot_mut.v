@@ -1,7 +1,7 @@
 Set Implicit Arguments.
 
 Require Import Coq.Setoids.Setoid.
-Require Import LibLN LibList.
+Require Import LibList LibLN.
 Require Import Coq.Program.Equality.
 
 Close Scope nat_scope. Close Scope comp_scope. Close Scope list_scope.
@@ -857,19 +857,19 @@ Proof.
 Qed.
 
 Lemma keys_destruct: forall {A B} (s s1: env A) (s': env B) x x' (v: B) (v': A),
-  keys s = keys (s' & x ~ v)%env ->
+  keys s = keys (s' & x ~ v) ->
   s = s1 & x' ~ v' ->
   x = x'.
 Proof.
   intros. induction s using env_ind.
   - rew_env_defs. inversion H.
-  - unfold keys in *. rew_env_defs. rew_list in *. inversion H0. subst. inversion H. reflexivity.
+  - rew_env_defs. rew_list in *. inversion H0. subst. inversion H. reflexivity.
 Qed.
 
 (* all this is ugly and needs to be rewritten *)
-Lemma wf_prefix: forall G S s (s': store),
+Lemma wf_prefix: forall G S s s',
   wf_store G S s ->
-  forall (S': env typ),
+  forall S',
   keys S' = keys s' ->
   forall l T v,
   binds l v s' ->
@@ -883,12 +883,12 @@ Proof.
   - inversion H; subst; apply binds_empty_inv in H1; false.
   - intros. apply binds_push_inv in H1. destruct H1. destruct H1. subst.
     + assert (exists l' T' S'', S' = S'' & l' ~ T') as Hs. {
-        unfold keys in H0. destruct S' using env_ind.
+        rew_env_defs. rew_list in *. destruct S' using env_ind.
           * rew_list in H0. rew_env_defs. unfold fst in H0. inversion H0.
-          * exists x0 v S'. reflexivity.
+          * exists x0 v S'. rew_env_defs. rew_list. reflexivity.
       }
       destruct Hs as [l' [T' [S'' Hs]]].
-      lets Hk: (keys_destruct s' x v0 H0 Hs). subst.
+      lets Hk: (keys_destruct H0 Hs). subst.
       repeat rewrite concat_assoc. constructor.
       apply IHs'.
       admit (* TODO *).
@@ -955,7 +955,6 @@ Proof.
     apply binds_middle_eq. assumption.
   - weaken_ty_trm_sigma. simpl. weaken_ty_trm_sigma.
 Qed.
-
 
 
 Lemma st_unbound_to_env_unbound: forall m s env1 env2 x,
