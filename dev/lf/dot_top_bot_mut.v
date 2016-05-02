@@ -3698,7 +3698,7 @@ Qed.
 (*
 Lemma (Canonical forms 1)
 If G, S ~ s and G, S |- x: all(x: T)U then s(x) = lambda(x: T')t where G, S |- T <: T' and (G, x: T), S |- t: U.
- *)
+ *) 
 Lemma canonical_forms_1: forall G S s x T U,
   wf_stack G S s ->
   ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_all T U) ->
