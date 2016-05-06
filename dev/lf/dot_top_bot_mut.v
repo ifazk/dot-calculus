@@ -738,6 +738,74 @@ Proof. intros. induction H; jauto. Qed.
 
 Hint Resolve wf_to_ok_s wf_to_ok_e1 wf_to_ok_e2.
 
+Lemma binds_update: forall s s' l v l' v',
+  ok s ->
+  updated s l v s' ->
+  binds l' v' s ->
+  If l = l' then binds l' v s' else binds l' v' s'.
+Proof.
+  introv Hok Hup Hbi. case_if.
+  - inversion Hup; subst. apply binds_middle_eq.
+    lets Hmi: (ok_middle_inv Hok). destruct Hmi. assumption.
+  - inversion Hup. subst.
+    apply binds_concat_inv in Hbi. destruct Hbi.
+    + apply binds_concat_right. assumption.
+    + inversion H0. apply binds_push_inv in H2. destruct H2.
+      * inversion H2. false. 
+      * destruct H2. apply binds_concat_left.
+        apply binds_push_neq. assumption. assumption. assumption.
+Qed.
+
+Lemma binds_middle: forall (s1 s2 s1' s2' : env val) (x : var) (v v' : val),
+  ok (s1 & x ~ v & s2) ->
+  s1 & x ~ v & s2 = s1' & x ~ v' & s2' ->
+  s1 = s1' /\ v = v' /\ s2 = s2'.
+Proof.
+  introv Hok. gen s1' s2'. induction s2 using env_ind; intros.
+  - rewrite concat_empty_r in H.
+    destruct s2' using env_ind.
+    + rewrite concat_empty_r in H. apply eq_push_inv in H.
+      destruct H as [_ [Hv Hs]]. auto.
+    + rewrite concat_assoc in H. rewrite concat_empty_r in Hok.
+      lets Heq: (eq_push_inv H).
+      destruct Heq as [Hx [Hv Hs]]. subst.
+      apply ok_push_inv in Hok. destruct Hok as [Hok Hnot].
+      assert (binds x0 v' (s1' & x0 ~ v' & s2')) as HBi. {
+        lets Ht: (binds_tail x0 v' s1').
+        apply (binds_concat_left_ok Hok Ht).
+      }
+      false (binds_fresh_inv HBi Hnot).
+  - 
+
+Qed.
+
+Lemma update_to_wf_store: forall G S s s' l v T,
+  wf_store G S s ->
+  updated s l v s' ->
+  forall S1 S2 s1 s2 vOld,
+  s = s1 & l ~ vOld & s2 ->
+  S = S1 & l ~ T & S2 ->
+  ty_trm ty_precise sub_general G S1 (trm_val vOld) T ->
+  ty_trm ty_precise sub_general G S1 (trm_val v) T ->
+  wf_store G S s'.
+Proof.
+  introv Hwf. gen s'. unfold wf_store in Hwf. dependent induction Hwf; unfold wf_store in *; introv Hup.
+  - inversion Hup. false* empty_middle_inv.
+  - intros. rename e1 into S.
+    inversion Hup. subst.
+    assert ((l = x /\ s'' = empty) \/ (l <> x /\ exists s''' v0, s'' = s''' & x ~ v0)). {
+      admit.
+    }
+    destruct H7.
+    lets Hok: (wf_to_ok_s Hwf).
+    + destruct H7; subst. rewrite concat_empty_r in *. 
+      apply eq_push_inv in H6. destruct H6 as [_ [H62 H63]]. subst.
+      inversion Hup. subst.
+      specialize (IHHwf ).
+      constructor.
+      spe
+
+
 Lemma env_binds_to_st_binds_raw: forall m (st: env val) (env1: env typ) (env2: env typ) x T,
   wf m env1 env2 st ->
   binds x T env1 ->
@@ -844,24 +912,6 @@ Proof.
   apply st_binds_to_env_binds_raw with (st := store0); assumption.
 Qed.
 
-
-Lemma binds_update: forall s s' l v l' v',
-  ok s ->
-  updated s l v s' ->
-  binds l' v' s ->
-  If l = l' then binds l' v s' else binds l' v' s'.
-Proof.
-  intros s s' l v l' v' Hok Hup Hbi. case_if.
-  - inversion Hup; subst. apply binds_middle_eq.
-    lets Hmi: (ok_middle_inv Hok). destruct Hmi. assumption.
-  - inversion Hup. subst.
-    apply binds_concat_inv in Hbi. destruct Hbi.
-    + apply binds_concat_right. assumption.
-    + inversion H0. apply binds_push_inv in H2. destruct H2.
-      * inversion H2. false. 
-      * destruct H2. apply binds_concat_left.
-        apply binds_push_neq. assumption. assumption. assumption.
-Qed.
 
 Lemma possible_types_closure: forall G S s x v V T,
   wf_stack G S s ->
