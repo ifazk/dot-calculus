@@ -756,6 +756,18 @@ Proof.
         apply binds_push_neq. assumption. assumption. assumption.
 Qed.
 
+Lemma double_binds_false: forall (s s' : env val) x v v',
+  ok (s & x ~ v & s' & x ~ v') -> False.
+Proof.
+  intros.
+  apply ok_push_inv in H. destruct H as [H Hnot].
+  assert (binds x v (s & x ~ v & s')) as HBi. {
+    lets Ht: (binds_tail x v s).
+    apply (binds_concat_left_ok H Ht).
+  }
+  false (binds_fresh_inv HBi Hnot).
+Qed.
+
 Lemma binds_middle: forall (s1 s2 s1' s2' : env val) (x : var) (v v' : val),
   ok (s1 & x ~ v & s2) ->
   s1 & x ~ v & s2 = s1' & x ~ v' & s2' ->
@@ -769,14 +781,17 @@ Proof.
     + rewrite concat_assoc in H. rewrite concat_empty_r in Hok.
       lets Heq: (eq_push_inv H).
       destruct Heq as [Hx [Hv Hs]]. subst.
-      apply ok_push_inv in Hok. destruct Hok as [Hok Hnot].
-      assert (binds x0 v' (s1' & x0 ~ v' & s2')) as HBi. {
-        lets Ht: (binds_tail x0 v' s1').
-        apply (binds_concat_left_ok Hok Ht).
-      }
-      false (binds_fresh_inv HBi Hnot).
-  - 
-
+      false (double_binds_false Hok).
+  - destruct s2' using env_ind.
+    + rewrite concat_empty_r in H. rewrite concat_assoc in H. apply eq_push_inv in H.
+      destruct H as [Hx [Hv Hs]]. subst.
+      rewrite concat_assoc in Hok.
+      false (double_binds_false Hok).
+    + repeat rewrite concat_assoc in H.
+      apply eq_push_inv in H. destruct H as [Hx [Hv Hs]]. subst.
+      rewrite concat_assoc in Hok. apply ok_push_inv_ok in Hok.
+      specialize (IHs2 Hok s1' s2' Hs).
+      destruct IHs2 as [Hs' [Hv Hs'']]. subst. auto.
 Qed.
 
 Lemma update_to_wf_store: forall G S s s' l v T,
