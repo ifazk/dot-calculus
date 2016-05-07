@@ -911,11 +911,8 @@ Proof.
         } 
         simpl_dom. assumption.
         assumption. 
-  - introv Hs HS HtyOld Hty. rename e2 into G.
-    assert (S ~= S) as HS' by reflexivity. assert (G ~= G) as He2 by reflexivity.
-    assert (s ~= s) as Hs' by reflexivity.
-    specialize (IHHwf G S s HS' He2 Hs'). 
-    
+  - (*TODO*) admit.
+Qed.
 
  
 
