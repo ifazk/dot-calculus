@@ -813,10 +813,23 @@ Proof.
       apply eq_push_inv in H. destruct H as [Hx [Hv Hs]]. apply empty_middle_inv in Hs. false.
 Qed.          
 
+Lemma wf_empty_s : forall G s,
+  wf_store G empty s ->
+  s = empty.
+Proof.
+  introv Hwf. unfold wf_store in Hwf.
+  dependent induction Hwf; subst.
+  - reflexivity.
+  - symmetry in x. apply empty_push_inv in x. false.
+  - assert (e2 ~= e2) as He2 by constructor. assert (s ~= s) as Hs by constructor.
+  specialize (IHHwf e2 s He2 Hs). assumption.
+Qed.
+    
+
 Lemma update_to_wf_store: forall G S s s' l v T,
   wf_store G S s ->
   updated s l v s' ->
-  forall S1 S2 s1 s2 vOld,
+  forall s1 s2 vOld S1 S2,
   s = s1 & l ~ vOld & s2 ->
   S = S1 & l ~ T & S2 ->
   ty_trm ty_precise sub_general G S1 (trm_val vOld) T ->
@@ -849,11 +862,50 @@ Proof.
       apply (binds_middle Hoks) in Heq. destruct Heq as [HS [HT He]]. subst. assumption.
     + destruct H7 as [Hne [s''' [v1 Hs]]]. subst.
       rewrite concat_assoc in *.
-      pick_fresh y. destruct S using env_ind.
+      destruct S using env_ind.
       * rewrite concat_empty_l in H3. apply eq_middle_inv in H3. destruct H3 as [Hs1 [Hs2 Ht]]. subst.
         apply eq_push_inv in H6. destruct H6 as [Hx [Hv Hs]]. subst.
-        lets Hok: 
-      * specialize (IHHwf (G & y ~ T) ()).
+        lets Hok: (wf_to_ok_s Hwf).
+        assert (ok (s'0 & l ~ v' & s''' & x ~ v1)) as Hok'. {
+          apply ok_push. assumption. assumption.
+        }
+        rewrite <- concat_assoc in H2. apply binds_middle in H2. destruct H2 as [Hs [Hv Hs']]. subst.
+        apply wf_empty_s in Hwf. symmetry in Hwf. apply empty_middle_inv in Hwf. false.
+        rewrite concat_assoc. assumption.
+      * rename x0 into l0. rename v2 into T'. 
+        apply eq_push_inv in H6. destruct H6 as [_ [Hv Hs]]. subst.
+        lets Hok: (wf_to_ok_s Hwf).
+        assert (ok (s'0 & l ~ v' & s''' & x ~ v1)) as Hok'. {
+          constructor. assumption. assumption.
+        }
+        rewrite <- concat_assoc in H2. rewrite <- concat_assoc in Hok'.
+        lets Hbi: (binds_middle Hok' H2). destruct Hbi as [Hs' [Hv' Hs''']]. subst.
+        clear Hok Hok' H2 IHS.
+        assert (G ~= G) as HG by reflexivity.
+        assert (S & l0 ~ T' ~= S & l0 ~ T') as HS by reflexivity.
+        assert (s1 & l ~ vOld & s''' ~= s1 & l ~ vOld & s''') as Hs by reflexivity.
+        assert (updated (s1 & l ~ vOld & s''') l v (s1 & l ~ v & s''')) as Hup'. {
+          apply upd_exist with (v':=vOld). reflexivity.
+        }
+        specialize (IHHwf G (S & l0 ~ T') (s1 & l ~ vOld & s''') HS HG Hs 
+                (s1 & l ~ v & s''') l T0 Hup' s1 s''' vOld). clear HS HG Hs.
+        destruct S2 using env_ind.
+        (* S2 = empty *)
+        rewrite concat_empty_r in H3. 
+        apply eq_push_inv in H3. destruct H3 as [Hx [HT Hs']]. subst.
+        false Hne. reflexivity.
+        (* S2 not empty *)
+        rewrite concat_assoc in H3. apply eq_push_inv in H3. destruct H3 as [Hx [HT Hs']]. subst.
+        assert (s1 & l ~ vOld & s''' = s1 & l ~ vOld & s''') as Hob by reflexivity.
+        specialize (IHHwf S1 S2 Hob Hs' H4 H5).
+        constructor. assumption. assumption.
+        assert (dom (s1 & l ~ v & s''') = dom (s1 & l ~ vOld & s''')) as Hdom. {
+          repeat rewrite dom_concat. repeat rewrite dom_single. reflexivity.
+        } 
+        simpl_dom. assumption.
+        assumption. 
+  - 
+ 
 
 Lemma env_binds_to_st_binds_raw: forall m (st: env val) (env1: env typ) (env2: env typ) x T,
   wf m env1 env2 st ->
