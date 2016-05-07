@@ -840,19 +840,20 @@ Proof.
   - inversion Hup. false* empty_middle_inv.
   - intros. rename e1 into S.
     inversion Hup. subst.
-    assert ((l = x /\ s'' = empty) \/ (l <> x /\ exists s''' v0, s'' = s''' & x ~ v0)). {
-      admit.
+    assert (If l = x then s'' = empty else exists s''' v0, s'' = s''' & x ~ v0) as Hlx. {
+      case_if.
+      admit. admit.
     }
-    destruct H7.
+    case_if.
     lets Hok: (wf_to_ok_s Hwf).
-    + destruct H7; subst.
-      assert (s0 & x ~ v0 & empty = s'0 & x ~ v' & empty). {
+    + subst.
+      assert (s0 & x ~ v0 & empty = s'0 & x ~ v' & empty) as Hem. {
         rewrite concat_empty_r. assumption.
       } clear H6.
       assert (ok (s0 & x ~ v0 & empty)) as Hoks0. {
         rewrite concat_empty_r. constructor. assumption. assumption.
       }
-      apply (binds_middle Hoks0) in H7. destruct H7 as [Hs [Hv _]]. subst.
+      apply (binds_middle Hoks0) in Hem. destruct Hem as [Hs [Hv _]]. subst.
       rewrite concat_empty_r. constructor; try assumption.
       apply wf_to_ok_e1 in Hwf.
       assert (ok (S & x ~ T & empty)) as Hoks. rewrite concat_empty_r. constructor. assumption. assumption.
@@ -860,7 +861,7 @@ Proof.
         rewrite concat_empty_r. assumption.
       }
       apply (binds_middle Hoks) in Heq. destruct Heq as [HS [HT He]]. subst. assumption.
-    + destruct H7 as [Hne [s''' [v1 Hs]]]. subst.
+    + destruct Hlx as [s''' [v1 Hs]]. subst.
       rewrite concat_assoc in *.
       destruct S using env_ind.
       * rewrite concat_empty_l in H3. apply eq_middle_inv in H3. destruct H3 as [Hs1 [Hs2 Ht]]. subst.
@@ -893,7 +894,7 @@ Proof.
         (* S2 = empty *)
         rewrite concat_empty_r in H3. 
         apply eq_push_inv in H3. destruct H3 as [Hx [HT Hs']]. subst.
-        false Hne. reflexivity.
+        false H7. reflexivity.
         (* S2 not empty *)
         rewrite concat_assoc in H3. apply eq_push_inv in H3. destruct H3 as [Hx [HT Hs']]. subst.
         assert (s1 & l ~ vOld & s''' = s1 & l ~ vOld & s''') as Hob by reflexivity.
@@ -904,7 +905,13 @@ Proof.
         } 
         simpl_dom. assumption.
         assumption. 
-  - 
+  - introv Hs HS HtyOld Hty.
+    assert (S ~= S) as HS' by reflexivity. assert (e2 ~= e2) as He2 by reflexivity.
+    assert (s ~= s) as Hs' by reflexivity.
+    specialize (IHHwf e2 S s HS' He2 Hs'). 
+    
+    s' l T0 Hup s1 s2 vOld S1 S2 Hs HS).
+
  
 
 Lemma env_binds_to_st_binds_raw: forall m (st: env val) (env1: env typ) (env2: env typ) x T,
