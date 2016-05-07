@@ -935,7 +935,6 @@ Proof.
 Qed.
 
  
-
 Lemma env_binds_to_st_binds_raw: forall m (st: env val) (env1: env typ) (env2: env typ) x T,
   wf m env1 env2 st ->
   binds x T env1 ->
@@ -1724,7 +1723,7 @@ Proof.
     eapply ty_sub; eauto.
     intro Contra. inversion Contra.
   - (* ty_ref *)
-    apply ty_ref; eauto.
+    apply ty_ref; eauto. admit. (* todo *)
   - (* ty_deref *)
     apply ty_deref; eauto.
   - (* ty_asgn *)
@@ -1850,7 +1849,7 @@ Proof.
   induction H.
   - false* binds_empty_inv.
   - unfolds binds. rewrite get_push in *. case_if.
-    + inversions Bi. inversion H4; subst.
+    + inversions Bi. inversion H3; subst.
       * right. exists T0 l. split.
         reflexivity.
         split. weaken_ty_trm_ctx.
@@ -1884,24 +1883,7 @@ Proof.
         assumption. split.
         weaken_ty_trm_ctx.
         apply wf_to_ok_e1 in H. assumption.
-  - specialize (IHwf Bi H0).
-      inversion IHwf as [IH | IH]. inversion IH as [IH' | IH']. (* todo better syntax? *)
-      * destruct IH' as [S [U [t [IH1 [IH2 IH3]]]]].
-        left. left. exists S. exists U t. 
-        split. assumption. split.
-        weaken_ty_trm_ctx.
-        assumption.
-      * destruct IH' as [S [ds [IH1 [IH2 IH3]]]].
-        left. right. exists S ds.
-        split. assumption. split.
-        weaken_ty_trm_ctx. 
-        assumption.
-      * destruct IH as [S [l [t [IH2 IH3]]]].
-        right. exists S l. split.
-        assumption. split.
-        weaken_ty_trm_ctx.
-        apply wf_to_ok_e1 in H. assumption.
-Qed.
+  - intros. apply binds_empty_inv in Bi. false. Admitted. (* TODO existential variables in the end? *)
 
 (* todo check if unused lemmas present *)
 
@@ -2503,8 +2485,9 @@ Lemma tight_to_general:
      subtyp ty_general sub_general G S V U).
 Proof.
   apply ts_mutind; intros; subst; eauto.
+  - apply precise_to_general in t; eauto. admit. (* TODO *) admit.
   - apply precise_to_general in t; eauto.
-  - apply precise_to_general in t; eauto.
+  -  admit. (* TODO *)
 Qed.
 
 Lemma tight_to_general_typing: forall G S t T,
@@ -2533,7 +2516,8 @@ Lemma precise_to_tight:
      m2 = sub_general ->
      subtyp ty_general sub_tight G S V U).
 Proof.
-  apply ts_mutind; intros; subst; eauto; inversion H0.
+  admit. (* TODO*)
+  (* apply ts_mutind; intros; subst; eauto; inversion H0.*)
 Qed.
 
 Lemma precise_to_tight_typing: forall G S t T,
