@@ -475,7 +475,7 @@ Hint Constructors
   ty_trm ty_def ty_defs
   subtyp.
 
-Hint Constructors wf_stack.
+Hint Constructors wf_stack wt_store.
 
 Lemma fresh_push_eq_inv: forall A x a (E: env A),
   x # (E & x ~ a) -> False.
@@ -491,11 +491,11 @@ Qed.
 (* ###################################################################### *)
 (** ** Weakening *)
 
-Lemma weaken_rules:
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G1 G2 G3,
+Lemma weaken_rules_ctx:
+  (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    ty_trm m1 m2 (G1 & G2 & G3) t T) /\
+    ty_trm m1 m2 (G1 & G2 & G3) S t T) /\
   (forall G d D, ty_def G d D -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
@@ -539,18 +539,41 @@ Proof.
     apply* H0.
 Qed.
 
-Lemma weaken_ty_trm:  forall m1 m2 G1 G2 t T,
-    ty_trm m1 m2 G1 t T ->
+Lemma weaken_rules_sigma:
+  forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall S1 S2 S3,
+    S = S1 & S3 ->
+    ok (S1 & S2 & S3) ->
+    ty_trm m1 m2 G (S1 & S2 & S3) t T.
+Proof.
+  introv Hty. induction Hty; try solve [eauto].
+  intros. constructor. subst. apply binds_weaken; assumption.
+Qed.
+
+Lemma weaken_ty_trm_ctx:  forall m1 m2 G1 G2 S t T,
+    ty_trm m1 m2 G1 S t T ->
     ok (G1 & G2) ->
-    ty_trm m1 m2 (G1 & G2) t T.
+    ty_trm m1 m2 (G1 & G2) S t T.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {
     rewrite concat_empty_r. reflexivity.
   }
-  rewrite EqG. apply* weaken_rules.
+  rewrite EqG. apply* weaken_rules_ctx.
   rewrite concat_empty_r. reflexivity.
   rewrite <- EqG. assumption.
+Qed.
+
+Lemma weaken_ty_trm_sigma: forall m1 m2 G S1 S2 t T,
+  ty_trm m1 m2 G S1 t T ->
+  ok (S1 & S2) ->
+  ty_trm m1 m2 G (S1 & S2) t T.
+Proof.
+  intros. assert (S1 & S2 = S1 & S2 & empty) as EqS. {
+    rewrite concat_empty_r. reflexivity.
+  }
+  rewrite EqS. apply* weaken_rules_sigma.
+  rewrite concat_empty_r. reflexivity.
+  rewrite <- EqS. assumption.
 Qed.
 
 Lemma weaken_subtyp: forall m1 m2 G1 G2 S U,
@@ -562,7 +585,7 @@ Proof.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {
     rewrite concat_empty_r. reflexivity.
   }
-  rewrite EqG. apply* weaken_rules.
+  rewrite EqG. apply* weaken_rules_ctx.
   rewrite concat_empty_r. reflexivity.
   rewrite <- EqG. assumption.
 Qed.
@@ -570,20 +593,24 @@ Qed.
 (* ###################################################################### *)
 (** ** Well-formed stack *)
 
-Lemma wf_stack_to_ok_s: forall s G,
-  wf_stack G s -> ok s.
+Lemma wf_stack_to_ok_s: forall s G S,
+  wf_stack G S s -> ok s.
 Proof. intros. induction H; jauto. Qed.
 
-Lemma wf_stack_to_ok_G: forall s G,
-  wf_stack G s -> ok G.
+Lemma wf_stack_to_ok_G: forall s G S,
+  wf_stack G S s -> ok G.
 Proof. intros. induction H; jauto. Qed.
 
-Hint Resolve wf_stack_to_ok_s wf_stack_to_ok_G.
+Lemma wf_stack_to_ok_S: forall s G S,
+  wf_stack G S s -> ok S.
+Proof. intros. induction H; jauto. Qed.
 
-Lemma ctx_binds_to_stack_binds_raw: forall s G x T,
-  wf_stack G s ->
+Hint Resolve wf_stack_to_ok_s wf_stack_to_ok_G wf_stack_to_ok_S.
+
+Lemma ctx_binds_to_stack_binds_raw: forall s G S x T,
+  wf_stack G S s ->
   binds x T G ->
-  exists G1 G2 v, G = G1 & (x ~ T) & G2 /\ binds x v s /\ ty_trm ty_precise sub_general G1 (trm_val v) T.
+  exists G1 G2 v, G = G1 & (x ~ T) & G2 /\ binds x v s /\ ty_trm ty_precise sub_general G1 S (trm_val v) T.
 Proof.
   introv Wf Bi. gen x T Bi. induction Wf; intros.
   + false* binds_empty_inv.
@@ -592,12 +619,16 @@ Proof.
       rewrite concat_empty_r. auto.
     - specialize (IHWf _ _ Bi). destruct IHWf as [G1 [G2 [ds' [Eq [Bi' Tyds]]]]].
       subst. exists G1 (G2 & x ~ T) ds'. rewrite concat_assoc. auto.
+  + specialize (IHWf x T0 Bi). destruct IHWf as [G1 [G2 [v [HG [HB Hty]]]]].
+    subst. exists G1 G2 v. split.
+    - reflexivity.
+    - split. assumption. apply* weaken_ty_trm_sigma.
 Qed.
 
-Lemma stack_binds_to_ctx_binds_raw: forall s G x v,
-  wf_stack G s ->
+Lemma stack_binds_to_ctx_binds_raw: forall s G S x v,
+  wf_stack G S s ->
   binds x v s ->
-  exists G1 G2 T, G = G1 & (x ~ T) & G2 /\ ty_trm ty_precise sub_general G1 (trm_val v) T.
+  exists G1 G2 T, G = G1 & (x ~ T) & G2 /\ ty_trm ty_precise sub_general G1 S (trm_val v) T.
 Proof.
   introv Wf Bi. gen x v Bi. induction Wf; intros.
   + false* binds_empty_inv.
@@ -606,26 +637,31 @@ Proof.
       rewrite concat_empty_r. auto.
     - specialize (IHWf _ _ Bi). destruct IHWf as [G1 [G2 [T0' [Eq Ty]]]].
       subst. exists G1 (G2 & x ~ T) T0'. rewrite concat_assoc. auto.
+  + specialize (IHWf x v Bi). destruct IHWf as [G1 [G2 [T0 [HG Hty]]]].
+    exists G1 G2 T0. split.
+    - assumption.
+    - apply* weaken_ty_trm_sigma.
 Qed.
 
-Lemma invert_wf_stack_concat: forall s G1 G2,
-  wf_stack (G1 & G2) s ->
-  exists s1 s2, s = s1 & s2 /\ wf_stack G1 s1.
+Lemma invert_wf_stack_concat: forall sta G1 G2 S,
+  wf_stack (G1 & G2) S sta ->
+  exists s1 s2, sta = s1 & s2 /\ wf_stack G1 S s1.
 Proof.
   introv Wf. gen_eq G: (G1 & G2). gen G1 G2. induction Wf; introv Eq; subst.
   - do 2 exists (@empty val). rewrite concat_empty_r.
     apply empty_concat_inv in Eq. destruct Eq. subst. auto.
   - destruct (env_case G2) as [Eq1 | [x' [T' [G2' Eq1]]]].
     * subst G2. rewrite concat_empty_r in Eq. subst G1.
-      exists (s & x ~ v) (@empty val). rewrite concat_empty_r. auto.
+      exists (sta & x ~ v) (@empty val). rewrite concat_empty_r. auto.
     * subst G2. rewrite concat_assoc in Eq. apply eq_push_inv in Eq.
       destruct Eq as [? [? ?]]. subst x' T' G. specialize (IHWf G1 G2' eq_refl).
       destruct IHWf as [s1 [s2 [Eq Wf']]]. subst.
       exists s1 (s2 & x ~ v). rewrite concat_assoc. auto.
+  - specialize (IHWf G1 G2). destruct IHWf as [HG [He [s1 Hwf]]]; eauto.
 Qed.
 
-Lemma stack_unbound_to_ctx_unbound: forall s G x,
-  wf_stack G s ->
+Lemma stack_unbound_to_ctx_unbound: forall s G S x,
+  wf_stack G S s ->
   x # s ->
   x # G.
 Proof.
@@ -635,10 +671,11 @@ Proof.
   + destruct (classicT (x0 = x)) as [Eq | Ne].
     - subst. false (fresh_push_eq_inv Ub_s).
     - auto.
+  + apply IHWf in Ub_s. assumption.
 Qed.
 
-Lemma ctx_unbound_to_stack_unbound: forall s G x,
-  wf_stack G s ->
+Lemma ctx_unbound_to_stack_unbound: forall s G S x,
+  wf_stack G S s ->
   x # G ->
   x # s.
 Proof.
@@ -648,11 +685,12 @@ Proof.
   + destruct (classicT (x0 = x)) as [Eq | Ne].
     - subst. false (fresh_push_eq_inv Ub).
     - auto.
+  + apply IHWf in Ub. assumption.
 Qed.
 
-Lemma typing_implies_bound: forall m1 m2 G x T,
-  ty_trm m1 m2 G (trm_var (avar_f x)) T ->
-  exists S, binds x S G.
+Lemma typing_implies_bound: forall m1 m2 G S x T,
+  ty_trm m1 m2 G S (trm_var (avar_f x)) T ->
+  exists V, binds x V G.
 Proof.
   intros. remember (trm_var (avar_f x)) as t.
   induction H;
@@ -662,8 +700,8 @@ Proof.
   - inversion Heqt. subst. exists T. assumption.
 Qed.
 
-Lemma typing_bvar_implies_false: forall m1 m2 G a T,
-  ty_trm m1 m2 G (trm_var (avar_b a)) T ->
+Lemma typing_bvar_implies_false: forall m1 m2 G S a T,
+  ty_trm m1 m2 G S (trm_var (avar_b a)) T ->
   False.
 Proof.
   intros. remember (trm_var (avar_b a)) as t. induction H; try solve [inversion Heqt].
