@@ -293,17 +293,15 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
 | ty_sub : forall m1 m2 G S t T U,
     (m1 = ty_precise -> exists x, t = trm_var (avar_f x)) ->
     ty_trm m1 m2 G S t T ->
-    subtyp m1 m2 G T U ->
+    subtyp m1 m2 G S T U ->
     ty_trm m1 m2 G S t U
 | ty_ref : forall m1 m2 G S x T,
-     m1 = ty_precise ->
-     ty_trm m1 m2 G S (trm_var (avar_f x)) T ->
-     ty_trm m1 m2 G S (trm_ref (avar_f x)) (typ_ref T) (* TODO m1 or some other m1? *)
+     ty_trm ty_precise m2 G S (trm_var (avar_f x)) T ->
+     ty_trm m1 m2 G S (trm_ref (avar_f x)) (typ_ref T)
 | ty_deref : forall m1 m2 G S x T,
     ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_ref T) ->
     ty_trm m1 m2 G S (trm_deref (avar_f x)) T
 | ty_asgn : forall m1 m2 G S x y T,
-    m1 = ty_precise -> (* TODO correct? *)
     ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_ref T) ->
     ty_trm m1 m2 G S (trm_var (avar_f y)) T -> 
     ty_trm m1 m2 G S (trm_asg (avar_f x) (avar_f y)) T
@@ -324,49 +322,50 @@ with ty_defs : ctx -> sigma -> defs -> typ -> Prop :=
     defs_hasnt ds (label_of_def d) ->
     ty_defs G S (defs_cons ds d) (typ_and T (typ_rcd D))
 
-with subtyp : tymode -> submode -> ctx -> typ -> typ -> Prop :=
-| subtyp_top: forall m2 G T,
-    subtyp ty_general m2 G T typ_top
-| subtyp_bot: forall m2 G T,
-    subtyp ty_general m2 G typ_bot T
-| subtyp_refl: forall m2 G T,
-    subtyp ty_general m2 G T T
-| subtyp_trans: forall m1 m2 G S T U,
-    subtyp m1 m2 G S T ->
-    subtyp m1 m2 G T U ->
-    subtyp m1 m2 G S U
-| subtyp_and11: forall m1 m2 G T U,
-    subtyp m1 m2 G (typ_and T U) T
-| subtyp_and12: forall m1 m2 G T U,
-    subtyp m1 m2 G (typ_and T U) U
-| subtyp_and2: forall m2 G S T U,
-    subtyp ty_general m2 G S T ->
-    subtyp ty_general m2 G S U ->
-    subtyp ty_general m2 G S (typ_and T U)
-| subtyp_fld: forall m2 G a T U,
-    subtyp ty_general m2 G T U ->
-    subtyp ty_general m2 G (typ_rcd (dec_trm a T)) (typ_rcd (dec_trm a U))
-| subtyp_typ: forall m2 G A S1 T1 S2 T2,
-    subtyp ty_general m2 G S2 S1 ->
-    subtyp ty_general m2 G T1 T2 ->
-    subtyp ty_general m2 G (typ_rcd (dec_typ A S1 T1)) (typ_rcd (dec_typ A S2 T2))
+with subtyp : tymode -> submode -> ctx -> sigma -> typ -> typ -> Prop :=
+(* sigma is not needed for subtyping but for induction *)
+| subtyp_top: forall m2 G S T,
+    subtyp ty_general m2 G S T typ_top
+| subtyp_bot: forall m2 G S T,
+    subtyp ty_general m2 G S typ_bot T
+| subtyp_refl: forall m2 G S T,
+    subtyp ty_general m2 G S T T
+| subtyp_trans: forall m1 m2 G S V T U,
+    subtyp m1 m2 G S V T ->
+    subtyp m1 m2 G S T U ->
+    subtyp m1 m2 G S V U
+| subtyp_and11: forall m1 m2 G S T U,
+    subtyp m1 m2 G S (typ_and T U) T
+| subtyp_and12: forall m1 m2 G S T U,
+    subtyp m1 m2 G S (typ_and T U) U
+| subtyp_and2: forall m2 G S V T U,
+    subtyp ty_general m2 G S V T ->
+    subtyp ty_general m2 G S V U ->
+    subtyp ty_general m2 G S V (typ_and T U)
+| subtyp_fld: forall m2 G S a T U,
+    subtyp ty_general m2 G S T U ->
+    subtyp ty_general m2 G S (typ_rcd (dec_trm a T)) (typ_rcd (dec_trm a U))
+| subtyp_typ: forall m2 G S A S1 T1 S2 T2,
+    subtyp ty_general m2 G S S2 S1 ->
+    subtyp ty_general m2 G S T1 T2 ->
+    subtyp ty_general m2 G S (typ_rcd (dec_typ A S1 T1)) (typ_rcd (dec_typ A S2 T2))
 | subtyp_sel2: forall G S x A V T,
     ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A V T)) ->
-    subtyp ty_general sub_general G V (typ_sel (avar_f x) A)
+    subtyp ty_general sub_general G S V (typ_sel (avar_f x) A)
 | subtyp_sel1: forall G S x A V T,
     ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A V T)) ->
-    subtyp ty_general sub_general G (typ_sel (avar_f x) A) T
+    subtyp ty_general sub_general G S (typ_sel (avar_f x) A) T
 | subtyp_sel2_tight: forall G S x A T,
     ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A T T)) ->
-    subtyp ty_general sub_tight G T (typ_sel (avar_f x) A)
+    subtyp ty_general sub_tight G S T (typ_sel (avar_f x) A)
 | subtyp_sel1_tight: forall G S x A T,
     ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A T T)) ->
-    subtyp ty_general sub_tight G (typ_sel (avar_f x) A) T
-| subtyp_all: forall L m2 G S1 T1 S2 T2,
-    subtyp ty_general m2 G S2 S1 ->
+    subtyp ty_general sub_tight G S (typ_sel (avar_f x) A) T
+| subtyp_all: forall L m2 G S S1 T1 S2 T2,
+    subtyp ty_general m2 G S S2 S1 ->
     (forall x, x \notin L ->
-       subtyp ty_general sub_general (G & x ~ S2) (open_typ x T1) (open_typ x T2)) ->
-    subtyp ty_general m2 G (typ_all S1 T1) (typ_all S2 T2).
+       subtyp ty_general sub_general (G & x ~ S2) S (open_typ x T1) (open_typ x T2)) ->
+    subtyp ty_general m2 G S (typ_all S1 T1) (typ_all S2 T2).
 
 (* well-formed stack *)
 Inductive wf_stack: ctx -> sigma -> stack -> Prop :=
@@ -503,10 +502,10 @@ Lemma weaken_rules_ctx:
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
     ty_defs (G1 & G2 & G3) S ds T) /\
-  (forall m1 m2 G T U, subtyp m1 m2 G T U -> forall G1 G2 G3,
+  (forall m1 m2 G S T U, subtyp m1 m2 G S T U -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    subtyp m1 m2 (G1 & G2 & G3) T U).
+    subtyp m1 m2 (G1 & G2 & G3) S T U).
 Proof.
   apply rules_mutind; try solve [eauto].
   + intros. subst.
@@ -538,11 +537,12 @@ Proof.
     apply* H0.
 Qed.
 
+
 Lemma weaken_rules_sigma:
   (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall S1 S2 S3,
     S = S1 & S3 ->
     ok (S1 & S2 & S3) ->
-    ty_trm m1 m2 G (S1 & S2 & S3) t T) /\
+    ty_trm m1 m2 G (S1 & S2 & S3) t T) /\ 
   (forall G S d D, ty_def G S d D -> forall S1 S2 S3,
     S = S1 & S3 ->
     ok (S1 & S2 & S3) ->
@@ -551,11 +551,16 @@ Lemma weaken_rules_sigma:
     S = S1 & S3 ->
     ok (S1 & S2 & S3) ->
     ty_defs G (S1 & S2 & S3) ds T) /\
-  (forall m1 m2 G T U, subtyp m1 m2 G T U -> subtyp m1 m2 G T U).
+  (forall m1 m2 G S T U, subtyp m1 m2 G S T U -> forall S1 S2 S3,
+    S = S1 & S3 ->
+    ok (S1 & S2 & S3) ->
+    subtyp m1 m2 G (S1 & S2 & S3) T U).
 Proof.
   apply rules_mutind; try solve [eauto].
-  intros. subst. constructor. apply binds_weaken; auto.
+  intros. subst.
+  eapply ty_loc. eapply binds_weaken; eauto.
 Qed.
+
 
 Lemma weaken_ty_trm_ctx:  forall m1 m2 G1 G2 S t T,
     ty_trm m1 m2 G1 S t T ->
@@ -584,10 +589,10 @@ Proof.
   rewrite <- EqS. assumption.
 Qed.
 
-Lemma weaken_subtyp: forall m1 m2 G1 G2 S U,
-  subtyp m1 m2 G1 S U ->
+Lemma weaken_subtyp: forall m1 m2 G1 G2 S T U,
+  subtyp m1 m2 G1 S T U ->
   ok (G1 & G2) ->
-  subtyp m1 m2 (G1 & G2) S U.
+  subtyp m1 m2 (G1 & G2) S T U.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {
@@ -732,10 +737,10 @@ Lemma extra_bnd_rules:
     G = G1 & (x ~ open_typ x V) & G2 ->
     G' = G1 & (x ~ typ_bnd V) & G2 ->
     ty_defs G' S ds T)
-/\ (forall m1 m2 G T U, subtyp m1 m2 G T U -> forall G1 G2 x S G',
-    G = G1 & (x ~ open_typ x S) & G2 ->
-    G' = G1 & (x ~ typ_bnd S) & G2 ->
-    subtyp m1 m2 G' T U).
+/\ (forall m1 m2 G S T U, subtyp m1 m2 G S T U -> forall G1 G2 x V G',
+    G = G1 & (x ~ open_typ x V) & G2 ->
+    G' = G1 & (x ~ typ_bnd V) & G2 ->
+    subtyp m1 m2 G' S T U).
 Proof.
   apply rules_mutind; intros; eauto.
   - (* ty_var *)
@@ -776,7 +781,7 @@ Proof.
     apply_fresh subtyp_all as y; eauto.
     assert (y \notin L) as FrL by eauto.
     specialize (H0 y FrL).
-    specialize (H0 G1 (G2 & y ~ S2) x S).
+    specialize (H0 G1 (G2 & y ~ S2) x V).
     eapply H0; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. reflexivity.
@@ -1132,23 +1137,28 @@ Lemma subst_rules: forall y V,
     m1 = ty_general ->
     m2 = sub_general ->
     ty_trm m1 m2 (G1 & (subst_env x y G2)) (S1 & subst_env x y S2) (subst_trm x y t) (subst_typ x y T)) /\
-  (forall G d D, ty_def G d D -> forall G1 G2 S x,
+  (forall G S d D, ty_def G S d D -> forall G1 G2 S1 S2 x,
     G = G1 & x ~ V & G2 ->
     ok (G1 & x ~ V & G2) ->
     x \notin fv_env_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_env x y G2)) S (trm_var (avar_f y)) (subst_typ x y V) ->
-    ty_def (G1 & (subst_env x y G2)) (subst_def x y d) (subst_dec x y D)) /\
-  (forall G ds T, ty_defs G ds T -> forall G1 G2 S x,
+    S = S1 & S2 ->
+    ty_trm ty_general sub_general (G1 & (subst_env x y G2)) (S1 & (subst_env x y S2)) (trm_var (avar_f y)) (subst_typ x y V) ->
+    ty_def (G1 & (subst_env x y G2)) (S1 & (subst_env x y S2)) (subst_def x y d) (subst_dec x y D)) /\
+  (forall G S ds T, ty_defs G S ds T -> forall G1 G2 S1 S2 x,
     G = G1 & x ~ V & G2 ->
     ok (G1 & x ~ V & G2) ->
     x \notin fv_env_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_env x y G2)) S (trm_var (avar_f y)) (subst_typ x y V) ->
-    ty_defs (G1 & (subst_env x y G2)) (subst_defs x y ds) (subst_typ x y T)) /\
-  (forall m1 m2 G T U, subtyp m1 m2 G T U -> forall G1 G2 V S x,
+    S = S1 & S2 ->
+    x \notin fv_env_types S1 ->
+    ty_trm ty_general sub_general (G1 & (subst_env x y G2)) (S1 & (subst_env x y S2)) (trm_var (avar_f y)) (subst_typ x y V) ->
+    ty_defs (G1 & (subst_env x y G2)) S (subst_defs x y ds) (subst_typ x y T)) /\
+  (forall m1 m2 G S T U, subtyp m1 m2 G T U -> forall G1 G2 V S1 S2 x,
     G = G1 & x ~ V & G2 ->
     ok (G1 & x ~ V & G2) ->
     x \notin fv_env_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_env x y G2)) S (trm_var (avar_f y)) (subst_typ x y V) ->
+    S = S1 & S2 ->
+    x \notin fv_env_types S1 ->
+    ty_trm ty_general sub_general (G1 & (subst_env x y G2)) (S1 & (subst_env x y S2)) (trm_var (avar_f y)) (subst_typ x y V) ->
     m1 = ty_general ->
     m2 = sub_general ->
     subtyp m1 m2 (G1 & (subst_env x y G2)) (subst_typ x y T) (subst_typ x y U)).
