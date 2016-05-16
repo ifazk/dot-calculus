@@ -1399,44 +1399,36 @@ Proof.
       * left. right. exists T0. exists ds.
         split. auto. split.
         apply weaken_ty_trm_ctx. assumption. constructor; assumption. reflexivity.
-      * assert (exists x, trm_val v = trm_var (avar_f x)) as A. {
-          apply H0. reflexivity.
-        }
-        destruct A as [? A]. inversion A.
-    + specialize (IHwf Bi H0). (* todo how to not repeat this here and below? *)
-      inversion IHwf as [IH | IH]. inversion IH as [IH' | IH']. (* todo better syntax? *)
-      * destruct IH' as [S [U [t [IH1 [IH2 IH3]]]]].
-        left. left. exists S. exists U t. 
+      * destruct H3. reflexivity. inversion H3.
+    + specialize (IHwf_stack Bi). (* todo how to not repeat this here and below? *)
+      inversion IHwf_stack as [IH | IH]. inversion IH as [IH' | IH']. (* todo better syntax? *)
+      * destruct IH' as [V [U [t [IH1 [IH2 IH3]]]]].
+        left. left. exists V. exists U t. 
         split. assumption. split.
-        weaken_ty_trm_ctx.
-        assumption.
-      * destruct IH' as [S [ds [IH1 [IH2 IH3]]]].
-        left. right. exists S ds.
+        apply weaken_ty_trm_ctx; auto. assumption.
+      * destruct IH' as [V [ds [IH1 [IH2 IH3]]]].
+        left. right. exists V ds.
         split. assumption. split.
-        weaken_ty_trm_ctx. 
-        assumption.
-      * destruct IH as [S [l [t [IH2 IH3]]]].
-        right. exists S l. split.
+        apply weaken_ty_trm_ctx; auto. assumption.
+      * destruct IH as [V [l [t [IH2 IH3]]]].
+        right. exists V l. split.
         assumption. split.
-        weaken_ty_trm_ctx.
-        apply wf_to_ok_e1 in H. assumption.
-  - specialize (IHwf Bi H0).
-      inversion IHwf as [IH | IH]. inversion IH as [IH' | IH']. (* todo better syntax? *)
-      * destruct IH' as [S [U [t [IH1 [IH2 IH3]]]]].
-        left. left. exists S. exists U t. 
+        apply weaken_ty_trm_ctx; auto. assumption.
+  - specialize (IHwf_stack Bi).
+      lets OkS: (wf_stack_to_ok_S H).
+      inversion IHwf_stack as [IH | IH]. inversion IH as [IH' | IH']. (* todo better syntax? *)
+      * destruct IH' as [V [U [t [IH1 [IH2 IH3]]]]].
+        left. left. exists V. exists U t. 
         split. assumption. split.
-        weaken_ty_trm_ctx.
-        assumption.
-      * destruct IH' as [S [ds [IH1 [IH2 IH3]]]].
-        left. right. exists S ds.
+        apply weaken_ty_trm_sigma; auto. assumption.
+      * destruct IH' as [V [ds [IH1 [IH2 IH3]]]].
+        left. right. exists V ds.
         split. assumption. split.
-        weaken_ty_trm_ctx. 
-        assumption.
-      * destruct IH as [S [l [t [IH2 IH3]]]].
-        right. exists S l. split.
+        apply weaken_ty_trm_sigma; auto. assumption.
+      * destruct IH as [V [l' [t [IH2 IH3]]]].
+        right. exists V l'. split.
         assumption. split.
-        weaken_ty_trm_ctx.
-        apply wf_to_ok_e1 in H. assumption.
+        apply weaken_ty_trm_sigma; auto. assumption.
 Qed.
 
 
