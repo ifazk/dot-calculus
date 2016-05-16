@@ -1432,52 +1432,12 @@ Proof.
 Qed.
 
 
-Lemma corresponding_types: forall G S s x T,
-  wf_stack G S s ->
-  binds x T G ->
-  ((exists V U t, binds x (val_lambda V t) s /\
-                  ty_trm ty_precise sub_general G S (trm_val (val_lambda V t)) (typ_all V U) /\
-                  T = typ_all V U) \/
-   (exists V ds, binds x (val_new V ds) s /\
-                 ty_trm ty_precise sub_general G S (trm_val (val_new V ds)) (typ_bnd V) /\
-                 T = typ_bnd V)).
-Proof.
-  introv H Bi. induction H.
-  - false* binds_empty_inv.
-  - unfolds binds. rewrite get_push in *. case_if.
-    + inversions Bi. inversion H2; subst.
-      * left. exists T0. exists U. exists t.
-        split. auto. split.
-        apply weaken_ty_trm_ctx. assumption. apply ok_push. eapply wf_stack_to_ok_G. eassumption. assumption.
-        reflexivity.
-      * right. exists T0. exists ds.
-        split. auto. split.
-        apply weaken_ty_trm_ctx. assumption. apply ok_push. eapply wf_stack_to_ok_G. eassumption. assumption.
-        reflexivity.
-      * assert (exists x, trm_val v = trm_var (avar_f x)) as A. {
-          apply H3. reflexivity.
-        }
-        destruct A as [? A]. inversion A.
-    + specialize (IHwf_stack Bi).
-      inversion IHwf_stack as [IH | IH].
-      * destruct IH as [S [U [t [IH1 [IH2 IH3]]]]].
-        left. exists S. exists U. exists t.
-        split. assumption. split.
-        apply weaken_ty_trm_ctx. assumption. apply ok_push. eapply wf_stack_to_ok_G. eassumption. assumption.
-        assumption.
-      * destruct IH as [S [ds [IH1 [IH2 IH3]]]].
-        right. exists S. exists ds.
-        split. assumption. split.
-        apply weaken_ty_trm_ctx. assumption. apply ok_push. eapply wf_stack_to_ok_G. eassumption. assumption.
-        assumption.
-Qed.
-
-Lemma unique_rec_subtyping: forall G S T,
-  subtyp ty_precise sub_general G (typ_bnd S) T ->
-  T = typ_bnd S.
+Lemma unique_rec_subtyping: forall G S V T,
+  subtyp ty_precise sub_general G S (typ_bnd V) T ->
+  T = typ_bnd V.
 Proof.
   introv Hsub.
-  remember (typ_bnd S) as T'.
+  remember (typ_bnd V) as T'.
   remember ty_precise as m1.
   remember sub_general as m2.
   induction Hsub; try solve [inversion Heqm1].
@@ -1487,12 +1447,12 @@ Proof.
   - inversion HeqT'.
 Qed.
 
-Lemma unique_all_subtyping: forall G S U T,
-  subtyp ty_precise sub_general G (typ_all S U) T ->
-  T = typ_all S U.
+Lemma unique_all_subtyping: forall G S V U T,
+  subtyp ty_precise sub_general G S (typ_all V U) T ->
+  T = typ_all V U.
 Proof.
   introv Hsub.
-  remember (typ_all S U) as T'.
+  remember (typ_all V U) as T'.
   remember ty_precise as m1.
   remember sub_general as m2.
   induction Hsub; try solve [inversion Heqm1].
@@ -1502,10 +1462,27 @@ Proof.
   - inversion HeqT'.
 Qed.
 
-Lemma unique_lambda_typing: forall G x S U T,
-  binds x (typ_all S U) G ->
-  ty_trm ty_precise sub_general G (trm_var (avar_f x)) T ->
-  T = typ_all S U.
+
+Lemma unique_ref_subtyping: forall G S V T,
+  subtyp ty_precise sub_general G S (typ_ref V) T ->
+  T = typ_ref V.
+Proof.
+  introv Hsub.
+  remember (typ_ref V) as T'.
+  remember ty_precise as m1.
+  remember sub_general as m2.
+  induction Hsub; try solve [inversion Heqm1].
+  - specialize (IHHsub1 HeqT' Heqm1 Heqm2). subst.
+    apply IHHsub2; reflexivity.
+  - inversion HeqT'.
+  - inversion HeqT'.
+Qed.
+
+
+Lemma unique_lambda_typing: forall G x S V U T,
+  binds x (typ_all V U) G ->
+  ty_trm ty_precise sub_general G S (trm_var (avar_f x)) T ->
+  T = typ_all V U.
 Proof.
   introv Bi Hty.
   remember (trm_var (avar_f x)) as t.
@@ -1524,17 +1501,53 @@ Proof.
     apply H0.
 Qed.
 
-Lemma lambda_not_rcd: forall G x S U A T,
-  binds x (typ_all S U) G ->
-  ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A T T)) ->
+Lemma unique_loc_typing: forall G S x V T,
+  binds x (typ_ref V) G ->
+  ty_trm ty_precise sub_general G S (trm_var (avar_f x)) T ->
+  T = typ_ref V.
+Proof.
+  introv Bi Hty.
+  remember (trm_var (avar_f x)) as t.
+  remember ty_precise as m1.
+  remember sub_general as m2.
+  induction Hty; try solve [inversion Heqt; inversion Heqm1].
+  - inversions Heqt.
+    unfold binds in Bi. unfold binds in H.
+    rewrite H in Bi. inversion Bi.
+    reflexivity.
+  - specialize (IHHty Bi Heqt Heqm1 Heqm2).
+    inversion IHHty.
+  - specialize (IHHty Bi Heqt Heqm1 Heqm2).
+    rewrite IHHty in H0. rewrite Heqm1 in H0. rewrite Heqm2 in H0.
+    apply unique_ref_subtyping in H0.
+    apply H0.
+Qed.
+
+
+Lemma lambda_not_rcd: forall G x S V U A T,
+  binds x (typ_all V U) G ->
+  ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A T T)) ->
   False.
 Proof.
   introv Bi Hty.
-  assert (typ_rcd (dec_typ A T T) = typ_all S U) as Contra. {
+  assert (typ_rcd (dec_typ A T T) = typ_all V U) as Contra. {
     eapply unique_lambda_typing; eassumption.
   }
   inversion Contra.
 Qed.
+
+Lemma loc_not_rcd: forall G S x V A T,
+  binds x (typ_ref V) G ->
+  ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A T T)) ->
+  False.
+Proof.
+  introv Bi Hty.
+  assert (typ_rcd (dec_typ A T T) = typ_ref V) as Contra. {
+    eapply unique_loc_typing; eassumption.
+  }
+  inversion Contra.
+Qed.
+
 
 Inductive record_dec : dec -> Prop :=
 | rd_typ : forall A T, record_dec (dec_typ A T T)
@@ -1617,11 +1630,14 @@ Proof.
     reflexivity.
   - simpl in H2. induction T2; simpl in H2; inversion H2.
     f_equal. eapply H; eauto.
-  - simpl in H3; induction T2; simpl in H3; inversion H3.
+  - simpl in H2; induction T2; simpl in H2; inversion H2.
     f_equal.
     eapply H; eauto using notin_union_r1.
+  - simpl in H1; induction T2; simpl in H1; inversion H3.
+    f_equal. 
+    eapply H; eauto using notin_union_r1.
     eapply H0; eauto using notin_union_r2.
-  - simpl in H1; induction T2; simpl in H1; inversion H1.
+ - simpl in H1; induction T2; simpl in H1; inversion H1.
     f_equal. eapply open_eq_avar; eauto.
   - simpl in H2. induction T2; simpl in H2; inversion H2.
     f_equal.
@@ -1640,7 +1656,7 @@ Proof.
     f_equal.
     eapply H; eauto.
 Qed.
-
+ 
 Lemma open_eq_typ: forall x i T1 T2,
   x \notin fv_typ T1 -> x \notin fv_typ T2 ->
   open_rec_typ i x T1 = open_rec_typ i x T2 ->
@@ -1705,15 +1721,15 @@ Proof.
   introv Fr H. destruct H as [ls H]. exists ls. eapply open_record_typ_rev; eauto.
 Qed.
 
-Lemma label_same_typing: forall G d D,
-  ty_def G d D -> label_of_def d = label_of_dec D.
+Lemma label_same_typing: forall G S d D,
+  ty_def G S d D -> label_of_def d = label_of_dec D.
 Proof.
   intros. inversion H; subst; simpl; reflexivity.
 Qed.
 
-Lemma record_defs_typing_rec: forall G ds S,
-  ty_defs G ds S ->
-  exists ls, record_typ S ls /\ forall l, l \notin ls <-> defs_hasnt ds l.
+Lemma record_defs_typing_rec: forall G S ds V,
+  ty_defs G S ds V ->
+  exists ls, record_typ V ls /\ forall l, l \notin ls <-> defs_hasnt ds l.
 Proof.
   intros. induction H.
   - eexists. split.
@@ -1755,28 +1771,28 @@ Proof.
         apply notin_singleton. eauto.
 Qed.
 
-Lemma record_defs_typing: forall G ds S,
-  ty_defs G ds S ->
-  record_type S.
+Lemma record_defs_typing: forall G S ds V,
+  ty_defs G S ds V ->
+  record_type V.
 Proof.
   intros.
-  assert (exists ls, record_typ S ls /\ forall l, l \notin ls <-> defs_hasnt ds l) as A.
+  assert (exists ls, record_typ V ls /\ forall l, l \notin ls <-> defs_hasnt ds l) as A.
   eapply record_defs_typing_rec; eauto.
   destruct A as [ls [A1 A2]].
   exists ls. apply A1.
 Qed.
 
-Lemma record_new_typing: forall G S ds,
-  ty_trm ty_precise sub_general G (trm_val (val_new S ds)) (typ_bnd S) ->
-  record_type S.
+Lemma record_new_typing: forall G S V ds,
+  ty_trm ty_precise sub_general G S (trm_val (val_new V ds)) (typ_bnd V) ->
+  record_type V.
 Proof.
   intros.
   inversion H; subst.
   + pick_fresh x.
     apply open_record_type_rev with (x:=x).
     eauto.
-    eapply record_defs_typing. eapply H4. eauto.
-  + assert (exists x, trm_val (val_new S ds) = trm_var (avar_f x)) as Contra. {
+    eapply record_defs_typing. eapply H5. eauto.
+  + assert (exists x, trm_val (val_new V ds) = trm_var (avar_f x)) as Contra. {
       apply H0; eauto.
     }
     destruct Contra as [? Contra]. inversion Contra.
@@ -1851,8 +1867,8 @@ Proof.
     + apply rs_pick. apply IHrecord_sub. assumption.
 Qed.
 
-Lemma record_subtyping: forall G T T',
-  subtyp ty_precise sub_general G T T' ->
+Lemma record_subtyping: forall G S T T',
+  subtyp ty_precise sub_general G S T T' ->
   record_type T ->
   record_sub T T'.
 Proof.
@@ -1917,22 +1933,22 @@ Proof.
   - inversion Hsub; subst. apply IHHtyp. assumption.
 Qed.
 
-Lemma shape_new_typing: forall G x S T,
-  binds x (typ_bnd S) G ->
-  record_type S ->
-  ty_trm ty_precise sub_general G (trm_var (avar_f x)) T ->
-  T = typ_bnd S \/ record_sub (open_typ x S) T.
+Lemma shape_new_typing: forall G S x V T,
+  binds x (typ_bnd V) G ->
+  record_type V ->
+  ty_trm ty_precise sub_general G S (trm_var (avar_f x)) T ->
+  T = typ_bnd V \/ record_sub (open_typ x V) T.
 Proof.
   introv Bi HS Hx. dependent induction Hx.
   - unfold binds in H. unfold binds in Bi. rewrite H in Bi. inversion Bi.
     left. reflexivity.
-  - assert (typ_bnd T = typ_bnd S \/ record_sub (open_typ x S) (typ_bnd T)) as A. {
+  - assert (typ_bnd T = typ_bnd V \/ record_sub (open_typ x V) (typ_bnd T)) as A. {
       eapply IHHx; eauto.
     }
     destruct A as [A | A].
     + inversion A. right. apply rs_refl.
     + apply record_type_sub_not_rec in A. inversion A. assumption.
-  - assert (T = typ_bnd S \/ record_sub (open_typ x S) T) as A. {
+  - assert (T = typ_bnd V \/ record_sub (open_typ x V) T) as A. {
       eapply IHHx; eauto.
     }
     destruct A as [A | A].
@@ -1943,10 +1959,10 @@ Proof.
       eapply open_record_type. assumption.
 Qed.
 
-Lemma unique_tight_bounds: forall G s x T1 T2 A,
-  wf_stack G s ->
-  ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A T1 T1)) ->
-  ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A T2 T2)) ->
+Lemma unique_tight_bounds: forall G S sta x T1 T2 A,
+  wf_stack G S sta ->
+  ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A T1 T1)) ->
+  ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A T2 T2)) ->
   T1 = T2.
 Proof.
   introv Hwf Hty1 Hty2.
@@ -1954,26 +1970,28 @@ Proof.
     eapply typing_implies_bound. eassumption.
   }
   destruct Bi as [T Bi].
-  destruct (corresponding_types Hwf Bi).
-  - destruct H as [S [U [t [Bis [Ht EqT]]]]].
-    false.
-    eapply lambda_not_rcd.
-    subst. eassumption. eassumption.
-  - destruct H as [S [ds [Bis [Ht EqT]]]]. subst.
-    assert (record_type S) as Htype. {
+  destruct (corresponding_types_ctx Hwf Bi) as [[Hlam | Hnew] | Hloc].
+  - destruct Hlam as [V [U [t [Bis [Ht EqT]]]]].
+    * false. eapply lambda_not_rcd.
+      subst. eassumption. eassumption.
+  - destruct Hnew as [V [ds [Bis [Ht EqT]]]]. subst.
+    assert (record_type V) as Htype. {
       eapply record_new_typing. eassumption.
     }
     destruct (shape_new_typing Bi Htype Hty1) as [Contra1 | A1].
     inversion Contra1.
     destruct (shape_new_typing Bi Htype Hty2) as [Contra2 | A2].
     inversion Contra2.
-    assert (record_type (open_typ x S)) as HXtype. {
+    assert (record_type (open_typ x V)) as HXtype. {
       apply open_record_type. assumption.
     }
     eapply unique_rcd_typ.
     apply HXtype.
     eassumption.
     eassumption.
+  - destruct Hloc as [V [l [HBi [Hty HT]]]].
+    subst. false. eapply loc_not_rcd.
+    subst. eassumption. eassumption.
 Qed.
 
 Lemma precise_to_general:
