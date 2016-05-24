@@ -69,7 +69,7 @@ Definition store := LibMap.map addr val.
 
 Definition bindsM l v sto := LibBag.binds (A:=addr) (B:=val) sto l v.
 
-Definition emptySto : store := (@empty_impl addr val).
+Definition emptyM : store := (@empty_impl addr val).
 
 (* ###################################################################### *)
 (** ** Definition list membership *)
@@ -383,7 +383,7 @@ Inductive wf_stack: ctx -> sigma -> stack -> Prop :=
 
 (* well-typed store *)
 Inductive wt_store: ctx -> sigma -> store -> Prop :=
-| wt_store_empty: wt_store empty empty emptySto
+| wt_store_empty: wt_store empty empty emptyM
 | wt_store_update: forall G S sto l v T,
     wt_store G S sto ->
     binds l T S ->
@@ -438,14 +438,15 @@ Ltac gather_vars :=
   let A := gather_vars_with (fun x : vars      => x         ) in
   let B := gather_vars_with (fun x : var       => \{ x }    ) in
   let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_env_types x)) in
-  let D := gather_vars_with (fun x : stack       => dom x     ) in
-  let E := gather_vars_with (fun x : avar      => fv_avar  x) in
-  let F := gather_vars_with (fun x : trm       => fv_trm   x) in
-  let G := gather_vars_with (fun x : val       => fv_val   x) in
-  let H := gather_vars_with (fun x : def       => fv_def   x) in
-  let I := gather_vars_with (fun x : defs      => fv_defs  x) in
-  let J := gather_vars_with (fun x : typ       => fv_typ   x) in
-  constr:(A \u B \u C \u D \u E \u F \u G \u H \u I \u J).
+  let D := gather_vars_with (fun x : sigma     => (dom x) \u (fv_env_types x)) in
+  let E := gather_vars_with (fun x : stack     => dom x     ) in
+  let F := gather_vars_with (fun x : avar      => fv_avar  x) in
+  let G := gather_vars_with (fun x : trm       => fv_trm   x) in
+  let H := gather_vars_with (fun x : val       => fv_val   x) in
+  let I := gather_vars_with (fun x : def       => fv_def   x) in
+  let J := gather_vars_with (fun x : defs      => fv_defs  x) in
+  let K := gather_vars_with (fun x : typ       => fv_typ   x) in
+  constr:(A \u B \u C \u D \u E \u F \u G \u H \u I \u J \u K).
 
 Ltac pick_fresh x :=
   let L := gather_vars in (pick_fresh_gen L x).
@@ -480,6 +481,91 @@ Lemma fresh_push_eq_inv: forall A x a (E: env A),
 Proof.
   intros. rewrite dom_push in H. false H. rewrite in_union.
   left. rewrite in_singleton. reflexivity.
+Qed.
+
+Lemma wt_in_dom: forall G S sto l,
+  wt_store G S sto ->
+  l \in dom S ->
+  index sto l.
+Proof.
+  introv Wt. gen l. induction Wt; intros.
+  - rewrite dom_empty in H. rewrite in_empty in H. false.
+  - lets Hind: (IHWt l0 H1).
+    lets Hdec: (classicT (l = l0)). 
+    lets Hinh: (prove_Inhab v).
+    destruct Hdec; unfold index; simpl; subst.
+    * rewrite map_indom_update. left. reflexivity. assumption.
+    * rewrite map_indom_update. right. assumption. assumption.
+  - lets Hdec: (classicT (l = l0)).
+    lets Hinh: (prove_Inhab v).
+    destruct Hdec; unfold index; simpl; subst.
+    * rewrite map_indom_update. left. reflexivity. assumption.
+    * rewrite map_indom_update. right.
+      assert (l0 \in dom S). {
+        simpl_dom. rewrite in_union in H1. destruct H1.
+        + rewrite in_singleton in H1. subst. false n. reflexivity.
+        + assumption.
+      }
+      lets Hin: (IHWt l0 H2). assumption. assumption. 
+  - apply IHWt in H0. assumption.
+Qed.
+  
+Lemma dom_union : forall A B (M N : LibMap.map A B),
+  LibBag.dom (LibBag.union M N) = LibBag.union (LibBag.dom M) (LibBag.dom N).
+Proof using.
+  intros. simpl. unfold dom_impl, union_impl. Admitted. (*
+  LibSet.set_norm. intros x. set_norm. iff R; destruct* (N x).
+Qed.*)
+   
+
+Lemma wt_notin_dom: forall G S sto l,
+  wt_store G S sto ->
+  l # S ->
+  l \notindom sto.
+Proof.
+  introv Wt. gen l. induction Wt; intros.
+  - unfold store. rewrite LibMap.dom_empty. auto.
+  - assert (l <> l0). {
+      lets Hdec: (classicT (l = l0)). destruct Hdec.
+      * subst. false (binds_fresh_inv H H1).
+      * assumption.
+    }
+    assert (LibBag.dom sto[l := v] = LibBag.dom sto). { 
+      apply dom_update_in.
+      * apply (prove_Inhab v).
+      * apply binds_get in H. apply get_some_inv in H.
+        lets Hind: (wt_in_dom Wt H). assumption.
+    }
+    unfolds addr. rewrite H3.
+    apply IHWt in H1. assumption.
+  - assert (l <> l0). {
+      lets Hdec: (classicT (l = l0)). destruct Hdec.
+      * subst. rew_env_defs. simpl in H1. apply notin_union in H1. destruct H1.
+        false (notin_same H1).
+      * assumption.
+    }
+    rewrite map_update_as_union. unfold store. rewrite dom_union.
+    unfold LibBag.notin. unfold not. intro His.
+    unfold store in sto.
+    Require Import LibSet.
+    lets Hs: (LibSet.set_in_union_inv His).
+    destruct Hs as [Hs | Hs].
+    * unfold notin in H1. unfold not in H1. 
+      rewrite dom_push in H1. rewrite in_union in H1.
+      assert (~(l0 \in \{ l} \/ l0 \in dom S)) as Hnot. {
+        unfold not. assumption.
+      }
+      assert (l0 # S) as Hl0. {
+       rewrite not_or in Hnot. destruct Hnot.
+       assumption.
+      }
+      apply IHWt in Hl0. 
+      unfold LibBag.notin in Hl0. unfold not in Hl0. apply Hl0 in Hs. false.
+    * unfolds addr. assert (LibBag.dom (LibBag.single_bind l v) = LibBag.single l) as Hdom. admit.
+      (* todo LibMap.dom_single doesn't exist in compiled version *)
+      rewrite Hdom in Hs. 
+      rewrite in_single_eq in Hs. subst. false H2. reflexivity.
+  - apply IHWt in H0. assumption.
 Qed.
 
 (* ###################################################################### *)
@@ -589,7 +675,7 @@ Proof.
   rewrite <- EqS. assumption.
 Qed.
 
-Lemma weaken_subtyp: forall m1 m2 G1 G2 S T U,
+Lemma weaken_subtyp_ctx: forall m1 m2 G1 G2 S T U,
   subtyp m1 m2 G1 S T U ->
   ok (G1 & G2) ->
   subtyp m1 m2 (G1 & G2) S T U.
@@ -602,6 +688,21 @@ Proof.
   rewrite concat_empty_r. reflexivity.
   rewrite <- EqG. assumption.
 Qed.
+
+Lemma weaken_subtyp_sigma: forall m1 m2 G S1 S2 T U,
+  subtyp m1 m2 G S1 T U ->
+  ok (S1 & S2) ->
+  subtyp m1 m2 G (S1 & S2) T U.
+Proof.
+  intros.
+    assert (S1 & S2 = S1 & S2 & empty) as EqG. {
+    rewrite concat_empty_r. reflexivity.
+  }
+  rewrite EqG. apply* weaken_rules_sigma.
+  rewrite concat_empty_r. reflexivity.
+  rewrite <- EqG. assumption.
+Qed.
+
 
 (* ###################################################################### *)
 (** ** Well-formed stack *)
@@ -618,7 +719,13 @@ Lemma wf_stack_to_ok_S: forall s G S,
   wf_stack G S s -> ok S.
 Proof. intros. induction H; jauto. Qed.
 
-Hint Resolve wf_stack_to_ok_s wf_stack_to_ok_G wf_stack_to_ok_S.
+Lemma wt_store_to_ok_S: forall s G S,
+  wt_store G S s -> ok S.
+Proof.
+  introv Wt. induction Wt; auto.
+Qed.
+
+Hint Resolve wf_stack_to_ok_s wf_stack_to_ok_G wf_stack_to_ok_S wt_store_to_ok_S.
 
 Lemma ctx_binds_to_stack_binds_raw: forall s G S x T,
   wf_stack G S s ->
@@ -637,6 +744,54 @@ Proof.
     - reflexivity.
     - split. assumption. apply* weaken_ty_trm_sigma.
 Qed.
+
+Lemma env_binds: forall l T (S: sigma),
+  binds l T S ->
+  ok S ->
+  exists S1 S2, S = S1 & l ~ T & S2.
+Proof.
+  intros. induction S using env_ind.
+  - false* binds_empty_inv.
+  - apply binds_push_inv in H. destruct H as [[Hl HT] | [Hl Hbi]]; subst.
+    + exists S (@empty typ). rewrite concat_empty_r. reflexivity.
+    + apply IHS in Hbi; clear IHS. destruct Hbi as [S1 [S2 HS]].
+      apply ok_push_inv in H0. destruct H0 as [Hok Hx].
+      exists S1 (S2 & x ~ v). rewrite concat_assoc. subst. reflexivity. auto.
+Qed.
+
+Lemma sigma_binds_to_store_binds_raw: forall sto G S l T,
+  wt_store G S sto ->
+  binds l T S ->
+  exists S1 S2,
+    S = S1 & (l ~ T) & S2 /\
+    exists v,
+    bindsM l v sto /\ 
+    ty_trm ty_general sub_general G S (trm_val v) T.
+Proof.
+  introv Wt. generalize l T. induction Wt; introv Bi.
+  + false* binds_empty_inv.
+  + lets Hok: (wt_store_to_ok_S).
+    lets Henv: (env_binds Bi).
+
+    apply IHWt in Bi; clear IHWt. 
+    destruct Bi as [S1 [S2 [HS [v0 [HBi Hty]]]]].
+    exists S1 S2. 
+    lets OkS: (wt_store_to_ok_S Wt). apply Henv in OkS. destruct OkS as [S0 [S3 HS']].
+    split. assumption.
+    lets Hdec: (classicT (l1 = l0)). destruct Hdec as [Hdec | Hdec].
+    lets OkS: (wt_store_to_ok_S Wt).
+    - subst l1. exists v. split.
+      * apply binds_update_eq.
+      * assert (binds l0 T1 S) as Hbi. {
+          subst S. apply binds_middle_eq.
+          apply ok_middle_inv in OkS. destruct OkS as [_ Hl]. assumption.
+        }
+        subst S. apply binds_middle_eq_inv in H.
+        subst. assumption. assumption.
+    - exists v0. split.
+      * apply binds_update_neq. assumption. assumption.
+      * assumption.
+  +     
 
 Lemma stack_binds_to_ctx_binds_raw: forall s G S x v,
   wf_stack G S s ->
@@ -706,6 +861,18 @@ Lemma typing_implies_bound: forall m1 m2 G S x T,
   exists V, binds x V G.
 Proof.
   intros. remember (trm_var (avar_f x)) as t.
+  induction H;
+    try solve [inversion Heqt];
+    try solve [inversion Heqt; eapply IHty_trm; eauto];
+    try solve [inversion Heqt; eapply IHty_trm1; eauto].
+  - inversion Heqt. subst. exists T. assumption.
+Qed.
+
+Lemma typing_implies_bound_loc: forall m1 m2 G S l T,
+  ty_trm m1 m2 G S (trm_val (val_loc l)) T ->
+  exists T', binds l T' S.
+Proof.
+  intros. remember (trm_val (val_loc l)) as t.
   induction H;
     try solve [inversion Heqt];
     try solve [inversion Heqt; eapply IHty_trm; eauto];
@@ -2137,7 +2304,7 @@ Proof.
     unfold subenv in H. specialize (H xb Tb Bi2). destruct H as [Bi' | Bi'].
     * left. eauto.
     * right. destruct Bi' as [T' [Bi1' Bi2']].
-      exists T'. split. eauto. apply weaken_subtyp. assumption. eauto.
+      exists T'. split. eauto. apply weaken_subtyp_ctx. assumption. eauto.
 Qed.
 
 Lemma subenv_last: forall G S x V U,
@@ -2148,7 +2315,7 @@ Proof.
   intros. unfold subenv. intros y T Bi.
   apply binds_push_inv in Bi. destruct Bi as [Bi | Bi].
   - destruct Bi. subst. right. exists V. split; eauto.
-    apply weaken_subtyp; eauto.
+    apply weaken_subtyp_ctx; eauto.
   - destruct Bi. left. eauto.
 Qed.
 
@@ -2625,8 +2792,8 @@ Proof.
     specialize (H Heqm1). destruct H. inversion H.
 Qed.
 
-Lemma new_intro_inversion: forall G T ds U,
-  ty_trm ty_precise sub_general G (trm_val (val_new T ds)) U ->
+Lemma new_intro_inversion: forall G S T ds U,
+  ty_trm ty_precise sub_general G S (trm_val (val_new T ds)) U ->
   U = typ_bnd T /\ record_type T.
 Proof.
   intros. inversion H; subst.
@@ -2640,67 +2807,69 @@ Qed.
 
 (*
 Definition (Possible types)
-
-For a variable x, non-variable value v, environment G, the set Ts(G, x, v) of possible types of x defined as v in G is the smallest set SS such that:
-
+For a variable x, non-variable value v, environment G, store typing S, the set Ts(G, S, x, v) of possible types of x defined as v in G and S is the smallest set SS such that:
 If v = new(x: T)d then T in SS.
-If v = new(x: T)d and {a = t} in d and G |- t: T' then {a: T'} in SS.
-If v = new(x: T)d and {A = T'} in d and G |- S <: T', G |- T' <: U then {A: S..U} in SS.
-If v = lambda(x: S)t and G, x: S |- t: T and G |- S' <: S and G, x: S' |- T <: T' then all(x: S')T' in SS.
+If v = new(x: T)d and {a = t} in d and G, S |- t: T' then {a: T'} in SS.
+If v = new(x: T)d and {A = T'} in d and G, S |- V <: T', G |- T' <: U then {A: V..U} in SS.
+If v = lambda(x: S)t and (G, x: V), S |- t: T and G, S |- V' <: V and G, x: V' |- T <: T' then all(x: V')T' in SS.
+If v = loc l, and G, S |- l: Ref T, then Ref T in SS.
 If S1 in SS and S2 in SS then S1 & S2 in SS.
 If S in SS and G |-! y: {A: S..S} then y.A in SS.
 If S in SS then rec(x: S) in SS.
 *)
 
-Inductive possible_types: ctx -> var -> val -> typ -> Prop :=
-| pt_top : forall G x v,
-  possible_types G x v typ_top
-| pt_new : forall G x T ds,
-  possible_types G x (val_new T ds) (open_typ x T)
-| pt_rcd_trm : forall G x T ds a t T',
+(* todo check def of pt_loc *)
+Inductive possible_types: ctx -> sigma -> var -> val -> typ -> Prop :=
+| pt_top : forall G S x v,
+  possible_types G S x v typ_top
+| pt_new : forall G S x T ds,
+  possible_types G S x (val_new T ds) (open_typ x T)
+| pt_rcd_trm : forall G S x T ds a t T',
   defs_has (open_defs x ds) (def_trm a t) ->
-  ty_trm ty_general sub_general G t T' ->
-  possible_types G x (val_new T ds) (typ_rcd (dec_trm a T'))
-| pt_rcd_typ : forall G x T ds A T' S U,
+  ty_trm ty_general sub_general G S t T' ->
+  possible_types G S x (val_new T ds) (typ_rcd (dec_trm a T'))
+| pt_rcd_typ : forall G S x T ds A T' V U,
   defs_has (open_defs x ds) (def_typ A T') ->
-  subtyp ty_general sub_general G S T' ->
-  subtyp ty_general sub_general G T' U ->
-  possible_types G x (val_new T ds) (typ_rcd (dec_typ A S U))
-| pt_lambda : forall L G x S t T S' T',
+  subtyp ty_general sub_general G S V T' ->
+  subtyp ty_general sub_general G S T' U ->
+  possible_types G S x (val_new T ds) (typ_rcd (dec_typ A V U))
+| pt_lambda : forall L G S x V t T V' T',
   (forall y, y \notin L ->
-   ty_trm ty_general sub_general (G & y ~ S) (open_trm y t) (open_typ y T)) ->
-  subtyp ty_general sub_general G S' S ->
+   ty_trm ty_general sub_general (G & y ~ V) S (open_trm y t) (open_typ y T)) ->
+  subtyp ty_general sub_general G S V' V ->
   (forall y, y \notin L ->
-   subtyp ty_general sub_general (G & y ~ S') (open_typ y T) (open_typ y T')) ->
-  possible_types G x (val_lambda S t) (typ_all S' T')
-| pt_and : forall G x v S1 S2,
-  possible_types G x v S1 ->
-  possible_types G x v S2 ->
-  possible_types G x v (typ_and S1 S2)
-| pt_sel : forall G x v y A S,
-  possible_types G x v S ->
-  ty_trm ty_precise sub_general G (trm_var y) (typ_rcd (dec_typ A S S)) ->
-  possible_types G x v (typ_sel y A)
-| pt_bnd : forall G x v S S',
-  possible_types G x v S ->
-  S = open_typ x S' ->
-  possible_types G x v (typ_bnd S')
-.
+   subtyp ty_general sub_general (G & y ~ V') S (open_typ y T) (open_typ y T')) ->
+  possible_types G S x (val_lambda V t) (typ_all V' T')
+| pt_loc : forall G S x l T,
+  ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
+  possible_types G S x (val_loc l) (typ_ref T)
+| pt_and : forall G S x v V1 V2,
+  possible_types G S x v V1 ->
+  possible_types G S x v V2 ->
+  possible_types G S x v (typ_and V1 V2)
+| pt_sel : forall G S x v y A V,
+  possible_types G S x v V ->
+  ty_trm ty_precise sub_general G S (trm_var y) (typ_rcd (dec_typ A V V)) ->
+  possible_types G S x v (typ_sel y A)
+| pt_bnd : forall G S x v V V',
+  possible_types G S x v V ->
+  V = open_typ x V' ->
+  possible_types G S x v (typ_bnd V').
 
-Lemma var_new_typing: forall G s x T ds,
-  wf_stack G s ->
+Lemma var_new_typing: forall G S s x T ds,
+  wf_stack G S s ->
   binds x (val_new T ds) s ->
-  ty_trm ty_general sub_general G (trm_var (avar_f x)) (open_typ x T).
+  ty_trm ty_general sub_general G S (trm_var (avar_f x)) (open_typ x T).
 Proof.
   intros.
   apply ty_rec_elim. apply ty_var. eapply wf_stack_val_new_in_G; eauto.
 Qed.
 
-Lemma ty_defs_has: forall G ds T d,
-  ty_defs G ds T ->
+Lemma ty_defs_has: forall G S ds T d,
+  ty_defs G S ds T ->
   defs_has ds d ->
   record_type T ->
-  exists D, ty_def G d D /\ record_sub T (typ_rcd D).
+  exists D, ty_def G S d D /\ record_sub T (typ_rcd D).
 Proof.
   introv Hdefs Hhas Htype. generalize dependent d. generalize dependent ds.
   inversion Htype; subst. induction H; intros.
@@ -2712,7 +2881,7 @@ Proof.
     + inversions Hhas.
       exists D. split. inversions Hdefs; subst. assumption.
       eapply rs_dropl. eapply rs_refl.
-    + assert (exists D0, ty_def G d D0 /\ record_sub T (typ_rcd D0)) as A. {
+    + assert (exists D0, ty_def G S d D0 /\ record_sub T (typ_rcd D0)) as A. {
         eapply IHrecord_typ; eauto.
         exists ls. eassumption.
       }
@@ -2720,18 +2889,18 @@ Proof.
       exists D0. split. apply A1. apply rs_drop. apply A2.
 Qed.
 
-Lemma new_ty_defs: forall G s x T ds,
-  wf_stack G s ->
+Lemma new_ty_defs: forall G S s x T ds,
+  wf_stack G S s ->
   binds x (val_new T ds) s ->
-  ty_defs G (open_defs x ds) (open_typ x T).
+  ty_defs G S (open_defs x ds) (open_typ x T).
 Proof.
   introv Hwf Bis.
   lets Htyv: (val_new_typing Hwf Bis).
   inversion Htyv; subst.
-  pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
+  pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H4 y FrL).
   rewrite subst_intro_defs with (x:=y). rewrite subst_intro_typ with (x:=y).
-  eapply subst_ty_defs. eapply H3.
-  apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto. eauto.
+  eapply subst_ty_defs. eapply H4.
+  apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto. eauto. eauto.
   rewrite <- subst_intro_typ with (x:=y).
   eapply ty_rec_elim. apply ty_var. eapply wf_stack_val_new_in_G; eauto.
   eauto. eauto. eauto.
@@ -2739,12 +2908,12 @@ Proof.
   specialize (H Heqm1). destruct H as [? Contra]. inversion Contra.
 Qed.
 
-Lemma pt_piece_rcd: forall G s x T ds d D,
-  wf_stack G s ->
+Lemma pt_piece_rcd: forall G S s x T ds d D,
+  wf_stack G S s ->
   binds x (val_new T ds) s ->
   defs_has (open_defs x ds) d ->
-  ty_def G d D ->
-  possible_types G x (val_new T ds) (typ_rcd D).
+  ty_def G S d D ->
+  possible_types G S x (val_new T ds) (typ_rcd D).
 Proof.
   introv Hwf Bis Hhas Hdef.
   inversion Hdef; subst; econstructor; eauto.
@@ -2774,10 +2943,10 @@ Proof.
     + apply IHds; eauto.
 Qed.
 
-Lemma record_has_ty_defs: forall G T ds D,
-  ty_defs G ds T ->
+Lemma record_has_ty_defs: forall G S T ds D,
+  ty_defs G S ds T ->
   record_has T D ->
-  exists d, defs_has ds d /\ ty_def G d D.
+  exists d, defs_has ds d /\ ty_def G S d D.
 Proof.
   introv Hdefs Hhas. induction Hdefs.
   - inversion Hhas; subst. exists d. split.
@@ -2794,11 +2963,11 @@ Proof.
       assumption.
 Qed.
 
-Lemma pt_rcd_has_piece: forall G s x T ds D,
-  wf_stack G s ->
+Lemma pt_rcd_has_piece: forall G S s x T ds D,
+  wf_stack G S s ->
   binds x (val_new T ds) s ->
   record_has (open_typ x T) D ->
-  possible_types G x (val_new T ds) (typ_rcd D).
+  possible_types G S x (val_new T ds) (typ_rcd D).
 Proof.
   introv Hwf Bis Hhas.
   lets Hdefs: (new_ty_defs Hwf Bis).
@@ -2806,37 +2975,38 @@ Proof.
   eapply pt_piece_rcd; eauto.
 Qed.
 
-Lemma pt_rcd_trm_inversion: forall G s x v a T,
-  wf_stack G s ->
+Lemma pt_rcd_trm_inversion: forall G S s x v a T,
+  wf_stack G S s ->
   binds x v s ->
-  possible_types G x v (typ_rcd (dec_trm a T)) ->
-  exists S ds t,
-    v = val_new S ds /\
+  possible_types G S x v (typ_rcd (dec_trm a T)) ->
+  exists V ds t,
+    v = val_new V ds /\
     defs_has (open_defs x ds) (def_trm a t) /\
-    ty_trm ty_general sub_general G t T.
+    ty_trm ty_general sub_general G S t T.
 Proof.
   introv Hwf Bis Hp. inversion Hp; subst.
-  - induction T0; simpl in H3; try solve [inversion H3].
-    induction d; simpl in H3; try solve [inversion H3].
-    unfold open_typ in H3. simpl in H3. inversions H3.
+  - induction T0; simpl in H4; try solve [inversion H4].
+    induction d; simpl in H4; try solve [inversion H4].
+    unfold open_typ in H4. simpl in H4. inversions H4.
     lets Hty: (val_new_typing Hwf Bis). inversion Hty; subst.
-    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
-    unfold open_typ in H3. simpl in H3. inversion H3; subst.
+    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H4 y FrL).
+    unfold open_typ in H4. simpl in H4. inversion H4; subst.
     destruct ds; simpl in H; try solve [inversion H].
     destruct ds; simpl in H; try solve [inversion H].
     unfold open_defs in H. simpl in H. inversions H.
-    destruct d0; simpl in H2; inversion H2; subst.
-    inversion H2; subst.
-    assert (ty_trm ty_general sub_general G (open_trm x t1) (open_typ x t0)) as A. {
+    destruct d0; simpl in H3; inversion H3; subst.
+    inversion H3; subst.
+    assert (ty_trm ty_general sub_general G S (open_trm x t1) (open_typ x t0)) as A. {
       rewrite subst_intro_typ with (x:=y). rewrite subst_intro_trm with (x:=y).
-      eapply subst_ty_trm. eapply H4.
+      eapply subst_ty_trm. eapply H5.
       apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto. eauto. eauto.
       simpl. rewrite <- subst_intro_typ with (x:=y).
       lets Htyv: (var_new_typing Hwf Bis). unfold open_typ in Htyv. simpl in Htyv.
       unfold open_typ. apply Htyv.
       eauto.
       apply notin_union_r1 in Fr. apply notin_union_r2 in Fr.
-      unfold fv_defs in Fr. apply notin_union_r2 in Fr. apply Fr.
+      unfold fv_defs in Fr. apply notin_union_r2 in Fr.
+      apply Fr.
       eauto.
     }
     repeat eexists.
@@ -2848,28 +3018,28 @@ Proof.
   - repeat eexists. eassumption. assumption.
 Qed.
 
-Lemma pt_rcd_typ_inversion: forall G s x v A S U,
-  wf_stack G s ->
+Lemma pt_rcd_typ_inversion: forall G S s x v A V U,
+  wf_stack G S s ->
   binds x v s ->
-  possible_types G x v (typ_rcd (dec_typ A S U)) ->
+  possible_types G S x v (typ_rcd (dec_typ A V U)) ->
   exists T ds T',
     v = val_new T ds /\
     defs_has (open_defs x ds) (def_typ A T') /\
-    subtyp ty_general sub_general G S T' /\
-    subtyp ty_general sub_general G T' U.
+    subtyp ty_general sub_general G S V T' /\
+    subtyp ty_general sub_general G S T' U.
 Proof.
   introv Hwf Bis Hp. inversion Hp; subst.
-  - induction T; simpl in H3; try solve [inversion H3].
-    induction d; simpl in H3; try solve [inversion H3].
-    unfold open_typ in H3. simpl in H3. inversions H3.
+  - induction T; simpl in H4; try solve [inversion H4].
+    induction d; simpl in H4; try solve [inversion H4].
+    unfold open_typ in H4. simpl in H4. inversions H4.
     lets Hty: (val_new_typing Hwf Bis). inversion Hty; subst.
-    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
-    unfold open_typ in H3. simpl in H3. inversion H3; subst.
+    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H4 y FrL).
+    unfold open_typ in H4. simpl in H4. inversion H4; subst.
     destruct ds; simpl in H; try solve [inversion H].
     destruct ds; simpl in H; try solve [inversion H].
     unfold open_defs in H. simpl in H. inversions H.
-    destruct d0; simpl in H2; inversion H2; subst.
-    inversion H2; subst.
+    destruct d0; simpl in H3; inversion H3; subst.
+    inversion H3; subst.
     assert (t2 = t0). {
       eapply open_eq_typ; eauto.
       apply notin_union_r1 in Fr. apply notin_union_r1 in Fr.
@@ -2882,7 +3052,7 @@ Proof.
       apply notin_union_r2 in Fr.
       unfold fv_defs in Fr. eauto. eauto.
     }
-    subst. subst. clear H5. clear H8.
+    subst. subst. clear H6. clear H9.
     repeat eexists.
     unfold open_defs. simpl. unfold defs_has. simpl.
     rewrite If_l. reflexivity. reflexivity.
@@ -2918,18 +3088,18 @@ Proof.
     + apply rh_and. apply IHHsub. assumption.
 Qed.
 
-Lemma pt_record_sub_has: forall G x v T1 T2,
-  (forall D, record_has T1 D -> possible_types G x v (typ_rcd D)) ->
+Lemma pt_record_sub_has: forall G S x v T1 T2,
+  (forall D, record_has T1 D -> possible_types G S x v (typ_rcd D)) ->
   record_sub T1 T2 ->
-  (forall D, record_has T2 D -> possible_types G x v (typ_rcd D)).
+  (forall D, record_has T2 D -> possible_types G S x v (typ_rcd D)).
 Proof.
   introv HP Hsub. intros D Hhas. apply HP; eauto using record_sub_has.
 Qed.
 
-Lemma pt_has_record: forall G x v T,
-  (forall D, record_has T D -> possible_types G x v (typ_rcd D)) ->
+Lemma pt_has_record: forall G S x v T,
+  (forall D, record_has T D -> possible_types G S x v (typ_rcd D)) ->
   record_type T ->
-  possible_types G x v T.
+  possible_types G S x v T.
 Proof.
   introv HP Htype. destruct Htype as [ls Htyp]. induction Htyp.
   - apply HP; eauto. apply rh_one.
@@ -2939,11 +3109,11 @@ Proof.
     + apply HP; eauto. apply rh_andl.
 Qed.
 
-Lemma pt_has_sub: forall G x v T U,
-  (forall D, record_has T D -> possible_types G x v (typ_rcd D)) ->
+Lemma pt_has_sub: forall G S x v T U,
+  (forall D, record_has T D -> possible_types G S x v (typ_rcd D)) ->
   record_type T ->
   record_sub T U ->
-  possible_types G x v U.
+  possible_types G S x v U.
 Proof.
   introv HP Htype Hsub. induction Hsub.
   - apply pt_has_record; eauto.
@@ -2960,11 +3130,11 @@ Proof.
     + apply HP; eauto. apply rh_andl.
 Qed.
 
-Lemma possible_types_closure_record: forall G s x T ds U,
-  wf_stack G s ->
+Lemma possible_types_closure_record: forall G S s x T ds U,
+  wf_stack G S s ->
   binds x (val_new T ds) s ->
   record_sub (open_typ x T) U ->
-  possible_types G x (val_new T ds) U.
+  possible_types G S x (val_new T ds) U.
 Proof.
   introv Hwf Bis Hsub.
   apply pt_has_sub with (T:=open_typ x T).
@@ -2973,11 +3143,11 @@ Proof.
   assumption.
 Qed.
 
-Lemma pt_and_inversion: forall G s x v T1 T2,
-  wf_stack G s ->
+Lemma pt_and_inversion: forall G S s x v T1 T2,
+  wf_stack G S s ->
   binds x v s ->
-  possible_types G x v (typ_and T1 T2) ->
-  possible_types G x v T1 /\ possible_types G x v T2.
+  possible_types G S x v (typ_and T1 T2) ->
+  possible_types G S x v T1 /\ possible_types G S x v T2.
 Proof.
   introv Hwf Bis Hp. dependent induction Hp.
   - assert (record_type (open_typ x0 T)) as Htype. {
@@ -2992,26 +3162,23 @@ Qed.
 
 (*
 Lemma (Possible types closure)
-
-If G ~ s and G |- x: T and s |- x = v then Ts(G, x, v) is closed wrt G |- _ <: _.
-
-Let SS = Ts(G, x, v). We first show SS is closed wrt G |-# _ <: _.
-
-Assume T0 in SS and G |- T0 <: U0.s We show U0 in SS by an induction on subtyping derivations of G |-# T0 <: U0.
+If G, S ~ s and G, S |- x: T and s |- x = v then Ts(G, S, x, v) is closed wrt G, S |- _ <: _.
+Let SS = Ts(G, S, x, v). We first show SS is closed wrt G, S |-# _ <: _.
+Assume T0 in SS and G, S |- T0 <: U0.s We show U0 in SS by an induction on subtyping derivations of G, S |-# T0 <: U0.
 *)
 
-Lemma possible_types_closure_tight: forall G s x v T0 U0,
-  wf_stack G s ->
+Lemma possible_types_closure_tight: forall G S s x v T0 U0,
+  wf_stack G S s ->
   binds x v s ->
-  possible_types G x v T0 ->
-  subtyp ty_general sub_tight G T0 U0 ->
-  possible_types G x v U0.
+  possible_types G S x v T0 ->
+  subtyp ty_general sub_tight G S T0 U0 ->
+  possible_types G S x v U0.
 Proof.
   introv Hwf Bis HT0 Hsub. dependent induction Hsub.
   - (* Top *) apply pt_top.
   - (* Bot *) inversion HT0; subst.
     lets Htype: (open_record_type x (record_new_typing (val_new_typing Hwf Bis))).
-    destruct Htype as [ls Htyp]. rewrite H3 in Htyp. inversion Htyp.
+    destruct Htype as [ls Htyp]. rewrite H4 in Htyp. inversion Htyp.
   - (* Refl-<: *) assumption.
   - (* Trans-<: *)
     apply IHHsub2; try assumption.
@@ -3028,7 +3195,7 @@ Proof.
     apply pt_and. apply IHHsub1; assumption. apply IHHsub2; assumption.
   - (* Fld-<:-Fld *)
     apply pt_rcd_trm_inversion with (s:=s) in HT0; eauto.
-    destruct HT0 as [S [ds [t [Heq [Hhas Hty]]]]].
+    destruct HT0 as [V [ds [t [Heq [Hhas Hty]]]]].
     subst.
     eapply pt_rcd_trm.
     eassumption.
@@ -3051,8 +3218,8 @@ Proof.
     assert (record_type (open_typ x T0)) as B. {
       eapply record_type_new; eassumption.
     }
-    rewrite H4 in B. destruct B as [? B]. inversion B.
-    assert (T = S) as B. {
+    rewrite H5 in B. destruct B as [? B]. inversion B.
+    assert (T = V) as B. {
       eapply unique_tight_bounds; eauto.
     }
     subst. assumption.
@@ -3061,12 +3228,12 @@ Proof.
     assert (record_type (open_typ x T)) as B. {
       eapply record_type_new; eassumption.
     }
-    rewrite H5 in B. destruct B as [? B]. inversion B.
+    rewrite H6 in B. destruct B as [? B]. inversion B.
     apply_fresh pt_lambda as y.
     eapply H3; eauto.
     eapply subtyp_trans. eapply tight_to_general_subtyping. eassumption. eassumption.
     eapply subtyp_trans.
-    eapply narrow_subtyping. eapply H8; eauto.
+    eapply narrow_subtyping. eapply H9; eauto.
     eapply subenv_last. eapply tight_to_general_subtyping. eapply Hsub.
     eapply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
     eapply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
@@ -3075,50 +3242,50 @@ Qed.
 
 (*
 Lemma (Possible types completeness for values)
-
-If `G ~ s` and `x = v in s` and  `G |-! v: T` then `T in Ts(G, x, v)`.
+If `G, S ~ s` and `x = v in s` and  `G, S |-! v: T` then `T in Ts(G, S, x, v)`.
  *)
 
-Lemma possible_types_completeness_for_values: forall G s x v T,
-  wf_stack G s ->
+Lemma possible_types_completeness_for_values: forall G S s x v T,
+  wf_stack G S s ->
   binds x v s ->
-  ty_trm ty_precise sub_general G (trm_val v) T ->
-  possible_types G x v T.
+  ty_trm ty_precise sub_general G S (trm_val v) T ->
+  possible_types G S x v T.
 Proof.
-  introv Hwf Bis Hty. destruct v as [S ds | S t].
+  introv Hwf Bis Hty. destruct v as [V ds | V t | V l].
   - apply new_intro_inversion in Hty. destruct Hty as [Heq Htype]. subst.
     eapply pt_bnd. eapply pt_new. reflexivity.
   - remember Hty as Hty'. clear HeqHty'. inversion Hty'; subst.
     + apply all_intro_inversion in Hty. destruct Hty as [T' Heq]. subst.
       apply_fresh pt_lambda as y.
-      eapply H5; eauto.
+      eapply H6; eauto.
       apply subtyp_refl.
       apply subtyp_refl.
+    + assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
+      specialize (H Heqm1). destruct H. inversion H.
+  - remember Hty as Hty'. clear HeqHty'. inversion Hty'; subst.
+    + apply pt_loc. apply precise_to_general_typing. assumption.
     + assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
       specialize (H Heqm1). destruct H. inversion H.
 Qed.
 
 (*
 Lemma (Possible types completeness)
-
 If `G ~ s` and `x = v in s` and  `G |-# x: T` then `T in Ts(G, x, v)`.
-
 Lemma (Possible types)
-
 If `G ~ s` and `G |- x: T` then, for some value `v`,
 `s(x) = v` and `T in Ts(G, x, v)`.
 *)
 
-Lemma possible_types_completeness_tight: forall G s x T,
-  wf_stack G s ->
-  ty_trm ty_general sub_tight G (trm_var (avar_f x)) T ->
-  exists v, binds x v s /\ possible_types G x v T.
+Lemma possible_types_completeness_tight: forall G S s x T,
+  wf_stack G S s ->
+  ty_trm ty_general sub_tight G S (trm_var (avar_f x)) T ->
+  exists v, binds x v s /\ possible_types G S x v T.
 Proof.
   introv Hwf H. dependent induction H.
-  - assert (exists v, binds x v s /\ ty_trm ty_precise sub_general G (trm_val v) T) as A. {
+  - assert (exists v, binds x v s /\ ty_trm ty_precise sub_general G S (trm_val v) T) as A. {
       destruct (ctx_binds_to_stack_binds_raw Hwf H) as [G1 [? [v [? [Bi Hty]]]]].
       exists v. split. apply Bi. subst. rewrite <- concat_assoc.
-      eapply weaken_ty_trm_ctx. assumption. rewrite concat_assoc.
+      apply weaken_ty_trm_ctx. auto. rewrite concat_assoc.
       eapply wf_stack_to_ok_G. eassumption.
     }
     destruct A as [v [Bis Hty]].
@@ -3129,7 +3296,7 @@ Proof.
   - specialize (IHty_trm Hwf).
     destruct IHty_trm as [v [Bis Hp]].
     exists v. split. assumption. inversion Hp; subst.
-    + lets Htype: (record_type_new Hwf Bis). rewrite H4 in Htype. inversion Htype. inversion H0.
+    + lets Htype: (record_type_new Hwf Bis). rewrite H5 in Htype. inversion Htype. inversion H0.
     + assumption.
   - specialize (IHty_trm1 Hwf). destruct IHty_trm1 as [v [Bis1 Hp1]].
     specialize (IHty_trm2 Hwf). destruct IHty_trm2 as [v' [Bis2 Hp2]].
@@ -3139,9 +3306,9 @@ Proof.
     exists v. split. apply Bis. eapply possible_types_closure_tight; eauto.
 Qed.
 
-Lemma tight_ty_rcd_typ__new: forall G s x A S U,
-  wf_stack G s ->
-  ty_trm ty_general sub_tight G (trm_var (avar_f x)) (typ_rcd (dec_typ A S U)) ->
+Lemma tight_ty_rcd_typ__new: forall G S s x A V U,
+  wf_stack G S s ->
+  ty_trm ty_general sub_tight G S (trm_var (avar_f x)) (typ_rcd (dec_typ A V U)) ->
   exists T ds, binds x (val_new T ds) s.
 Proof.
   introv Hwf Hty.
@@ -3150,22 +3317,24 @@ Proof.
 Qed.
 
 
-Lemma general_to_tight: forall G0 s0,
-  wf_stack G0 s0 ->
-  (forall m1 m2 G t T,
-     ty_trm m1 m2 G t T ->
+Lemma general_to_tight: forall G0 S0 s0,
+  wf_stack G0 S0 s0 ->
+  (forall m1 m2 G S t T,
+     ty_trm m1 m2 G S t T ->
      G = G0 ->
+     S = S0 ->
      m1 = ty_general ->
      m2 = sub_general ->
-     ty_trm ty_general sub_tight G t T) /\
-  (forall m1 m2 G S U,
-     subtyp m1 m2 G S U ->
+     ty_trm ty_general sub_tight G S t T) /\
+  (forall m1 m2 G S V U,
+     subtyp m1 m2 G S V U ->
      G = G0 ->
+     S = S0 ->
      m1 = ty_general ->
      m2 = sub_general ->
-     subtyp ty_general sub_tight G S U).
+     subtyp ty_general sub_tight G S V U).
 Proof.
-  intros G0 s0 Hwf.
+  intros G0 S0 s0 Hwf.
   apply ts_mutind; intros; subst; eauto.
   - assert (exists S ds, binds x (val_new S ds) s0) as Bis. {
       eapply tight_ty_rcd_typ__new; eauto.
@@ -3179,35 +3348,46 @@ Proof.
     eapply proj1. eapply tight_bound_completeness; eauto.
 Qed.
 
-Lemma general_to_tight_subtyping: forall G s S U,
-   wf_stack G s ->
-  subtyp ty_general sub_general G S U ->
-  subtyp ty_general sub_tight G S U.
+Lemma general_to_tight_subtyping: forall G S s V U,
+  wf_stack G S s ->
+  subtyp ty_general sub_general G S V U ->
+  subtyp ty_general sub_tight G S V U.
 Proof.
-  intros. apply* general_to_tight.
+  intros.
+  assert (forall m1 m2 G1 S1 V1 U1,
+    subtyp m1 m2 G1 S1 V1 U1 ->
+    G1 = G ->
+    S1 = S ->
+    m1 = ty_general ->
+    m2 = sub_general ->
+    subtyp ty_general sub_tight G1 S1 V1 U1). {
+      apply* general_to_tight.
+  }
+  specialize (H1 ty_general sub_general G S V U). apply* H1.
 Qed.
 
-Lemma possible_types_closure: forall G s x v S T,
-  wf_stack G s ->
+
+Lemma possible_types_closure: forall G S s x v V T,
+  wf_stack G S s ->
   binds x v s ->
-  possible_types G x v S ->
-  subtyp ty_general sub_general G S T ->
-  possible_types G x v T.
+  possible_types G S x v V ->
+  subtyp ty_general sub_general G S V T ->
+  possible_types G S x v T.
 Proof.
   intros. eapply possible_types_closure_tight; eauto.
   eapply general_to_tight_subtyping; eauto.
 Qed.
 
-Lemma possible_types_completeness: forall G s x T,
-  wf_stack G s ->
-  ty_trm ty_general sub_general G (trm_var (avar_f x)) T ->
-  exists v, binds x v s /\ possible_types G x v T.
+Lemma possible_types_completeness: forall G S s x T,
+  wf_stack G S s ->
+  ty_trm ty_general sub_general G S (trm_var (avar_f x)) T ->
+  exists v, binds x v s /\ possible_types G S x v T.
 Proof.
   introv Hwf H. dependent induction H.
-  - assert (exists v, binds x v s /\ ty_trm ty_precise sub_general G (trm_val v) T) as A. {
+  - assert (exists v, binds x v s /\ ty_trm ty_precise sub_general G S (trm_val v) T) as A. {
       destruct (ctx_binds_to_stack_binds_raw Hwf H) as [G1 [? [v [? [Bi Hty]]]]].
       exists v. split. apply Bi. subst. rewrite <- concat_assoc.
-      eapply weaken_ty_trm_ctx. assumption. rewrite concat_assoc.
+      apply weaken_ty_trm_ctx. auto. rewrite concat_assoc.
       eapply wf_stack_to_ok_G. eassumption.
     }
     destruct A as [v [Bis Hty]].
@@ -3218,7 +3398,7 @@ Proof.
   - specialize (IHty_trm Hwf).
     destruct IHty_trm as [v [Bis Hp]].
     exists v. split. assumption. inversion Hp; subst.
-    + lets Htype: (record_type_new Hwf Bis). rewrite H4 in Htype. inversion Htype. inversion H0.
+    + lets Htype: (record_type_new Hwf Bis). rewrite H5 in Htype. inversion Htype. inversion H0.
     + assumption.
   - specialize (IHty_trm1 Hwf). destruct IHty_trm1 as [v [Bis1 Hp1]].
     specialize (IHty_trm2 Hwf). destruct IHty_trm2 as [v' [Bis2 Hp2]].
@@ -3228,11 +3408,11 @@ Proof.
     exists v. split. apply Bis. eapply possible_types_closure; eauto.
 Qed.
 
-Lemma possible_types_lemma: forall G s x v T,
-  wf_stack G s ->
+Lemma possible_types_lemma: forall G S s x v T,
+  wf_stack G S s ->
   binds x v s ->
-  ty_trm ty_general sub_general G (trm_var (avar_f x)) T ->
-  possible_types G x v T.
+  ty_trm ty_general sub_general G S (trm_var (avar_f x)) T ->
+  possible_types G S x v T.
 Proof.
   introv Hwf Bis Hty.
   lets A: (possible_types_completeness Hwf Hty).
@@ -3241,49 +3421,64 @@ Proof.
   assumption.
 Qed.
 
-Lemma ctx_binds_to_stack_binds_typing: forall G s x T,
-  wf_stack G s ->
+Lemma ctx_binds_to_stack_binds_typing: forall G S sta x T,
+  wf_stack G S sta ->
   binds x T G ->
-  exists v, binds x v s /\ ty_trm ty_precise sub_general G (trm_val v) T.
+  exists v, binds x v sta /\ ty_trm ty_precise sub_general G S (trm_val v) T.
 Proof.
   introv Hwf Bi.
   lets A: (ctx_binds_to_stack_binds_raw Hwf Bi).
   destruct A as [G1 [G2 [v [HeqG [Bis Hty]]]]].
   exists v. split; eauto.
   subst. rewrite <- concat_assoc.
-  apply weaken_ty_trm; eauto.
+  apply weaken_ty_trm_ctx. auto.
   rewrite concat_assoc.
   eapply wf_stack_to_ok_G; eauto.
 Qed.
+
+(* Lemma sigma_binds_to_store_binds_typing: forall G S s l T,
+  wt_store G S s ->
+  binds l T S ->
+  exists v, bindsM l v s /\ ty_trm ty_precise sub_general G S (trm_val v) T.
+Proof.
+  introv Hwf Bi.
+  lets A: (sigma_binds_to_store_binds_raw Hwf Bi).
+  destruct A as [S1 [S2 [v [HeqG [Bis Hty]]]]].
+  exists v. split; eauto.
+  subst. rewrite <- concat_assoc.
+  weaken_ty_trm_sigma.
+  rewrite concat_assoc.
+  eapply wf_stack_to_ok_G; eauto.
+Qed. *)
 
 (*
 Lemma (Canonical forms 1)
 If G ~ s and G |- x: all(x: T)U then s(x) = lambda(x: T')t where G |- T <: T' and G, x: T |- t: U.
  *)
-Lemma canonical_forms_1: forall G s x T U,
-  wf_stack G s ->
-  ty_trm ty_general sub_general G (trm_var (avar_f x)) (typ_all T U) ->
-  (exists L T' t, binds x (val_lambda T' t) s /\ subtyp ty_general sub_general G T T' /\
-  (forall y, y \notin L -> ty_trm ty_general sub_general (G & y ~ T) (open_trm y t) (open_typ y U))).
+Lemma canonical_forms_1: forall G S s x T U,
+  wf_stack G S s ->
+  ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_all T U) ->
+  (exists L T' t, binds x (val_lambda T' t) s /\ subtyp ty_general sub_general G S T T' /\
+  (forall y, y \notin L -> ty_trm ty_general sub_general (G & y ~ T) S (open_trm y t) (open_typ y U))).
 Proof.
   introv Hwf Hty.
-  lets Bi: (typing_implies_bound Hty). destruct Bi as [S Bi].
+  lets Bi: (typing_implies_bound Hty). destruct Bi as [V Bi].
   lets A: (ctx_binds_to_stack_binds_typing Hwf Bi). destruct A as [v [Bis Htyv]].
   lets Hp: (possible_types_lemma Hwf Bis Hty).
   inversion Hp; subst.
-  - lets Htype: (record_type_new Hwf Bis). rewrite H3 in Htype.
+  - lets Htype: (record_type_new Hwf Bis). rewrite H4 in Htype.
     destruct Htype as [ls Htyp]. inversion Htyp.
-  - pick_fresh y. exists (dom G \u L). exists S0. exists t.
+  - pick_fresh y. exists (dom G \u L). exists V0. exists t.
     split. apply Bis. split. assumption.
     intros y0 Fr0.
     eapply ty_sub.
     intros Contra. inversion Contra.
     eapply narrow_typing.
     eapply H1; eauto.
-    apply subenv_last. apply H5.
+    apply subenv_last. apply H6.
     apply ok_push. eapply wf_stack_to_ok_G; eauto. eauto.
     apply ok_push. eapply wf_stack_to_ok_G; eauto. eauto.
-    eapply H6; eauto.
+    eapply H7; eauto.
 Qed.
 
 (*
@@ -3292,40 +3487,73 @@ Lemma (Canonical forms 2)
 If G ~ s and G |- x: {a: T} then s(x) = new(x: S)d for some type S, definition d such that G |- d: S and d contains a definition {a = t} where G |- t: T.
 
 *)
-Lemma canonical_forms_2: forall G s x a T,
-  wf_stack G s ->
-  ty_trm ty_general sub_general G (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
-  (exists S ds t, binds x (val_new S ds) s /\ ty_defs G (open_defs x ds) (open_typ x S) /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm ty_general sub_general G t T).
+Lemma canonical_forms_2: forall G S s x a T,
+  wf_stack G S s ->
+  ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
+  (exists V ds t, binds x (val_new V ds) s /\ ty_defs G S (open_defs x ds) (open_typ x V) /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm ty_general sub_general G S t T).
 Proof.
   introv Hwf Hty.
-  lets Bi: (typing_implies_bound Hty). destruct Bi as [S Bi].
+  lets Bi: (typing_implies_bound Hty). destruct Bi as [V Bi].
   lets A: (ctx_binds_to_stack_binds_typing Hwf Bi). destruct A as [v [Bis Htyv]].
   lets Hp: (possible_types_lemma Hwf Bis Hty).
   apply pt_rcd_trm_inversion with (s:=s) in Hp; eauto.
-  destruct Hp as [S' [ds [t' [Heq [Hdefs Htyd]]]]].
+  destruct Hp as [V' [ds [t' [Heq [Hdefs Htyd]]]]].
   subst.
-  exists S' ds t'.
+  exists V' ds t'.
   split; try split; try split; try assumption.
   eapply new_ty_defs; eauto.
 Qed.
 
+(*
+Lemma (Canonical forms 3)
+
+If G, S ~ stack, G, S ~ store, and G, S |- x: Ref T then 
+  stack(x) = loc l for some address l, such that G, S |- l: Ref T, and
+  there exists a value v such that
+  store(l) = v and G, S |- v: T.
+*)
+Lemma canonical_forms_3: forall G S sta sto x T,
+  wf_stack G S sta ->
+  wt_store G S sto ->
+  ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_ref T) ->
+  exists l v,
+    binds x (val_loc l) sta /\
+    ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) /\
+    bindsM l v sto /\
+    ty_trm ty_general sub_general G S (trm_val v) T.
+Proof.
+  introv HWfSta HWfSto Hty.
+  lets Bi: (typing_implies_bound Hty). destruct Bi as [V Bi].
+  lets A: (ctx_binds_to_stack_binds_typing HWfSta Bi). destruct A as [v [Bis Htyv]].
+  lets Hp: (possible_types_lemma HWfSta Bis Hty).
+  inversion Hp; subst.
+  - lets Htype: (record_type_new HWfSta Bis). rewrite H4 in Htype.
+    destruct Htype as [ls Htyp]. inversion Htyp.
+  - lets Bi': (typing_implies_bound_loc H4). destruct Bi' as [Tl Bi'].
+    lets B: (sigma_binds_to_store_binds_typing HWfSto Bi'). destruct B as [vl [Bil Htyl]].
+    exists l vl. split. assumption. split. assumption. split. assumption.
+    admit.
+Qed.
+
+
 (* ###################################################################### *)
 (** * Misc *)
 
-Lemma var_typing_implies_avar_f: forall G a T,
-  ty_trm ty_general sub_general G (trm_var a) T ->
+Lemma var_typing_implies_avar_f: forall G S a T,
+  ty_trm ty_general sub_general G S (trm_var a) T ->
   exists x, a = avar_f x.
 Proof.
   intros. dependent induction H; try solve [eexists; reflexivity].
   apply IHty_trm.
 Qed.
 
-Lemma val_typing: forall G v T,
-  ty_trm ty_general sub_general G (trm_val v) T ->
-  exists T', ty_trm ty_precise sub_general G (trm_val v) T' /\
-             subtyp ty_general sub_general G T' T.
+Lemma val_typing: forall G S v T,
+  ty_trm ty_general sub_general G S (trm_val v) T ->
+  exists T', ty_trm ty_precise sub_general G S (trm_val v) T' /\
+             subtyp ty_general sub_general G S T' T.
 Proof.
   intros. dependent induction H.
+  - exists (typ_ref T). auto.
   - exists (typ_all T U). split.
     apply ty_all_intro with (L:=L); eauto. apply subtyp_refl.
   - exists (typ_bnd T). split.
@@ -3344,118 +3572,242 @@ Inductive normal_form: trm -> Prop :=
 Hint Constructors normal_form.
 
 (*
-Let G |- t: T and G ~ s. Then either
-
+Let G, S |- t: T,
+    G, S ~ sta, and
+    G, S ~ sto. 
+Then either
 - t is a normal form, or
-- there exists a stackre s', term t' such that s | t -> s' | t', and for any such s', t' there exists an environment G'' such that, letting G' = G, G'' one has G' |- t': T and G' ~ s'.
-The proof is by a induction on typing derivations of G |- t: T.
+- there exists a stack sta', store sto', term t' such that 
+      sta, sto | t -> sta', sto' | t', 
+  and for any such sta', sto', t', there exists an environment G'' and store typing S''
+  such that, letting 
+      G' = G, G'',
+      S' = S, S'',
+  one has
+      G', S' |- t': T, 
+      G', S' ~ sta',
+      G', S' ~ sto'
+The proof is by a induction on typing derivations of G, S |- t: T.
 *)
 
-Lemma safety: forall G s t T,
-  wf_stack G s ->
-  ty_trm ty_general sub_general G t T ->
-  (normal_form t \/ (exists s' t' G' G'', red t s t' s' /\ G' = G & G'' /\ ty_trm ty_general sub_general G' t' T /\ wf_stack G' s')).
+
+Lemma safety: forall G S sta sto t T,
+  wf_stack G S sta ->
+  wt_store G S sto ->
+  ty_trm ty_general sub_general G S t T ->
+  (normal_form t \/ 
+    (exists sta' sto' t' G' G'' S' S'', 
+    red t sta sto t' sta' sto' /\ 
+    G' = G & G'' /\
+    S' = S & S'' /\
+    ty_trm ty_general sub_general G' S' t' T 
+    /\ wf_stack G' S' sta'
+    /\ wt_store G' S' sto')).
 Proof.
-  introv Hwf H. dependent induction H; try solve [left; eauto].
+  introv HWf HWt H. dependent induction H; try solve [left; eauto].
   - (* All-E *) right.
-    lets C: (canonical_forms_1 Hwf H).
+    lets C: (canonical_forms_1 HWf H).
     destruct C as [L [T' [t [Bis [Hsub Hty]]]]].
-    exists s (open_trm z t) G (@empty typ).
+    exists sta sto (open_trm z t) G (@empty typ) S. exists (@empty typ).
     split.
     apply red_app with (T:=T'). assumption.
+    split.
+    rewrite concat_empty_r. reflexivity.
     split.
     rewrite concat_empty_r. reflexivity.
     split.
     pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
     rewrite subst_intro_typ with (x:=y). rewrite subst_intro_trm with (x:=y).
     eapply subst_ty_trm. eapply Hty.
-    apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto. eauto.
+    apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto. eauto. auto.
     rewrite subst_fresh_typ.
-    apply ty_sub with (T:=S).
+    apply ty_sub with (T:=V).
     intro Contra. inversion Contra.
     assumption. apply subtyp_refl.
     eauto. eauto. eauto. eauto.
   - (* Fld-E *) right.
-    lets C: (canonical_forms_2 Hwf H).
-    destruct C as [S [ds [t [Bis [Tyds [Has Ty]]]]]].
-    exists s t G (@empty typ).
-    split.
-    apply red_sel with (T:=S) (ds:=ds); try assumption.
-    split.
-    rewrite concat_empty_r. reflexivity.
-    split.
-    assumption.
-    assumption.
-  - (* Let *) right.
+    lets C: (canonical_forms_2 HWf H).
+    destruct C as [V [ds [t [Bis [Tyds [Has Ty]]]]]].
+    exists sta sto t G (@empty typ) S. exists (@empty typ).
+    split. apply red_sel with (T:=V) (ds:=ds); try assumption.
+    split. rewrite concat_empty_r. reflexivity.
+    split. rewrite concat_empty_r. reflexivity.
+    split. assumption.
+    split. assumption. assumption.
+ - (* Let *) right.
     destruct t.
     + (* var *)
       assert (exists x, a = avar_f x) as A. {
         eapply var_typing_implies_avar_f. eassumption.
       }
       destruct A as [x A]. subst a.
-      exists s (open_trm x u) G (@empty typ).
-      split.
-      apply red_let_var.
-      split.
-      rewrite concat_empty_r. reflexivity.
+      exists sta sto (open_trm x u) G (@empty typ) S. exists (@empty typ).
+      split. apply red_let_var.
+      split. rewrite concat_empty_r. reflexivity.
+      split. rewrite concat_empty_r. reflexivity. 
       split.
       pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H0 y FrL).
       rewrite subst_intro_trm with (x:=y).
       rewrite <- subst_fresh_typ with (x:=y) (y:=x).
       eapply subst_ty_trm. eapply H0.
-      apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto. eauto.
-      rewrite subst_fresh_typ. assumption. eauto. eauto. eauto. eauto.
-    + lets Hv: (val_typing H).
+      apply ok_push. eapply wf_stack_to_ok_G. eassumption. auto. auto. auto.
+      rewrite subst_fresh_typ. assumption. auto. auto. auto. auto.
+    + (* val *)
+      lets Hv: (val_typing H).
       destruct Hv as [T' [Htyp Hsub]].
       pick_fresh x. assert (x \notin L) as FrL by auto. specialize (H0 x FrL).
-      exists (s & x ~ v) (open_trm x u) (G & (x ~ T')) (x ~ T').
+      exists (sta & x ~ v) sto (open_trm x u) (G & (x ~ T')) (x ~ T') S. exists (@empty typ).
       split.
-      apply red_let. eauto.
-      split. reflexivity. split.
-      apply narrow_typing with (G:=G & x ~ T).
+      apply red_let. auto.
+      split. reflexivity. split. rewrite concat_empty_r. reflexivity.
+      split. apply narrow_typing with (G:=G & x ~ T).
       assumption.
       apply subenv_last. assumption.
       apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
       apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
-      apply wf_stack_push. assumption. eauto. eauto. assumption.
-    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
-      destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
-      exists s' (trm_let t' u) G' G''.
+      split; auto.
+    + (* sel *)
+      specialize (IHty_trm HWf HWt). destruct IHty_trm as [IH | IH]. inversion IH.
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
+      exists sta' sto' (trm_let t' u) G' G'' S'. exists S''.
       split. apply red_let_tgt. assumption.
-      split. assumption. split.
-      apply ty_let with (L:=L \u dom G') (T:=T); eauto.
-      intros. rewrite IH2. eapply (proj51 weaken_rules). apply H0. auto. reflexivity.
-      rewrite <- IH2. apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
-      rewrite IH2.
-      rewrite <- IH2. eauto.
-    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
-      destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
-      exists s' (trm_let t' u) G' G''.
+      split. assumption. split. assumption.
+      split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
+      intros. inversion H2. assumption.
+      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
+        apply weaken_ty_trm_sigma. auto. apply (wf_stack_to_ok_S H6).
+      * reflexivity.
+      * subst. inversion H2. inversion H5. apply ok_push. eauto. auto.
+      * subst. inversion H2. inversion H4. split; assumption.
+    + (* app *)
+      specialize (IHty_trm HWf HWt). destruct IHty_trm as [IH | IH]. inversion IH.
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
+      exists sta' sto' (trm_let t' u) G' G'' S'. exists S''.
       split. apply red_let_tgt. assumption.
-      split. assumption. split.
-      apply ty_let with (L:=L \u dom G') (T:=T); eauto.
-      intros. rewrite IH2. eapply (proj51 weaken_rules). apply H0. auto. reflexivity.
-      rewrite <- IH2. apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
-      rewrite IH2.
-      rewrite <- IH2. eauto.
-    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
-      destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
-      exists s' (trm_let t' u) G' G''.
+      split. assumption. split. assumption.
+      split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
+      intros. inversion H2. assumption.
+      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
+        apply weaken_ty_trm_sigma. auto. apply (wf_stack_to_ok_S H6).
+      * reflexivity.
+      * subst. inversion H2. inversion H5. apply ok_push. eauto. auto.
+      * subst. inversion H2. inversion H4. split; assumption. 
+    + (* let *)
+      specialize (IHty_trm HWf HWt). destruct IHty_trm as [IH | IH]. inversion IH.
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
+      exists sta' sto' (trm_let t' u) G' G'' S'. exists S''.
       split. apply red_let_tgt. assumption.
-      split. assumption. split.
-      apply ty_let with (L:=L \u dom G') (T:=T); eauto.
-      intros. rewrite IH2. eapply (proj51 weaken_rules). apply H0. auto. reflexivity.
-      rewrite <- IH2. apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
-      rewrite IH2.
-      rewrite <- IH2. eauto.
-  - specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH].
+      split. assumption. split. assumption.
+      split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
+      intros. inversion H2. assumption.
+      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
+        apply weaken_ty_trm_sigma. auto. apply (wf_stack_to_ok_S H6).
+      * reflexivity.
+      * subst. inversion H2. inversion H5. apply ok_push. eauto. auto.
+      * subst. inversion H2. inversion H4. split; assumption. 
+    + (* ref *)
+      specialize (IHty_trm HWf HWt). destruct IHty_trm as [IH | IH]. inversion IH.
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
+      exists sta' sto' (trm_let t' u) G' G'' S'. exists S''.
+      split. apply red_let_tgt. assumption.
+      split. assumption. split. assumption.
+      split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
+      intros. inversion H2. assumption.
+      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
+        apply weaken_ty_trm_sigma. auto. apply (wf_stack_to_ok_S H6).
+      * reflexivity.
+      * subst. inversion H2. inversion H5. apply ok_push. eauto. auto.
+      * subst. inversion H2. inversion H4. split; assumption. 
+    + (* deref *) 
+      specialize (IHty_trm HWf HWt). destruct IHty_trm as [IH | IH]. inversion IH.
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
+      exists sta' sto' (trm_let t' u) G' G'' S'. exists S''.
+      split. apply red_let_tgt. assumption.
+      split. assumption. split. assumption.
+      split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
+      intros. inversion H2. assumption.
+      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
+        apply weaken_ty_trm_sigma. auto. apply (wf_stack_to_ok_S H6).
+      * reflexivity.
+      * subst. inversion H2. inversion H5. apply ok_push. eauto. auto.
+      * subst. inversion H2. inversion H4. split; assumption. 
+    + (* asgn *)
+      specialize (IHty_trm HWf HWt). destruct IHty_trm as [IH | IH]. inversion IH.
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
+      exists sta' sto' (trm_let t' u) G' G'' S'. exists S''.
+      split. apply red_let_tgt. assumption.
+      split. assumption. split. assumption.
+      split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
+      intros. inversion H2. assumption.
+      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
+        apply weaken_ty_trm_sigma. auto. apply (wf_stack_to_ok_S H6).
+      * reflexivity.
+      * subst. inversion H2. inversion H5. apply ok_push. eauto. auto.
+      * subst. inversion H2. inversion H4. split; assumption. 
+  - (* sub *)
+    specialize (IHty_trm HWf HWt). destruct IHty_trm as [IH | IH].
     + left. assumption.
-    + right. destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
-      exists s' t' G' G''.
-      split; try split; try split; try assumption.
+    + right. 
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 [IH5 IH6]]]]]]]]]]]].
+      exists sta' sto' t' G' G'' S'. exists S''.
+      split; try split; try split; try split; try split; try assumption.
       apply ty_sub with (T:=T).
-      intro Contra. inversion Contra.
-      assumption.
-      rewrite IH2. apply weaken_subtyp. assumption.
-      rewrite <- IH2. eapply wf_stack_to_ok_G. eassumption.
+      intro Contra. inversion Contra. assumption.
+      subst. apply weaken_subtyp_ctx. simpl. apply weaken_subtyp_sigma.
+      assumption. apply (wf_stack_to_ok_S IH5). apply (wf_stack_to_ok_G IH5).
+  - (* ref *)
+    right. pick_fresh l.
+    lets Bi: (typing_implies_bound H). destruct Bi as [V Bi].
+    lets A: (ctx_binds_to_stack_binds_typing HWf Bi). destruct A as [v [Bis Htyv]].
+    lets Hp: (possible_types_lemma HWf Bis H).
+    exists sta (sto[l:=v]) (trm_val (val_loc l)) G (@empty typ) (S & l ~ T). exists (l ~ T).
+    split. apply* red_ref_var.
+    assert (l # S) as HS by auto.
+    apply (wt_notin_dom HWt HS).
+    split. rewrite concat_empty_r. reflexivity.
+    split. reflexivity.
+    split.
+    constructor. auto.
+    split. constructor. assumption. auto.
+    apply wt_store_new. assumption. auto.
+    admit. (*
+    assert (subtyp ty_general sub_general G S V T) as Hsub. admit. (* TODO *) 
+    
+    lets Hv: (precise_to_general_typing Htyv).
+    destruct (val_typing Hv) as [T' [HtyT' Hsub]].*)
+    
+  - (* deref *) 
+    right.
+    lets C: (canonical_forms_3 HWfSta HWfSto H).
+    destruct C as [l [v [BiLoc [Htyloc [BiVal Htyval]]]]].
+    exists sta sto (trm_val v) G (@empty typ) S. exists (@empty typ).
+    split. apply red_deref with (l:=l). assumption. assumption.
+    split. rewrite concat_empty_r. reflexivity.
+    split. rewrite concat_empty_r. reflexivity.
+    split. assumption. split. assumption. assumption.
+  - (* asg *)
+    right.
+    lets C: (canonical_forms_3 HWfSta HWfSto H).
+    destruct C as [l [v [BiLoc [Hty [BiSto HtyVal]]]]].
+    lets D: (destruct_store BiSto). destruct D as [st' [st'' D]].
+    lets Bi: (typing_implies_bound H0). destruct Bi as [Ty Bi].
+    lets Bi': (ctx_binds_to_stack_binds_typing HWfSta Bi). destruct Bi' as [v0 [Bi' _]].
+    exists sta (st' & l ~ v0 & st'') (trm_var (avar_f y)) G (@empty typ) S. exists (@empty typ).
+    split.
+    apply red_asgn with (l:=l) (v:=v0).
+    assumption. assumption.
+    apply upd_exist with (v':=v). assumption.
+    split. rewrite concat_empty_r. reflexivity.
+    split. rewrite concat_empty_r. reflexivity.
+    split. assumption.
+    split. assumption.
+    apply update_to_wf_store with (s:=sto) (l:=l) (v:=v0) (T:=. assumption.
+    apply upd_exist with (v':=v). assumption.
 Qed.
+
