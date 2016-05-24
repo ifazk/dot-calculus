@@ -725,6 +725,13 @@ Proof.
   introv Wt. induction Wt; auto.
 Qed.
 
+Lemma wt_store_to_ok_G: forall s G S,
+  wt_store G S s -> ok G.
+Proof.
+  introv Wt. induction Wt; auto.
+Qed.
+
+
 Hint Resolve wf_stack_to_ok_s wf_stack_to_ok_G wf_stack_to_ok_S wt_store_to_ok_S.
 
 Lemma ctx_binds_to_stack_binds_raw: forall s G S x T,
@@ -745,20 +752,6 @@ Proof.
     - split. assumption. apply* weaken_ty_trm_sigma.
 Qed.
 
-Lemma env_binds: forall l T (S: sigma),
-  binds l T S ->
-  ok S ->
-  exists S1 S2, S = S1 & l ~ T & S2.
-Proof.
-  intros. induction S using env_ind.
-  - false* binds_empty_inv.
-  - apply binds_push_inv in H. destruct H as [[Hl HT] | [Hl Hbi]]; subst.
-    + exists S (@empty typ). rewrite concat_empty_r. reflexivity.
-    + apply IHS in Hbi; clear IHS. destruct Hbi as [S1 [S2 HS]].
-      apply ok_push_inv in H0. destruct H0 as [Hok Hx].
-      exists S1 (S2 & x ~ v). rewrite concat_assoc. subst. reflexivity. auto.
-Qed.
-
 Lemma sigma_binds_to_store_binds_raw: forall sto G S l T,
   wt_store G S sto ->
   binds l T S ->
@@ -770,16 +763,12 @@ Lemma sigma_binds_to_store_binds_raw: forall sto G S l T,
 Proof.
   introv Wt. generalize l T. induction Wt; introv Bi.
   + false* binds_empty_inv.
-  + lets Hok: (wt_store_to_ok_S).
-    lets Henv: (env_binds Bi).
-
+  + lets OkS: (wt_store_to_ok_S Wt).
     apply IHWt in Bi; clear IHWt. 
     destruct Bi as [S1 [S2 [HS [v0 [HBi Hty]]]]].
     exists S1 S2. 
-    lets OkS: (wt_store_to_ok_S Wt). apply Henv in OkS. destruct OkS as [S0 [S3 HS']].
     split. assumption.
     lets Hdec: (classicT (l1 = l0)). destruct Hdec as [Hdec | Hdec].
-    lets OkS: (wt_store_to_ok_S Wt).
     - subst l1. exists v. split.
       * apply binds_update_eq.
       * assert (binds l0 T1 S) as Hbi. {
@@ -789,9 +778,32 @@ Proof.
         subst S. apply binds_middle_eq_inv in H.
         subst. assumption. assumption.
     - exists v0. split.
-      * apply binds_update_neq. assumption. assumption.
+      * apply binds_update_neq; assumption.
       * assumption.
-  +     
+  + lets OkS: (wt_store_to_ok_S Wt).
+    lets Hdec: (classicT (l1 = l0)). destruct Hdec as [Hdec | Hdec].
+    - subst l1. exists S (@empty typ). 
+      apply binds_push_eq_inv in Bi. subst T1.
+      split.
+      rewrite concat_empty_r. reflexivity.
+      exists v. split.
+      * apply binds_update_eq.
+      * apply weaken_ty_trm_sigma.
+        assumption.
+        constructor; assumption.
+    - apply binds_push_neq_inv in Bi; try assumption.
+      destruct (IHWt l1 T1 Bi) as [S1 [S2 [HS [v0 [HBiM Hty]]]]].
+      exists S1 (S2 & l0 ~ T0). split.
+      subst S. rewrite concat_assoc. reflexivity.
+      exists v0. split.
+      apply binds_update_neq; assumption.
+      apply weaken_ty_trm_sigma. assumption. constructor; assumption.
+  + destruct (IHWt l0 T1 Bi) as [S1 [S2 [HS [v [HBi Hty]]]]].
+    exists S1 S2. split.
+    assumption.
+    exists v. split. assumption. apply weaken_ty_trm_ctx.
+    assumption. constructor. apply wt_store_to_ok_G in Wt. assumption. assumption.
+Qed.
 
 Lemma stack_binds_to_ctx_binds_raw: forall s G S x v,
   wf_stack G S s ->
