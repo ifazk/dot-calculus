@@ -65,11 +65,11 @@ Definition sigma := env typ.
 Definition stack := env val.
 
 (** *** Store ("sto") *)
-Definition store := LibMap.map addr val.
+Definition store := LibMap.map addr var.
 
-Definition bindsM l v sto := LibBag.binds (A:=addr) (B:=val) sto l v.
+Definition bindsM l x sto := LibBag.binds (A:=addr) (B:=var) sto l x.
 
-Definition emptyM : store := (@empty_impl addr val).
+Definition emptyM : store := (@empty_impl addr var).
 
 (* ###################################################################### *)
 (** ** Definition list membership *)
@@ -233,19 +233,17 @@ Inductive red : trm -> stack -> store -> trm -> stack -> store -> Prop :=
 | red_let_tgt : forall t0 t sta sto t0' sta' sto',
     red t0 sta sto t0' sta' sto' ->
     red (trm_let t0 t) sta sto (trm_let t0' t) sta' sto'
-| red_ref_var : forall x v sta sto l t,
-    binds x v sta ->
+| red_ref_var : forall x sta sto l T,
     l \notindom sto ->
-    red (trm_ref (avar_f x) t) sta sto (trm_val (val_loc l)) sta sto[l :=  v]
-| red_asgn : forall x y l v sta sto,
+    red (trm_ref (avar_f x) T) sta sto (trm_val (val_loc l)) sta sto[l :=  x]
+| red_asgn : forall x y l sta sto,
     binds x (val_loc l) sta ->
-    binds y v sta ->
     l \indom sto -> (* TODO is this redundant? *)
-    red (trm_asg (avar_f x) (avar_f y)) sta sto (trm_var (avar_f y)) sta sto[l := v]
-| red_deref : forall x (l: addr) sta v (sto: store),
+    red (trm_asg (avar_f x) (avar_f y)) sta sto (trm_var (avar_f y)) sta sto[l := y]
+| red_deref : forall x y (l: addr) sta (sto: store),
     binds x (val_loc l) sta ->
-    bindsM l v sto ->
-    red (trm_deref (avar_f x)) sta sto (trm_val v) sta sto.
+    bindsM l y sto ->
+    red (trm_deref (avar_f x)) sta sto (trm_var (avar_f y)) sta sto.
 
 (* ###################################################################### *)
 (** ** Typing *)
@@ -384,16 +382,16 @@ Inductive wf_stack: ctx -> sigma -> stack -> Prop :=
 (* well-typed store *)
 Inductive wt_store: ctx -> sigma -> store -> Prop :=
 | wt_store_empty: wt_store empty empty emptyM
-| wt_store_update: forall G S sto l v T,
+| wt_store_update: forall G S sto l x T,
     wt_store G S sto ->
     binds l T S ->
-    ty_trm ty_general sub_general G S (trm_val v) T ->
-    wt_store G S sto[l := v]
-| wt_store_new: forall G S sto l v T,
+    ty_trm ty_general sub_general G S (trm_var (avar_f x)) T ->
+    wt_store G S sto[l := x]
+| wt_store_new: forall G S sto l x T,
     wt_store G S sto ->
     l # S ->
-    ty_trm ty_general sub_general G S (trm_val v) T ->
-    wt_store G (S & l ~ T) sto[l := v]
+    ty_trm ty_general sub_general G S (trm_var (avar_f x)) T ->
+    wt_store G (S & l ~ T) sto[l := x]
 | wt_stack_push: forall G S x T sto,
     wt_store G S sto ->
     x # G ->
@@ -492,12 +490,12 @@ Proof.
   - rewrite dom_empty in H. rewrite in_empty in H. false.
   - lets Hind: (IHWt l0 H1).
     lets Hdec: (classicT (l = l0)). 
-    lets Hinh: (prove_Inhab v).
+    lets Hinh: (prove_Inhab x).
     destruct Hdec; unfold index; simpl; subst.
     * rewrite map_indom_update. left. reflexivity. assumption.
     * rewrite map_indom_update. right. assumption. assumption.
   - lets Hdec: (classicT (l = l0)).
-    lets Hinh: (prove_Inhab v).
+    lets Hinh: (prove_Inhab x).
     destruct Hdec; unfold index; simpl; subst.
     * rewrite map_indom_update. left. reflexivity. assumption.
     * rewrite map_indom_update. right.
@@ -530,9 +528,9 @@ Proof.
       * subst. false (binds_fresh_inv H H1).
       * assumption.
     }
-    assert (LibBag.dom sto[l := v] = LibBag.dom sto). { 
+    assert (LibBag.dom sto[l := x] = LibBag.dom sto). { 
       apply dom_update_in.
-      * apply (prove_Inhab v).
+      * apply (prove_Inhab x).
       * apply binds_get in H. apply get_some_inv in H.
         lets Hind: (wt_in_dom Wt H). assumption.
     }
@@ -561,7 +559,7 @@ Proof.
       }
       apply IHWt in Hl0. 
       unfold LibBag.notin in Hl0. unfold not in Hl0. apply Hl0 in Hs. false.
-    * unfolds addr. assert (LibBag.dom (LibBag.single_bind l v) = LibBag.single l) as Hdom. admit.
+    * unfolds addr. assert (LibBag.dom (LibBag.single_bind l x) = LibBag.single l) as Hdom. admit.
       (* todo LibMap.dom_single doesn't exist in compiled version *)
       rewrite Hdom in Hs. 
       rewrite in_single_eq in Hs. subst. false H2. reflexivity.
@@ -757,9 +755,9 @@ Lemma sigma_binds_to_store_binds_raw: forall sto G S l T,
   binds l T S ->
   exists S1 S2,
     S = S1 & (l ~ T) & S2 /\
-    exists v,
-    bindsM l v sto /\ 
-    ty_trm ty_general sub_general G S (trm_val v) T.
+    exists x,
+    bindsM l x sto /\ 
+    ty_trm ty_general sub_general G S (trm_var (avar_f x)) T.
 Proof.
   introv Wt. generalize l T. induction Wt; introv Bi.
   + false* binds_empty_inv.
@@ -769,7 +767,7 @@ Proof.
     exists S1 S2. 
     split. assumption.
     lets Hdec: (classicT (l1 = l0)). destruct Hdec as [Hdec | Hdec].
-    - subst l1. exists v. split.
+    - subst l1. exists x. split.
       * apply binds_update_eq.
       * assert (binds l0 T1 S) as Hbi. {
           subst S. apply binds_middle_eq.
@@ -786,7 +784,7 @@ Proof.
       apply binds_push_eq_inv in Bi. subst T1.
       split.
       rewrite concat_empty_r. reflexivity.
-      exists v. split.
+      exists x. split.
       * apply binds_update_eq.
       * apply weaken_ty_trm_sigma.
         assumption.
