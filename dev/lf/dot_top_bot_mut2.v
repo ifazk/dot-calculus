@@ -3400,12 +3400,12 @@ Qed.
 Lemma sigma_binds_to_store_binds_typing: forall G S sto l T,
   wt_store G S sto ->
   binds l T S ->
-  exists v, bindsM l v sto /\ ty_trm ty_general sub_general G S (trm_val v) T.
+  exists x, bindsM l x sto /\ ty_trm ty_general sub_general G S (trm_var (avar_f x)) T.
 Proof.
   introv Hwf Bi.
   lets A: (sigma_binds_to_store_binds_raw Hwf Bi).
-  destruct A as [S1 [S2 [HeqG [v [Bis Hty]]]]].
-  exists v. split; eauto.
+  destruct A as [S1 [S2 [HeqG [x [Bis Hty]]]]].
+  exists x. split; eauto.
 Qed.
 
 Lemma pt_sub: forall G S x v T T' sta,
@@ -3547,22 +3547,22 @@ Lemma canonical_forms_3: forall G S sta sto x T,
   wf_stack G S sta ->
   wt_store G S sto ->
   ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_ref T) ->
-  exists l v,
+  exists l y,
     binds x (val_loc l) sta /\
     ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) /\
-    bindsM l v sto /\
-    ty_trm ty_general sub_general G S (trm_val v) T.
+    bindsM l y sto /\
+    ty_trm ty_general sub_general G S (trm_var (avar_f y)) T.
 Proof.
   introv HWfSta HWfSto Hty.
   lets Bi: (typing_implies_bound Hty). destruct Bi as [V Bi].
-  lets A: (ctx_binds_to_stack_binds_typing HWfSta Bi). destruct A as [v [Bis Htyv]].
+  lets A: (ctx_binds_to_stack_binds_typing HWfSta Bi). destruct A as [y [Bis Htyy]].
   lets Hp: (possible_types_lemma HWfSta Bis Hty).
   inversion Hp; subst.
   - lets Htype: (record_type_new HWfSta Bis). rewrite H4 in Htype.
     destruct Htype as [ls Htyp]. inversion Htyp.
   - lets Bi': (typing_implies_bound_loc H4). destruct Bi' as [Tl Bi'].
-    lets B: (sigma_binds_to_store_binds_typing HWfSto Bi'). destruct B as [vl [Bil Htyl]].
-    exists l vl. split. assumption. split. assumption. split. assumption. Admitted. (*
+    lets B: (sigma_binds_to_store_binds_typing HWfSto Bi'). destruct B as [y' [Bil Htyl]].
+    exists l y'. split. assumption. split. assumption. split. assumption. Admitted. (*
     apply ref_binds_typ in H4. apply wf_stack_to_ok_S in HWfSta.
     apply (binds_func H4) in Bi'. subst T. assumption.
 Qed.*)
@@ -3611,21 +3611,8 @@ Proof.
       apply weaken_ty_trm_ctx.
       admit.
       apply wf_stack_to_ok_G in HWf. auto.
-    * apply binds_push_neq_inv in Bi.
-      apply (IHHWf Bi) in 
-
-Inductive wf_stack : ctx -> sigma -> stack -> Prop :=
-    wf_stack_empty : wf_stack empty empty empty
-  | wf_stack_push : forall (G : ctx) (S : sigma) (sta : stack) (x : var)
-                      (T : typ) (v : val),
-                    wf_stack G S sta ->
-                    x # G ->
-                    x # sta ->
-                    ty_trm ty_precise sub_general G S (trm_val v) T ->
-                    wf_stack (G & x ~ T) S (sta & x ~ v)
-  | wf_store_push : forall (G : ctx) (S : sigma) (l : var) (T : typ)
-                      (sta : stack),
-                    wf_stack G S sta -> l # S -> wf_stack G (S & l ~ T) sta
+    * apply binds_push_neq_inv in Bi. 
+Admitted. 
 
 
 (* ###################################################################### *)
@@ -3832,7 +3819,7 @@ Proof.
     lets Bi: (typing_implies_bound H). destruct Bi as [V Bi].
     lets A: (ctx_binds_to_stack_binds_typing HWf Bi). destruct A as [v [Bis Htyv]].
     lets Hp: (possible_types_lemma HWf Bis H).
-    exists sta (sto[l:=v]) (trm_val (val_loc l)) G (@empty typ) (S & l ~ T). exists (l ~ T).
+    exists sta (sto[l:=x]) (trm_val (val_loc l)) G (@empty typ) (S & l ~ T). exists (l ~ T).
     split. apply* red_ref_var.
     assert (l # S) as HS by auto.
     apply (wt_notin_dom HWt HS).
@@ -3842,17 +3829,12 @@ Proof.
     constructor. auto.
     split. constructor. assumption. auto.
     apply wt_store_new. assumption. auto.
-    admit. (*
-    assert (subtyp ty_general sub_general G S V T) as Hsub. admit. (* TODO *) 
-    
-    lets Hv: (precise_to_general_typing Htyv).
-    destruct (val_typing Hv) as [T' [HtyT' Hsub]].*)
-    
+    assumption.
   - (* deref *) 
     right.
     lets C: (canonical_forms_3 HWf HWt H).
-    destruct C as [l [v [BiLoc [Htyloc [BiVal Htyval]]]]].
-    exists sta sto (trm_val v) G (@empty typ) S. exists (@empty typ).
+    destruct C as [l [y [BiLoc [Htyloc [BiVal Htyval]]]]].
+    exists sta sto (trm_var (avar_f y)) G (@empty typ) S. exists (@empty typ).
     split. apply red_deref with (l:=l). assumption. assumption.
     split. rewrite concat_empty_r. reflexivity.
     split. rewrite concat_empty_r. reflexivity.
