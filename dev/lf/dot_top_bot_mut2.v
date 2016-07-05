@@ -295,9 +295,8 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
     ty_trm m1 m2 G S t T ->
     subtyp m1 m2 G S T U ->
     ty_trm m1 m2 G S t U
-| ty_ref_intro : forall m1 m2 G S x T T',
-     binds x T G ->
-     subtyp m1 m2 G S T T' ->
+| ty_ref_intro : forall m1 m2 G S x T,
+     ty_trm m1 m2 G S (trm_var (avar_f x)) T ->
      ty_trm m1 m2 G S (trm_ref (avar_f x) T) (typ_ref T)
 | ty_ref_elim : forall m1 m2 G S x T,
     ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_ref T) ->
@@ -615,12 +614,9 @@ Proof.
     repeat rewrite concat_assoc in H0.
     apply* H0.
   + intros. subst.
-    apply ty_ref_intro with (T':=T').
-    apply binds_weaken; auto.
-    specialize (H G1 G2 G3). assert (G1 & G3 = G1 & G3) as HG by reflexivity.
-    apply (H HG H1).
-  + intros. subst.
-    apply_fresh subtyp_all as z. auto.
+    apply_fresh subtyp_all as z.
+    eauto.
+    eauto.
     assert (zL: z \notin L) by auto.
     specialize (H0 z zL G1 G2 (G3 & z ~ S2)).
     repeat rewrite concat_assoc in H0.
@@ -907,7 +903,6 @@ Qed.
 (* ###################################################################### *)
 (** ** Extra Rec *)
 
-(* these rules aren't used anywhere
 Lemma extra_bnd_rules:
   (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G1 G2 x V G',
     G = G1 & (x ~ open_typ x V) & G2 ->
@@ -929,42 +924,37 @@ Proof.
   apply rules_mutind; intros; eauto.
   - (* ty_var *)
     subst. apply binds_middle_inv in b. destruct b as [Bi | [Bi | Bi]].
-    + apply ty_var. auto.
+    + apply ty_var. eauto.
     + destruct Bi as [Bin [Eqx EqT ]]. subst.
       apply ty_rec_elim. apply ty_var. eauto.
     + destruct Bi as [Bin [Neqx Bi]]. apply ty_var. eauto.
   - (* ty_all_intro *)
     subst.
-    apply_fresh ty_all_intro as y; auto.
-    assert (y \notin L) as FrL by auto.
+    apply_fresh ty_all_intro as y; eauto.
+    assert (y \notin L) as FrL by eauto.
     specialize (H y FrL).
     specialize (H G1 (G2 & y ~ T) x V).
-    eapply H; auto.
+    eapply H; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. reflexivity.
   - (* ty_new_intro *)
     subst.
-    apply_fresh ty_new_intro as y; auto;
-    assert (y \notin L) as FrL by auto.
+    apply_fresh ty_new_intro as y; eauto;
+    assert (y \notin L) as FrL by eauto.
     specialize (H y FrL).
     specialize (H G1 (G2 & y ~ open_typ y T) x V).
-    apply H; auto.
+    eapply H; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. reflexivity.
   - (* ty_let *)
     subst.
     apply_fresh ty_let as y; eauto.
-    assert (y \notin L) as FrL by auto.
+    assert (y \notin L) as FrL by eauto.
     specialize (H0 y FrL).
     specialize (H0 G1 (G2 & y ~ T) x V).
-    apply H0; auto.
+    eapply H0; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. reflexivity.
-  - (* ty_ref_intro *)
-    subst. apply ty_ref_intro with (T':=T').
-    
-    specialize (H G1 G2 x0 V (G1 & x0 ~ typ_bnd V & G2)).
-    appl
   - (* subtyp_all *)
     subst.
     apply_fresh subtyp_all as y; eauto.
@@ -974,7 +964,7 @@ Proof.
     eapply H0; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. reflexivity.
-Qed. *)
+Qed.
 
 (* ###################################################################### *)
 (** ** Substitution *)
@@ -1443,8 +1433,7 @@ Proof.
     apply H; eauto.
   - (* ty_and_intro *)
     simpl.
-    assert (trm_var (avar_f (If x = x0 then y else x)) = subst_trm x0 y (trm_var (avar_f x)))
-      as A. {
+    assert (trm_var (avar_f (If x = x0 then y else x)) = subst_trm x0 y (trm_var (avar_f x))) as A. {
       simpl. reflexivity.
     }
     rewrite A.
@@ -1453,11 +1442,8 @@ Proof.
     eapply ty_sub; eauto.
     intro Contra. inversion Contra.
   - (* ty_ref *)
-    simpl.
-    apply ty_ref_intro with (T':=T').
-    assert (trm_var (avar_f (If x = x0 then y else x)) = subst_trm x0 y (trm_var (avar_f x))) 
-      as A by (simpl; reflexivity).
-    
+    simpl. constructor.
+    assert (trm_var (avar_f (If x = x0 then y else x)) = subst_trm x0 y (trm_var (avar_f x))) as A by (simpl; reflexivity).
     rewrite A.
     apply H; auto.
   - (* ty_ref_elim *)
