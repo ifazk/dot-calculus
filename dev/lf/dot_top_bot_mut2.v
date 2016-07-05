@@ -3498,11 +3498,8 @@ Lemma subtyp_bot_inv: forall G S m1 m2 T,
 Proof.
   introv Hsub. dependent induction Hsub; try reflexivity.
   - apply (IHHsub1 IHHsub2).
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-Qed.
+  - dependent induction U.
+    * 
 
 Lemma unique_ref_subtyping2: forall G S U T,
   subtyp ty_general sub_general G S U (typ_ref T) ->
@@ -3525,15 +3522,30 @@ Proof.
   - admit.
 Qed.
 
-Lemma general_to_precise_ref: forall G S l T,
+
+Lemma bot_loc_false: forall G S l,
+  ty_trm ty_general sub_general G S (trm_val (val_loc l)) typ_bot -> False.
+Proof.
+  introv Hty. dependent induction Hty; try auto; subst.
+  - apply subtyp_bot_inv in H0. subst. 
+    assert (typ_bot = typ_bot) as Ht by reflexivity.
+    apply (IHHty Ht).
+Qed.
+
+Lemma general_to_precise_ref: forall G S l T x sta,
   ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
+  wf_stack G S sta ->
+  binds x (val_loc l) sta ->
   ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref T).
 Proof.
-  introv Hty. dependent induction Hty.
+  introv Hty Hwf Hbi. dependent induction Hty.
   - constructor; assumption.
-  - apply unique_ref_subtyping2 in H0. Admitted. (* 
-    lets Hl: (loc_intro_inversion Hty).
-Qed.*)
+  - apply unique_ref_subtyping2 in H0. 
+    destruct H0; subst.
+    * specialize (IHHty T). assert (typ_ref T = typ_ref T) as HTR by reflexivity.
+      apply (IHHty HTR Hwf Hbi).
+    * false (bot_loc_false Hty).
+Qed.
 
 (*
 Lemma (Canonical forms 3)
@@ -3562,8 +3574,9 @@ Proof.
     destruct Htype as [ls Htyp]. inversion Htyp.
   - lets Bi': (typing_implies_bound_loc H4). destruct Bi' as [Tl Bi'].
     lets B: (sigma_binds_to_store_binds_typing HWfSto Bi'). destruct B as [y' [Bil Htyl]].
-    exists l y'. split. assumption. split. assumption. split. assumption. Admitted. (*
-    apply ref_binds_typ in H4. apply wf_stack_to_ok_S in HWfSta.
+    exists l y'. split. assumption. split. assumption. split. assumption. 
+Admitted.
+(*    apply ref_binds_typ in H4. apply wf_stack_to_ok_S in HWfSta.
     apply (binds_func H4) in Bi'. subst T. assumption.
 Qed.*)
 
@@ -3593,27 +3606,6 @@ Proof.
   - destruct IHty_trm as [T' [Hty Hsub]].
     exists T'. split; eauto.
 Qed.
-
-Lemma name: forall G S x T T',
-   ty_trm ty_general sub_general (G & x ~ T') S (trm_var (avar_f x)) T ->
-   subtyp ty_general sub_general G S T' T.
-
-Lemma wf_implies_typing: forall G S x v sta T,
-  wf_stack G S sta ->
-  binds x v sta ->
-  ty_trm ty_general sub_general G S (trm_var (avar_f x)) T ->
-  ty_trm ty_general sub_general G S (trm_val v) T.
-Proof.
-  introv HWf Bi Hty. dependent induction HWf.
-  - false* binds_empty_inv.
-  - lets Hdec: (classicT (x = x0)). destruct Hdec.
-    * subst x0. apply binds_push_eq_inv in Bi. subst v0.
-      apply weaken_ty_trm_ctx.
-      admit.
-      apply wf_stack_to_ok_G in HWf. auto.
-    * apply binds_push_neq_inv in Bi. 
-Admitted. 
-
 
 (* ###################################################################### *)
 (** * Safety *)
@@ -3816,9 +3808,6 @@ Proof.
       assumption. apply (wf_stack_to_ok_S IH5). apply (wf_stack_to_ok_G IH5).
   - (* ref *)
     right. pick_fresh l.
-    lets Bi: (typing_implies_bound H). destruct Bi as [V Bi].
-    lets A: (ctx_binds_to_stack_binds_typing HWf Bi). destruct A as [v [Bis Htyv]].
-    lets Hp: (possible_types_lemma HWf Bis H).
     exists sta (sto[l:=x]) (trm_val (val_loc l)) G (@empty typ) (S & l ~ T). exists (l ~ T).
     split. apply* red_ref_var.
     assert (l # S) as HS by auto.
@@ -3842,23 +3831,25 @@ Proof.
   - (* asg *)
     right.
     lets C: (canonical_forms_3 HWf HWt H).
-    destruct C as [l [v [BiLoc [Hty [BiSto HtyVal]]]]].
+    destruct C as [l [y' [BiLoc [Hty [BiSto Htyy']]]]].
     lets Bi: (typing_implies_bound H0). destruct Bi as [Ty Bi].
     lets Bi': (ctx_binds_to_stack_binds_typing HWf Bi). destruct Bi' as [v0 [Bi' _]].
-    exists sta (sto[l := v0]) (trm_var (avar_f y)) G (@empty typ) S. exists (@empty typ).
+    exists sta (sto[l := y]) (trm_var (avar_f y)) G (@empty typ) S. exists (@empty typ).
     split.
-    apply red_asgn with (l:=l) (v:=v0).
-    assumption. assumption.
+    apply red_asgn with (l:=l).
+    assumption.
+    lets Hbd: (LibMap.binds_def sto l y'). unfold bindsM in BiSto. rewrite Hbd in BiSto.
+    destruct BiSto as [His Hsto]. assumption.
     unfold bindsM in BiSto.
-    lets Hinh: (prove_Inhab v).
-    lets Hbd: (LibMap.binds_def sto l v). rewrite Hbd in BiSto.
-    destruct BiSto as [His _]. assumption.
+    lets Hinh: (prove_Inhab y').
+    lets Hbd: (LibMap.binds_def sto l y'). rewrite Hbd in BiSto.
+    destruct BiSto as [His _].
     split. rewrite concat_empty_r. reflexivity.
     split. rewrite concat_empty_r. reflexivity.
     split. assumption.
     split. assumption.
+    apply general_to_precise_ref in Hty.
     lets HBi: (ref_binds_typ Hty).
-    apply wt_store_update with (T:=T); try assumption.
-    clear IHty_trm1 IHty_trm2.
+    apply wt_store_update with (T:=T); assumption.
 Qed.
 
