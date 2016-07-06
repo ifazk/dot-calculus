@@ -2968,7 +2968,7 @@ Proof.
     specialize (H Heqm1). destruct H. inversion H.
   - repeat eexists. eassumption. assumption.
 Qed.
-
+(*
 Lemma pt_ref_trm_inversion: forall G S sta x v T,
   wf_stack G S sta ->
   binds x v sta ->
@@ -2977,7 +2977,7 @@ Lemma pt_ref_trm_inversion: forall G S sta x v T,
     v = val_loc l /\ ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T).
 Proof.
   introv Hwf Bis Hp. inversion Hp; subst.
-  
+  *)
  
 Lemma pt_rcd_typ_inversion: forall G S s x v A V U,
   wf_stack G S s ->
@@ -3505,6 +3505,7 @@ Proof.
   eapply new_ty_defs; eauto.
 Qed.
 
+
 Lemma ref_binds_typ: forall G S l T,
   ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
   binds l T S.
@@ -3518,57 +3519,6 @@ Proof.
     destruct Hp as [x Ht]. inversion Ht.
 Qed.
 
-Lemma subtyp_bot_inv: forall G S m1 m2 T,
-  subtyp m1 m2 G S T typ_bot ->
-  T = typ_bot.
-Proof.
-  introv Hsub. dependent induction Hsub; try reflexivity.
-  - apply (IHHsub1 IHHsub2).
-  - dependent induction U.
-    * 
-Admitted.
-
-Lemma bot_loc_false: forall G S l,
-  ty_trm ty_general sub_general G S (trm_val (val_loc l)) typ_bot -> False.
-Proof.
-  introv Hty. dependent induction Hty; try auto; subst.
-  - apply subtyp_bot_inv in H0. subst. 
-    assert (typ_bot = typ_bot) as Ht by reflexivity.
-    apply (IHHty Ht).
-Qed.
-
-
-Lemma general_to_precise_ref: forall G S l T x sta sto,
-  ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
-  wf_stack G S sta ->
-  wt_store G S sto ->
-  binds x (val_loc l) sta ->
-  ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref T).
-Proof.
-  introv Hty Hwf Hwt Hbi. 
-  
-  
-  dependent induction Hty.
-  - constructor; assumption.
-  - assert (binds l T S).
-    dependent induction H0.
-    * admit.
-    * assert (typ_ref T = typ_ref T) as Href by reflexivity.
-      specialize (IHHty T Href Hwf Hwt Hbi). admit.
-    * admit.
-    * dependent induction Hty.
-  
-  clear H. assert (binds l T S) as Hbil. {
-    dependent induction H0.
-    * admit.
-    * assert (typ_ref T = typ_ref T) by reflexivity. specialize (IHHty T H Hwf Hwt Hbi). assu
-  
-  apply (unique_ref_subtyping_general Hty Hwf Hbi) in H0. 
-    destruct H0; subst.
-    * specialize (IHHty T). assert (typ_ref T = typ_ref T) as HTR by reflexivity. Admitted. (*
-      apply (IHHty HTR Hwf Hbi).
-    * false (bot_loc_false Hty).
-Qed.*)
 (*
 Lemma (Canonical forms 3)
 
@@ -3583,7 +3533,7 @@ Lemma canonical_forms_3: forall G S sta sto x T,
   ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_ref T) ->
   exists l y,
     binds x (val_loc l) sta /\
-    ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) /\
+    ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref T) /\
     bindsM l y sto /\
     ty_trm ty_general sub_general G S (trm_var (avar_f y)) T.
 Proof.
@@ -3597,7 +3547,8 @@ Proof.
   - lets Bi': (typing_implies_bound_loc H4). destruct Bi' as [Tl Bi'].
     lets B: (sigma_binds_to_store_binds_typing HWfSto Bi'). destruct B as [y' [Bil Htyl]].
     exists l y'. split. assumption. split.
-    apply precise_to_general in H4; try reflexivity. assumption.
+    apply H4.
+(*    apply precise_to_general in H4; try reflexivity. assumption.*)
     split. assumption.
     inversion H4; subst. apply (binds_func H6) in Bi'. subst. assumption.
     assert (ty_precise = ty_precise) as Hpref by reflexivity.
@@ -3846,7 +3797,6 @@ Proof.
     split. rewrite concat_empty_r. reflexivity.
     split. assumption.
     split. assumption.
-    apply general_to_precise_ref in Hty.
     lets HBi: (ref_binds_typ Hty).
     apply wt_store_update with (T:=T); assumption.
 Qed.
