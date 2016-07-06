@@ -3786,10 +3786,6 @@ Proof.
     assumption.
     lets Hbd: (LibMap.binds_def sto l y'). unfold bindsM in BiSto. rewrite Hbd in BiSto.
     destruct BiSto as [His Hsto]. assumption.
-    unfold bindsM in BiSto.
-    lets Hinh: (prove_Inhab y').
-    lets Hbd: (LibMap.binds_def sto l y'). rewrite Hbd in BiSto.
-    destruct BiSto as [His _].
     split. rewrite concat_empty_r. reflexivity.
     split. rewrite concat_empty_r. reflexivity.
     split. assumption.
