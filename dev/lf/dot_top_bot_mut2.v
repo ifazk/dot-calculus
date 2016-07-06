@@ -3703,14 +3703,14 @@ Proof.
       * subst. inversion H2. inversion H5. apply ok_push. eauto. auto.
       * subst. inversion H2. inversion H4. split; assumption. 
     + (* ref *)
-      specialize (IHty_trm HWf HWt). destruct IHty_trm as [IH | IH]. inversion IH.
-      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
+      specialize (IHty_trm HWf HWt). destruct IHty_trm as [IH | IH].
+      inversion IH. destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3]]]]]]]]]].
       exists sta' sto' (trm_let t' u) G' G'' S'. exists S''.
       split. apply red_let_tgt. assumption.
       split. assumption. split. assumption.
-      split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
-      intros. inversion H2. assumption.
-      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      split. apply ty_let with (L:=L \u dom G') (T:=T); auto.
+      inversion H2. assumption.
+      intros. rewrite IH2. eapply weaken_rules_ctx.
       * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
         apply weaken_ty_trm_sigma. auto. apply (wf_stack_to_ok_S H6).
       * reflexivity.
@@ -3723,8 +3723,8 @@ Proof.
       split. apply red_let_tgt. assumption.
       split. assumption. split. assumption.
       split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
-      intros. inversion H2. assumption.
-      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      inversion H2. assumption.
+      intros. rewrite IH2. eapply weaken_rules_ctx.
       * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
         apply weaken_ty_trm_sigma. auto. apply (wf_stack_to_ok_S H6).
       * reflexivity.
@@ -3737,8 +3737,8 @@ Proof.
       split. apply red_let_tgt. assumption.
       split. assumption. split. assumption.
       split. apply ty_let with (L:=L \u dom G') (T:=T); eauto.
-      intros. inversion H2. assumption.
-      intros. rewrite IH2. eapply (proj51 weaken_rules_ctx).
+      inversion H2. assumption.
+      intros. rewrite IH2. eapply weaken_rules_ctx.
       * instantiate (1:=G & x ~ T). inversion H2. inversion H5. subst.
         apply weaken_ty_trm_sigma. auto. apply (wf_stack_to_ok_S H6).
       * reflexivity.
@@ -3763,8 +3763,7 @@ Proof.
     apply (wt_notin_dom HWt HS).
     split. rewrite concat_empty_r. reflexivity.
     split. reflexivity.
-    split.
-    constructor. auto.
+    split. constructor. auto.
     split. constructor. assumption. auto.
     apply wt_store_new. assumption. auto.
     assumption.
@@ -3781,8 +3780,6 @@ Proof.
     right.
     lets C: (canonical_forms_3 HWf HWt H).
     destruct C as [l [y' [BiLoc [Hty [BiSto Htyy']]]]].
-    lets Bi: (typing_implies_bound H0). destruct Bi as [Ty Bi].
-    lets Bi': (ctx_binds_to_stack_binds_typing HWf Bi). destruct Bi' as [v0 [Bi' _]].
     exists sta (sto[l := y]) (trm_var (avar_f y)) G (@empty typ) S. exists (@empty typ).
     split.
     apply red_asgn with (l:=l).
