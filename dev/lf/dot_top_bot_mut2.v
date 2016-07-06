@@ -821,50 +821,6 @@ Proof.
     - apply* weaken_ty_trm_sigma.
 Qed.
 
-Lemma invert_wf_stack_concat: forall sta G1 G2 S,
-  wf_stack (G1 & G2) S sta ->
-  exists s1 s2, sta = s1 & s2 /\ wf_stack G1 S s1.
-Proof.
-  introv Wf. gen_eq G: (G1 & G2). gen G1 G2. induction Wf; introv Eq; subst.
-  - do 2 exists (@empty val). rewrite concat_empty_r.
-    apply empty_concat_inv in Eq. destruct Eq. subst. auto.
-  - destruct (env_case G2) as [Eq1 | [x' [T' [G2' Eq1]]]].
-    * subst G2. rewrite concat_empty_r in Eq. subst G1.
-      exists (sta & x ~ v) (@empty val). rewrite concat_empty_r. auto.
-    * subst G2. rewrite concat_assoc in Eq. apply eq_push_inv in Eq.
-      destruct Eq as [? [? ?]]. subst x' T' G. specialize (IHWf G1 G2' eq_refl).
-      destruct IHWf as [s1 [s2 [Eq Wf']]]. subst.
-      exists s1 (s2 & x ~ v). rewrite concat_assoc. auto.
-  - specialize (IHWf G1 G2). destruct IHWf as [HG [He [s1 Hwf]]]; eauto.
-Qed.
-
-Lemma stack_unbound_to_ctx_unbound: forall s G S x,
-  wf_stack G S s ->
-  x # s ->
-  x # G.
-Proof.
-  introv Wf Ub_s.
-  induction Wf.
-  + auto.
-  + destruct (classicT (x0 = x)) as [Eq | Ne].
-    - subst. false (fresh_push_eq_inv Ub_s).
-    - auto.
-  + apply IHWf in Ub_s. assumption.
-Qed.
-
-Lemma ctx_unbound_to_stack_unbound: forall s G S x,
-  wf_stack G S s ->
-  x # G ->
-  x # s.
-Proof.
-  introv Wf Ub.
-  induction Wf.
-  + auto.
-  + destruct (classicT (x0 = x)) as [Eq | Ne].
-    - subst. false (fresh_push_eq_inv Ub).
-    - auto.
-  + apply IHWf in Ub. assumption.
-Qed.
 
 Lemma typing_implies_bound: forall m1 m2 G S x T,
   ty_trm m1 m2 G S (trm_var (avar_f x)) T ->
@@ -890,13 +846,6 @@ Proof.
   - inversion Heqt. subst. exists T. assumption.
 Qed.
 
-Lemma typing_bvar_implies_false: forall m1 m2 G S a T,
-  ty_trm m1 m2 G S (trm_var (avar_b a)) T ->
-  False.
-Proof.
-  intros. remember (trm_var (avar_b a)) as t. induction H; try solve [inversion Heqt].
-  eapply IHty_trm. auto.
-Qed.
 
 (* ###################################################################### *)
 (** ** Substitution *)
@@ -1078,12 +1027,6 @@ Proof.
   intros. apply* subst_open_commute_trm_val_def_defs.
 Qed.
 
-Lemma subst_open_commute_val: forall x y u v,
-  subst_val x y (open_val u v) = open_val (subst_fvar x y u) (subst_val x y v).
-Proof.
-  intros. apply* subst_open_commute_trm_val_def_defs.
-Qed.
-
 Lemma subst_open_commute_defs: forall x y u ds,
   subst_defs x y (open_defs u ds) = open_defs (subst_fvar x y u) (subst_defs x y ds).
 Proof.
@@ -1097,14 +1040,6 @@ Lemma subst_intro_trm: forall x u t, x \notin (fv_trm t) ->
 Proof.
   introv Fr. unfold open_trm. rewrite* subst_open_commute_trm.
   destruct (@subst_fresh_trm_val_def_defs x u) as [Q _]. rewrite* (Q t).
-  unfold subst_fvar. case_var*.
-Qed.
-
-Lemma subst_intro_val: forall x u v, x \notin (fv_val v) ->
-  open_val u v = subst_val x u (open_val x v).
-Proof.
-  introv Fr. unfold open_trm. rewrite* subst_open_commute_val.
-  destruct (@subst_fresh_trm_val_def_defs x u) as [_ [Q _]]. rewrite* (Q v).
   unfold subst_fvar. case_var*.
 Qed.
 
@@ -1122,100 +1057,6 @@ Proof.
   introv Fr. unfold open_typ. rewrite* subst_open_commute_typ.
   destruct (@subst_fresh_typ_dec x u) as [Q _]. rewrite* (Q T).
   unfold subst_fvar. case_var*.
-Qed.
-
-Lemma subst_intro_dec: forall x u D, x \notin (fv_dec D) ->
-  open_dec u D = subst_dec x u (open_dec x D).
-Proof.
-  introv Fr. unfold open_trm. rewrite* subst_open_commute_dec.
-  destruct (@subst_fresh_typ_dec x u) as [_ Q]. rewrite* (Q D).
-  unfold subst_fvar. case_var*.
-Qed.
-
-Lemma subst_undo_avar: forall x y,
-  (forall a, y \notin fv_avar a -> (subst_avar y x (subst_avar x y a)) = a).
-Proof.
-  intros. unfold subst_avar, subst_fvar, open_avar, open_rec_avar; destruct a.
-  + reflexivity.
-  + unfold fv_avar in H. assert (y <> v) by auto. repeat case_if; reflexivity.
-Qed.
-
-Lemma subst_undo_typ_dec: forall x y,
-   (forall T , y \notin fv_typ  T  -> (subst_typ  y x (subst_typ  x y T )) = T )
-/\ (forall D , y \notin fv_dec  D  -> (subst_dec  y x (subst_dec  x y D )) = D ).
-Proof.
-  intros.
-  apply typ_mutind; intros; simpl; unfold fv_typ, fv_dec in *; f_equal*.
-  apply* subst_undo_avar.
-Qed.
-
-Lemma subst_undo_trm_val_def_defs: forall x y,
-   (forall t , y \notin fv_trm  t  -> (subst_trm  y x (subst_trm  x y t )) = t )
-/\ (forall v , y \notin fv_val  v  -> (subst_val  y x (subst_val  x y v )) = v )
-/\ (forall d , y \notin fv_def  d  -> (subst_def  y x (subst_def  x y d )) = d )
-/\ (forall ds, y \notin fv_defs ds -> (subst_defs y x (subst_defs x y ds)) = ds).
-Proof.
-  intros.
-  apply trm_mutind; intros; simpl; unfold fv_trm, fv_val, fv_def, fv_defs in *; f_equal*;
-    (apply* subst_undo_avar || apply* subst_undo_typ_dec).
-Qed.
-
-Lemma subst_typ_undo: forall x y T,
-  y \notin fv_typ T -> (subst_typ y x (subst_typ x y T)) = T.
-Proof.
-  apply* subst_undo_typ_dec.
-Qed.
-
-Lemma subst_trm_undo: forall x y t,
-  y \notin fv_trm t -> (subst_trm y x (subst_trm x y t)) = t.
-Proof.
-  apply* subst_undo_trm_val_def_defs.
-Qed.
-
-Lemma subst_idempotent_avar: forall x y,
-  (forall a, (subst_avar x y (subst_avar x y a)) = (subst_avar x y a)).
-Proof.
-  intros. unfold subst_avar, subst_fvar, open_avar, open_rec_avar; destruct a.
-  + reflexivity.
-  + repeat case_if; reflexivity.
-Qed.
-
-Lemma subst_idempotent_typ_dec: forall x y,
-   (forall T, subst_typ x y (subst_typ x y T) = subst_typ x y T)
-/\ (forall D, subst_dec x y (subst_dec x y D) = subst_dec x y D).
-Proof.
-  intros.
-  apply typ_mutind; intros; simpl; unfold fv_typ, fv_dec in *; f_equal*.
-  apply* subst_idempotent_avar.
-Qed.
-
-Lemma subst_idempotent_trm_val_def_defs: forall x y,
-   (forall t , subst_trm  x y (subst_trm  x y t ) = (subst_trm  x y t ))
-/\ (forall v , subst_val  x y (subst_val  x y v ) = (subst_val  x y v ))
-/\ (forall d , subst_def  x y (subst_def  x y d ) = (subst_def  x y d ))
-/\ (forall ds, subst_defs x y (subst_defs x y ds) = (subst_defs x y ds)).
-Proof.
-  intros.
-  apply trm_mutind; intros; simpl; unfold fv_trm, fv_val, fv_def, fv_defs in *; f_equal*;
-    (apply* subst_idempotent_avar || apply* subst_idempotent_typ_dec).
-Qed.
-
-Lemma subst_typ_idempotent: forall x y T,
-  subst_typ x y (subst_typ x y T) = subst_typ x y T.
-Proof.
-  apply* subst_idempotent_typ_dec.
-Qed.
-
-Lemma subst_trm_idempotent: forall x y t,
-  subst_trm x y (subst_trm x y t) = subst_trm x y t.
-Proof.
-  apply* subst_idempotent_trm_val_def_defs.
-Qed.
-
-Lemma subst_label_of_dec: forall x y D,
-  label_of_dec D = label_of_dec (subst_dec x y D).
-Proof.
-  intros. destruct D; simpl; reflexivity.
 Qed.
 
 Lemma subst_label_of_def: forall x y d,
@@ -2142,40 +1983,11 @@ Proof.
   - apply precise_to_general in t; eauto.
 Qed.
 
-Lemma tight_to_general_typing: forall G S t T,
-  ty_trm ty_general sub_tight G S t T ->
-  ty_trm ty_general sub_general G S t T.
-Proof.
-  intros. apply* tight_to_general.
-Qed.
-
 Lemma tight_to_general_subtyping: forall G S V U,
   subtyp ty_general sub_tight G S V U ->
   subtyp ty_general sub_general G S V U.
 Proof.
   intros. apply* tight_to_general.
-Qed.
-
-Lemma precise_to_tight:
-  (forall m1 m2 G S t T,
-     ty_trm m1 m2 G S t T ->
-     m1 = ty_precise ->
-     m2 = sub_general ->
-     ty_trm ty_general sub_tight G S t T) /\
-  (forall m1 m2 G S V U,
-     subtyp m1 m2 G S V U ->
-     m1 = ty_precise ->
-     m2 = sub_general ->
-     subtyp ty_general sub_tight G S V U).
-Proof.
-  apply ts_mutind; intros; subst; eauto; inversion H0.
-Qed.
-
-Lemma precise_to_tight_typing: forall G S t T,
-  ty_trm ty_precise sub_general G S t T ->
-  ty_trm ty_general sub_tight G S t T.
-Proof.
-  intros. apply* precise_to_tight.
 Qed.
 
 Lemma stack_binds_to_ctx_binds: forall G S s x v,
@@ -2189,19 +2001,6 @@ Proof.
   exists T.
   eapply binds_middle_eq. apply wf_stack_to_ok_G in Hwf'.
   apply ok_middle_inv in Hwf'. destruct Hwf'. assumption.
-  assumption.
-Qed.
-
-Lemma ctx_binds_to_stack_binds: forall G S s x T,
-  wf_stack G S s -> binds x T G -> exists v, binds x v s.
-Proof.
-  introv Hwf Bi.
-  remember Hwf as Hwf'. clear HeqHwf'.
-  apply ctx_binds_to_stack_binds_raw with (x:=x) (T:=T) in Hwf.
-  destruct Hwf as [G1 [G2 [v [EqG [Bis Hty]]]]].
-  subst.
-  exists v.
-  assumption.
   assumption.
 Qed.
 
@@ -3408,24 +3207,6 @@ Proof.
   exists x. split; eauto.
 Qed.
 
-Lemma pt_sub: forall G S x v T T' sta,
-  wf_stack G S sta ->
-  binds x T G ->
-  binds x v sta ->
-  possible_types G S x v T' ->
-  subtyp ty_general sub_general G S T T'.
-Proof.
-  introv HWf HBiG HBiSta Hpt.
-  destruct (ctx_binds_to_stack_binds_typing HWf HBiG) as [v' [HBiSta' Hty]].
-  assert (v = v'). {
-    lets Hok: (wf_stack_to_ok_s HWf).
-    apply binds_func with (x:=x) (E:=sta); assumption.
-  }
-  subst v. clear HBiSta'.
-  induction Hpt; try auto.
-  - destruct (new_intro_inversion Hty) as [Hbnd Hrec]. subst.
-    
-
 (* ###################################################################### *)
 (** * Misc *)
 
@@ -3504,7 +3285,6 @@ Proof.
   split; try split; try split; try assumption.
   eapply new_ty_defs; eauto.
 Qed.
-
 
 Lemma ref_binds_typ: forall G S l T,
   ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
