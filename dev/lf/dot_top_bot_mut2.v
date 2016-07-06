@@ -2649,7 +2649,7 @@ Proof.
   - destruct H as [ls H]. inversion H.
 Qed.
 
-Lemma wf_stack_val_new_in_G: forall G S s x T ds,
+Lemma wf_stack_val_new_in_G: forall G S s x T ds, (************************************************)
   wf_stack G S s ->
   binds x (val_new T ds) s ->
   binds x (typ_bnd T) G.
@@ -2793,7 +2793,7 @@ Inductive possible_types: ctx -> sigma -> var -> val -> typ -> Prop :=
    subtyp ty_general sub_general (G & y ~ V') S (open_typ y T) (open_typ y T')) ->
   possible_types G S x (val_lambda V t) (typ_all V' T')
 | pt_loc : forall G S x l T,
-  ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
+  ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
   possible_types G S x (val_loc l) (typ_ref T)
 | pt_and : forall G S x v V1 V2,
   possible_types G S x v V1 ->
@@ -3224,7 +3224,7 @@ Proof.
     + assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
       specialize (H Heqm1). destruct H. inversion H.
   - remember Hty as Hty'. clear HeqHty'. inversion Hty'; subst.
-    + apply pt_loc. apply precise_to_general_typing. assumption.
+    + apply pt_loc. assumption.
     + assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
       specialize (H Heqm1). destruct H. inversion H.
 Qed.
@@ -3426,6 +3426,32 @@ Proof.
   - destruct (new_intro_inversion Hty) as [Hbnd Hrec]. subst.
     
 
+(* ###################################################################### *)
+(** * Misc *)
+
+Lemma var_typing_implies_avar_f: forall G S a T,
+  ty_trm ty_general sub_general G S (trm_var a) T ->
+  exists x, a = avar_f x.
+Proof.
+  intros. dependent induction H; try solve [eexists; reflexivity].
+  apply IHty_trm.
+Qed.
+
+Lemma val_typing: forall G S v T,
+  ty_trm ty_general sub_general G S (trm_val v) T ->
+  exists T', ty_trm ty_precise sub_general G S (trm_val v) T' /\
+             subtyp ty_general sub_general G S T' T.
+Proof.
+  intros. dependent induction H.
+  - exists (typ_ref T). auto.
+  - exists (typ_all T U). split.
+    apply ty_all_intro with (L:=L); eauto. apply subtyp_refl.
+  - exists (typ_bnd T). split.
+    apply ty_new_intro with (L:=L); eauto. apply subtyp_refl.
+  - destruct IHty_trm as [T' [Hty Hsub]].
+    exists T'. split; eauto.
+Qed.
+
 (*
 Lemma (Canonical forms 1)
 If G ~ s and G |- x: all(x: T)U then s(x) = lambda(x: T')t where G |- T <: T' and G, x: T |- t: U.
@@ -3500,28 +3526,7 @@ Proof.
   - apply (IHHsub1 IHHsub2).
   - dependent induction U.
     * 
-
-Lemma unique_ref_subtyping2: forall G S U T,
-  subtyp ty_general sub_general G S U (typ_ref T) ->
-  U = typ_ref T \/ U = typ_bot.
-Proof.
-  introv Hsub.
-  remember (typ_ref T) as T'.
-  remember ty_precise as m1.
-  remember sub_general as m2.
-  induction Hsub; try solve [inversion Heqm1]; try solve [inversion HeqT']; 
-  try solve [right; reflexivity]; try solve [left; reflexivity]; subst.
-  - assert (typ_ref T = typ_ref T) as Ht by reflexivity.
-    assert (sub_general = sub_general) as Hs by reflexivity.
-    destruct (IHHsub2 Ht Hs) as [H1 | H2]; subst T0.
-    * apply (IHHsub1 Ht Hs).
-    * right. apply (subtyp_bot_inv Hsub1).
-  - admit. 
-  - admit.
-  - admit.
-  - admit.
-Qed.
-
+Admitted.
 
 Lemma bot_loc_false: forall G S l,
   ty_trm ty_general sub_general G S (trm_val (val_loc l)) typ_bot -> False.
@@ -3532,21 +3537,38 @@ Proof.
     apply (IHHty Ht).
 Qed.
 
-Lemma general_to_precise_ref: forall G S l T x sta,
+
+Lemma general_to_precise_ref: forall G S l T x sta sto,
   ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
   wf_stack G S sta ->
+  wt_store G S sto ->
   binds x (val_loc l) sta ->
   ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref T).
 Proof.
-  introv Hty Hwf Hbi. dependent induction Hty.
+  introv Hty Hwf Hwt Hbi. 
+  
+  
+  dependent induction Hty.
   - constructor; assumption.
-  - apply unique_ref_subtyping2 in H0. 
+  - assert (binds l T S).
+    dependent induction H0.
+    * admit.
+    * assert (typ_ref T = typ_ref T) as Href by reflexivity.
+      specialize (IHHty T Href Hwf Hwt Hbi). admit.
+    * admit.
+    * dependent induction Hty.
+  
+  clear H. assert (binds l T S) as Hbil. {
+    dependent induction H0.
+    * admit.
+    * assert (typ_ref T = typ_ref T) by reflexivity. specialize (IHHty T H Hwf Hwt Hbi). assu
+  
+  apply (unique_ref_subtyping_general Hty Hwf Hbi) in H0. 
     destruct H0; subst.
-    * specialize (IHHty T). assert (typ_ref T = typ_ref T) as HTR by reflexivity.
+    * specialize (IHHty T). assert (typ_ref T = typ_ref T) as HTR by reflexivity. Admitted. (*
       apply (IHHty HTR Hwf Hbi).
     * false (bot_loc_false Hty).
-Qed.
-
+Qed.*)
 (*
 Lemma (Canonical forms 3)
 
@@ -3574,38 +3596,14 @@ Proof.
     destruct Htype as [ls Htyp]. inversion Htyp.
   - lets Bi': (typing_implies_bound_loc H4). destruct Bi' as [Tl Bi'].
     lets B: (sigma_binds_to_store_binds_typing HWfSto Bi'). destruct B as [y' [Bil Htyl]].
-    exists l y'. split. assumption. split. assumption. split. assumption. 
-Admitted.
-(*    apply ref_binds_typ in H4. apply wf_stack_to_ok_S in HWfSta.
-    apply (binds_func H4) in Bi'. subst T. assumption.
-Qed.*)
-
-
-(* ###################################################################### *)
-(** * Misc *)
-
-Lemma var_typing_implies_avar_f: forall G S a T,
-  ty_trm ty_general sub_general G S (trm_var a) T ->
-  exists x, a = avar_f x.
-Proof.
-  intros. dependent induction H; try solve [eexists; reflexivity].
-  apply IHty_trm.
+    exists l y'. split. assumption. split.
+    apply precise_to_general in H4; try reflexivity. assumption.
+    split. assumption.
+    inversion H4; subst. apply (binds_func H6) in Bi'. subst. assumption.
+    assert (ty_precise = ty_precise) as Hpref by reflexivity.
+    destruct (H Hpref) as [x0 Htvalvar]. inversion Htvalvar.
 Qed.
 
-Lemma val_typing: forall G S v T,
-  ty_trm ty_general sub_general G S (trm_val v) T ->
-  exists T', ty_trm ty_precise sub_general G S (trm_val v) T' /\
-             subtyp ty_general sub_general G S T' T.
-Proof.
-  intros. dependent induction H.
-  - exists (typ_ref T). auto.
-  - exists (typ_all T U). split.
-    apply ty_all_intro with (L:=L); eauto. apply subtyp_refl.
-  - exists (typ_bnd T). split.
-    apply ty_new_intro with (L:=L); eauto. apply subtyp_refl.
-  - destruct IHty_trm as [T' [Hty Hsub]].
-    exists T'. split; eauto.
-Qed.
 
 (* ###################################################################### *)
 (** * Safety *)
