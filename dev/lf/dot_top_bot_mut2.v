@@ -508,63 +508,6 @@ Proof.
   - apply IHWt in H0. assumption.
 Qed.
   
-Lemma dom_union : forall A B (M N : LibMap.map A B),
-  LibBag.dom (LibBag.union M N) = LibBag.union (LibBag.dom M) (LibBag.dom N).
-Proof using.
-  intros. simpl. unfold dom_impl, union_impl. Admitted. (*
-  LibSet.set_norm. intros x. set_norm. iff R; destruct* (N x).
-Qed.*)
-   
-
-Lemma wt_notin_dom: forall G S sto l,
-  wt_store G S sto ->
-  l # S ->
-  l \notindom sto.
-Proof.
-  introv Wt. gen l. induction Wt; intros.
-  - unfold store. rewrite LibMap.dom_empty. auto.
-  - assert (l <> l0). {
-      lets Hdec: (classicT (l = l0)). destruct Hdec.
-      * subst. false (binds_fresh_inv H H1).
-      * assumption.
-    }
-    assert (LibBag.dom sto[l := x] = LibBag.dom sto). { 
-      apply dom_update_in.
-      * apply (prove_Inhab x).
-      * apply binds_get in H. apply get_some_inv in H.
-        lets Hind: (wt_in_dom Wt H). assumption.
-    }
-    unfolds addr. rewrite H3.
-    apply IHWt in H1. assumption.
-  - assert (l <> l0). {
-      lets Hdec: (classicT (l = l0)). destruct Hdec.
-      * subst. rew_env_defs. simpl in H1. apply notin_union in H1. destruct H1.
-        false (notin_same H1).
-      * assumption.
-    }
-    rewrite map_update_as_union. unfold store. rewrite dom_union.
-    unfold LibBag.notin. unfold not. intro His.
-    unfold store in sto.
-    Require Import LibSet.
-    lets Hs: (LibSet.set_in_union_inv His).
-    destruct Hs as [Hs | Hs].
-    * unfold notin in H1. unfold not in H1. 
-      rewrite dom_push in H1. rewrite in_union in H1.
-      assert (~(l0 \in \{ l} \/ l0 \in dom S)) as Hnot. {
-        unfold not. assumption.
-      }
-      assert (l0 # S) as Hl0. {
-       rewrite not_or in Hnot. destruct Hnot.
-       assumption.
-      }
-      apply IHWt in Hl0. 
-      unfold LibBag.notin in Hl0. unfold not in Hl0. apply Hl0 in Hs. false.
-    * unfolds addr. assert (LibBag.dom (LibBag.single_bind l x) = LibBag.single l) as Hdom. admit.
-      (* todo LibMap.dom_single doesn't exist in compiled version *)
-      rewrite Hdom in Hs. 
-      rewrite in_single_eq in Hs. subst. false H2. reflexivity.
-  - apply IHWt in H0. assumption.
-Qed.
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -729,6 +672,48 @@ Proof.
   introv Wt. induction Wt; auto.
 Qed.
 
+
+Lemma wt_notin_dom: forall G S sto l,
+  wt_store G S sto ->
+  l # S ->
+  l \notindom sto.
+Proof.
+  introv Wt. gen l. induction Wt; intros.
+  - unfold store. rewrite LibMap.dom_empty. auto.
+  - assert (l <> l0). {
+      lets Hdec: (classicT (l = l0)). destruct Hdec.
+      * subst. false (binds_fresh_inv H H1).
+      * assumption.
+    }
+    assert (LibBag.dom sto[l := x] = LibBag.dom sto). { 
+      apply dom_update_in.
+      * apply (prove_Inhab x).
+      * apply binds_get in H. apply get_some_inv in H.
+        lets Hind: (wt_in_dom Wt H). assumption.
+    }
+    unfolds addr. rewrite H3.
+    apply IHWt in H1. assumption.
+  - assert (l <> l0). {
+      lets Hdec: (classicT (l = l0)). destruct Hdec.
+      * subst. rew_env_defs. simpl in H1. apply notin_union in H1. destruct H1.
+        false (notin_same H1).
+      * assumption.
+    }
+    unfold LibBag.notin. unfold not. intro His_in.
+    assert (l0 \indom sto[l := x]) as Hindom by assumption. clear His_in.
+    destruct (map_indom_update_inv Hindom) as [Hl | Hl].
+    * subst. false H2. reflexivity.
+    * subst.
+      assert (l0 # S) as Hl0. {
+        unfolds in H1. 
+        intro. apply H1. simpl_dom.
+        assert (l0 \notin \{l } \u (dom S)) as Hdom by auto.
+        apply notin_union in Hdom. destruct Hdom.
+        rewrite in_union. right. assumption.
+      }
+    specialize (IHWt l0 Hl0).  apply IHWt in Hl. false.
+    - apply IHWt in H0. assumption.
+Qed.
 
 Hint Resolve wf_stack_to_ok_s wf_stack_to_ok_G wf_stack_to_ok_S wt_store_to_ok_S wt_store_to_ok_G.
 
