@@ -23,7 +23,7 @@
                        x.a                          selection
                        x y                          application
                        let x = t in u               let
-                       ref x                        reference
+                       ref x T                      reference
                        !x                           dereference
                        x := y                       assignment                
 
@@ -54,19 +54,19 @@
                   s·σ | let x = t in u  -->  s'·σ' | let x = t' in u
 
     (Ref-Var)
-                                s(x) = v       l ∉ dom(σ)
+                                       l ∉ dom(σ)
                             --------------------------------
-                            s·σ | ref x --> s·(σ, l = v) | l
+                            s·σ | ref x --> s·(σ, l = x) | l
 
     (Asgn)
-                                  s(x) = l   s(y) = v
+                                        s(x) = l
                            ---------------------------------
-                           s·σ | x := y --> s·(σ, l = v) | v
+                           s·σ | x := y --> s·(σ, l = y) | v
 
     (Deref-Var)
-                                s(x) = l   σ(l) = v
+                                s(x) = l   σ(l) = y
                                --------------------
-                               s·σ | !x --> s·σ | v
+                               s·σ | !x --> s·σ | y
 
 
 ***
@@ -128,8 +128,8 @@
 
     (Ref)                   
                                     Γ | Σ ⊢ x: T
-                                --------------------
-                                Γ | Σ ⊢ ref x: Ref T
+                                -----------------------
+                                Γ | Σ ⊢ ref x T: Ref T
 
     (Deref)
                                 Γ | Σ ⊢ x: Ref T
