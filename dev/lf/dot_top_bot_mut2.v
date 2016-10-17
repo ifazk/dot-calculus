@@ -2577,7 +2577,7 @@ Inductive possible_types: ctx -> sigma -> var -> val -> typ -> Prop :=
    subtyp ty_general sub_general (G & y ~ V') S (open_typ y T) (open_typ y T')) ->
   possible_types G S x (val_lambda V t) (typ_all V' T')
 | pt_loc : forall G S x l T,
-  ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
+  ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
   possible_types G S x (val_loc l) (typ_ref T)
 | pt_and : forall G S x v V1 V2,
   possible_types G S x v V1 ->
@@ -3008,7 +3008,8 @@ Proof.
     + assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
       specialize (H Heqm1). destruct H. inversion H.
   - remember Hty as Hty'. clear HeqHty'. inversion Hty'; subst.
-    + apply pt_loc. assumption.
+    + apply pt_loc. apply precise_to_general in Hty. assumption.
+      reflexivity. reflexivity.
     + assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
       specialize (H Heqm1). destruct H. inversion H.
 Qed.
@@ -3284,6 +3285,25 @@ Proof.
     destruct Hp as [x Ht]. inversion Ht.
 Qed.
 
+Lemma refref: forall l T U G S,
+  ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
+  ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref U) ->
+  T = U.
+Proof. Admitted.
+
+Lemma general_to_precise_loc: forall l T U G S sto sta,
+  wt_store G S sto ->
+  wf_stack G S sta ->
+  binds l U S ->
+  ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
+  ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref T).
+Proof.
+  introv Hwt Hwf Hbi Hty.
+  dependent induction Hty; subst.
+  - apply ty_loc with (m1:=ty_precise) (m2:=sub_general) (G:=G). assumption.
+  - apply ty_loc with (m1:=ty_general) (m2:=sub_general) (G:=G) in Hbi.
+    lets Hr: (refref  Hbi Hty).
+
 (*
 Lemma (Canonical forms 3)
 
@@ -3312,8 +3332,13 @@ Proof.
   - lets Bi': (typing_implies_bound_loc H4). destruct Bi' as [Tl Bi'].
     lets B: (sigma_binds_to_store_binds_typing HWfSto Bi'). destruct B as [y' [Bil Htyl]].
     exists l y'. split. assumption. split.
-    apply H4.
-(*    apply precise_to_general in H4; try reflexivity. assumption.*)
+
+    inversion H4; subst. auto.
+
+    inversion Htyy; subst. assert (T0 = Tl). admit. subst.
+
+(*    apply H4. *)
+    apply precise_to_general in H4; try reflexivity. assumption.
     split. assumption.
     inversion H4; subst. apply (binds_func H6) in Bi'. subst. assumption.
     assert (ty_precise = ty_precise) as Hpref by reflexivity.
