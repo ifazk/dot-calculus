@@ -289,7 +289,7 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
     ty_trm ty_general m2 G S (trm_var (avar_f x)) U ->
     ty_trm ty_general m2 G S (trm_var (avar_f x)) (typ_and T U)
 | ty_sub : forall m1 m2 G S t T U,
-    (m1 = ty_precise -> exists x, (t = trm_var (avar_f x) \/ t = trm_val (val_loc x))) ->
+    (m1 = ty_precise -> exists x, t = trm_var (avar_f x)) ->
     ty_trm m1 m2 G S t T ->
     subtyp m1 m2 G S T U ->
     ty_trm m1 m2 G S t U
@@ -1341,7 +1341,7 @@ specialize (IHHty Bi Heqt  Hobv Hobv1). destruct IHHty. inversion H.
     assert (typ_ref x0 = typ_ref x0 ) as Hobv by reflexivity.
     specialize (IHsubtyp2 Bi x0 Hobv).
     assert (ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_ref x0)) as H1. {
-      apply ty_sub with (T:=typ_ref U0). intro. exists x. left. reflexivity. assumption.
+      apply ty_sub with (T:=typ_ref U0). intro. exists x. reflexivity. assumption.
       assumption.
     }
     apply (IHsubtyp2 H1).
@@ -1354,14 +1354,7 @@ Proof.
   intros. dependent induction H.
   - eexists. reflexivity.
   - assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
-    specialize (H Heqm1). destruct H. inversion H. inversion H2. inversion H2. subst. clear Heqm1 H H2.
-    destruct IHty_trm. subst. dependent induction H1.
-    specialize (IHsubtyp1 H0). destruct IHsubtyp1. subst.
-    assert (typ_ref x1 = typ_ref x1) as Hobv by reflexivity. 
-    assert (ty_trm ty_precise sub_general G S (trm_val (val_loc x)) (typ_ref x1)) as Hty. {
-      apply ty_sub with (T:=typ_ref x0). intro. exists x. right. reflexivity. assumption. assumption.
-    }
-    apply (IHsubtyp2 x1 Hobv Hty).
+    specialize (H Heqm1). destruct H. inversion H. 
 Qed.
 
 Lemma corresponding_types_ctx: forall G S s x T,
@@ -1396,11 +1389,8 @@ Proof.
       * left. right. exists T0. exists ds.
         split. auto. split.
         apply weaken_ty_trm_ctx. assumption. constructor; assumption. reflexivity.
-      * destruct H3. reflexivity. inversion H3. inversion H6. inversion H6. subst.
-        right. 
-        destruct (loc_intro_inversion H2); subst. exists x1 x. split. reflexivity. split.
-        apply weaken_ty_trm_ctx; auto. reflexivity.
-    + specialize (IHwf_stack Bi). (* todo how to not repeat this here and below? *)
+      * destruct H3. reflexivity. inversion H3.
+    + specialize (IHwf_stack Bi).
       inversion IHwf_stack as [IH | IH]. inversion IH as [IH' | IH']. (* todo better syntax? *)
       * destruct IH' as [V [U [t [IH1 [IH2 IH3]]]]].
         left. left. exists V. exists U t.
@@ -1763,7 +1753,7 @@ Proof.
     eauto.
     eapply record_defs_typing. eapply H5. eauto.
   + assert (ty_precise = ty_precise) as Hobv by reflexivity. specialize (H0 Hobv).
-    destruct H0. destruct H0. inversion H0. inversion H0.
+    destruct H0. inversion H0.
 Qed.
 
 Inductive record_sub : typ -> typ -> Prop :=
@@ -2530,7 +2520,7 @@ Proof.
     destruct Hsub as [Heq | Hsub].
     - rewrite Heq in Htypx. apply Htypx.
     - eapply ty_sub.
-      intro. eexists. left. reflexivity.
+      intro. eexists. reflexivity.
       eapply Htypx. eapply Hsub.
   }
   split.
@@ -2549,7 +2539,7 @@ Proof.
   intros. dependent induction H.
   - eexists. reflexivity.
   - assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
-    specialize (H Heqm1). destruct H. inversion H. inversion H2. inversion H2.
+    specialize (H Heqm1). destruct H. inversion H.
 Qed.
 
 Lemma new_intro_inversion: forall G S T ds U,
@@ -2560,7 +2550,6 @@ Proof.
   - apply record_new_typing in H. split; eauto.
   - assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
     specialize (H0 Heqm1). destruct H0. inversion H0.
-    inversion H3. inversion H3.
 Qed.
 
 
@@ -2602,8 +2591,11 @@ Inductive possible_types: ctx -> sigma -> var -> val -> typ -> Prop :=
   (forall y, y \notin L ->
    subtyp ty_general sub_general (G & y ~ V') S (open_typ y T) (open_typ y T')) ->
   possible_types G S x (val_lambda V t) (typ_all V' T')
-| pt_loc : forall G S x l T U,
+| pt_loc : forall G S x l T,
   ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
+  possible_types G S x (val_loc l) (typ_ref T)
+| pt_loc_sub : forall G S x l T U,
+  possible_types G S x (val_loc l) (typ_ref T) ->
   subtyp ty_general sub_general G S T U ->
   subtyp ty_general sub_general G S U T ->
   possible_types G S x (val_loc l) (typ_ref U)
@@ -2669,7 +2661,7 @@ Proof.
   eapply ty_rec_elim. apply ty_var. eapply wf_stack_val_new_in_G; eauto.
   eauto. eauto. eauto.
   assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
-  specialize (H Heqm1). destruct H as [? Contra]. inversion Contra. inversion H. inversion H.
+  specialize (H Heqm1). destruct H as [? Contra]. inversion Contra. 
 Qed.
 
 Lemma pt_piece_rcd: forall G S s x T ds d D,
@@ -2777,7 +2769,7 @@ Proof.
     rewrite If_l. reflexivity. reflexivity.
     eapply A.
     assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
-    specialize (H Heqm1). destruct H. inversion H. inversion H2. inversion H2.
+    specialize (H Heqm1). destruct H. inversion H. 
   - repeat eexists. eassumption. assumption.
 Qed.
 
@@ -2821,7 +2813,7 @@ Proof.
     rewrite If_l. reflexivity. reflexivity.
     eapply subtyp_refl. eapply subtyp_refl.
     assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
-    specialize (H Heqm1). destruct H. inversion H. inversion H2. inversion H2.
+    specialize (H Heqm1). destruct H. inversion H. 
   - repeat eexists. eassumption. eassumption. eassumption.
 Qed.
 
@@ -3007,10 +2999,12 @@ Proof.
       eapply record_type_new; eassumption.
     }
     rewrite H4 in B. destruct B as [? B]. inversion B.
-    apply pt_loc with (T:=T).
-    apply ty_sub with (T:=typ_ref T0). intro.
-    exists l. right. reflexivity. assumption.
-    
+    apply pt_loc_sub with (T:=T). assumption.
+    apply tight_to_general_subtyping in Hsub1. assumption.
+    apply tight_to_general_subtyping in Hsub2. assumption.
+    apply pt_loc_sub with (T:=T). assumption.
+    apply tight_to_general_subtyping in Hsub1. assumption.
+    apply tight_to_general_subtyping in Hsub2. assumption.
 Qed.
 
 (*
@@ -3034,12 +3028,12 @@ Proof.
       apply subtyp_refl.
       apply subtyp_refl.
     + assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
-      specialize (H Heqm1). destruct H. inversion H.
+      specialize (H Heqm1). destruct H. inversion H. 
   - remember Hty as Hty'. clear HeqHty'. inversion Hty'; subst.
     + apply pt_loc. apply precise_to_general in Hty. assumption.
       reflexivity. reflexivity.
-    + assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
-      specialize (H Heqm1). destruct H. inversion H.
+    + destruct (loc_intro_inversion Hty); subst.
+      constructor. assumption.
 Qed.
 
 (*
@@ -3310,7 +3304,8 @@ Proof.
   - subst.
     apply loc_intro_inversion in H0.
     assert (ty_precise = ty_precise) as Hp by reflexivity. apply H in Hp.
-    destruct Hp as [x Ht]. inversion Ht.
+    destruct Hp as [x Ht]. inversion Ht. 
+
 Qed.
 
 (*
@@ -3341,10 +3336,19 @@ Proof.
   - lets Bi': (typing_implies_bound_loc H4). destruct Bi' as [Tl Bi'].
     lets B: (sigma_binds_to_store_binds_typing HWfSto Bi'). destruct B as [y' [Bil Htyl]].
     exists l y'. split. assumption. split.
-    split. assumption.
-    inversion H4; subst. apply (binds_func H6) in Bi'. subst. assumption.
-    assert (ty_precise = ty_precise) as Hpref by reflexivity.
+    assumption.
+    inversion H4; subst. apply (binds_func H6) in Bi'. subst. split. assumption.
+    assumption. split. assumption.
+    assert (ty_precise = ty_precise) as Hpref by reflexivity. 
     destruct (H Hpref) as [x0 Htvalvar]. inversion Htvalvar.
+  - lets Bi': (typing_implies_bound_loc Htyy). destruct Bi' as [Tl Bi'].
+    lets B: (sigma_binds_to_store_binds_typing HWfSto Bi').
+    destruct B as [y' [Bil Htyl]].
+    exists l y'. split. assumption. split.
+    inversion H0; subst. 
+    apply ty
+    assumption. admit.
+    split. assumption. apply ty_sub with (T:=T
 Qed.
 
 
