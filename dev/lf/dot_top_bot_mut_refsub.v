@@ -2574,7 +2574,7 @@ If v = new(x: T)d then T in SS.
 If v = new(x: T)d and {a = t} in d and G, S |- t: T' then {a: T'} in SS.
 If v = new(x: T)d and {A = T'} in d and G, S |- V <: T', G |- T' <: U then {A: V..U} in SS.
 If v = lambda(x: S)t and (G, x: V), S |- t: T and G, S |- V' <: V and G, x: V' |- T <: T' then all(x: V')T' in SS.
-If v = loc l,  and G, S |-! l: Ref T, then Ref T in SS.
+If v = loc l; G, S |- T <: U; G, S |- U <: T; and G, S |-! l: Ref T, then Ref U in SS.
 If S1 in SS and S2 in SS then S1 & S2 in SS.
 If S in SS and G |-! y: {A: S..S} then y.A in SS.
 If S in SS then rec(x: S) in SS.
