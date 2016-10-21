@@ -3307,51 +3307,6 @@ Proof.
     destruct Hp as [x Ht]. inversion Ht. 
 Qed.
 
-
-Lemma precise_ref_subtyping: forall G S l T sta sto,
-  ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
-  wf_stack G S sta ->
-  wt_store G S sto ->
-  exists U,
-  (ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref U) /\
-   subtyp ty_general sub_general G S T U /\
-   subtyp ty_general sub_general G S U T).
-Proof.
-  introv Hty Wf Wt.
-  destruct (typing_implies_bound_loc Hty) as [U Bi].
-  exists U.
-  split. constructor. assumption.
-  split.
-  dependent induction Hty.
-  - lets Bi': (binds_func Bi H). subst. constructor.
-  - clear H.
-Admitted. (*
-  
-  
-  exists T. split. constructor. assumption. split. constructor. constructor.
-  - clear H.
-    inversion Hty; subst.
-    * assert (typ_ref T1 = typ_ref T1) as Hobv by reflexivity. 
-      destruct (IHHty T1 Hobv) as [U [Hp [Hs1 Hs2]]]. exists U. split. assumption.
-      clear IHHty Hobv.
-      destruct (subtyp_ref_subtyp_typ H0) as [Hs3 Hs4].
-      split; apply subtyp_trans with (T:=T1); assumption.
-    * clear H. destruct (val_typing H1) as [V [HV HSV]].
-      destruct (loc_intro_inversion HV) as [W HW]. subst V.
-      exists W. split. assumption.
-      destruct (subtyp_ref_bot H0) as [[V [Hr | [Ha1 | Ha2]]] | Hb]; subst.
-      + assert (typ_ref V = typ_ref V) as Hobv by reflexivity.
-        specialize (IHHty V Hobv). destruct IHHty as [U [Hu [Hs1 Hs2]]].
-        destruct (subtyp_ref_subtyp_typ H0) as [Hs3 Hs4].
-        apply ref_binds_typ in HV. apply ref_binds_typ in Hu.
-        lets Hb: (binds_func Hu HV). subst. 
-        split; apply subtyp_trans with (T:=V); assumption.
-      + inversion Hty; subst. admit.
-      + admit.
-      + admit.
-Qed.*)
-    
-
 Lemma pt_loc_implies_typing: forall G S x l T,
   possible_types G S x (val_loc l) (typ_ref T) ->
   ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T).
@@ -3362,6 +3317,38 @@ Proof.
   assumption.
   apply subtyp_ref; assumption.
 Qed.
+
+Lemma precise_ref_subtyping: forall G S x l T sta sto,
+  binds x (val_loc l) sta ->
+  ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_ref T) ->
+  ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
+  wf_stack G S sta ->
+  wt_store G S sto ->
+  exists U,
+  (ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref U) /\
+   subtyp ty_general sub_general G S T U /\
+   subtyp ty_general sub_general G S U T).
+Proof.
+  introv Bi Hx Hty Wf Wt. 
+  destruct (typing_implies_bound_loc Hty) as [U Bi'].
+  exists U.
+  split. constructor. assumption.
+  lets Hp: (possible_types_lemma Wf Bi Hx).
+  dependent induction Hp.
+  - apply ref_binds_typ in H. lets Hb: (binds_func H Bi'). subst. split; constructor.
+  - assert (subtyp ty_general sub_general G S (typ_ref T) (typ_ref T0)). {
+      apply subtyp_ref; assumption. 
+  }
+  assert (ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_ref T0)). {
+      apply ty_sub with (T:=typ_ref T); try assumption. intro Hgp. inversion Hgp.
+  }
+  assert (ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T0)). {
+   apply pt_loc_implies_typing in Hp. assumption. 
+  }
+  specialize (IHHp Bi H2 H3 Wf Wt Bi'). destruct IHHp.
+  split; apply subtyp_trans with (T:=T0); assumption.
+Qed.
+    
 
 (*
 Lemma (Canonical forms 3)
@@ -3406,74 +3393,10 @@ Proof.
       apply pt_loc_implies_typing in Hp. assumption.
     * split. assumption.
       apply pt_loc_implies_typing in Hp. 
-      destruct (precise_ref_subtyping Hp HWfSta HWfSto) as [U [Hl [Hsub1 Hsub2]]].
+      destruct (precise_ref_subtyping Bis Hty Hp HWfSta HWfSto) as [U [Hl [Hsub1 Hsub2]]].
       apply ref_binds_typ in Hl. lets Hb: (binds_func Hl Bi'). subst Tl.
       apply ty_sub with (T:=U). intro Hgp; inversion Hgp.
       assumption. assumption.
-Qed.
-
-
-Lemma loc_to_var_typing: forall G S x l T sta,
-  wf_stack G S sta ->
-  binds x (val_loc l) sta ->
-  ty_trm ty_precise sub_general G S (trm_val (val_loc l)) T ->
-  ty_trm ty_precise sub_general G S (trm_var (avar_f x)) T.
-Proof.
-  introv Wf Bi Hty. 
-  dependent induction Wf.
-  - false* binds_empty_inv.
-  - destruct (binds_push_inv Bi) as [[Hx Hv] | [Hx Hv]]; subst.
-    * assert (wf_stack (G & x0 ~ T0) S (sta & x0 ~ val_loc l)) as Wf' by auto.
-      clear IHWf Bi. constructor.
-Admitted.
-
-Lemma pt_ref: forall G S x l T sta sto,
-  wf_stack G S sta ->
-  wt_store G S sto ->
-  binds x (val_loc l) sta ->
-  possible_types G S x (val_loc l) (typ_ref T) ->
-  (ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_ref T) /\
-  ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T)).
-Proof.
-  introv Wf Wt Bi Hp.
-  assert (exists U, binds x U G) as Hex. {
-    dependent induction Wf.
-    - false* binds_empty_inv.
-    - admit.
-    - admit.
-  }
-  destruct Hex as [U BiG].
-  dependent induction Hp.
-  - apply ref_binds_typ in H.
-    lets Htl: (ty_loc ty_precise sub_general G H).
-    lets Hl: (loc_to_var_typing Wf Bi Htl). split; apply precise_to_general_typing; assumption.
-  - subst. 
-    destruct (IHHp Wf Wt Bi U BiG) as [Hx Hl]. clear IHHp.
-    split; apply ty_sub with (T:=typ_ref T0). intro Hgp. inversion Hgp.
-    assumption. apply subtyp_ref; assumption.
-    intro Hgp. inversion Hgp. assumption.
-    apply subtyp_ref; assumption.
-Qed.
-
-Lemma hello: forall G S x l T U sta sto,
-  wf_stack G S sta ->
-  wt_store G S sto ->
-  binds x (val_loc l) sta ->
-  ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_ref T) ->
-  ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref U) ->
-  ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
-  subtyp ty_general sub_general G S T U.
-Proof.
-  introv Wf Wt Bi Hx Hu Ht.
-  assert (binds l U S) as Biu by (apply (ref_binds_typ Hu)).
-  lets Hs: (sigma_binds_to_store_binds_typing Wt Biu). destruct Hs as [y [Bim Hty]].
-  lets Hp: (possible_types_lemma Wf Bi Hx).
-  dependent induction Hp.
-  - apply ref_binds_typ in H. lets Heq: (binds_func Biu H). subst. constructor.
-  - clear H.
-    destruct (pt_ref Wf Wt Bi Hp) as [Htx Htl].
-    specialize (IHHp Wf Wt Bi Htx Hu Htl Biu Bim Hty).
-    apply subtyp_trans with (T:=T0); assumption.
 Qed.
 
 
@@ -3566,7 +3489,7 @@ Proof.
       rewrite <- subst_fresh_typ with (x:=y) (y:=x).
       eapply subst_ty_trm. eapply H0.
       apply ok_push. eapply wf_stack_to_ok_G. eassumption. auto. auto. auto.
-      rewrite subst_fresh_typ. assumption. auto. auto. auto. auto.
+      reweite subst_fresh_typ. assumption. auto. auto. auto. auto.
     + (* val *)
       lets Hv: (val_typing H).
       destruct Hv as [T' [Htyp Hsub]].
@@ -3691,7 +3614,7 @@ Proof.
   - (* deref *)
     right.
     lets C: (canonical_forms_3 HWf HWt H).
-    destruct C as [l [y [BiLoc [Htyloc [BiVal Htyval]]]]].
+    destruct C as [l [y [BiLoc [_ [BiVal Htyval]]]]].
     exists sta sto (trm_var (avar_f y)) G (@empty typ) S. exists (@empty typ).
     split. apply red_deref with (l:=l). assumption. assumption.
     split. rewrite concat_empty_r. reflexivity.
@@ -3712,28 +3635,26 @@ Proof.
     split. rewrite concat_empty_r. reflexivity.
     split. assumption.
     split. assumption.
-    destruct (precise_ref_subtyping Hty HWf HWt) as [U [HU [Hs1 Hs2]]].
+    destruct (precise_ref_subtyping BiLoc H Hty HWf HWt) as [U [HU [Hs1 Hs2]]].
     clear Hs1 Hs2 IHty_trm1 IHty_trm2.
     apply wt_store_update with (T:=U); try assumption.
     apply (ref_binds_typ HU).
-    clear Htyy'.
-    lets Hb: (ref_binds_typ HU). 
-    destruct (sigma_binds_to_store_binds_typing HWt Hb) as [x'' [Hbm Ht]].
-    assert (y' = x'') as Hyx. admit. subst x''.
-    lets Hs: (hello HWf HWt H BiLoc HU Hty).
-    apply ty_sub with (T:=T). intro Hgp. inversion Hgp.
-    assumption. assumption. (*
-    apply val_typing in Hty. destruct Hty. destruct H1.
-    assert ( exists U, x0 = typ_ref U). { apply (loc_intro_inversion H1). }
-    destruct H3. subst.
-    apply ref_binds_typ in H1. apply ref_binds_typ in HU.
-    assert (x1 = U). { apply (binds_func H1). assumption. } subst.
-    apply ty_sub with (T:=T). intro. inversion H1. exists y. reflexivity. assumption.
-    assert (ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_ref U)). admit.
-    apply val_typing in Hty. destruct Hty. destruct H2.
-    assert ( exists U, x0 = typ_ref U). { apply (loc_intro_inversion H2). }
-    destruct H4. subst x0.
- assumption. *)
-Qed. 
-
-
+    lets Hp: (possible_types_lemma HWf BiLoc H).
+    lets Hb: (ref_binds_typ HU).
+    dependent induction Hp.
+    * apply ref_binds_typ in H1. lets Hbf: (binds_func H1 Hb). subst. assumption.
+    *  assert (subtyp ty_general sub_general G S (typ_ref T) (typ_ref T0)) as Hst. apply subtyp_ref; assumption.
+      assert (ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_ref T0)) as HxT0. {
+        apply ty_sub with (T:=typ_ref T); try assumption. intro Hgp. inversion Hgp.
+      }
+      assert (ty_trm ty_general sub_general G S (trm_var (avar_f y)) T0) as HyT0. {
+        apply ty_sub with (T:=T); try assumption. intro Hgp. inversion Hgp.
+      }
+      assert (ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T0)) as HlT0. {
+        apply ty_sub with (T:=typ_ref T); try assumption. intro Hgp. inversion Hgp.
+      }
+      assert (ty_trm ty_general sub_general G S (trm_var (avar_f y')) T0) as Hy'T0. {
+        apply ty_sub with (T:=T); try assumption. intro Hgp. inversion Hgp.
+      }
+      specialize (IHHp HWf HWt HxT0 HyT0 BiLoc HlT0 BiSto Hy'T0 HU Hb). assumption.
+ Qed.
