@@ -10,7 +10,7 @@
                        p.a			    path selection			new
 
     Type     S, T, U = {a: T}                       field declaration
-     		       {a:! T}			    pathable field declaration		new
+                       {a:! T}                      pathable field declaration		new
                        {A: S..T}                    type declaration
                        S & T                        intersection
                        p.A                          projection				change
@@ -62,9 +62,9 @@
                             Γ, x: T, Γ' ⊢ x:! T						change
 
 
-    (Path)			Г ⊢  p:! {a:! T}
-    				----------------					new
-				  Г ⊢ p.a:! T
+    (Path)                      Г ⊢  p:! {a:! T}
+                                ----------------					new
+                                   Г ⊢ p.a:! T
 
 
     (All-I)
@@ -114,9 +114,9 @@
                              Γ; z: T ⊢ {a = t}: {a: T}
 
     (Fld-Path-I)
-                                   Г ⊢ p:! U
-    			   --------------------------					new
-			   Г; z: T ⊢ {a = p}: {a:! U}
+                                    Г ⊢ p:! U
+                             --------------------------					new
+                             Г; z: T ⊢ {a = p}: {a:! U}
 
     (Typ-I)
                            Γ; z: T ⊢ {A = T}: {A: T..T}
