@@ -59,11 +59,23 @@
 ### Type Assignment `Γ ⊢ t: T`
 
     (Var)
+                            Γ, x: T, Γ' ⊢ x: T		
+    (Var-Strong)
                             Γ, x: T, Γ' ⊢ x:! T						
 
-    (Path)                      Г ⊢  p:! {a:! T}
+    (Path)                      Г ⊢  p: {a: T}
+                                ----------------					
+                                   Г ⊢ p.a: T
+    (Path-Strong)
+                                Г ⊢  p:! {a:! T}
                                 ----------------					
                                    Г ⊢ p.a:! T
+    ({}-E)
+    only necessary in Coq,
+    satisfied by (Path)
+                                Γ ⊢ x: {a: T}
+                                --------------
+                                 Γ ⊢ x.a: T
 
     (All-I)
                        Γ, x: T ⊢ t: U    (x ∉ fv(T))
@@ -77,10 +89,6 @@
                                Γ, x: T ⊢ d: T
                           --------------------------
                           Γ ⊢ new(x: T)d: μ(x: T)
-    ({}-E)
-                                Γ ⊢ x: {a: T}
-                                --------------
-                                 Γ ⊢ x.a: T
     (Let)
                 Γ ⊢ t: T   Γ, x: T ⊢ u: U   (x ∉ fv(U))
                 ----------------------------------------------
@@ -104,7 +112,7 @@
 
 ***
 
-### Definition Type Assignment `Γ; z: T ⊢ d: T`						
+### Definition Type Assignment `Γ; z: T ⊢ d: T`					
 
     (Fld-I)
                                   Γ; z: T ⊢ t: T
