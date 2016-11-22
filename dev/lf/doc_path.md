@@ -61,11 +61,9 @@
     (Var)
                             Γ, x: T, Γ' ⊢ x:! T						change
 
-
     (Path)                      Г ⊢  p:! {a:! T}
                                 ----------------					new
                                    Г ⊢ p.a:! T
-
 
     (All-I)
                        Γ, x: T ⊢ t: U    (x ∉ fv(T))
