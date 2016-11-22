@@ -1,13 +1,6 @@
-Dependent Object Types (DOT)
-----------------------------
+Extensions for Dependent Object Types (DOT)
+-------------------------------------------
 
-The DOT calculus proposes a new foundation for Scala's type system.
+This is a fork of the [Wadlerfest DOT](http://infoscience.epfl.ch/record/215280/files/paper_1.pdf) [type soundness proof](https://github.com/samuelgruetter/dot-calculus).
 
-DOT has been presented at the FOOL 2012 workshop
-([PDF](http://lampwww.epfl.ch/~amin/dot/fool.pdf)).
-
-We are working towards a mechanized type safety proof.
-This repo implements the model in Coq, based on previous work in the
-[namin/dot](https://github.com/namin/dot) and
-[TiarkRompf/minidot](https://github.com/TiarkRompf/minidot) repos.
-
+It provides extensions of the [original proof](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/dot_top_bot.v) with mutaton ([proof](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/dot_top_bot_mut.v) | [description]()) and expanded type paths ([proof] | [description](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/doc_path.md)).
