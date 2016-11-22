@@ -6,14 +6,14 @@
     Type member     A, B, C
     Variable        x, y, z
 
-    Path           p = x			    path variable			new
-                       p.a			    path selection			new
+    Path           p = x			    path variable			
+                       p.a			    path selection			
 
     Type     S, T, U = {a: T}                       field declaration
-                       {a:! T}                      pathable field declaration		new
+                       {a:! T}                      pathable field declaration		
                        {A: S..T}                    type declaration
                        S & T                        intersection
-                       p.A                          projection				change
+                       p.A                          projection				
                        μ(x: T)                      recursive dependent type
                        ∀(x: S)T                     dependent function
                        Top                          top type
@@ -59,10 +59,10 @@
 ### Type Assignment `Γ ⊢ t: T`
 
     (Var)
-                            Γ, x: T, Γ' ⊢ x:! T						change
+                            Γ, x: T, Γ' ⊢ x:! T						
 
     (Path)                      Г ⊢  p:! {a:! T}
-                                ----------------					new
+                                ----------------					
                                    Г ⊢ p.a:! T
 
     (All-I)
@@ -104,7 +104,7 @@
 
 ***
 
-### Definition Type Assignment `Γ; z: T ⊢ d: T`						change (z denotes recursive variable)
+### Definition Type Assignment `Γ; z: T ⊢ d: T`						
 
     (Fld-I)
                                   Γ; z: T ⊢ t: T
@@ -113,7 +113,7 @@
 
     (Fld-Path-I)
                                     Г ⊢ p:! U
-                             --------------------------					new
+                             --------------------------					
                              Г; z: T ⊢ {a = p}: {a:! U}
 
     (Typ-I)
@@ -169,7 +169,7 @@
                       Γ ⊢ ∀(x: S1)T1 <: ∀(x: S2)T2
 
     (Path-<:)		   
-    			   Г ⊢ {a:! T} <: {a: T}					new
+    			   Г ⊢ {a:! T} <: {a: T}					
 
 
 *Note:* `Γ, x: T` is well-defined only if `x` is neither in the domain of `Γ` nor in
