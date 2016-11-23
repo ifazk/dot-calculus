@@ -402,7 +402,7 @@ Inductive ty_trm : tymode -> submode -> ctx -> trm -> typ -> Prop :=
     binds x T G ->
     ty_trm m1 m2 G (trm_var (avar_f x)) T
 | ty_pvar : forall m1 m2 G x T, (* todo: ugly to have this special case that copies the previous one *)
-    binds x T G ->
+    ty_trm m1 m2 G (trm_var (avar_f x)) T ->
     ty_trm m1 m2 G (trm_path (p_var (avar_f x))) T
 | ty_all_intro : forall L m1 m2 G T t U,
     (forall x, x \notin L ->
@@ -621,8 +621,6 @@ Proof.
   apply rules_mutind; try solve [eauto].
   + intros. subst.
     eapply ty_var. eapply binds_weaken; eauto.
-  + intros. subst.
-    eapply ty_pvar. eapply binds_weaken; auto.
   + intros. subst.
     apply_fresh ty_all_intro as z. eauto.
     assert (zL: z \notin L) by auto.
@@ -872,11 +870,17 @@ with subst_dec (z: var) (u: var) (D: dec) { struct D } : dec :=
   | dec_trm L U => dec_trm L (subst_typ z u U)
   end.
 
+Fixpoint subst_path (z: var) (u: var) (p: path) : path :=
+  match p with
+  | p_var x   => p_var (subst_avar z u x)
+  | p_sel q m => p_sel (subst_path z u q) m
+  end.
+
 Fixpoint subst_trm (z: var) (u: var) (t: trm) : trm :=
   match t with
   | trm_var x        => trm_var (subst_avar z u x)
   | trm_val v        => trm_val (subst_val z u v)
-  | trm_sel x1 L     => trm_sel (subst_avar z u x1) L
+  | trm_path p       => trm_path (subst_path z u p)
   | trm_app x1 x2    => trm_app (subst_avar z u x1) (subst_avar z u x2)
   | trm_let t1 t2    => trm_let (subst_trm z u t1) (subst_trm z u t2)
   end
@@ -914,6 +918,17 @@ Proof.
   intros x y. apply typ_mutind; intros; simpls; f_equal*. apply* subst_fresh_avar.
 Qed.
 
+Lemma subst_fresh_path: forall x y,
+  forall p : path, x \notin fv_path p -> subst_path x y p = p.
+Proof.
+  intros. induction p; simpls.
+  - assert (subst_avar x y a = a) as Hs. {
+      apply subst_fresh_avar. assumption.
+    }
+    rewrite Hs. reflexivity.
+  - rewrite (IHp H). reflexivity.
+Qed.
+
 Definition subst_fresh_typ(x y: var) := proj1 (subst_fresh_typ_dec x y).
 Definition subst_fresh_dec(x y: var) := proj2 (subst_fresh_typ_dec x y).
 
@@ -924,7 +939,7 @@ Lemma subst_fresh_trm_val_def_defs: forall x y,
   (forall ds: defs, x \notin fv_defs ds -> subst_defs x y ds = ds).
 Proof.
   intros x y. apply trm_mutind; intros; simpls; f_equal*;
-    (apply* subst_fresh_avar || apply* subst_fresh_typ_dec).
+  (apply* subst_fresh_avar || apply* subst_fresh_path || apply* subst_fresh_typ_dec).
 Qed.
 
 Definition subst_fresh_trm (x y: var) := proj41 (subst_fresh_trm_val_def_defs x y).
