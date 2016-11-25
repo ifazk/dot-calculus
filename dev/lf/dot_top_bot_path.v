@@ -344,7 +344,7 @@ Inductive wf_sto: ctx -> sto -> Prop :=
     wf_sto G s ->
     x # G ->
     x # s ->
-    ty_trm ty_precise sub_general G (trm_val v) T ->
+    ty_trm ty_precise sub_general path_general G (trm_val v) T ->
     wf_sto (G & x ~ T) (s & x ~ v).
 
 (* ###################################################################### *)
@@ -439,18 +439,18 @@ Qed.
 (** ** Weakening *)
 
 Lemma weaken_rules:
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G1 G2 G3,
+  (forall m1 m2 m3 G t T, ty_trm m1 m2 m3 G t T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    ty_trm m1 m2 (G1 & G2 & G3) t T) /\
-  (forall G d D, ty_def G d D -> forall G1 G2 G3,
+    ty_trm m1 m2 m3 (G1 & G2 & G3) t T) /\
+  (forall G x T d D, ty_def G x T d D -> forall G1 G2 G3,
     G = G1 & G3 ->
-    ok (G1 & G2 & G3) ->
-    ty_def (G1 & G2 & G3) d D) /\
-  (forall G ds T, ty_defs G ds T -> forall G1 G2 G3,
+    ok (G1 & G2 & G3 & x ~ T) ->
+    ty_def (G1 & G2 & G3) x T d D) /\
+  (forall G x U ds T, ty_defs G x U ds T -> forall G1 G2 G3,
     G = G1 & G3 ->
-    ok (G1 & G2 & G3) ->
-    ty_defs (G1 & G2 & G3) ds T) /\
+    ok (G1 & G2 & G3 & x ~ U) ->
+    ty_defs (G1 & G2 & G3) x U ds T) /\
   (forall m1 m2 G T U, subtyp m1 m2 G T U -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
@@ -458,28 +458,27 @@ Lemma weaken_rules:
 Proof.
   apply rules_mutind; try solve [eauto].
   + intros. subst.
-    eapply ty_var. eapply binds_weaken; eauto.
+    eapply ty_var. eapply binds_weaken; auto.
   + intros. subst.
-    apply_fresh ty_all_intro as z. eauto.
+    apply_fresh ty_all_intro as z.
     assert (zL: z \notin L) by auto.
     specialize (H z zL G1 G2 (G3 & z ~ T)).
     repeat rewrite concat_assoc in H.
     apply* H.
   + intros. subst.
     apply_fresh ty_new_intro as z; assert (zL: z \notin L) by auto.
-    - specialize (H z zL G1 G2 (G3 & z ~ open_typ z T)).
-      repeat rewrite concat_assoc in H.
-      apply* H.
+    - specialize (H z zL G1 G2 G3). apply* H.
   + intros. subst.
     apply_fresh ty_let as z. eauto.
     assert (zL: z \notin L) by auto.
     specialize (H0 z zL G1 G2 (G3 & z ~ T)).
     repeat rewrite concat_assoc in H0.
     apply* H0.
+  + intros. subst. constructor. rewrite <- concat_assoc.
+    apply H. rewrite concat_assoc. reflexivity. rewrite concat_assoc. assumption.
   + intros. subst.
     apply_fresh subtyp_all as z.
-    eauto.
-    eauto.
+    auto.
     assert (zL: z \notin L) by auto.
     specialize (H0 z zL G1 G2 (G3 & z ~ S2)).
     repeat rewrite concat_assoc in H0.
