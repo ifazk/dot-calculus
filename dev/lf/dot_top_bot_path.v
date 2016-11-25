@@ -988,7 +988,12 @@ Lemma subst_open_commute_path: forall x y u,
     subst_path x y (open_rec_path n u p)
     = open_rec_path n (subst_fvar x y u) (subst_path x y p)).
 Proof.
-  intros. unfold subst_path, subst_fvar, open_rec_path. induction p. Admitted.
+  intros. induction p.
+  + unfold subst_path, open_rec_path, subst_avar, open_rec_avar, subst_fvar. destruct a.
+    * repeat case_if; auto.
+    * case_var*.
+  + simpl; f_equal. assumption.
+Qed.
 
 (* "open and then substitute" = "substitute and then open" *)
 Lemma subst_open_commute_typ_dec: forall x y u,
@@ -1112,7 +1117,11 @@ Qed.
 
 Lemma subst_undo_path: forall x y,
   (forall p, y \notin fv_path p -> (subst_path y x (subst_path x y p)) = p).
-Proof. Admitted.
+Proof.
+  introv Hy. induction p.
+  - unfold fv_path in Hy. unfold subst_path. f_equal. apply subst_undo_avar. assumption.
+  - apply IHp in Hy. simpl. f_equal. assumption.
+Qed.
 
 Lemma subst_undo_trm_val_def_defs: forall x y,
    (forall t , y \notin fv_trm  t  -> (subst_trm  y x (subst_trm  x y t )) = t )
@@ -1156,7 +1165,11 @@ Qed.
 
 Lemma subst_idempotent_path: forall x y,
   (forall p, subst_path x y (subst_path x y p) = subst_path x y p).
-Proof. Admitted.
+Proof.
+  intros. induction p; simpl.
+  - f_equal. apply subst_idempotent_avar.
+  - simpl; f_equal. assumption.
+Qed.
 
 Lemma subst_idempotent_trm_val_def_defs: forall x y,
    (forall t , subst_trm  x y (subst_trm  x y t ) = (subst_trm  x y t ))
