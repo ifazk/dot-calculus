@@ -338,7 +338,6 @@ with subtyp : tymode -> submode -> ctx -> typ -> typ -> Prop :=
 | subtyp_path: forall m2 G a T,
     subtyp ty_general m2 G (typ_rcd (dec_trm a path_strong T)) (typ_rcd (dec_trm a path_general T)).
 
-
 Inductive wf_sto: ctx -> sto -> Prop :=
 | wf_sto_empty: wf_sto empty empty
 | wf_sto_push: forall G s x T v,
