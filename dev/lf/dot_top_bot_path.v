@@ -485,10 +485,10 @@ Proof.
     apply* H0.
 Qed.
 
-Lemma weaken_ty_trm:  forall m1 m2 G1 G2 t T,
-    ty_trm m1 m2 G1 t T ->
+Lemma weaken_ty_trm:  forall m1 m2 m3 G1 G2 t T,
+    ty_trm m1 m2 m3 G1 t T ->
     ok (G1 & G2) ->
-    ty_trm m1 m2 (G1 & G2) t T.
+    ty_trm m1 m2 m3 (G1 & G2) t T.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {
@@ -529,7 +529,7 @@ Hint Resolve wf_sto_to_ok_s wf_sto_to_ok_G.
 Lemma ctx_binds_to_sto_binds_raw: forall s G x T,
   wf_sto G s ->
   binds x T G ->
-  exists G1 G2 v, G = G1 & (x ~ T) & G2 /\ binds x v s /\ ty_trm ty_precise sub_general G1 (trm_val v) T.
+  exists G1 G2 v, G = G1 & (x ~ T) & G2 /\ binds x v s /\ ty_trm ty_precise sub_general path_general G1 (trm_val v) T.
 Proof.
   introv Wf Bi. gen x T Bi. induction Wf; intros.
   + false* binds_empty_inv.
@@ -543,7 +543,7 @@ Qed.
 Lemma sto_binds_to_ctx_binds_raw: forall s G x v,
   wf_sto G s ->
   binds x v s ->
-  exists G1 G2 T, G = G1 & (x ~ T) & G2 /\ ty_trm ty_precise sub_general G1 (trm_val v) T.
+  exists G1 G2 T, G = G1 & (x ~ T) & G2 /\ ty_trm ty_precise sub_general path_general G1 (trm_val v) T.
 Proof.
   introv Wf Bi. gen x v Bi. induction Wf; intros.
   + false* binds_empty_inv.
@@ -596,8 +596,8 @@ Proof.
     - auto.
 Qed.
 
-Lemma typing_implies_bound: forall m1 m2 G x T,
-  ty_trm m1 m2 G (trm_path (p_var (avar_f x)))  T ->
+Lemma typing_implies_bound: forall m1 m2 m3 G x T,
+  ty_trm m1 m2 m3 G (trm_path (p_var (avar_f x)))  T ->
   exists S, binds x S G.
 Proof.
   intros. remember (trm_path (p_var (avar_f x)))  as t.
@@ -608,78 +608,12 @@ Proof.
   - inversion Heqt. subst. exists T. assumption.
 Qed.
 
-Lemma typing_bvar_implies_false: forall m1 m2 G a T,
-  ty_trm m1 m2 G (trm_path (p_var (avar_b a))) T ->
+Lemma typing_bvar_implies_false: forall m1 m2 m3 G a T,
+  ty_trm m1 m2 m3 G (trm_path (p_var (avar_b a))) T ->
   False.
 Proof.
   intros. remember (trm_path (p_var (avar_b a))) as t. induction H; try solve [inversion Heqt].
   eapply IHty_trm. auto.
-Qed.
-
-(* ###################################################################### *)
-(** ** Extra Rec *)
-
-Lemma extra_bnd_rules:
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G1 G2 x S G',
-    G = G1 & (x ~ open_typ x S) & G2 ->
-    G' = G1 & (x ~ typ_bnd S) & G2 ->
-    ty_trm m1 m2 G' t T)
-/\ (forall G d D, ty_def G d D -> forall G1 G2 x S G',
-    G = G1 & (x ~ open_typ x S) & G2 ->
-    G' = G1 & (x ~ typ_bnd S) & G2 ->
-    ty_def G' d D)
-/\ (forall G ds T, ty_defs G ds T -> forall G1 G2 x S G',
-    G = G1 & (x ~ open_typ x S) & G2 ->
-    G' = G1 & (x ~ typ_bnd S) & G2 ->
-    ty_defs G' ds T)
-/\ (forall m1 m2 G T U, subtyp m1 m2 G T U -> forall G1 G2 x S G',
-    G = G1 & (x ~ open_typ x S) & G2 ->
-    G' = G1 & (x ~ typ_bnd S) & G2 ->
-    subtyp m1 m2 G' T U).
-Proof.
-  apply rules_mutind; intros; eauto.
-  - (* ty_var *)
-    subst. apply binds_middle_inv in b. destruct b as [Bi | [Bi | Bi]].
-    + apply ty_var. eauto.
-    + destruct Bi as [Bin [Eqx EqT ]]. subst.
-      apply ty_rec_elim. apply ty_var. eauto.
-    + destruct Bi as [Bin [Neqx Bi]]. apply ty_var. eauto.
-  - (* ty_all_intro *)
-    subst.
-    apply_fresh ty_all_intro as y; eauto.
-    assert (y \notin L) as FrL by eauto.
-    specialize (H y FrL).
-    specialize (H G1 (G2 & y ~ T) x S).
-    eapply H; eauto.
-    rewrite concat_assoc. reflexivity.
-    rewrite concat_assoc. reflexivity.
-  - (* ty_new_intro *)
-    subst.
-    apply_fresh ty_new_intro as y; eauto;
-    assert (y \notin L) as FrL by eauto.
-    specialize (H y FrL).
-    specialize (H G1 (G2 & y ~ open_typ y T) x S).
-    eapply H; eauto.
-    rewrite concat_assoc. reflexivity.
-    rewrite concat_assoc. reflexivity.
-  - (* ty_let *)
-    subst.
-    apply_fresh ty_let as y; eauto.
-    assert (y \notin L) as FrL by eauto.
-    specialize (H0 y FrL).
-    specialize (H0 G1 (G2 & y ~ T) x S).
-    eapply H0; eauto.
-    rewrite concat_assoc. reflexivity.
-    rewrite concat_assoc. reflexivity.
-  - (* subtyp_all *)
-    subst.
-    apply_fresh subtyp_all as y; eauto.
-    assert (y \notin L) as FrL by eauto.
-    specialize (H0 y FrL).
-    specialize (H0 G1 (G2 & y ~ S2) x S).
-    eapply H0; eauto.
-    rewrite concat_assoc. reflexivity.
-    rewrite concat_assoc. reflexivity.
 Qed.
 
 (* ###################################################################### *)
@@ -691,26 +625,26 @@ Definition subst_avar (z: var) (u: var) (a: avar) : avar :=
   | avar_f x => (avar_f (If x = z then u else x))
   end.
 
+Fixpoint subst_path (z: var) (u: var) (p: path) : path :=
+  match p with
+  | p_var x   => p_var (subst_avar z u x)
+  | p_sel p a => p_sel (subst_path z u p) a
+  end.
+
 Fixpoint subst_typ (z: var) (u: var) (T: typ) { struct T } : typ :=
   match T with
   | typ_top        => typ_top
   | typ_bot        => typ_bot
   | typ_rcd D      => typ_rcd (subst_dec z u D)
   | typ_and T1 T2  => typ_and (subst_typ z u T1) (subst_typ z u T2)
-  | typ_sel x L    => typ_sel (subst_avar z u x) L
+  | typ_path p L   => typ_path (subst_path z u p) L
   | typ_bnd T      => typ_bnd (subst_typ z u T)
   | typ_all T U    => typ_all (subst_typ z u T) (subst_typ z u U)
   end
 with subst_dec (z: var) (u: var) (D: dec) { struct D } : dec :=
   match D with
   | dec_typ L T U => dec_typ L (subst_typ z u T) (subst_typ z u U)
-  | dec_trm L U => dec_trm L (subst_typ z u U)
-  end.
-
-Fixpoint subst_path (z: var) (u: var) (p: path) : path :=
-  match p with
-  | p_var x   => p_var (subst_avar z u x)
-  | p_sel q m => p_sel (subst_path z u q) m
+  | dec_trm L m U => dec_trm L m (subst_typ z u U)
   end.
 
 Fixpoint subst_trm (z: var) (u: var) (t: trm) : trm :=
@@ -747,13 +681,6 @@ Proof.
   intros. destruct* a. simpl. case_var*. simpls. notin_false.
 Qed.
 
-Lemma subst_fresh_typ_dec: forall x y,
-  (forall T : typ , x \notin fv_typ  T  -> subst_typ  x y T  = T ) /\
-  (forall D : dec , x \notin fv_dec  D  -> subst_dec  x y D  = D ).
-Proof.
-  intros x y. apply typ_mutind; intros; simpls; f_equal*. apply* subst_fresh_avar.
-Qed.
-
 Lemma subst_fresh_path: forall x y,
   forall p : path, x \notin fv_path p -> subst_path x y p = p.
 Proof.
@@ -763,6 +690,14 @@ Proof.
     }
     rewrite Hs. reflexivity.
   - rewrite (IHp H). reflexivity.
+Qed.
+
+
+Lemma subst_fresh_typ_dec: forall x y,
+  (forall T : typ , x \notin fv_typ  T  -> subst_typ  x y T  = T ) /\
+  (forall D : dec , x \notin fv_dec  D  -> subst_dec  x y D  = D ).
+Proof.
+  intros x y. apply typ_mutind; intros; simpls; f_equal*. apply* subst_fresh_path.
 Qed.
 
 Definition subst_fresh_typ(x y: var) := proj1 (subst_fresh_typ_dec x y).
@@ -844,7 +779,7 @@ Lemma subst_open_commute_typ_dec: forall x y u,
      subst_dec x y (open_rec_dec n u D)
      = open_rec_dec n (subst_fvar x y u) (subst_dec x y D)).
 Proof.
-  intros. apply typ_mutind; intros; simpl; f_equal*. apply subst_open_commute_avar.
+  intros. apply typ_mutind; intros; simpl; f_equal*. apply subst_open_commute_path.
 Qed.
 
 Lemma subst_open_commute_typ: forall x y u T,
@@ -946,21 +881,21 @@ Proof.
   + unfold fv_avar in H. assert (y <> v) by auto. repeat case_if; reflexivity.
 Qed.
 
-Lemma subst_undo_typ_dec: forall x y,
-   (forall T , y \notin fv_typ  T  -> (subst_typ  y x (subst_typ  x y T )) = T )
-/\ (forall D , y \notin fv_dec  D  -> (subst_dec  y x (subst_dec  x y D )) = D ).
-Proof.
-  intros.
-  apply typ_mutind; intros; simpl; unfold fv_typ, fv_dec in *; f_equal*.
-  apply* subst_undo_avar.
-Qed.
-
 Lemma subst_undo_path: forall x y,
   (forall p, y \notin fv_path p -> (subst_path y x (subst_path x y p)) = p).
 Proof.
   introv Hy. induction p.
   - unfold fv_path in Hy. unfold subst_path. f_equal. apply subst_undo_avar. assumption.
   - apply IHp in Hy. simpl. f_equal. assumption.
+Qed.
+
+Lemma subst_undo_typ_dec: forall x y,
+   (forall T , y \notin fv_typ  T  -> (subst_typ  y x (subst_typ  x y T )) = T )
+/\ (forall D , y \notin fv_dec  D  -> (subst_dec  y x (subst_dec  x y D )) = D ).
+Proof.
+  intros.
+  apply typ_mutind; intros; simpl; unfold fv_typ, fv_dec in *; f_equal*.
+  apply* subst_undo_path.
 Qed.
 
 Lemma subst_undo_trm_val_def_defs: forall x y,
@@ -994,21 +929,21 @@ Proof.
   + repeat case_if; reflexivity.
 Qed.
 
-Lemma subst_idempotent_typ_dec: forall x y,
-   (forall T, subst_typ x y (subst_typ x y T) = subst_typ x y T)
-/\ (forall D, subst_dec x y (subst_dec x y D) = subst_dec x y D).
-Proof.
-  intros.
-  apply typ_mutind; intros; simpl; unfold fv_typ, fv_dec in *; f_equal*.
-  apply* subst_idempotent_avar.
-Qed.
-
 Lemma subst_idempotent_path: forall x y,
   (forall p, subst_path x y (subst_path x y p) = subst_path x y p).
 Proof.
   intros. induction p; simpl.
   - f_equal. apply subst_idempotent_avar.
   - simpl; f_equal. assumption.
+Qed.
+
+Lemma subst_idempotent_typ_dec: forall x y,
+   (forall T, subst_typ x y (subst_typ x y T) = subst_typ x y T)
+/\ (forall D, subst_dec x y (subst_dec x y D) = subst_dec x y D).
+Proof.
+  intros.
+  apply typ_mutind; intros; simpl; unfold fv_typ, fv_dec in *; f_equal*.
+  apply* subst_idempotent_path.
 Qed.
 
 Lemma subst_idempotent_trm_val_def_defs: forall x y,
@@ -1060,15 +995,15 @@ Qed.
 (** ** The substitution principle *)
 
 Lemma subst_rules: forall y S,
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G1 G2 x,
+  (forall m1 m2 m3 G t T, ty_trm m1 m2 m3 G t T -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
+    ty_trm ty_general sub_general m3 (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
     m1 = ty_general ->
     m2 = sub_general ->
-    ty_trm m1 m2 (G1 & (subst_ctx x y G2)) (subst_trm x y t) (subst_typ x y T)) /\
-  (forall G d D, ty_def G d D -> forall G1 G2 x,
+    ty_trm m1 m2 m3 (G1 & (subst_ctx x y G2)) (subst_trm x y t) (subst_typ x y T)) /\
+  (forall G z T d D, ty_def G z T d D -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
