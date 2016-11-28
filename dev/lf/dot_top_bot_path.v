@@ -1003,11 +1003,11 @@ Lemma subst_rules: forall y S,
     m1 = ty_general ->
     m2 = sub_general ->
     ty_trm m1 m2 m3 (G1 & (subst_ctx x y G2)) (subst_trm x y t) (subst_typ x y T)) /\
-  (forall G z T d D, ty_def G z T d D -> forall G1 G2 x,
+  (forall G z T d D m3, ty_def G z T d D -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
+    ty_trm ty_general sub_general m3 (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
     ty_def (G1 & (subst_ctx x y G2)) (subst_def x y d) (subst_dec x y D)) /\
   (forall G ds T, ty_defs G ds T -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
