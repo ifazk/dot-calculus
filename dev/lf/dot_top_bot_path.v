@@ -275,7 +275,7 @@ Inductive ty_trm : tymode -> submode -> pathmode -> ctx -> trm -> typ -> Prop :=
     ty_trm m1 m2 path_general G t U
 with ty_def : ctx -> var -> typ -> def -> dec -> Prop := (* Γ; z: U |= d: T U *)
 | ty_def_typ : forall x G A T U,
-    ty_def G x U (def_typ A T) (dec_typ A T T)
+    ty_def G x (def_typ A T) (dec_typ A T T)
 | ty_def_trm : forall G a x t T U,
     ty_trm ty_general sub_general path_general (G & x ~ U) t T ->
     ty_def G x U (def_trm a t) (dec_trm a path_general T)
@@ -1003,12 +1003,12 @@ Lemma subst_rules: forall y S,
     m1 = ty_general ->
     m2 = sub_general ->
     ty_trm m1 m2 m3 (G1 & (subst_ctx x y G2)) (subst_trm x y t) (subst_typ x y T)) /\
-  (forall G z T d D m3, ty_def G z T d D -> forall G1 G2 x,
-    G = G1 & x ~ S & G2 ->
+  (forall G z T d D, ty_def G z T d D -> forall G1 G2 x,
+    G & z ~ T  = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
     ty_trm ty_general sub_general m3 (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
-    ty_def (G1 & (subst_ctx x y G2)) (subst_def x y d) (subst_dec x y D)) /\
+    ty_def (G1 & (subst_ctx x y G2)) (If x = z then y else z) (subst_typ x y T) (subst_def x y d) (subst_dec x y D)) /\
   (forall G ds T, ty_defs G ds T -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
