@@ -19,7 +19,7 @@ In the proof, the operational semantics is defined in the inductive relation `re
 
 The typing and subtyping rules are depicted in Figures 4 and 5 of the paper.
 
-In the proof, they are defined through mutual induction using the inductive definitions `ty_trm` and `subtyp`. A typing relation is characterized using two modes: 
+In the proof, they are defined through mutually inductive definitions `ty_trm` and `subtyp`. A typing relation is characterized using two modes: 
 - `tymode`, which can be `ty_precise` or `ty_general` (precise or general typing), and
 - `submode`, which can be `sub_tight` or `sub_general` (tight or general subtyping).
 
@@ -37,22 +37,25 @@ A well-typed store, denoted as Γ, Σ ⊢ σ, is expressed using the inductive r
 
 ### Canonical Forms Lemma
 
-There are three canonical-forms lemma corresponding to Lemma 1, 2, and 3 in the paper, one for each type of values.
+There are three canonical-forms lemmas corresponding to Lemma 1 in the paper, one for each type of values.
 
 1) `canonical_forms_1`
+
   If Γ, Σ ⊢ x: ∀(x: T)U then γ(x)=λ(x: T').t for some T' and t such that 
-  - Γ, Σ ⊢ T <: T' and 
+  - Γ, Σ ⊢ T <: T',
   - (Γ, x: T), Σ ⊢ t: U.
 
 2) `canonical_forms_2`
+
   If Γ, Σ ⊢ x: {a: T} then γ(x)=ν(x: S)d for some S, d, t such that
   - Γ, Σ ⊢ d: S,
   - {a = t} ∈ d,
   - Γ, Σ ⊢ t: T.
 
 3) `canonical_forms_3`
+
   If Γ, Σ ⊢ x: Ref T then γ(x)=l and σ(l)=y for some l, y such that
-  - Γ, Σ ⊢ l: Ref T and
+  - Γ, Σ ⊢ l: Ref T,
   - Γ, Σ ⊢ y: T.
 
 ### Substitution
@@ -62,3 +65,7 @@ The substitution principle (Lemma 2) in the proof is expressed in the Coq lemma 
 ### Soundness
 
 The main typesafety lemma (Proposition 1) is expressed in the `safety` lemma.
+
+### Further Details
+
+The soundness proof of Mutable DOT is an extension to WadlerFest DOT's typesafety proof. Details can be found [here](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/doc.md).
