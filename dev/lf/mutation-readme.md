@@ -1,5 +1,7 @@
 # Mutable WadlerFest DOT
 
+For details see our [technical report](https://arxiv.org/abs/1611.07610).
+
 ## Abstract syntax
 
     Term member     a, b, c
