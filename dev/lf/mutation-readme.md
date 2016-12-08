@@ -275,4 +275,4 @@ The main typesafety lemma (Proposition 1) is expressed in the `safety` lemma.
 
 ### Further Details
 
-The soundness proof of Mutable DOT is an extension to WadlerFest DOT's typesafety proof. Details can be found [here](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/doc.md).
+The soundness proof of Mutable DOT is an extension to WadlerFest DOT's typesafety proof. Further details can be found in the WadlerFest [paper](https://infoscience.epfl.ch/record/215280) and in [this design document](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/doc.md).
