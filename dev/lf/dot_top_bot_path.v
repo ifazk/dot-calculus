@@ -277,15 +277,15 @@ Inductive ty_trm : tymode -> submode -> ctx -> trm -> typ -> Prop :=
 with ty_def : ctx -> var -> typ -> def -> dec -> Prop := (* Γ; z: U |= d: T U *)
 | ty_def_typ : forall x G A T U,
     ty_def G x U (def_typ A T) (dec_typ A T T)
-| ty_def_trm : forall G a x t T U,
-    ty_trm ty_general sub_general (G & x ~ U) t T ->
+| ty_def_trm : forall x G a t T U,
+    ty_trm ty_general sub_general (G & x ~ U) (open_trm x t) (open_typ x T) ->
     ty_def G x U (def_trm a t) (dec_trm a path_general T)
-| ty_def_path : forall G a x p T U,
+| ty_def_path : forall x G a p T U,
     ty_trm ty_precise sub_general G (trm_path p) T ->
     norm G p ->
     ty_def G x U (def_trm a (trm_path p)) (dec_trm a path_strong T)
 with ty_defs : ctx -> var -> typ -> defs -> typ -> Prop :=
-| ty_defs_one : forall G x d D U,
+| ty_defs_one : forall x G d D U,
     ty_def G x U d D ->
     ty_defs G x U (defs_cons defs_nil d) (typ_rcd D)
 | ty_defs_cons : forall G ds d x T U D,
@@ -491,8 +491,8 @@ Proof.
     specialize (H0 z zL G1 G2 (G3 & z ~ T)).
     repeat rewrite concat_assoc in H0.
     apply* H0.
-  + intros. subst. constructor. rewrite <- concat_assoc.
-    apply H. rewrite concat_assoc. reflexivity. rewrite concat_assoc. assumption.
+  + intros. subst. apply ty_def_trm.
+    rewrite <- concat_assoc. apply H; rewrite concat_assoc. reflexivity. assumption.
   + intros. subst.
     eapply norm_var. eapply binds_weaken; eassumption.
   + intros. subst.
@@ -874,7 +874,7 @@ Lemma subst_rules: forall y S,
     ty_trm m1 m2 (G1 & (subst_ctx x y G2)) (subst_trm x y t) (subst_typ x y T)) /\
   (forall G z T d D, ty_def G z T d D -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2) ->
+    ok (G1 & x ~ S & G2 & z ~ T) ->
     x \notin fv_ctx_types G1 ->
     ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
     ty_def (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_def x y d) (subst_dec x y D)) /\
@@ -898,7 +898,7 @@ Lemma subst_rules: forall y S,
     m1 = ty_general ->
     m2 = sub_general ->
     subtyp m1 m2 (G1 & (subst_ctx x y G2)) (subst_typ x y T) (subst_typ x y U)).
-Proof. Admitted. (*
+Proof.
   intros y S. apply rules_mutind; intros; subst.
   - (* ty_var *)
     simpl. case_if.
@@ -944,15 +944,10 @@ Proof. Admitted. (*
     
     assert (subst_ctx x y G2 & z ~ subst_typ x y (open_typ z T) = subst_ctx x y (G2 & z ~ open_typ z T)) as B. {
       unfold subst_ctx. rewrite map_concat. rewrite map_single. reflexivity.
-    } admit. (*
-    rewrite <- concat_assoc. rewrite B.
+    } 
     apply H; eauto.
-    rewrite concat_assoc. reflexivity.
-    rewrite concat_assoc. apply ok_push. assumption. eauto.
-    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
-    apply ok_push. apply ok_concat_map. eauto. unfold subst_ctx. eauto. *)
   - (* ty_fld_elim *)
-    simpl. apply ty_new_elim.
+    simpl. apply ty_fld_elim.
     apply H; eauto.
   - (* ty_let *)
     simpl.
@@ -996,18 +991,52 @@ Proof. Admitted. (*
     eapply ty_sub; eauto.
     intro Contra. inversion Contra.
   - (* ty_def_typ *)
-    simpl. apply ty_def_typ; eauto.
+    simpl. eapply ty_def_typ; eauto.
   - (* ty_def_trm *)
     simpl. apply ty_def_trm.
-    specialize (H G1 (G2 & x ~ subst_typ x0 y U) x0). admit.
+    assert (G1 & subst_ctx x0 y G2 & x ~ subst_typ x0 y U = G1 & subst_ctx x0 y (G2 & x ~ U)) as Hs. {
+      unfold subst_ctx. rewrite map_concat. rewrite map_single. rewrite concat_assoc. 
+      reflexivity.
+    }
+    rewrite Hs.
+    assert (x <> x0) as Hn. {
+      rewrite <- concat_assoc in H1.
+      apply ok_middle_inv_r in H1. unfold not. intro Hx. subst. unfold notin in H1.
+      unfold not in H1. simpl_dom.
+      assert (x0 \in \{ x0} \u dom G2) as Hx. {
+        rewrite in_union. left. rewrite in_singleton. reflexivity.
+      }
+      apply H1 in Hx. false.
+    }
+    assert (open_trm x (subst_trm x0 y t) = subst_trm x0 y (open_trm x t)) as Ho. {
+      rewrite subst_open_commute_trm. unfold subst_fvar. rewrite If_r.
+      reflexivity. apply Hn.
+    }
+    rewrite Ho.
+    assert (open_typ x (subst_typ x0 y T) = subst_typ x0 y (open_typ x T)) as HT. {
+      rewrite subst_open_commute_typ. unfold subst_fvar. rewrite If_r. reflexivity.
+      apply Hn.
+    }
+    rewrite HT.
+    apply H; auto. rewrite concat_assoc. reflexivity. rewrite concat_assoc.
+    assumption.
+    assert (subst_ctx x0 y (G2 & x ~ U) = (subst_ctx x0 y G2) & x ~ (subst_typ x0 y U)). {
+      unfold subst_ctx. rewrite map_concat. rewrite map_single. reflexivity.
+    }
+    rewrite H0. rewrite concat_assoc. apply weaken_ty_trm.
+    apply H3.
   - (* ty_def_path *)
-    simpl. apply ty_def_path with (m1:=ty_general) (m2:=sub_general). admit.
+    simpl. apply ty_def_path. admit. auto.
   - (* ty_defs_one *)
     simpl. apply ty_defs_one; eauto.
   - (* ty_defs_cons *)
     simpl. apply ty_defs_cons; eauto.
     rewrite <- subst_label_of_def.
     apply subst_defs_hasnt. assumption.
+  - (* norm_var *)
+    simpl. admit.
+  - (* norm_path *)
+    simpl. admit.
   - (* subtyp_top *)
     apply subtyp_top.
   - (* subtyp_bot *)
@@ -1052,7 +1081,7 @@ Proof. Admitted. (*
     rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
     apply ok_push. apply ok_concat_map. eauto. unfold subst_ctx. eauto.
   - constructor.
-Qed. *)
+Qed.
 
 Lemma subst_ty_trm: forall y S G x t T,
     ty_trm ty_general sub_general (G & x ~ S) t T -> 
@@ -1806,15 +1835,18 @@ Proof.
     subst.
     apply_fresh ty_all_intro as y; eauto.
     eapply H; eauto. apply subenv_push; eauto.
-  - (* ty_new_intro *)
-    subst. Admitted. (*
-    apply_fresh ty_new_intro as y; eauto.
-    apply H; eauto. apply subenv_push; eauto.
   - (* ty_let *)
     subst.
     apply_fresh ty_let as y; eauto.
     apply H0 with (x:=y); eauto. apply subenv_push; eauto.
-  - inversion H1 (* sub_tight *).
+  - (* ty_def general *)
+    apply ty_def_trm. apply  
+    constructor. apply H; auto.
+  - (* ty_def strong *)
+    admit.
+  - (* norm_var *)
+    apply norm_var with (T:=T). 
+    inversion H1 (* sub_tight *).
   - inversion H1 (* sub_tight *).
   - (* subtyp_all *)
     subst.
