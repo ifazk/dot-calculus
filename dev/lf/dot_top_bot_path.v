@@ -1730,21 +1730,6 @@ Proof.
   intros. apply* tight_to_general.
 Qed.
 
-Lemma precise_to_tight:
-  (forall m1 m2 G t T,
-     ty_trm m1 m2 G t T ->
-     m1 = ty_precise ->
-     m2 = sub_general ->
-     ty_trm ty_general sub_tight G t T) /\
-  (forall m1 m2 G S U,
-     subtyp m1 m2 G S U ->
-     m1 = ty_precise ->
-     m2 = sub_general ->
-     subtyp ty_general sub_tight G S U).
-Proof.
-  apply ts_mutind; intros; subst; eauto; inversion H0.
-Qed.
-
 Lemma sto_binds_to_ctx_binds: forall G s x v,
   wf_sto G s -> binds x v s -> exists S, binds x S G.
 Proof.
@@ -1819,6 +1804,7 @@ Definition dec_mode (D: dec) :=
   | dec_trm _ m _ => m
   end.
 
+(*
 Lemma narrow_rules:
   (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G',
     m1 = ty_general ->
@@ -1866,10 +1852,12 @@ Proof.
     apply_fresh ty_let as y; eauto.
     apply H0 with (x:=y); eauto. apply subenv_push; eauto.
   - (* ty_def_path *)
-    inversion H1. Admitted. (*
+    inversion H1.
+  - (* ty_defs_one *)
+    apply ty_defs_one. apply H; auto. admit.
   - (* ty_defs *)
-    apply ty_defs_one. apply H; auto.
-    destruct 
+  (* problem: we need to know that all defs are general and ty_defs doesn't give us that information *)
+    admit.
   - (* norm_var *)
     apply norm_var with (T:=T). 
     inversion H1 (* sub_tight *).
@@ -1878,7 +1866,7 @@ Proof.
     subst.
     apply_fresh subtyp_all as y; eauto.
     apply H0; eauto. apply subenv_push; eauto.
-Qed. *)
+Qed. 
 
 Lemma narrow_typing: forall G G' t T,
   ty_trm ty_general sub_general G t T ->
@@ -1895,6 +1883,7 @@ Lemma narrow_subtyping: forall G G' S U,
 Proof.
   intros. apply* narrow_rules.
 Qed.
+*)
 
 (* ###################################################################### *)
 (** * Has member *)
@@ -2120,7 +2109,7 @@ Proof.
     + inversion Hmem.
   - (* sel1 *)
     exists S2 U2. split.
-    eapply has_any. assumption. Admitted. (* eapply has_sel. eassumption. eassumption.
+    eapply has_any. assumption. eapply has_sel. eassumption. eassumption.
     eauto.
   - (* all *)
     inversion Hmem; subst. inversion H2; subst.
@@ -2148,7 +2137,7 @@ Proof.
       eassumption.
     }
     subst.
-    exists U. eauto. Admitted. (*
+    exists U. eauto. 
   - apply (IHty_trm Hwf Bis S U Hmem H0).
   - (* rec_intro *)
     apply has_member_inv in Hmem.
@@ -2184,7 +2173,7 @@ Proof.
     specialize (IHty_trm Hwf Bis S' U' Hmem' H4).
     destruct IHty_trm as [T1 [Hmem1 [Hsub1 Hsub2]]].
     exists T1. eauto.
-Qed.*)
+Qed.
 
 (* ###################################################################### *)
 (** * Tight bound completeness *)
