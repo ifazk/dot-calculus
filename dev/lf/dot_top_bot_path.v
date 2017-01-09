@@ -608,14 +608,14 @@ Proof.
   - inversion Heqt. subst. exists T. assumption.
 Qed.
 
-Inductive eq_path : path -> var -> Prop :=
-| eq_v: forall x, eq_path (p_var (avar_f x)) x
+Inductive eq_path : sto -> path -> var -> Prop :=
+| eq_v: forall x s, eq_path s (p_var (avar_f x)) x
 | eq_p: forall p x y T ds s q a,
-    eq_path p x ->
+    eq_path s p x ->
     binds x (val_new T ds) s ->
     defs_has (open_defs x ds) (def_trm a (trm_path q)) ->
-    eq_path q y ->
-    eq_path (p_sel p a) y.
+    eq_path s q y ->
+    eq_path s (p_sel p a) y.
 
 
 (* ###################################################################### *)
@@ -1650,13 +1650,45 @@ Proof.
       apply (record_type_sub_closed A). apply open_record_type. assumption.
 Qed.
 
-Lemma unique_tight_bounds: forall G s x T1 T2 A,
+Lemma path_equivalence: forall G s p T,                                                                 wf_sto G s ->
+  ty_trm ty_precise sub_general G (trm_path p) T ->
+  exists x, (eq_path s p x /\ ty_trm ty_precise sub_general G (trm_path (p_var (avar_f x))) T).
+Proof. Admitted.
+
+Lemma eq_path_typing: forall G s p x T,
   wf_sto G s ->
-  ty_trm ty_precise sub_general G (trm_path (p_var (avar_f x)))  (typ_rcd (dec_typ A T1 T1)) ->
-  ty_trm ty_precise sub_general G (trm_path (p_var (avar_f x)))  (typ_rcd (dec_typ A T2 T2)) ->
+  eq_path s p x ->
+  ty_trm ty_precise sub_general G (trm_path p) T ->
+  ty_trm ty_precise sub_general G (trm_path (p_var (avar_f x))) T.
+Proof. Admitted.                              
+
+Lemma unique_eq_path: forall s p x,
+  eq_path s p x ->
+  (forall y, eq_path s p y ->  x = y).
+Proof.
+  introv Heqx.
+  dependent induction Heqx; introv Heqy; inversion Heqy; subst.
+  reflexivity.
+  lets Heq: (IHHeqx1 x0 H3). subst x0.
+  lets Hb: (binds_func H4 H). inversion Hb; subst T0 ds0. clear Hb H4 H3.
+  assert (q = q0) as Hq. {
+    unfolds defs_has. simpls. remember (get_def (label_trm a) (open_defs x ds)) as g.
+    rewrite H6 in H0. inversion H0. reflexivity.
+  }
+  subst q0.
+  apply (IHHeqx2 y0 H8).
+Qed.
+
+Lemma unique_tight_bounds: forall G s p T1 T2 A,
+  wf_sto G s ->
+  ty_trm ty_precise sub_general G (trm_path p)  (typ_rcd (dec_typ A T1 T1)) ->
+  ty_trm ty_precise sub_general G (trm_path p)  (typ_rcd (dec_typ A T2 T2)) ->
   T1 = T2.
 Proof.
   introv Hwf Hty1 Hty2.
+  destruct (path_equivalence Hwf Hty1) as [x [Heq Htyx]].
+  destruct (path_equivalence Hwf Hty2) as [x' [Heq' Htyx']].
+  lets He: (unique_eq_path Heq Heq'). subst x'. clear Heq'.
   assert (exists T, binds x T G) as Bi. {
     eapply typing_implies_bound. eassumption.
   }
@@ -1670,9 +1702,9 @@ Proof.
     assert (record_type S) as Htype. {
       eapply record_new_typing. eassumption.
     }
-    destruct (shape_new_typing Bi Htype Hty1) as [Contra1 | A1].
+    destruct (shape_new_typing Bi Htype Htyx) as [Contra1 | A1].
     inversion Contra1.
-    destruct (shape_new_typing Bi Htype Hty2) as [Contra2 | A2].
+    destruct (shape_new_typing Bi Htype Htyx') as [Contra2 | A2].
     inversion Contra2.
     assert (record_type (open_typ x S)) as HXtype. {
       apply open_record_type. assumption.
@@ -1905,10 +1937,10 @@ with has_member_rules: ctx -> var -> typ -> typ_label -> typ -> typ -> Prop :=
 | has_bnd : forall G x T A S U,
   has_member G x (open_typ x T) A S U ->
   has_member_rules G x (typ_bnd T) A S U
-| has_sel : forall G x y B T' A S U,
-  ty_trm ty_precise sub_general G (trm_path (p_var (avar_f y))) (typ_rcd (dec_typ B T' T')) ->
+| has_sel : forall G x p B T' A S U,
+  ty_trm ty_precise sub_general G (trm_path p) (typ_rcd (dec_typ B T' T')) ->
   has_member G x T' A S U ->
-  has_member_rules G x (typ_path (p_var (avar_f y)) B) A S U
+  has_member_rules G x (typ_path p B) A S U
 | has_bot  : forall G x A S U,
   has_member_rules G x typ_bot A S U
 .
@@ -1924,8 +1956,8 @@ Lemma has_member_rules_inv: forall G x T A S U, has_member_rules G x T A S U ->
      has_member G x T2 A S U)) \/
   (exists T', T = typ_bnd T' /\
     has_member G x (open_typ x T') A S U) \/
-  (exists y B T', T = typ_path (p_var (avar_f y)) B /\
-    ty_trm ty_precise sub_general G (trm_path (p_var (avar_f y))) (typ_rcd (dec_typ B T' T')) /\
+  (exists p B T', T = typ_path p B /\
+    ty_trm ty_precise sub_general G (trm_path p) (typ_rcd (dec_typ B T' T')) /\
     has_member G x T' A S U) \/
   (T = typ_bot).
 Proof.
@@ -1934,7 +1966,7 @@ Proof.
   - right. left. exists T1 T2. eauto.
   - right. left. exists T1 T2. eauto.
   - right. right. left. exists T0. eauto.
-  - right. right. right. left. exists y B T'. eauto.
+  - right. right. right. left. exists p B T'. eauto.
   - right. right. right. right. reflexivity.
 Qed.
 
@@ -1945,8 +1977,8 @@ Lemma has_member_inv: forall G x T A S U, has_member G x T A S U ->
      has_member G x T2 A S U)) \/
   (exists T', T = typ_bnd T' /\
     has_member G x (open_typ x T') A S U) \/
-  (exists y B T', T = typ_path (p_var (avar_f y)) B /\
-    ty_trm ty_precise sub_general G (trm_path (p_var (avar_f y))) (typ_rcd (dec_typ B T' T')) /\
+  (exists p B T', T = typ_path p B /\
+    ty_trm ty_precise sub_general G (trm_path p) (typ_rcd (dec_typ B T' T')) /\
     has_member G x T' A S U) \/
   (T = typ_bot).
 Proof.
@@ -2101,7 +2133,7 @@ Proof.
     + inversion Hmem.
     + destruct Hmem as [T1' [T2' [Heq _]]]. inversion Heq.
     + destruct Hmem as [T1' [Heq _]]. inversion Heq.
-    + destruct Hmem as [y [B [T' [Heq [Htyb Hmem]]]]]. inversions Heq.
+    + destruct Hmem as [q [B [T' [Heq [Htyb Hmem]]]]]. inversions Heq.
       assert (T' = T) as HeqT. {
         eapply unique_tight_bounds; eassumption.
       }
@@ -2109,11 +2141,18 @@ Proof.
     + inversion Hmem.
   - (* sel1 *)
     exists S2 U2. split.
-    eapply has_any. assumption. eapply has_sel. eassumption. eassumption.
+    eapply has_any. assumption.
+    destruct (path_equivalence Hwf H) as [y [Heq Ht]].
+    eapply has_sel. eassumption. eassumption.
     eauto.
   - (* all *)
     inversion Hmem; subst. inversion H2; subst.
-Qed.*)
+  - (* path *)
+    exists S2 U2. split.
+    apply has_any. assumption.
+    inversions Hmem; subst. inversion H0.
+    split; constructor.
+Qed.
 
 Lemma has_member_monotonicity: forall G s x T0 ds T A S U,
   wf_sto G s ->
