@@ -999,9 +999,7 @@ Proof.
   - (* ty_def_typ *)
     simpl. eapply ty_def_typ; eauto.
   - (* ty_def_trm *)
-    simpl.
-    assert (open_def x (def_trm a (subst_trm x0 y (open_rec_trm 0 x t))) = def_trm a (subst_trm x0 y (open_rec_trm 0 x t))). 
-apply ty_def_trm.
+    simpl. apply ty_def_trm.
     assert (G1 & subst_ctx x0 y G2 & x ~ subst_typ x0 y U = G1 & subst_ctx x0 y (G2 & x ~ U)) as Hs. {
       unfold subst_ctx. rewrite map_concat. rewrite map_single. rewrite concat_assoc. 
       reflexivity.
@@ -1016,16 +1014,6 @@ apply ty_def_trm.
       }
       apply H1 in Hx. false.
     }
-    assert (open_trm x (subst_trm x0 y t) = subst_trm x0 y (open_trm x t)) as Ho. {
-      rewrite subst_open_commute_trm. unfold subst_fvar. rewrite If_r.
-      reflexivity. apply Hn.
-    }
-    rewrite Ho.
-    assert (open_typ x (subst_typ x0 y T) = subst_typ x0 y (open_typ x T)) as HT. {
-      rewrite subst_open_commute_typ. unfold subst_fvar. rewrite If_r. reflexivity.
-      apply Hn.
-    }
-    rewrite HT.
     apply H; auto. rewrite concat_assoc. reflexivity. rewrite concat_assoc.
     assumption.
     assert (subst_ctx x0 y (G2 & x ~ U) = (subst_ctx x0 y G2) & x ~ (subst_typ x0 y U)). {
@@ -2362,7 +2350,7 @@ Inductive possible_types: ctx -> var -> val -> typ -> Prop :=
   defs_has (open_defs x ds) (def_trm a t) ->
   ty_trm ty_general sub_general G t T' ->
   possible_types G x (val_new T ds) (typ_rcd (dec_trm a path_general T'))
-| pt_rcd_trm_strong : forall G x T ds a p T',
+| pt_rcd_path : forall G x T ds a p T',
   defs_has (open_defs x ds) (def_trm a (trm_path p)) ->
   ty_trm ty_precise sub_general G (trm_path p) T' ->
   possible_types G x (val_new T ds) (typ_rcd (dec_trm a path_strong T'))
@@ -2432,12 +2420,10 @@ Lemma pt_piece_rcd: forall G z U s x T ds d D,
   ty_def G z U d D ->
   possible_types (G & z ~ U) x (val_new T ds) (typ_rcd D).
 Proof.
-  introv Hwf Bis Hhas Hdef. inversion Hdef; subst. (*try econstructor; eauto.*)
-  - econstructor; eauto.
-  - 
-    
-  - apply weaken_ty_trm. apply* precise_to_general.
-    apply (wf_sto_to_ok_G Hwf).
+  introv Hwf Bis Hhas Hdef. inversion Hdef; subst. try econstructor; eauto. 
+  - apply pt_rcd_trm with (t:=t); assumption.
+  - apply pt_rcd_path with (p:=p). assumption.
+    apply weaken_ty_trm. assumption. apply (wf_sto_to_ok_G Hwf).
 Qed.
 
 Inductive record_has: typ -> dec -> Prop :=
