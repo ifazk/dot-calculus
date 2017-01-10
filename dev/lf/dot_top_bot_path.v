@@ -282,7 +282,7 @@ with ty_def : ctx -> var -> typ -> def -> dec -> Prop := (* Γ; z: U |= d: T U *
 | ty_def_typ : forall x G A T U,
     ty_def G x U (def_typ A T) (dec_typ A T T)
 | ty_def_trm : forall x G a t T U,
-    ty_trm ty_general sub_general (G & x ~ U) (open_trm x t) (open_typ x T) ->
+    ty_trm ty_general sub_general (G & x ~ U) t T ->
     ty_def G x U (def_trm a t) (dec_trm a path_general T)
 | ty_def_path : forall x G a p T U,
     ty_trm ty_precise sub_general G (trm_path p) T ->
@@ -999,7 +999,9 @@ Proof.
   - (* ty_def_typ *)
     simpl. eapply ty_def_typ; eauto.
   - (* ty_def_trm *)
-    simpl. apply ty_def_trm.
+    simpl.
+    assert (open_def x (def_trm a (subst_trm x0 y (open_rec_trm 0 x t))) = def_trm a (subst_trm x0 y (open_rec_trm 0 x t))). 
+apply ty_def_trm.
     assert (G1 & subst_ctx x0 y G2 & x ~ subst_typ x0 y U = G1 & subst_ctx x0 y (G2 & x ~ U)) as Hs. {
       unfold subst_ctx. rewrite map_concat. rewrite map_single. rewrite concat_assoc. 
       reflexivity.
@@ -2177,7 +2179,6 @@ Proof.
     }
     subst.
     exists U. eauto. 
-  - apply (IHty_trm Hwf Bis S U Hmem H0).
   - (* rec_intro *)
     apply has_member_inv in Hmem.
     repeat destruct Hmem as [Hmem|Hmem].
@@ -2363,7 +2364,7 @@ Inductive possible_types: ctx -> var -> val -> typ -> Prop :=
   possible_types G x (val_new T ds) (typ_rcd (dec_trm a path_general T'))
 | pt_rcd_trm_strong : forall G x T ds a p T',
   defs_has (open_defs x ds) (def_trm a (trm_path p)) ->
-  ty_trm ty_general sub_general G (trm_path p) T' ->
+  ty_trm ty_precise sub_general G (trm_path p) T' ->
   possible_types G x (val_new T ds) (typ_rcd (dec_trm a path_strong T'))
 | pt_rcd_typ : forall G x T ds A T' S U,
   defs_has (open_defs x ds) (def_typ A T') ->
@@ -2430,11 +2431,14 @@ Lemma pt_piece_rcd: forall G z U s x T ds d D,
   defs_has (open_defs x ds) d ->
   ty_def G z U d D ->
   possible_types (G & z ~ U) x (val_new T ds) (typ_rcd D).
-Proof. Admitted. (*
-  introv Hwf Bis Hhas Hdef. inversion Hdef; subst; try econstructor; eauto. 
-  todo: dec_trm a path_strong <: dec_trm a path_general 
-  * eapply pt_rcd_trm.
-Qed. *)
+Proof.
+  introv Hwf Bis Hhas Hdef. inversion Hdef; subst. (*try econstructor; eauto.*)
+  - econstructor; eauto.
+  - 
+    
+  - apply weaken_ty_trm. apply* precise_to_general.
+    apply (wf_sto_to_ok_G Hwf).
+Qed.
 
 Inductive record_has: typ -> dec -> Prop :=
 | rh_one : forall D,
