@@ -884,7 +884,7 @@ Lemma subst_rules: forall y S,
     ty_def (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_def x y d) (subst_dec x y D)) /\
   (forall G z T ds U, ty_defs G z T ds U -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2) ->
+    ok (G1 & x ~ S & G2 & z ~ T) ->
     x \notin fv_ctx_types G1 ->
     ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
     ty_defs (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_defs x y ds) (subst_typ x y U)) /\
@@ -2392,20 +2392,18 @@ Proof.
   apply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
 Qed.
 
-(* todo can we avoid having this lemma because of the new ty_defs definition? *)
-(*
-Lemma new_ty_defs: forall G s x T ds,
+Lemma new_ty_defs: forall G s x T ds z,
   wf_sto G s ->
   binds x (val_new T ds) s ->
-  ty_defs G (open_defs x ds) (open_typ x T).
+  z # G ->
+  ty_defs G z (open_typ z T) (open_defs z ds) (open_typ z T).
 Proof.
-  introv Hwf Bis.
+  introv Hwf Bis Hz.
   lets Htyv: (val_new_typing Hwf Bis).
   inversion Htyv; subst.
   pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
   rewrite subst_intro_defs with (x:=y). rewrite subst_intro_typ with (x:=y).
-  eapply subst_ty_defs. eapply H3.
-  apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto.
+  eapply subst_ty_defs; eauto. Admitted. (* 
   rewrite <- subst_intro_typ with (x:=y).
   eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
   eauto. eauto. eauto.
@@ -2476,11 +2474,13 @@ Lemma pt_rcd_has_piece: forall G s x T ds D,
   record_has (open_typ x T) D ->
   possible_types G x (val_new T ds) (typ_rcd D).
 Proof.
-  introv Hwf Bis Hhas. Admitted. (*
-  lets Hdefs: (new_ty_defs Hwf Bis).
+  introv Hwf Bis Hhas.
+  assert (exists y U G', G = G' & y ~ U) as Hg by admit. destruct Hg as [y [U [G' GG]]]. subst.
+  eapply pt_piece_rcd. assert (y # (G' & y ~ U)) as Hy by admit.
+  lets Hdefs: (new_ty_defs Hwf Bis Hy).
   destruct (record_has_ty_defs Hdefs Hhas) as [d [A B]].
   eapply pt_piece_rcd; eauto.
-Qed.*)
+Qed.
 
 Lemma pt_rcd_trm_inversion: forall G s x v a T m,
   wf_sto G s ->
@@ -2503,9 +2503,58 @@ Proof.
     unfold open_defs in H. simpl in H. inversions H.
     destruct d0; simpl in H5; inversion H5; subst.
     inversion H5; subst.
+    * assert (ty_trm ty_general sub_general G (open_trm x t1) (open_typ x t0)) as A. {
+        rewrite subst_intro_typ with (x:=y). rewrite subst_intro_trm with (x:=y).
+        eapply subst_ty_trm. eapply H4.
+        apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto. eauto.
+        simpl. rewrite <- subst_intro_typ with (x:=y).
+        lets Htyv: (var_new_typing Hwf Bis). unfold open_typ in Htyv. simpl in Htyv.
+        unfold open_typ. apply Htyv.
+        eauto.
+        apply notin_union_r1 in Fr. apply notin_union_r2 in Fr.
+        unfold fv_defs in Fr. apply notin_union_r2 in Fr. apply Fr.
+        eauto.
+      }
+      repeat eexists.
+      unfold open_defs. simpl. unfold defs_has. simpl.
+      rewrite If_l. reflexivity. reflexivity.
+      apply A.
+    * repeat eexists. 
+      + unfold open_defs. simpl. unfold defs_has. simpl. rewrite If_l.
+        reflexivity. reflexivity.
+      + rewrite subst_intro_typ with (x:=y); auto. 
+        rewrite subst_intro_trm with (x:=y).
+        eapply subst_ty_trm; eauto. unfold open_trm. rewrite <- H0. apply* precise_to_general.
+        apply* weaken_ty_trm.
+        destruct (sto_binds_to_ctx_binds_raw Hwf Bis) as [G1 [G2 [T [HG Ht]]]].
+        assert (binds x T G) as Hb. {
+          rewrite HG. apply binds_middle_eq.
+          assert (ok G) as Hok by (apply (wf_sto_to_ok_G Hwf)). rewrite HG in Hok. 
+          apply (ok_middle_inv_r Hok).
+        }
+        lets Ht: (typing_implies_bound).
+        lets Hc: (corresponding_types Hwf).
+    * assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
+      specialize (H Heqm1). destruct H. inversion H.
+  - repeat eexists. eassumption. assumption.
+Qed.
+
+
+  introv Hwf Bis Hp. inversion Hp; subst.
+  - induction T0; simpl in H3; try solve [inversion H3].
+    induction d; simpl in H3; try solve [inversion H3].
+    unfold open_typ in H3. simpl in H3. inversions H3.
+    lets Hty: (val_new_typing Hwf Bis). inversion Hty; subst.
+    pick_/fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
+    unfold open_typ in H3. simpl in H3. inversion H3; subst.
+    destruct ds; simpl in H; try solve [inversion H].
+    destruct ds; simpl in H; try solve [inversion H].
+    unfold open_defs in H. simpl in H. inversions H.
+    destruct d0; simpl in H5; inversion H5; subst.
+    inversion H5; subst.
     assert (ty_trm ty_general sub_general G (open_trm x t1) (open_typ x t0)) as A. {
       rewrite subst_intro_typ with (x:=y). rewrite subst_intro_trm with (x:=y).
-      eapply subst_ty_trm. Admitted. (* eapply H4.
+      eapply subst_ty_trm. eapply H4.
       apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto. eauto.
       simpl. rewrite <- subst_intro_typ with (x:=y).
       lets Htyv: (var_new_typing Hwf Bis). unfold open_typ in Htyv. simpl in Htyv.
@@ -2532,7 +2581,7 @@ Proof.
   - repeat eexists. eassumption. assumption.
   - repeat eexists. eassumption. assumption.
   - admit.
-Qed. *)
+Qed. *)/
 
 Lemma pt_rcd_typ_inversion: forall G s x v A S U,
   wf_sto G s ->
