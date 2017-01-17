@@ -248,15 +248,15 @@ Inductive ty_trm : tymode -> submode -> ctx -> trm -> typ -> Prop :=
     ty_trm ty_general m2 G (trm_app (avar_f x) (avar_f z)) (open_typ z T)
 | ty_new_intro : forall L m1 m2 G T ds,
     (forall x, x \notin L ->
-      ty_defs G x (open_typ x T) (open_defs x ds) (open_typ x T)) ->
+      ty_defs m1 G x (open_typ x T) (open_defs x ds) (open_typ x T)) ->
     ty_trm m1 m2 G (trm_val (val_new T ds)) (typ_bnd T)
 | ty_fld_elim : forall m2 G p m T,
     ty_trm ty_general m2 G (trm_path p) (typ_rcd (dec_trm m path_general T)) ->
     ty_trm ty_general m2 G (trm_path (p_sel p m)) T
-| ty_fld_elim_precise : forall m2 G p a T,
+| ty_fld_elim_precise : forall m1 m2 G p a T,
     norm G p ->
-    ty_trm ty_precise m2 G (trm_path p) (typ_rcd (dec_trm a path_strong T)) ->
-    ty_trm ty_precise m2 G (trm_path (p_sel p a)) T
+    ty_trm m1 m2 G (trm_path p) (typ_rcd (dec_trm a path_strong T)) ->
+    ty_trm m1 m2 G (trm_path (p_sel p a)) T
 | ty_let : forall L m2 G t u T U,
     ty_trm ty_general m2 G t T ->
     (forall x, x \notin L ->
@@ -278,25 +278,25 @@ Inductive ty_trm : tymode -> submode -> ctx -> trm -> typ -> Prop :=
     subtyp m1 m2 G T U ->
     ty_trm m1 m2 G t U
 
-with ty_def : ctx -> var -> typ -> def -> dec -> Prop := (* Γ; z: U |= d: T U *)
-| ty_def_typ : forall x G A T U,
-    ty_def G x U (def_typ A T) (dec_typ A T T)
-| ty_def_trm : forall x G a t T U,
+with ty_def : tymode -> ctx -> var -> typ -> def -> dec -> Prop := (* Γ; z: U |= d: T U *)
+| ty_def_typ : forall m1 x G A T U,
+    ty_def m1 G x U (def_typ A T) (dec_typ A T T)
+| ty_def_trm : forall m1 x G a t T U,
     ty_trm ty_general sub_general (G & x ~ U) t T ->
-    ty_def G x U (def_trm a t) (dec_trm a path_general T)
-| ty_def_path : forall x G a p T U,
-    ty_trm ty_precise sub_general G (trm_path p) T ->
+    ty_def m1 G x U (def_trm a t) (dec_trm a path_general T)
+| ty_def_path : forall m1 x G a p T U,
+    ty_trm m1 sub_general G (trm_path p) T ->
     norm G p ->
-    ty_def G x U (def_trm a (trm_path p)) (dec_trm a path_strong T)
-with ty_defs : ctx -> var -> typ -> defs -> typ -> Prop :=
-| ty_defs_one : forall x G d D U,
-    ty_def G x U d D ->
-    ty_defs G x U (defs_cons defs_nil d) (typ_rcd D)
-| ty_defs_cons : forall G ds d x T U D,
-    ty_defs G x U ds T ->
-    ty_def G x U d D ->
+    ty_def m1 G x U (def_trm a (trm_path p)) (dec_trm a path_strong T)
+with ty_defs : tymode -> ctx -> var -> typ -> defs -> typ -> Prop :=
+| ty_defs_one : forall m1 x G d D U,
+    ty_def m1 G x U d D ->
+    ty_defs m1 G x U (defs_cons defs_nil d) (typ_rcd D)
+| ty_defs_cons : forall m1 G ds d x T U D,
+    ty_defs m1 G x U ds T ->
+    ty_def m1 G x U d D ->
     defs_hasnt ds (label_of_def d) ->
-    ty_defs G x U (defs_cons ds d) (typ_and T (typ_rcd D))
+    ty_defs m1 G x U (defs_cons ds d) (typ_and T (typ_rcd D))
 
 with norm : ctx -> path -> Prop :=
 | norm_var : forall x T G,
@@ -1025,7 +1025,9 @@ Proof.
     rewrite <- concat_assoc. rewrite Hsu. apply ok_concat_map. rewrite <- concat_assoc in H1.
     apply ok_remove in H1. assumption.
   - (* ty_def_path *)
-    simpl. apply ty_def_path. admit. auto.
+    simpl. apply ty_def_path.
+    apply* H.
+    auto.
   - (* ty_defs_one *)
     simpl. apply ty_defs_one. admit.
   - (* ty_defs_cons *)
@@ -1820,13 +1822,6 @@ Proof.
   - destruct Bi. left. eauto.
 Qed.
 
-Definition dec_mode (D: dec) :=
-  match D with
-  | dec_typ _ _ _ => path_general
-  | dec_trm _ m _ => m
-  end.
-
-(*
 Lemma narrow_rules:
   (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G',
     m1 = ty_general ->
