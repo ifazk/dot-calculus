@@ -460,14 +460,14 @@ Lemma weaken_rules:
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
     ty_trm m1 m2 (G1 & G2 & G3) t T) /\
-  (forall G x T d D, ty_def G x T d D -> forall G1 G2 G3,
+  (forall m1 G x T d D, ty_def m1 G x T d D -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3 & x ~ T) ->
-    ty_def (G1 & G2 & G3) x T d D) /\
-  (forall G x U ds T, ty_defs G x U ds T -> forall G1 G2 G3,
+    ty_def m1 (G1 & G2 & G3) x T d D) /\
+  (forall m1 G x U ds T, ty_defs m1 G x U ds T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3 & x ~ U) ->
-    ty_defs (G1 & G2 & G3) x U ds T) /\
+    ty_defs m1 (G1 & G2 & G3) x U ds T) /\
   (forall G p, norm G p -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
@@ -876,18 +876,20 @@ Lemma subst_rules: forall y S,
     m1 = ty_general ->
     m2 = sub_general ->
     ty_trm m1 m2 (G1 & (subst_ctx x y G2)) (subst_trm x y t) (subst_typ x y T)) /\
-  (forall G z T d D, ty_def G z T d D -> forall G1 G2 x,
+  (forall m1 G z T d D, ty_def m1 G z T d D -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2 & z ~ T) ->
     x \notin fv_ctx_types G1 ->
     ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
-    ty_def (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_def x y d) (subst_dec x y D)) /\
-  (forall G z T ds U, ty_defs G z T ds U -> forall G1 G2 x,
+    m1 = ty_general ->
+    ty_def ty_general (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_def x y d) (subst_dec x y D)) /\
+  (forall m1 G z T ds U, ty_defs m1 G z T ds U -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2 & z ~ T) ->
     x \notin fv_ctx_types G1 ->
     ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
-    ty_defs (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_defs x y ds) (subst_typ x y U)) /\
+    m1 = ty_general ->
+    ty_defs ty_general (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_defs x y ds) (subst_typ x y U)) /\
   (forall G p, norm G p -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
@@ -1025,17 +1027,22 @@ Proof.
     rewrite <- concat_assoc. rewrite Hsu. apply ok_concat_map. rewrite <- concat_assoc in H1.
     apply ok_remove in H1. assumption.
   - (* ty_def_path *)
-    simpl. apply ty_def_path.
-    apply* H.
-    auto.
+    simpl. apply* ty_def_path.
   - (* ty_defs_one *)
-    simpl. apply ty_defs_one. admit.
+    simpl. apply* ty_defs_one.
   - (* ty_defs_cons *)
-    simpl. apply ty_defs_cons. admit. admit. admit.
+    simpl. apply* ty_defs_cons. rewrite <- subst_label_of_def. apply subst_defs_hasnt. assumption.
   - (* norm_var *)
-    simpl. admit.
+    destruct (typing_implies_bound H2) as [U Hb].
+    simpl. case_if.
+    * apply* norm_var.
+    * destruct (binds_concat_inv b) as [b' | [Hx  b']]; clear b. 
+      + unfold subst_ctx. eapply norm_var. eauto.
+      + lets Hp: (binds_push_neq_inv b' H).
+        eapply norm_var. eapply binds_concat_left. eassumption.
+        unfold notin. intro. unfolds subst_ctx. simpl_dom. false.
   - (* norm_path *)
-    simpl. admit.
+    simpl. apply* norm_path. apply* H.
   - (* subtyp_top *)
     apply subtyp_top.
   - (* subtyp_bot *)
