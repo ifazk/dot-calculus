@@ -385,8 +385,14 @@ with   ty_defs_mut   := Induction for ty_defs   Sort Prop
 with   norm_mut      := Induction for norm      Sort Prop.
 Combined Scheme ty_mutind from ty_trm_mut, ty_def_mut, ty_defs_mut, norm_mut.
 
-Scheme ts_ty_trm_mut := Induction for ty_trm    Sort Prop
-with   ts_subtyp     := Induction for subtyp    Sort Prop.
+Scheme tds_ty_trm_mut  := Induction for ty_trm    Sort Prop
+with   tds_ty_def_mut  := Induction for ty_def    Sort Prop
+with   tds_ty_defs_mut := Induction for ty_defs   Sort Prop
+with   tds_subtyp      := Induction for subtyp    Sort Prop.
+Combined Scheme tds_mutind from tds_ty_trm_mut, tds_ty_def_mut, tds_ty_defs_mut, tds_subtyp.
+
+Scheme ts_ty_trm_mut  := Induction for ty_trm    Sort Prop
+with   ts_subtyp      := Induction for subtyp    Sort Prop.
 Combined Scheme ts_mutind from ts_ty_trm_mut, ts_subtyp.
 
 Scheme rules_trm_mut    := Induction for ty_trm    Sort Prop
@@ -1042,7 +1048,7 @@ Proof.
         eapply norm_var. eapply binds_concat_left. eassumption.
         unfold notin. intro. unfolds subst_ctx. simpl_dom. false.
   - (* norm_path *)
-    simpl. apply* norm_path. apply* H.
+    apply* norm_path. apply* H.
   - (* subtyp_top *)
     apply subtyp_top.
   - (* subtyp_bot *)
@@ -1109,11 +1115,11 @@ Proof.
 Qed.
 
 Lemma subst_ty_defs: forall y S G x ds z U T,
-    ty_defs (G & x ~ S) z U ds T ->
-    ok (G & x ~ S) ->
+    ty_defs ty_general (G & x ~ S) z U ds T ->
+    ok (G & x ~ S & z ~ U) ->
     x \notin fv_ctx_types G ->
     ty_trm ty_general sub_general G (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
-    ty_defs G z (subst_typ x y U) (subst_defs x y ds) (subst_typ x y T).
+    ty_defs ty_general G z (subst_typ x y U) (subst_defs x y ds) (subst_typ x y T).
 Proof.
   intros.
   apply (proj53 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H.
@@ -1122,7 +1128,7 @@ Proof.
   rewrite concat_empty_r. reflexivity.
   rewrite concat_empty_r. assumption.
   assumption.
-  unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption.
+  unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption. reflexivity.
 Qed.
 
 (* ###################################################################### *)
@@ -1413,14 +1419,14 @@ Proof.
   introv Fr H. destruct H as [ls H]. exists ls. eapply open_record_typ_rev; eauto.
 Qed.
 
-Lemma label_same_typing: forall G d z U D,
-  ty_def G z U d D -> label_of_def d = label_of_dec D.
+Lemma label_same_typing: forall m1 G d z U D,
+  ty_def m1 G z U d D -> label_of_def d = label_of_dec D.
 Proof.
   intros. inversion H; subst; simpl; reflexivity.
 Qed.
 
-Lemma record_defs_typing_rec: forall G ds S z U,
-  ty_defs G z U ds S ->
+Lemma record_defs_typing_rec: forall m1 G ds S z U,
+  ty_defs m1 G z U ds S ->
   exists ls, record_typ S ls /\ forall l, l \notin ls <-> defs_hasnt ds l.
 Proof.
   intros. induction H.
@@ -1463,8 +1469,8 @@ Proof.
         apply notin_singleton. eauto.
 Qed.
 
-Lemma record_defs_typing: forall G ds z U S,
-  ty_defs G z U ds S ->
+Lemma record_defs_typing: forall m1 G ds z U S,
+  ty_defs m1 G z U ds S ->
   record_type S.
 Proof.
   intros.
@@ -1720,17 +1726,21 @@ Lemma precise_to_general:
      m1 = ty_precise ->
      m2 = sub_general ->
      ty_trm ty_general sub_general G t T) /\
+  (forall m1 G z T d D,
+     ty_def m1 G z T d D ->
+     m1 = ty_precise ->
+     ty_def ty_general G z T d D) /\
+  (forall m1 G z T ds U,
+     ty_defs m1 G z T ds U ->
+     m1 = ty_precise ->
+     ty_defs ty_general G z T ds U) /\
   (forall m1 m2 G S U,
      subtyp m1 m2 G S U ->
      m1 = ty_precise ->
      m2 = sub_general ->
      subtyp ty_general sub_general G S U).
 Proof.
-  apply ts_mutind; intros; subst; eauto.
-  constructor.
-  apply ty_sub with (T:=(typ_rcd (dec_trm a path_strong T))).
-  intro. inversion H1. apply H. reflexivity. reflexivity.
-  constructor.
+  apply tds_mutind; intros; subst; eauto.
 Qed.
 
 Lemma tight_to_general:
@@ -1747,11 +1757,9 @@ Lemma tight_to_general:
 Proof.
   apply ts_mutind; intros; subst; eauto.
   - apply precise_to_general in t; auto.
-    constructor. apply ty_sub with (T:=(typ_rcd (dec_trm a path_strong T))); auto.
-    intro. inversion H1. inversion H0.
-  - apply precise_to_general in t; eauto.
+    eapply subtyp_sel2. eassumption.
   - apply precise_to_general in t; auto.
-    apply subtyp_sel1 with (S:=T). assumption.
+    eapply subtyp_sel1. eassumption.
 Qed.
 
 Lemma tight_to_general_subtyping: forall G S U,
