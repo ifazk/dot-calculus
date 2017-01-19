@@ -250,13 +250,9 @@ Inductive ty_trm : tymode -> submode -> ctx -> trm -> typ -> Prop :=
     (forall x, x \notin L ->
       ty_defs m1 G x (open_typ x T) (open_defs x ds) (open_typ x T)) ->
     ty_trm m1 m2 G (trm_val (val_new T ds)) (typ_bnd T)
-| ty_fld_elim : forall m2 G p m T,
-    ty_trm ty_general m2 G (trm_path p) (typ_rcd (dec_trm m path_general T)) ->
-    ty_trm ty_general m2 G (trm_path (p_sel p m)) T
-| ty_fld_elim_precise : forall m1 m2 G p a T,
-    norm G p ->
-    ty_trm m1 m2 G (trm_path p) (typ_rcd (dec_trm a path_strong T)) ->
-    ty_trm m1 m2 G (trm_path (p_sel p a)) T
+| ty_fld_elim : forall m1 m2 m3 G p m T,
+    ty_trm m1 m2 G (trm_path p) (typ_rcd (dec_trm m m3 T)) ->
+    ty_trm m1 m2 G (trm_path (p_sel p m)) T
 | ty_let : forall L m2 G t u T U,
     ty_trm ty_general m2 G t T ->
     (forall x, x \notin L ->
@@ -959,10 +955,7 @@ Proof.
     } 
     apply H; eauto.
   - (* ty_fld_elim *)
-    simpl. apply ty_fld_elim. apply H; eauto.
-  - (* ty_fld_elim_precise *)
-    simpl. apply ty_fld_elim_precise. apply H; auto.
-    apply H0; auto.
+    simpl. eapply ty_fld_elim. apply H; eauto.
   - (* ty_let *)
     simpl.
     apply_fresh ty_let as z; eauto.
@@ -1837,6 +1830,11 @@ Proof.
   - destruct Bi. left. eauto.
 Qed.
 
+(*
+Lemma subenv_pop: forall G' G x T,
+  subenv (G' & x ~ T') (G & x ~ T) ->
+  ok (G' *)
+
 Lemma narrow_rules:
   (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G',
     m1 = ty_general ->
@@ -1844,15 +1842,16 @@ Lemma narrow_rules:
     ok G' ->
     subenv G' G ->
     ty_trm m1 m2 G' t T)
-/\ (forall G z U d D, ty_def G z U d D -> forall G' U',
-    dec_mode D = path_general ->
+/\ (forall m1 G z U d D, ty_def m1 G z U d D -> forall G' U',
+    m1 = ty_general ->
     ok (G' & z ~ U') ->
     subenv (G' & z ~ U') (G & z ~ U) ->
-    ty_def G' z U' d D)
-/\ (forall G z U ds T, ty_defs G z U ds T -> forall G' U',
+    ty_def m1 G' z U' d D)
+/\ (forall m1 G z U ds T, ty_defs m1 G z U ds T -> forall G' U',
+    m1 = ty_general ->
     ok (G' & z ~ U') ->
     subenv (G' & z ~ U') (G & z ~ U) ->
-    ty_defs G' z U' ds T)
+    ty_defs m1 G' z U' ds T)
 /\ (forall G p, norm G p -> forall G',
     ok G' ->
     subenv G' G ->
@@ -1884,12 +1883,25 @@ Proof.
     apply_fresh ty_let as y; eauto.
     apply H0 with (x:=y); eauto. apply subenv_push; eauto.
   - (* ty_def_path *)
-    inversion H1.
+    constructor.
+
+    subst. unfold subenv in H3. assert (binds x U (G & x ~ U)) as Hb by (apply binds_push_eq). 
+    destruct (H3 x U Hb).
+    apply binds_push_eq_inv in H1. subst U'.
+    assert (subenv G' G) as Hsu. {
+      destruct (H3 x U Hb) as [Hbi | [S [Hbs Hs]]].
+      apply binds_push_eq_inv in Hbi. subst U'.
+
+      unfold subenv. intros.
+      destruct (classicT (x = x0)). subst x0.
+      apply binds_push_eq_inv in Hbi. subst U'.
+      
+    }
+    apply ty_def_path.
+    apply* H. apply* H0.
   - (* ty_defs_one *)
-    apply ty_defs_one. apply H; auto. admit.
+    apply ty_defs_one. apply H; auto. 
   - (* ty_defs *)
-  (* problem: we need to know that all defs are general and ty_defs doesn't give us that information *)
-    admit.
   - (* norm_var *)
     apply norm_var with (T:=T). 
     inversion H1 (* sub_tight *).
