@@ -1830,10 +1830,22 @@ Proof.
   - destruct Bi. left. eauto.
 Qed.
 
-(*
-Lemma subenv_pop: forall G' G x T,
+Lemma subenv_pop: forall G' G x T T',
   subenv (G' & x ~ T') (G & x ~ T) ->
-  ok (G' *)
+  ok (G & x ~ T) ->
+  subenv G' G.
+Proof.
+  introv Hs Ho.
+  unfolds subenv. intros z S Hb.
+  assert (binds z S (G & x ~ T)) as Hbx. {
+    apply (binds_concat_left_ok Ho) in Hb. assumption.
+  }
+  destruct (binds_push_inv Hbx) as [[Hz HS] | [Hz Hbz]]; subst.
+  destruct (ok_push_inv Ho) as [_ Hn].
+  false (binds_fresh_inv Hb Hn).
+  destruct (Hs z S Hbx) as [Hb' | [T1 [Hb' Hsu]]];
+  apply binds_concat_left_inv in Hb'; auto.
+  right. exists T1. split. assumption.
 
 Lemma narrow_rules:
   (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G',
