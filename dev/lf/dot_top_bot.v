@@ -1874,6 +1874,50 @@ Qed.
 (* ###################################################################### *)
 (** ** Narrowing *)
 
+
+Lemma narrowing: 
+  (forall m1 m2 G' t S,
+    ty_trm m1 m2 G' t S ->
+    forall G x T T',
+      G' = G & x ~ T ->
+      ok (G & x ~ T') ->
+      m1 = ty_general ->
+      m2 = sub_general ->
+      subtyp m1 m2 G T' T ->
+      ty_trm m1 m2 (G & x ~ T') t S) /\
+  (forall G' d D, 
+    ty_def G' d D ->
+    forall G x T T',
+    G' = G & x ~ T ->
+    ok (G & x ~ T') ->
+    subtyp ty_general sub_general G T' T ->
+    ty_def (G & x ~ T') d D) /\
+  (forall G' ds S,
+    ty_defs G' ds S ->
+    forall G x T T',
+    G' = G & x ~ T ->
+    ok (G & x ~ T') ->
+    subtyp ty_general sub_general G T' T ->
+    ty_defs (G & x ~ T') ds S) /\
+  (forall m1 m2 G' S U,
+    subtyp m1 m2 G' S U ->
+    forall G x T T',
+    G' = G & x ~ T ->
+    ok (G & x ~ T') ->
+    subtyp m1 m2 G T' T ->
+    subtyp m1 m2 (G & x ~ T') S U).
+Proof.
+  apply rules_mutind; intros; subst; eauto.
+  - destruct (classicT (x = x0)) as [Eq | Ne].
+    * subst x0. apply binds_push_eq_inv in b. subst T0.
+      apply ty_sub with (T:= T'). intro H. inversion H.
+      auto. eapply weaken_subtyp. assumption. assumption.
+    * apply binds_push_neq_inv in b. eapply weaken_ty_trm.
+      constructor. assumption. assumption. assumption.
+  - 
+Admitted.
+
+
 Definition subenv(G1 G2: ctx) :=
   forall x T2, binds x T2 G2 ->
     binds x T2 G1 \/
@@ -1973,7 +2017,7 @@ Lemma narrow_subtyping: forall G G' S U,
 Proof.
   intros. apply* narrow_rules.
 Qed.
-
+*)
 (* ###################################################################### *)
 (** * Has member *)
 

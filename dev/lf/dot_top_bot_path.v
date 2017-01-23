@@ -1846,6 +1846,7 @@ Proof.
   destruct (Hs z S Hbx) as [Hb' | [T1 [Hb' Hsu]]];
   apply binds_concat_left_inv in Hb'; auto.
   right. exists T1. split. assumption.
+Admitted.
 
 Lemma narrow_rules:
   (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G',
