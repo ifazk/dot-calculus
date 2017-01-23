@@ -1795,6 +1795,7 @@ Qed.
 (* ###################################################################### *)
 (** ** Narrowing *)
 
+
 Definition subenv(G1 G2: ctx) :=
   forall x T2, binds x T2 G2 ->
     binds x T2 G1 \/
@@ -1830,24 +1831,6 @@ Proof.
   - destruct Bi. left. eauto.
 Qed.
 
-Lemma subenv_pop: forall G' G x T T',
-  subenv (G' & x ~ T') (G & x ~ T) ->
-  ok (G & x ~ T) ->
-  subenv G' G.
-Proof.
-  introv Hs Ho.
-  unfolds subenv. intros z S Hb.
-  assert (binds z S (G & x ~ T)) as Hbx. {
-    apply (binds_concat_left_ok Ho) in Hb. assumption.
-  }
-  destruct (binds_push_inv Hbx) as [[Hz HS] | [Hz Hbz]]; subst.
-  destruct (ok_push_inv Ho) as [_ Hn].
-  false (binds_fresh_inv Hb Hn).
-  destruct (Hs z S Hbx) as [Hb' | [T1 [Hb' Hsu]]];
-  apply binds_concat_left_inv in Hb'; auto.
-  right. exists T1. split. assumption.
-Admitted.
-
 Lemma narrow_rules:
   (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G',
     m1 = ty_general ->
@@ -1858,12 +1841,14 @@ Lemma narrow_rules:
 /\ (forall m1 G z U d D, ty_def m1 G z U d D -> forall G' U',
     m1 = ty_general ->
     ok (G' & z ~ U') ->
-    subenv (G' & z ~ U') (G & z ~ U) ->
+    subenv G' G ->
+    subtyp m1 sub_general G' U' U ->
     ty_def m1 G' z U' d D)
 /\ (forall m1 G z U ds T, ty_defs m1 G z U ds T -> forall G' U',
     m1 = ty_general ->
     ok (G' & z ~ U') ->
-    subenv (G' & z ~ U') (G & z ~ U) ->
+    subenv G' G ->
+    subtyp m1 sub_general G' U' U ->
     ty_defs m1 G' z U' ds T)
 /\ (forall G p, norm G p -> forall G',
     ok G' ->
@@ -1890,13 +1875,12 @@ Proof.
   - (* ty_new_intro *)
     subst.
     apply_fresh ty_new_intro as z. apply H; auto.
-    apply subenv_push. assumption. apply ok_push; auto.
   - (* ty_let *)
     subst.
     apply_fresh ty_let as y; eauto.
     apply H0 with (x:=y); eauto. apply subenv_push; eauto.
   - (* ty_def_path *)
-    constructor.
+    constructor. apply H; auto. 
 
     subst. unfold subenv in H3. assert (binds x U (G & x ~ U)) as Hb by (apply binds_push_eq). 
     destruct (H3 x U Hb).
