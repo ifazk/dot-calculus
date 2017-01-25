@@ -2396,41 +2396,45 @@ Proof.
   apply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
 Qed.
 
+Lemma wf_sto_sub: forall G G' G'' s s' s'' x T v,
+  wf_sto G s ->
+  G = G' & x ~ T & G'' ->
+  s = s' & x ~ v & s'' ->
+  wf_sto (G' & x ~ T) (s' & x ~ v).
+Admitted.
+
+Lemma wf_sto_new_typing: forall G s x T ds,
+  wf_sto (G & x ~ (typ_bnd T)) (s & x ~ (val_new T ds)) ->
+  ty_trm ty_precise sub_general G (trm_val (val_new T ds)) (typ_bnd T).
+Admitted.
+
 Lemma new_ty_defs: forall G s x T ds,
   wf_sto G s ->
   binds x (val_new T ds) s ->
   exists G' G'',
     G = G' & x ~ (typ_bnd T) & G'' /\
-    ty_defs ty_general G' x (typ_bnd T) (open_defs x ds) (open_typ x T).
+    ty_defs ty_precise G' x (open_typ x T) (open_defs x ds) (open_typ x T).
 Proof.
   introv Hwf Bis.
-  lets Htyv: (val_new_typing Hwf Bis).
-  dependent induction Htyv; subst.
-  - destruct (sto_binds_to_ctx_binds_raw Hwf Bis) as [G' [G'' [T0 [HG _]]]].
-    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H y FrL).
+  assert (exists s' s'', s = s' & x ~ (val_new T ds) & s'') as Hs. admit.
+  destruct Hs as [s' [s'' Hs]].
+  lets Bis': (binds_push_eq x (val_new T ds) s').
+  destruct (sto_binds_to_ctx_binds_raw Hwf Bis) as [G' [G'' [T0 [HG _]]]].
+  exists G' G''.
+  assert (T0 = typ_bnd T) as Ht. {
     lets Hb: (wf_sto_val_new_in_G Hwf Bis).
-    exists G' G''.
-    assert (T0 = typ_bnd T) as Ht. {
-      apply wf_sto_to_ok_G in Hwf. rewrite HG in Hwf.
-      assert (x # G'') as Hx by (apply* ok_middle_inv_r).
-      assert (binds x T0 (G' & x ~ T0 & G'')) as Hxt by (apply* binds_middle_eq).
-      rewrite <- HG in Hxt. apply (binds_func Hxt Hb).
-    }
-    subst T0.
-    split. assumption.
-    rewrite subst_intro_defs with (x:=y); auto. rewrite subst_intro_typ with (x:=y); auto.
-    assert (y \notin fv_typ T) as Hy by auto.
-    lets Hs: (subst_fresh_typ x (typ_bnd T) Hy). rewrite <- Hs.
-    eapply subst_ty_defs; auto.
-
-    
-  
-  apply ok_push. eapply wf_sto_to_ok_G. admit. admit. auto.
-  
-  rewrite <- subst_intro_typ with (x:=y).
-  eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
-  assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
-  specialize (H Heqm1). destruct H as [? Contra]. inversion Contra.
+    apply wf_sto_to_ok_G in Hwf. rewrite HG in Hwf.
+    assert (x # G'') as Hx by (apply* ok_middle_inv_r).
+    assert (binds x T0 (G' & x ~ T0 & G'')) as Hxt by (apply* binds_middle_eq).
+    rewrite <- HG in Hxt. apply (binds_func Hxt Hb).
+  }
+  subst T0. split. assumption.
+  lets Hwf': (wf_sto_sub Hwf HG Hs).
+  lets Hn: (wf_sto_new_typing Hwf').
+  inversion Hn; subst. 
+  - apply H3. admit.
+  - assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
+    specialize (H Heqm1). destruct H as [? Contra]. inversion Contra.
 Qed.
 
 Lemma weaken_norm: forall G G' p,
@@ -2517,10 +2521,7 @@ Proof.
   destruct (record_has_ty_defs Hd Hhas) as [d [A B]].
   subst.
   eapply pt_piece_rcd; eauto.
-(*  lets Hdefs: (new_ty_defs Hwf Bis).
-  destruct (record_has_ty_defs Hdefs Hhas) as [d [A B]].
-  eapply pt_piece_rcd; eauto. *)
-Qed.*)
+Qed.
 
 Lemma pt_rcd_trm_inversion: forall G s x v a T m,
   wf_sto G s ->
