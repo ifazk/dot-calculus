@@ -541,6 +541,17 @@ Proof.
   rewrite <- EqG. assumption.
 Qed.
 
+Lemma weaken_norm: forall G G' p,
+  norm G p ->
+  ok (G & G') ->
+  norm (G & G') p.
+Proof.
+  introv Hn Hok.
+  assert (G & G' = G & G' & empty) as EqG by (rewrite* concat_empty_r).
+  rewrite EqG. apply* weaken_rules.
+  rewrite concat_empty_r. reflexivity. rewrite <- EqG. assumption.
+Qed.
+
 (* ###################################################################### *)
 (** ** Well-formed store *)
 
@@ -879,19 +890,19 @@ Lemma subst_rules: forall y S,
     m2 = sub_general ->
     ty_trm m1 m2 (G1 & (subst_ctx x y G2)) (subst_trm x y t) (subst_typ x y T)) /\
   (forall m1 G z T d D, ty_def m1 G z T d D -> forall G1 G2 x,
-    G = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2 & z ~ T) ->
+    (G & z ~ T) = G1 & x ~ S & G2 ->
+    ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
     ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
     m1 = ty_general ->
-    ty_def ty_general (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_def x y d) (subst_dec x y D)) /\
+    ty_def m1 (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_def x y d) (subst_dec x y D)) /\
   (forall m1 G z T ds U, ty_defs m1 G z T ds U -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2 & z ~ T) ->
     x \notin fv_ctx_types G1 ->
     ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
     m1 = ty_general ->
-    ty_defs ty_general (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_defs x y ds) (subst_typ x y U)) /\
+    ty_defs m1 (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_defs x y ds) (subst_typ x y U)) /\
   (forall G p, norm G p -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
@@ -2408,12 +2419,29 @@ Lemma wf_sto_new_typing: forall G s x T ds,
   ty_trm ty_precise sub_general G (trm_val (val_new T ds)) (typ_bnd T).
 Admitted.
 
+Lemma subst_ty_defs': forall y G ds z U T,
+    ty_defs ty_general G z U ds T ->
+    ok (G & z ~ U) ->
+    z \notin fv_ctx_types G ->
+    ty_trm ty_general sub_general G (trm_path (p_var (avar_f y))) (subst_typ z y U) ->
+    ty_defs ty_general G y (subst_typ z y U) (subst_defs z y ds) (subst_typ z y T).
+Proof.
+  intros.
+  apply (proj53 (subst_rules y U)) with (G1:=G) (G2:=empty) (x:=z) in H;
+  unfold subst_ctx in H. rewrite map_empty in H. rewrite concat_empty_r in H.
+  apply H.
+  rewrite concat_empty_r. reflexivity.
+  rewrite concat_empty_r. assumption.
+  assumption.
+  unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption. reflexivity.
+Qed.
+
 Lemma new_ty_defs: forall G s x T ds,
   wf_sto G s ->
   binds x (val_new T ds) s ->
   exists G' G'',
     G = G' & x ~ (typ_bnd T) & G'' /\
-    ty_defs ty_precise G' x (open_typ x T) (open_defs x ds) (open_typ x T).
+    ty_defs ty_general G' x (open_typ x T) (open_defs x ds) (open_typ x T).
 Proof.
   introv Hwf Bis.
   assert (exists s' s'', s = s' & x ~ (val_new T ds) & s'') as Hs. admit.
@@ -2432,35 +2460,44 @@ Proof.
   lets Hwf': (wf_sto_sub Hwf HG Hs).
   lets Hn: (wf_sto_new_typing Hwf').
   inversion Hn; subst. 
-  - apply H3. admit.
-  - assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
-    specialize (H Heqm1). destruct H as [? Contra]. inversion Contra.
-Qed.
+  - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
+    rewrite subst_intro_defs with (x:=y); auto. rewrite subst_intro_typ with (x:=y); auto.
+    eapply subst_ty_defs; auto.
+  apply H3. admit.
+  assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
+  specialize (H Heqm1). destruct H as [? Contra]. inversion Contra.
+Qed. (*
+  dependent induction Hwf'.
+  - false* empty_push_inv.
+  - destruct (eq_push_inv x) as [HG0 [Hx0 HT0]]. destruct (eq_push_inv x2) as [HG' [Hx1 HT]]. subst. clear x x2 HG'.
+    apply* IHHwf'. 
 
-Lemma weaken_norm: forall G G' p,
-  norm G p ->
-  ok (G & G') ->
-  norm (G & G') p.
-Proof.
-  introv Hn Hok.
-  assert (G & G' = G & G' & empty) as EqG by (rewrite* concat_empty_r).
-  rewrite EqG. apply* weaken_rules.
-  rewrite concat_empty_r. reflexivity. rewrite <- EqG. assumption.
-Qed.
 
-Lemma pt_piece_rcd: forall G G' z U s x T ds d D,
-  wf_sto (G & z ~ U & G') s ->
+  dependent induction Htyv; subst.
+  - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H y FrL).
+    rewrite subst_intro_defs with (x:=y); auto. rewrite subst_intro_typ with (x:=y); auto.
+    assert (y \notin fv_typ T) as Hy by auto.
+    lets Hs: (subst_fresh_typ x (typ_bnd T) Hy). rewrite <- Hs.
+    eapply subst_ty_defs; auto.
+    
+Qed. *)
+
+Lemma pt_piece_rcd: forall G G' s x T ds d D,
+  wf_sto (G & x ~ (typ_bnd T) & G') s ->
   binds x (val_new T ds) s ->
   defs_has (open_defs x ds) d ->
-  ty_def ty_general G z U d D ->
-  possible_types (G & z ~ U & G') x (val_new T ds) (typ_rcd D).
+  ty_def ty_general G x (open_typ x T d D ->
+  possible_types (G & x ~ (typ_bnd T) & G') x (val_new T ds) (typ_rcd D).
 Proof.
   introv Hwf Bis Hhas Hdef. 
   apply wf_sto_to_ok_G in Hwf.
   inversion Hdef; subst. 
-  try econstructor; eauto. 
-  - apply pt_rcd_trm with (t:=t). assumption. apply weaken_ty_trm; assumption. 
-  - apply pt_rcd_path with (p:=p). assumption. apply weaken_ty_trm. apply weaken_ty_trm. assumption.
+  - (* def_typ *)
+    try econstructor; eauto. 
+  - (* def_trm *)
+    apply pt_rcd_trm with (t:=t). assumption. apply weaken_ty_trm; assumption. 
+  - (* def_path *)
+    apply pt_rcd_path with (p:=p). assumption. apply weaken_ty_trm. apply weaken_ty_trm. assumption.
     eapply ok_concat_inv_l; eassumption. assumption.
     apply weaken_norm. apply weaken_norm. assumption. eapply ok_concat_inv_l. eassumption.
     assumption.
