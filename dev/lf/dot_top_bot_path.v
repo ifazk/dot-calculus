@@ -890,19 +890,19 @@ Lemma subst_rules: forall y S,
     m2 = sub_general ->
     ty_trm m1 m2 (G1 & (subst_ctx x y G2)) (subst_trm x y t) (subst_typ x y T)) /\
   (forall m1 G z T d D, ty_def m1 G z T d D -> forall G1 G2 x,
-    (G & z ~ T) = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2) ->
+    G = G1 & x ~ S & G2 ->
+    ok (G1 & x ~ S & G2 & z ~ T) ->
     x \notin fv_ctx_types G1 ->
     ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
     m1 = ty_general ->
-    ty_def m1 (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_def x y d) (subst_dec x y D)) /\
+    ty_def ty_general (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_def x y d) (subst_dec x y D)) /\
   (forall m1 G z T ds U, ty_defs m1 G z T ds U -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2 & z ~ T) ->
     x \notin fv_ctx_types G1 ->
     ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
     m1 = ty_general ->
-    ty_defs m1 (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_defs x y ds) (subst_typ x y U)) /\
+    ty_defs ty_general (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_defs x y ds) (subst_typ x y U)) /\
   (forall G p, norm G p -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
@@ -2419,22 +2419,91 @@ Lemma wf_sto_new_typing: forall G s x T ds,
   ty_trm ty_precise sub_general G (trm_val (val_new T ds)) (typ_bnd T).
 Admitted.
 
-Lemma subst_ty_defs': forall y G ds z U T,
-    ty_defs ty_general G z U ds T ->
+
+Lemma renaming: forall S, 
+  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G1 x S,
+    G = G1 & x ~ S ->
+    ok (G1 & x ~ S) ->
+    x \notin fv_ctx_types G1 ->
+    x # G1 ->
+    m1 = ty_general ->
+    m2 = sub_general ->
+    (forall y, y # G1 ->
+      ty_trm m1 m2 (G1 & y ~ (subst_typ x y S)) (subst_trm x y t) (subst_typ x y T))) /\
+  (forall m1 G z U d D, ty_def m1 G z U d D ->
     ok (G & z ~ U) ->
     z \notin fv_ctx_types G ->
-    ty_trm ty_general sub_general G (trm_path (p_var (avar_f y))) (subst_typ z y U) ->
-    ty_defs ty_general G y (subst_typ z y U) (subst_defs z y ds) (subst_typ z y T).
+    z # G ->
+    m1 = ty_general ->
+    U = S ->
+    (forall y, y # G ->
+      ty_def m1 G y (subst_typ z y S) (subst_def z y d) (subst_dec z y D))) /\
+  (forall m1 G z U ds T, ty_defs m1 G z U ds T ->
+    ok (G & z ~ U) ->
+    z \notin fv_ctx_types G ->
+    z # G ->
+    m1 = ty_general ->
+    U = S ->
+    (forall y, y # G ->
+      ty_defs ty_general G y (subst_typ z y S) (subst_defs z y ds) (subst_typ z y T))) /\
+  (forall G p, norm G p -> forall G1 x,
+    G = G1 & x ~ S ->
+    ok (G1 & x ~ S) ->
+    x \notin fv_ctx_types G1 ->
+    x # G1 ->
+    (forall y, y # G1 ->
+      norm (G1 & y ~ (subst_typ x y S)) (subst_path x y p))) /\
+  (forall m1 m2 G T U, subtyp m1 m2 G T U -> forall G1 x,
+    G = G1 & x ~ S ->
+    ok (G1 & x ~ S) ->
+    x \notin fv_ctx_types G1 ->
+    x # G1 ->
+    m1 = ty_general ->
+    m2 = sub_general ->
+    (forall y, y # G1 ->
+      subtyp m1 m2 (G1 & y ~ (subst_typ x y S)) (subst_typ x y T) (subst_typ x y U))).
 Proof.
-  intros.
+  intros. apply rules_mutind; intros; subst; eauto.
+  - (* ty_var *)
+    constructor. case_if.
+    * apply binds_push_eq_inv in b. subst S0. auto.
+    * lets Hbn: (binds_push_neq_inv b H).
+      assert (x <> y) as Hyx. {
+        intro. subst. apply (binds_fresh_inv Hbn H5).
+      }
+      apply* binds_push_neq.
+      assert (x0 \notin fv_typ T) as Hn by (apply (fv_in_values_binds fv_typ Hbn H1)).
+      lets Hbi: (subst_fresh_typ y T Hn).
+      rewrite Hbi. assumption.
+  - (* ty_all_intro *)
+    
+  - (* ty_def_typ *)
+    
+  
+  
+  apply rules_mutind; intros; subst; try (apply* subst_rules).
+  - (* ty_def_typ *)
+    constructor.
+  - (* ty_def_trm *)
+    simpl. constructor. 
+    specialize (H G (@empty typ) x).
+    unfold subst_ctx in H. rewrite map_empty in H. repeat (rewrite concat_empty_r in H).
+    assert (G & x ~ S = G & x ~ S) as Hobv by reflexivity.
+    assert (ty_general = ty_general) as Htyg by reflexivity. assert (sub_general = sub_general) as Hsub by reflexivity.
+    specialize (H Hobv H0 H1 H2). H2 Htyg Hsub). clear Hobv Htyg Hsub.
+    apply weaken_ty_trm. assumption.      
+apply weaken_ty_trm. apply* H. Abort. (*
+  - (* ty_def_path *)
+    
+  - simpl. constructor. 
   apply (proj53 (subst_rules y U)) with (G1:=G) (G2:=empty) (x:=z) in H;
-  unfold subst_ctx in H. rewrite map_empty in H. rewrite concat_empty_r in H.
+  unfold subst_ctx in H. rewrite map_empty in H. rewrite concat_empty in H. ; rewrite map_empty in H. rewrite concat_empty_r in H.
   apply H.
   rewrite concat_empty_r. reflexivity.
   rewrite concat_empty_r. assumption.
   assumption.
   unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption. reflexivity.
-Qed.
+Qed.*)
 
 Lemma new_ty_defs: forall G s x T ds,
   wf_sto G s ->
@@ -3239,3 +3308,8 @@ Proof.
       rewrite IH2. apply weaken_subtyp. assumption.
       rewrite <- IH2. eapply wf_sto_to_ok_G. eassumption.
 Qed.
+Set Implicit Arguments.
+
+Require Import LibLN.
+Require Import Coq.Program.Equality.
+
