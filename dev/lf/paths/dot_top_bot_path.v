@@ -2419,6 +2419,31 @@ Lemma wf_sto_new_typing: forall G s x T ds,
   ty_trm ty_precise sub_general G (trm_val (val_new T ds)) (typ_bnd T).
 Admitted.
 
+Lemma subst_refl_avar: forall x y,
+  subst_avar x x y = y.
+Proof.
+  intros. induction y; simpl.
+  reflexivity.
+  case_if; reflexivity.
+Qed.
+
+Lemma subst_refl_path: forall x p,
+  subst_path x x p = p.
+Proof.
+  intros. dependent induction p; simpl.
+  rewrite subst_refl_avar. reflexivity.
+  rewrite IHp. reflexivity.
+Qed.
+
+Lemma subst_refl_dec_typ: forall x,
+  (forall T, subst_typ x x T = T) /\
+  (forall d, subst_dec x x d = d).
+Proof.
+  intro. apply typ_mutind; simpl; intros; 
+  try (rewrite H; reflexivity); 
+  try (rewrite H; rewrite H0; reflexivity); auto.
+  rewrite subst_refl_path. reflexivity.
+Qed. 
 
 Lemma renaming: forall S, 
   (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G1 x S,
@@ -2476,6 +2501,17 @@ Proof.
       lets Hbi: (subst_fresh_typ y T Hn).
       rewrite Hbi. assumption.
   - (* ty_all_intro *)
+    simpl. apply_fresh ty_all_intro as z.
+    assert (z \notin L) as Hz by auto.
+    assert (G1 & x ~ S0 & z ~ T = G1 & x ~ S0 & z ~ T) as Hobv by reflexivity.
+    assert (ok (G1 & x ~ S0 & z ~ T)) as Hok by auto.
+    assert (z \notin fv_ctx_types (G1 & x ~ S0)) as Hz' by admit.
+    assert (z # G1 & x ~ S0) as Hz'' by auto.
+    assert (ty_general = ty_general) as Htg by reflexivity.
+    assert (sub_general = sub_general) as Hsg by reflexivity.
+    specialize (H z Hz (G1 & x ~ S0) z T Hobv Hok Hz' Hz'' Htg Hsg y).
+    lets Hdec: (classicT (x = y)). destruct Hdec.
+    * subst. 
     
   - (* ty_def_typ *)
     
@@ -3276,40 +3312,3 @@ Proof.
         }
         destruct A as [x A]. subst a.
         exists s (open_trm x u) G (@empty typ).
-        split.
-        apply red_let_var.
-        split.
-        rewrite concat_empty_r. reflexivity.
-        split.
-        pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H0 y FrL).
-        rewrite subst_intro_trm with (x:=y).
-        rewrite <- subst_fresh_typ with (x:=y) (y:=x).
-        eapply subst_ty_trm. eapply H0.
-        apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto.
-        rewrite subst_fresh_typ. assumption. eauto. eauto. eauto. eauto.
-      * specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
-        destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
-        exists s' (trm_let t' u) G' G''.
-        split. apply red_let_tgt. assumption.
-        split. assumption. split.
-        apply ty_let with (L:=L \u dom G') (T:=T); eauto.
-        intros. rewrite IH2. eapply (proj51 weaken_rules). apply H0. auto. reflexivity.
-        rewrite <- IH2. apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
-        rewrite IH2.
-        rewrite <- IH2. eauto.
-  - specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH].
-    + left. assumption.
-    + right. destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
-      exists s' t' G' G''.
-      split; try split; try split; try assumption.
-      apply ty_sub with (T:=T).
-      intro Contra. inversion Contra.
-      assumption.
-      rewrite IH2. apply weaken_subtyp. assumption.
-      rewrite <- IH2. eapply wf_sto_to_ok_G. eassumption.
-Qed.
-Set Implicit Arguments.
-
-Require Import LibLN.
-Require Import Coq.Program.Equality.
-
