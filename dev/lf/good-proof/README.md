@@ -26,6 +26,10 @@
     ---------------
        good T & U
 
+    Γ ⊢! T <: U   good T
+    --------------------
+          good U
+
 ## Good Environments
 
     good {}
