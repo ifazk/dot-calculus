@@ -5,6 +5,6 @@ This is a fork of the [Wadlerfest DOT](http://infoscience.epfl.ch/record/215280/
 
 It provides extensions of the [original proof](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/dot_top_bot.v) with 
 - mutation
-  ([proof](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/dot_top_bot_mut.v) | [technical report](https://arxiv.org/abs/1611.07610) | [documentation](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/mutation-readme.md))
+  ([proof](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/mutation/dot_top_bot_mut.v) | [technical report](https://arxiv.org/abs/1611.07610) | [documentation](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/mutation/README.md))
 - expanded type paths
-  ([proof](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/dot_top_bot_path.v) | [description](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/doc_path.md)).
+  ([proof](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/paths/dot_top_bot_path.v) | [description](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/paths/README.md)).
