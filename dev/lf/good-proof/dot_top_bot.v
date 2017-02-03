@@ -2433,14 +2433,6 @@ Proof.
         { apply IHty_trm; assumption. }
 Qed.
 
-apply binds_good with (G:=G) (x:=x); eauto.
-        unfold binds.
-        
-        assert (x \notin L) as FrL by auto. 
-        apply binds_good with (G:=G) (x:=x). 
-        { 
-      * 
-
 (* ###################################################################### *)
 (** ** Possible types *)
 
