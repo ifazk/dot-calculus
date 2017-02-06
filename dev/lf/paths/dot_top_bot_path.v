@@ -2469,6 +2469,42 @@ Proof.
   - rewrite subst_refl_path. reflexivity.
 Qed.
 
+Lemma subst_refl_trm1: forall x t,
+  subst_trm x x t = t.
+Proof.
+  apply* subst_refl_trm.
+Qed.
+
+Lemma subst_refl_ctx: forall x G,
+  subst_ctx x x G = G.
+Proof.
+  intros. induction G using env_ind; unfold subst_ctx.
+  - rewrite map_empty. reflexivity.
+  - rewrite map_concat. rewrite map_single. rewrite subst_refl_typ.
+    unfold subst_ctx in IHG. rewrite IHG. reflexivity.
+Qed.
+
+Lemma ok_extend: forall E F x (v: typ),
+  ok (E & F) ->
+  x # (E & F) ->
+  ok (E & x ~ v & F).
+Proof.
+  introv Hok Hn.
+  induction F using env_ind; introv;
+  autorewrite with rew_env_map; rew_env_concat.
+  rewrite concat_empty_r in *. apply* ok_push.
+  rewrite concat_assoc in *.
+  apply ok_push; auto.
+  intro. clear IHF. simpl_dom.
+  rewrite in_union in H. destruct H. rewrite in_union in H. destruct H.
+  - destruct (ok_push_inv Hok) as [_ Hnef].
+    simpl_dom. rewrite notin_union in Hnef. destruct Hnef as [Hne _]. auto.
+  - rewrite in_singleton in H. subst.
+    rewrite notin_union in Hn. destruct Hn. apply notin_same in H. auto.
+  - destruct (ok_push_inv Hok) as [_ Hnef].
+    simpl_dom. rewrite notin_union in Hnef. destruct Hnef as [_ Hnf]. auto.
+Qed.
+
 Lemma renaming:
   (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G1 G2 x S,
     G = G1 & x ~ S & G2 ->
@@ -2520,31 +2556,27 @@ Proof.
       apply binds_middle_eq. intro. unfold subst_ctx in H. simpl_dom. 
       destruct (notin_union y  (dom G1 \u \{ x0}) (dom G2)). destruct (H2 H4) as [_ Hd].
       unfold notin in Hd. unfold not in Hd. apply Hd. assumption. assumption.
-    * lets Hbn: (binds_push_neq_inv b H).
-      assert (x <> y) as Hyx. {
-        intro. subst. apply (binds_fresh_inv Hbn H5).
-      }
-      apply* binds_push_neq.
-      assert (x0 \notin fv_typ T) as Hn by (apply (fv_in_values_binds fv_typ Hbn H1)).
-      lets Hbi: (subst_fresh_typ y T Hn).
-      rewrite Hbi. assumption.
+    * apply binds_weaken. lets Hbs: (binds_subst b H).
+      + admit.
+      + apply ok_concat_map.
+        destruct (ok_concat_inv H0) as [Hg1 Hg2].
+        assert (ok (G1 & y ~ subst_typ x0 y S)) as Hok by (apply* ok_push).
+        apply* ok_extend.
   - (* ty_all_intro *)
     simpl. apply_fresh ty_all_intro as z.
     assert (z \notin L) as Hz by auto.
-    assert (G1 & x ~ S0 & z ~ T = G1 & x ~ S0 & z ~ T) as Hobv by reflexivity.
-    assert (ok (G1 & x ~ S0 & z ~ T)) as Hok by auto.
-    assert (z \notin fv_ctx_types (G1 & x ~ S0)) as Hz' by admit.
-    assert (z # G1 & x ~ S0) as Hz'' by auto.
+    assert (G1 & x ~ S & G2 & z ~ T = G1 & x ~ S & (G2 & z ~ T)) as Hobv by (rewrite* concat_assoc).
+    assert (ok (G1 & x ~ S & G2 & z ~ T)) as Hok by auto.
     assert (ty_general = ty_general) as Htg by reflexivity.
     assert (sub_general = sub_general) as Hsg by reflexivity.
-    specialize (H z Hz (G1 & x ~ S0) z T Hobv Hok Hz' Hz'' Htg Hsg y).
+    assert (y # G1 & x ~ S & G2 & z ~ T) as Hy by auto.
+    specialize (H z Hz G1 (G2 & z ~ T) x S Hobv Hok H2 Htg Hsg y Hy).
     lets Hdec: (classicT (x = y)). destruct Hdec.
     * subst. 
       do 3 rewrite subst_refl_typ.
       assert (subst_trm y y t = t) as Hst by (apply* subst_refl_trm). rewrite Hst.
-      rewrite <- subst_intro_trm in H. rewrite <- subst_intro_typ in H.
-      assert (z \notin fv_typ T) as HzT by auto.
-      rewrite* subst_fresh_typ in H. auto. auto.
+      rewrite subst_refl_trm1 in H. rewrite subst_refl_ctx in H. do 2 rewrite subst_refl_typ in H.
+      rewrite subst_refl_ctx. rewrite concat_assoc in H. apply H.
     * rewrite subst_open_commute_typ in H. do 2 rewrite subst_fresh_typ in H. 
       rewrite subst_fresh_trm in H. unfold subst_fvar in H. case_if.
       specialize (t0 z Hz).
