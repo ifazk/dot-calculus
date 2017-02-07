@@ -2535,7 +2535,6 @@ Lemma renaming:
     G = G1 & x ~ S & G2 ->
     ok G ->
     x \notin fv_ctx_types G1 ->
-    x # G1 ->
     (forall y, y # G ->
       norm (G1 & y ~ (subst_typ x y S) & (subst_ctx x y G2)) (subst_path x y p))) /\
   (forall m1 m2 G T U, subtyp m1 m2 G T U -> forall G1 G2 x S,
@@ -2623,7 +2622,18 @@ Proof.
     assert (sub_general = sub_general) as Hsg by reflexivity.
     specialize (H G1 (G2 & x ~ U) x0 S Hobv H1 H2 Htg Hsg y H4).
     unfold subst_ctx in H. rewrite map_push in H. rewrite concat_assoc in H. apply H.
-  - 
+  - (* ty_defs_cons *)
+    apply ty_defs_cons. apply* H. apply* H0. rewrite <- subst_label_of_def.
+    apply subst_defs_hasnt. assumption.
+  - (* norm_var *)
+    case_if; eapply norm_var.
+    * apply binds_middle_eq. assert (y # G2) as Hy by auto. unfold subst_ctx. auto.
+    * apply binds_weaken.
+      + 
+      + apply ok_concat_map. destruct (ok_concat_inv H0) as [Hg1 Hg2].
+        assert (ok (G1 & y ~ subst_typ x0 y S)) as Hok by (apply* ok_push). apply* ok_extend.
+
+    * lets Hb: (binds_middle_eq_inv ).
 
 Lemma renaming_this_def: forall G z U d D, 
     ty_def ty_general G z U d D ->
