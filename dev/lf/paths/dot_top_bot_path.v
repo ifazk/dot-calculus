@@ -2520,7 +2520,7 @@ Lemma renaming:
     ok (G & z ~ U) ->
     x \notin fv_ctx_types G1 ->
     m1 = ty_general ->
-    (forall y, y # G ->
+    (forall y, y # (G & z ~ U) ->
       ty_def m1 (G1 & y ~ (subst_typ x y S) & (subst_ctx x y G2)) z (subst_typ x y U) 
           (subst_def x y d) (subst_dec x y D))) /\
   (forall m1 G z U ds T, ty_defs m1 G z U ds T -> forall G1 G2 x S,
@@ -2528,7 +2528,7 @@ Lemma renaming:
     ok (G & z ~ U) ->
     x \notin fv_ctx_types G1 ->
     m1 = ty_general ->
-    (forall y, y # G ->
+    (forall y, y # (G & z ~ U) ->
       ty_defs ty_general (G1 & y ~ (subst_typ x y S) & (subst_ctx x y G2)) z (subst_typ x y U) 
           (subst_defs x y ds) (subst_typ x y T))) /\
   (forall G p, norm G p -> forall G1 G2 x S,
@@ -2547,7 +2547,7 @@ Lemma renaming:
     (forall y, y # G ->
       subtyp m1 m2 (G1 & y ~ (subst_typ x y S) & (subst_ctx x y G2)) (subst_typ x y T) (subst_typ x y U))).
 Proof.
-  intros. apply rules_mutind; intros; subst; eauto.
+  intros. apply rules_mutind; intros; subst; simpl; try (rewrite subst_open_commute_typ); try (econstructor; apply* H); eauto.
   - (* ty_var *)
     constructor. case_if.
     * apply binds_middle_eq_inv in b. subst S.
@@ -2567,7 +2567,7 @@ Proof.
         assert (ok (G1 & y ~ subst_typ x0 y S)) as Hok by (apply* ok_push).
         apply* ok_extend.
   - (* ty_all_intro *)
-    simpl. apply_fresh ty_all_intro as z.
+    apply_fresh ty_all_intro as z.
     assert (z \notin L) as Hz by auto.
     assert (G1 & x ~ S & G2 & z ~ T = G1 & x ~ S & (G2 & z ~ T)) as Hobv by (rewrite* concat_assoc).
     assert (ok (G1 & x ~ S & G2 & z ~ T)) as Hok by auto.
@@ -2580,24 +2580,20 @@ Proof.
     unfold subst_fvar in H. 
     assert (z <> x) as Hzx by auto.
     case_if. apply  H.
-  - (* ty_all_elim *)
-    simpls. rewrite subst_open_commute_typ. eapply ty_all_elim. apply* H. apply* H0.
   - (* ty_new_intro *)
-    simpl. apply_fresh ty_new_intro as z.
+    apply_fresh ty_new_intro as z.
     assert (z \notin L) as Hz by auto.
     assert (G1 & x ~ S & G2 = G1 & x ~ S & G2) as Hobv by reflexivity.
     assert (ok (G1 & x ~ S & G2 & z ~ open_typ z T)) as Hok by auto.
     assert (ty_general = ty_general) as Htg by reflexivity.
     assert (sub_general = sub_general) as Hsg by reflexivity.
-    assert (y # G1 & x ~ S & G2 & z ~ T) as Hy by auto.
-    specialize (H z Hz G1 G2 x S Hobv Hok H2 Htg y H5). 
+    assert (y # G1 & x ~ S & G2 & z ~ open_typ z T) as Hy by auto.
+    specialize (H z Hz G1 G2 x S Hobv Hok H2 Htg y Hy). 
     rewrite subst_open_commute_typ in H. rewrite subst_open_commute_defs in H. unfold subst_fvar in H.
     assert (z <> x) as Hzx by auto. case_if.
     apply H.
-  - (* ty_fld_elim *)
-    simpl. eapply ty_fld_elim. apply* H.
   - (* ty_let *)
-    simpl. apply_fresh ty_let as z. apply* H.
+    apply_fresh ty_let as z. apply* H.
     assert (z \notin L) as Hz by auto.
     assert (G1 & x ~ S & G2 & z ~ T = G1 & x ~ S & (G2 & z ~ T)) as Hobv by (rewrite* concat_assoc).
     assert (ok (G1 & x ~ S & G2 & z ~ T)) as Hok by auto.
@@ -2609,9 +2605,25 @@ Proof.
     rewrite subst_open_commute_trm in H0.
     unfold subst_fvar in H0. 
     assert (z <> x) as Hzx by auto. case_if. apply H0.
-  - (* ty_def_typ *)
-    
-
+  - (* ty_rec_intro *) 
+    apply ty_rec_intro. simpl in H.
+    assert (G1 & x0 ~ S & G2 = G1 & x0 ~ S & G2) as Hobv by reflexivity.
+    assert (ok (G1 & x0 ~ S & G2)) as Hok by assumption.
+    assert (ty_general = ty_general) as Htg by reflexivity.
+    assert (sub_general = sub_general) as Hsg by reflexivity.
+    specialize (H G1 G2 x0 S Hobv Hok H2 Htg Hsg y H5).
+    rewrite subst_open_commute_typ in H. unfold subst_fvar in H. apply H.
+  - (* ty_sub *)
+    eapply ty_sub. intro. inversion H1. eapply H; auto.
+    apply* H0.
+  - (* ty_def_trm *)
+    apply ty_def_trm.
+    assert (G1 & x0 ~ S & G2 & x ~ U = G1 & x0 ~ S & (G2 & x ~ U)) as Hobv by (rewrite* concat_assoc).
+    assert (ty_general = ty_general) as Htg by reflexivity.
+    assert (sub_general = sub_general) as Hsg by reflexivity.
+    specialize (H G1 (G2 & x ~ U) x0 S Hobv H1 H2 Htg Hsg y H4).
+    unfold subst_ctx in H. rewrite map_push in H. rewrite concat_assoc in H. apply H.
+  - 
 
 Lemma renaming_this_def: forall G z U d D, 
     ty_def ty_general G z U d D ->
