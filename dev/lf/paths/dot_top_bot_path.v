@@ -2557,7 +2557,13 @@ Proof.
       destruct (notin_union y  (dom G1 \u \{ x0}) (dom G2)). destruct (H2 H4) as [_ Hd].
       unfold notin in Hd. unfold not in Hd. apply Hd. assumption. assumption.
     * apply binds_weaken. lets Hbs: (binds_subst b H).
-      + admit.
+      + clear b H4. destruct (binds_concat_inv Hbs) as [Hg1 | [Hn Hg2]]; clear Hbs.
+        apply binds_concat_right. apply binds_map. assumption.
+        apply binds_concat_left. 
+        lets Hi: invert_fv_ctx_types_push x0.
+        unfold fv_ctx_types in H1.
+        lets Hf: (fv_in_values_binds fv_typ Hg2 H1).
+        rewrite* subst_fresh_typ. intro. unfold subst_ctx in H2. rewrite dom_map in H2. auto.
       + apply ok_concat_map.
         destruct (ok_concat_inv H0) as [Hg1 Hg2].
         assert (ok (G1 & y ~ subst_typ x0 y S)) as Hok by (apply* ok_push).
@@ -2576,7 +2582,10 @@ Proof.
     unfold subst_fvar in H. 
     assert (z <> x) as Hzx by auto.
     case_if. apply  H.
-- (* ty_def_typ *)
+  - (* ty_all_elim *)
+    
+  - (* ty_def_typ *)
+
 
 Lemma renaming_this_def: forall G z U d D, 
     ty_def ty_general G z U d D ->
