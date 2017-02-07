@@ -2557,7 +2557,6 @@ Proof.
       + clear b H4. destruct (binds_concat_inv Hbs) as [Hg1 | [Hn Hg2]]; clear Hbs.
         apply binds_concat_right. apply binds_map. assumption.
         apply binds_concat_left. 
-        lets Hi: invert_fv_ctx_types_push x0.
         unfold fv_ctx_types in H1.
         lets Hf: (fv_in_values_binds fv_typ Hg2 H1).
         rewrite* subst_fresh_typ. intro. unfold subst_ctx in H2. rewrite dom_map in H2. auto.
@@ -2629,11 +2628,41 @@ Proof.
     case_if; eapply norm_var.
     * apply binds_middle_eq. assert (y # G2) as Hy by auto. unfold subst_ctx. auto.
     * apply binds_weaken.
-      + 
+      + destruct (binds_concat_inv b) as [Hg2 | [Hn Hg1 ]].
+        apply binds_concat_right. apply binds_map. eassumption.
+        apply binds_concat_left.
+        unfold fv_ctx_types in H1. apply binds_push_neq_inv in Hg1; auto.
+        lets Hf: (fv_in_values_binds fv_typ Hg1 H1).
+        rewrite* subst_fresh_typ. intro. unfold subst_ctx in H3. rewrite dom_map in H3. auto.
       + apply ok_concat_map. destruct (ok_concat_inv H0) as [Hg1 Hg2].
         assert (ok (G1 & y ~ subst_typ x0 y S)) as Hok by (apply* ok_push). apply* ok_extend.
+  - (* norm_path *)
+    eapply norm_path. apply* H. apply* H0.
+  - (* subtyp_sel2 *)
+    eapply subtyp_sel2. apply* H.
+  - (* subtyp_sel1 *)
+    eapply subtyp_sel1. apply* H.
+  - (* subtyp_sel2_tight *)
+    inversion H4.
+  - (* subtyp_sel1 *)
+    inversion H4.
+  - (* subtyp_all *)
+    apply_fresh subtyp_all as z. apply* H.
+    assert (G1 & x ~ S & G2 & z ~ S2 = G1 & x ~ S & (G2 & z ~ S2)) as Hobv by (rewrite* concat_assoc).
+    assert (z \notin L) as Hz by auto.
+    assert (ok (G1 & x ~ S & G2 & z ~ S2)) as Hok by auto.
+    assert (ty_general = ty_general) as Htg by reflexivity.
+    assert (sub_general = sub_general) as Hsg by reflexivity.
+    assert (y # G1 & x ~ S & G2 & z ~ S2) as Hy by auto.
+    specialize (H0 z Hz G1 (G2 & z ~ S2) x S Hobv Hok H3 Htg Hsg y Hy).
+    unfold subst_ctx in H0. rewrite map_push in H0. unfold subst_ctx. rewrite concat_assoc in H0.
+    rewrite subst_open_commute_typ in H0. rewrite subst_open_commute_typ in H0.
+    unfold subst_fvar in H0. 
+    assert (z <> x) as Hzx by auto. case_if. apply H0.
+Qed.
 
-    * lets Hb: (binds_middle_eq_inv ).
+
+
 
 Lemma renaming_this_def: forall G z U d D, 
     ty_def ty_general G z U d D ->
