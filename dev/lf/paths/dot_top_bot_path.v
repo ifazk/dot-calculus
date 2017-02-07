@@ -2571,16 +2571,12 @@ Proof.
     assert (sub_general = sub_general) as Hsg by reflexivity.
     assert (y # G1 & x ~ S & G2 & z ~ T) as Hy by auto.
     specialize (H z Hz G1 (G2 & z ~ T) x S Hobv Hok H2 Htg Hsg y Hy).
-    lets Hdec: (classicT (x = y)). destruct Hdec.
-    * subst. 
-      do 3 rewrite subst_refl_typ.
-      assert (subst_trm y y t = t) as Hst by (apply* subst_refl_trm). rewrite Hst.
-      rewrite subst_refl_trm1 in H. rewrite subst_refl_ctx in H. do 2 rewrite subst_refl_typ in H.
-      rewrite subst_refl_ctx. rewrite concat_assoc in H. apply H.
-    * rewrite subst_open_commute_typ in H. do 2 rewrite subst_fresh_typ in H. 
-      rewrite subst_fresh_trm in H. unfold subst_fvar in H. case_if.
-      specialize (t0 z Hz).
-  - (* ty_def_typ *)
+    unfold subst_ctx in H. rewrite map_push in H. unfold subst_ctx. rewrite concat_assoc in H.
+    rewrite subst_open_commute_typ in H. rewrite subst_open_commute_trm in H.
+    unfold subst_fvar in H. 
+    assert (z <> x) as Hzx by auto.
+    case_if. apply  H.
+- (* ty_def_typ *)
 
 Lemma renaming_this_def: forall G z U d D, 
     ty_def ty_general G z U d D ->
