@@ -2412,7 +2412,38 @@ Lemma wf_sto_sub: forall G G' G'' s s' s'' x T v,
   G = G' & x ~ T & G'' ->
   s = s' & x ~ v & s'' ->
   wf_sto (G' & x ~ T) (s' & x ~ v).
-Admitted.
+Proof.
+  introv Hwf HG Hs. gen G G' s s' s''.
+  induction G'' using env_ind; intros G G' HG s Hwf s' s'' Hs; destruct s'' using env_ind.
+  - rewrite concat_empty_r in *. subst. assumption.
+  - rewrite concat_assoc in Hs. subst. rewrite concat_empty_r in Hwf.
+    assert (x <> x0) as Hxn. {
+      lets Hok: (wf_sto_to_ok_s Hwf). destruct (ok_push_inv Hok) as [_ Hn].
+      simpl_dom. auto.
+    }
+    inversion Hwf. false* empty_push_inv.
+    destruct (eq_push_inv H0) as [Hx _]. destruct (eq_push_inv H) as [Hx' _]. subst. subst.
+    false* Hxn.
+  - rewrite concat_assoc in HG. subst. rewrite concat_empty_r in Hwf.
+    assert (x <> x0) as Hxn. {
+      lets Hok: (wf_sto_to_ok_G Hwf). destruct (ok_push_inv Hok) as [_ Hn].
+      simpl_dom. auto.
+    }
+    inversion Hwf. false* empty_push_inv.
+    destruct (eq_push_inv H0) as [Hx _]. destruct (eq_push_inv H) as [Hx' _]. subst. subst.
+    false* Hxn.
+  - assert (G' & x ~ T & G'' = G' & x ~ T & G'') as Hobv by reflexivity.
+    assert (wf_sto (G' & x ~ T & G'') (s' & x ~ v & s'')) as Hwf'. {
+      subst. inversion Hwf.
+      * false* empty_middle_inv.
+      * rewrite concat_assoc in *.
+        destruct (eq_push_inv H) as [Hx [Ht Hg]]. destruct (eq_push_inv H0) as [Hx' [Hv Hs']]. 
+        subst. subst. assumption.
+    }
+    assert (s' & x ~ v & s'' = s' & x ~ v & s'') as Hobv' by reflexivity.
+    specialize (IHG'' (G' & x ~ T & G'') G' Hobv (s' & x ~ v & s'') Hwf' s' s'' Hobv').
+    apply IHG''.
+Qed.
 
 Lemma wf_sto_new_typing: forall G s x T ds,
   wf_sto (G & x ~ (typ_bnd T)) (s & x ~ (val_new T ds)) ->
@@ -2661,15 +2692,12 @@ Proof.
     assert (z <> x) as Hzx by auto. case_if. apply H0.
 Qed.
 
-
-
-
 Lemma renaming_this_def: forall G z U d D, 
     ty_def ty_general G z U d D ->
     ok (G & z ~ U) ->
     z \notin fv_ctx_types G ->
     z # G ->
-    (forall y, y # G ->
+    (forall y, y # G & z ~ U ->
       ty_def ty_general G y (subst_typ z y U) (subst_def z y d) (subst_dec z y D)).
 Proof.
   introv Hty Hok Hz Hz'. intros y Hy. dependent induction Hty.
@@ -2692,7 +2720,7 @@ Lemma renaming_this_defs: forall G z U ds T,
     ok (G & z ~ U) ->
     z \notin fv_ctx_types G ->
     z # G ->
-    (forall y, y # G ->
+    (forall y, y # G & z ~ U ->
       ty_defs ty_general G y (subst_typ z y U) (subst_defs z y ds) (subst_typ z y T)).
 Proof.
   introv Hty Hok Hz Hz'. intros y Hy. dependent induction Hty; simpl; constructor.
@@ -2700,6 +2728,17 @@ Proof.
   - apply* IHHty.
   - apply* renaming_this_def.
   - lets Hs: (subst_defs_hasnt x y H0). rewrite <- subst_label_of_def. assumption.
+Qed.
+
+Lemma weaken_defs: forall m1 G1 z U ds T G2,
+  ty_defs m1 G1 z U ds T ->
+  ok (G1 & G2 & z ~ U) -> 
+  ty_defs m1 (G1 & G2) z U ds T.
+Proof.
+  introv Hn Hok.
+  assert (G1 & G2 = G1 & G2 & empty) as EqG by (rewrite* concat_empty_r).
+  rewrite EqG. apply* weaken_rules.
+  rewrite concat_empty_r. reflexivity. rewrite <- EqG. assumption.
 Qed.
 
 Lemma new_ty_defs: forall G s x T ds,
@@ -2727,26 +2766,13 @@ Proof.
   lets Hn: (wf_sto_new_typing Hwf').
   inversion Hn; subst. 
   - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
-    rewrite subst_intro_defs with (x:=y); auto. rewrite subst_intro_typ with (x:=y); auto.
-    eapply subst_ty_defs; auto.
-  apply H3. admit.
-  assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
-  specialize (H Heqm1). destruct H as [? Contra]. inversion Contra.
-Qed. (*
-  dependent induction Hwf'.
-  - false* empty_push_inv.
-  - destruct (eq_push_inv x) as [HG0 [Hx0 HT0]]. destruct (eq_push_inv x2) as [HG' [Hx1 HT]]. subst. clear x x2 HG'.
-    apply* IHHwf'. 
-
-
-  dependent induction Htyv; subst.
-  - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H y FrL).
-    rewrite subst_intro_defs with (x:=y); auto. rewrite subst_intro_typ with (x:=y); auto.
-    assert (y \notin fv_typ T) as Hy by auto.
-    lets Hs: (subst_fresh_typ x (typ_bnd T) Hy). rewrite <- Hs.
-    eapply subst_ty_defs; auto.
-    
-Qed. *)
+    assert (ty_defs ty_general G' y (open_typ y T) (open_defs y ds) (open_typ y T)) as Htd by (apply* precise_to_general).
+    apply renaming_this_defs with (y:=x) in Htd. rewrite <- subst_intro_typ in Htd. rewrite <- subst_intro_defs in Htd.
+    apply Htd. auto. auto. apply wf_sto_to_ok_G in Hwf'. apply ok_push_inv_ok in Hwf'. auto. auto. auto.
+    apply wf_sto_to_ok_G in Hwf'. destruct (ok_push_inv Hwf') as [_ Hxn]. auto.
+  - assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
+    specialize (H Heqm1). destruct H as [? Contra]. inversion Contra.
+Qed.
 
 Lemma pt_piece_rcd: forall G G' s x T ds d D,
   wf_sto (G & x ~ (typ_bnd T) & G') s ->
