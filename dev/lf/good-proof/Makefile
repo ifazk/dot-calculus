@@ -30,7 +30,7 @@ all: $(OBJECTS)
 $(LIBLN):
 	cd $(INCLUDESDIR) && make
 
-%.vo:%.v
+%.vo:%.v $(LIBLN)
 	$(COQC) -I $(INCLUDESDIR) $<
 
 .PHONY:clean
