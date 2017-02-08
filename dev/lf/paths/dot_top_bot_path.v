@@ -2448,7 +2448,12 @@ Qed.
 Lemma wf_sto_new_typing: forall G s x T ds,
   wf_sto (G & x ~ (typ_bnd T)) (s & x ~ (val_new T ds)) ->
   ty_trm ty_precise sub_general G (trm_val (val_new T ds)) (typ_bnd T).
-Admitted.
+Proof.
+  introv Hwf. inversion Hwf.
+  - false* empty_push_inv.
+  - destruct (eq_push_inv H) as [Hx [HT HG]]. destruct (eq_push_inv H0) as [Hx' [Hv Hs]]. subst.
+    assumption.
+Qed.
 
 Lemma subst_refl_avar: forall x y,
   subst_avar x x y = y.
