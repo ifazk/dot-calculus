@@ -2643,7 +2643,7 @@ Proof.
     exists E' (E'' & x0 ~ v0). rewrite concat_assoc. reflexivity. assumption.
 Qed.
 
-Lemma notin_G_notin_t: forall G t T x, ty_trm ty_general sub_general G t T ->
+Lemma notin_fv: forall G t T x, ty_trm ty_general sub_general G t T ->
   x \notin fv_ctx_types G ->
   x # G ->
   (x \notin fv_trm t /\ x \notin fv_typ T).
@@ -2673,7 +2673,7 @@ Proof.
     specialize (Hp Hobv Hok Hz Hobv1 Hobv2 y). unfold subst_ctx in Hp. rewrite map_empty in Hp.
     rewrite concat_empty_r in Hp.
     apply Hp. assumption.
-  - simpl. destruct (notin_G_notin_t H Hz Hz') as [Hnp HnT]. simpl in Hnp.
+  - simpl. destruct (notin_fv H Hz Hz') as [Hnp HnT]. simpl in Hnp.
     assert (subst_path x y p = p) as Hp by (apply* subst_fresh_path).
     assert (subst_typ x y T = T) as HT by (apply* subst_fresh_typ).
     rewrite Hp. rewrite HT.
@@ -2707,6 +2707,7 @@ Proof.
 Qed.
 
 Lemma new_ty_defs: forall G s x T ds,
+
   wf_sto G s ->
   binds x (val_new T ds) s ->
   exists G' G'',
