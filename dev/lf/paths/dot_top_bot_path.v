@@ -2707,7 +2707,6 @@ Proof.
 Qed.
 
 Lemma new_ty_defs: forall G s x T ds,
-
   wf_sto G s ->
   binds x (val_new T ds) s ->
   exists G' G'',
@@ -2740,6 +2739,17 @@ Proof.
     specialize (H Heqm1). destruct H as [? Contra]. inversion Contra.
 Qed.
 
+Lemma unfold_last_type: forall G x T U t,
+  ty_trm ty_general sub_general (G & x ~ open_typ x T) t U ->
+  ty_trm ty_general sub_general (G & x ~ typ_bnd T) t U.
+Proof.
+  introv Hty.
+  dependent induction Hty; eauto.
+  - destruct (classicT (x0=x)); subst.
+    * apply binds_push_eq_inv in H. subst. auto.
+    * constructor. apply binds_push_neq_inv in H. apply* binds_push_neq. assumption.
+  - apply_fresh ty_all_intro as z. Admitted. 
+
 Lemma pt_piece_rcd: forall G G' s x T ds d D,
   wf_sto (G & x ~ (typ_bnd T) & G') s ->
   binds x (val_new T ds) s ->
@@ -2751,9 +2761,9 @@ Proof.
   apply wf_sto_to_ok_G in Hwf.
   inversion Hdef; subst. 
   - (* def_typ *)
-    try econstructor; eauto. 
+    econstructor; eauto. 
   - (* def_trm *)
-    apply pt_rcd_trm with (t:=t). assumption. apply weaken_ty_trm. admit; assumption. 
+    apply pt_rcd_trm with (t:=t). assumption. apply* weaken_ty_trm. apply unfold_last_type. assumption.
   - (* def_path *)
     apply pt_rcd_path with (p:=p). assumption. apply weaken_ty_trm. apply weaken_ty_trm. assumption.
     eapply ok_concat_inv_l; eassumption. assumption.
