@@ -2455,71 +2455,6 @@ Proof.
     assumption.
 Qed.
 
-Lemma subst_refl_avar: forall x y,
-  subst_avar x x y = y.
-Proof.
-  intros. induction y; simpl.
-  reflexivity.
-  case_if; reflexivity.
-Qed.
-
-Lemma subst_refl_path: forall x p,
-  subst_path x x p = p.
-Proof.
-  intros. dependent induction p; simpl.
-  rewrite subst_refl_avar. reflexivity.
-  rewrite IHp. reflexivity.
-Qed.
-
-Lemma subst_refl_dec_typ: forall x,
-  (forall T, subst_typ x x T = T) /\
-  (forall d, subst_dec x x d = d).
-Proof.
-  intro. apply typ_mutind; simpl; intros; 
-  try (rewrite H; reflexivity); 
-  try (rewrite H; rewrite H0; reflexivity); auto.
-  rewrite subst_refl_path. reflexivity.
-Qed. 
-
-Lemma subst_refl_typ: forall x T,
-  subst_typ x x T = T.
-Proof.
-  apply* subst_refl_dec_typ.
-Qed.
-
-Lemma subst_refl_dec: forall x d,
-  subst_dec x x d = d.
-Proof.
-  apply* subst_refl_dec_typ.
-Qed.
-
-Lemma subst_refl_trm: forall x,
-  (forall t, subst_trm x x t = t) /\
-  (forall v, subst_val x x v = v) /\
-  (forall d, subst_def x x d = d) /\
-  (forall ds, subst_defs x x ds = ds).
-Proof.
-  intro. apply trm_mutind; intros; simpl;  
-  try (rewrite H); try (rewrite H0); try (rewrite subst_refl_typ); auto.
-  - do 2 rewrite subst_refl_avar. reflexivity.
-  - rewrite subst_refl_path. reflexivity.
-Qed.
-
-Lemma subst_refl_trm1: forall x t,
-  subst_trm x x t = t.
-Proof.
-  apply* subst_refl_trm.
-Qed.
-
-Lemma subst_refl_ctx: forall x G,
-  subst_ctx x x G = G.
-Proof.
-  intros. induction G using env_ind; unfold subst_ctx.
-  - rewrite map_empty. reflexivity.
-  - rewrite map_concat. rewrite map_single. rewrite subst_refl_typ.
-    unfold subst_ctx in IHG. rewrite IHG. reflexivity.
-Qed.
-
 Lemma ok_extend: forall E F x (v: typ),
   ok (E & F) ->
   x # (E & F) ->
@@ -2697,6 +2632,29 @@ Proof.
     assert (z <> x) as Hzx by auto. case_if. apply H0.
 Qed.
 
+Lemma binds_destruct: forall {A} x (v:A) E,
+  binds x v E ->
+  exists E' E'', E = E' & x ~ v & E''.
+Proof.
+  introv Hb. induction E using env_ind. false* binds_empty_inv.
+  destruct (binds_push_inv Hb) as [[Hx HT] | [Hn Hbx]]; subst.
+  - exists E (@empty A). rewrite concat_empty_r. reflexivity.
+  - apply binds_push_neq_inv in Hb. destruct (IHE Hb) as [E' [E'' HE]]. subst.
+    exists E' (E'' & x0 ~ v0). rewrite concat_assoc. reflexivity. assumption.
+Qed.
+
+Lemma notin_G_notin_t: forall G t T x, ty_trm ty_general sub_general G t T ->
+  x \notin fv_ctx_types G ->
+  x # G ->
+  (x \notin fv_trm t /\ x \notin fv_typ T).
+Proof.
+  introv Hty Hxn Hxn'. dependent induction Hty; simpl.
+  - split.
+    * apply notin_singleton. destruct (binds_destruct H) as [G' [G'' HG]].
+      subst. simpl_dom. apply notin_union in Hxn'. destruct Hxn' as [Hx _]. auto.
+    * apply (fv_in_values_binds fv_typ H). auto.
+  - split. Admitted.
+
 Lemma renaming_this_def: forall G z U d D, 
     ty_def ty_general G z U d D ->
     ok (G & z ~ U) ->
@@ -2715,7 +2673,9 @@ Proof.
     specialize (Hp Hobv Hok Hz Hobv1 Hobv2 y). unfold subst_ctx in Hp. rewrite map_empty in Hp.
     rewrite concat_empty_r in Hp.
     apply Hp. assumption.
-  - simpl. assert (subst_path x y p = p) as Hp. admit. assert (subst_typ x y T = T) as HT. admit.
+  - simpl. destruct (notin_G_notin_t H Hz Hz') as [Hnp HnT]. simpl in Hnp.
+    assert (subst_path x y p = p) as Hp by (apply* subst_fresh_path).
+    assert (subst_typ x y T = T) as HT by (apply* subst_fresh_typ).
     rewrite Hp. rewrite HT.
     constructor; assumption.
 Qed.
@@ -2754,7 +2714,7 @@ Lemma new_ty_defs: forall G s x T ds,
     ty_defs ty_general G' x (open_typ x T) (open_defs x ds) (open_typ x T).
 Proof.
   introv Hwf Bis.
-  assert (exists s' s'', s = s' & x ~ (val_new T ds) & s'') as Hs. admit.
+  assert (exists s' s'', s = s' & x ~ (val_new T ds) & s'') as Hs by (apply* (binds_destruct Bis)).
   destruct Hs as [s' [s'' Hs]].
   lets Bis': (binds_push_eq x (val_new T ds) s').
   destruct (sto_binds_to_ctx_binds_raw Hwf Bis) as [G' [G'' [T0 [HG _]]]].
@@ -2783,7 +2743,7 @@ Lemma pt_piece_rcd: forall G G' s x T ds d D,
   wf_sto (G & x ~ (typ_bnd T) & G') s ->
   binds x (val_new T ds) s ->
   defs_has (open_defs x ds) d ->
-  ty_def ty_general G x (open_typ x T d D ->
+  ty_def ty_general G x (open_typ x T) d D ->
   possible_types (G & x ~ (typ_bnd T) & G') x (val_new T ds) (typ_rcd D).
 Proof.
   introv Hwf Bis Hhas Hdef. 
@@ -2792,7 +2752,7 @@ Proof.
   - (* def_typ *)
     try econstructor; eauto. 
   - (* def_trm *)
-    apply pt_rcd_trm with (t:=t). assumption. apply weaken_ty_trm; assumption. 
+    apply pt_rcd_trm with (t:=t). assumption. apply weaken_ty_trm. admit; assumption. 
   - (* def_path *)
     apply pt_rcd_path with (p:=p). assumption. apply weaken_ty_trm. apply weaken_ty_trm. assumption.
     eapply ok_concat_inv_l; eassumption. assumption.
