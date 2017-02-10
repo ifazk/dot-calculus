@@ -2643,38 +2643,42 @@ Proof.
     exists E' (E'' & x0 ~ v0). rewrite concat_assoc. reflexivity. assumption.
 Qed.
 
-Lemma in_fv_implies_in_G: forall x s,
+Lemma in_fv_implies_in_G: forall x,
   (forall m1 m2 G t T, ty_trm m1 m2 G t T ->
     m1 = ty_general ->
     m2 = sub_general ->
-    wf_sto G s ->
-    x \in fv_trm t \/ x \in fv_typ T ->
+    x \in fv_trm t \u fv_typ T ->
     x \in (dom G)) /\
   (forall m1 G x T d D, ty_def m1 G x T d D ->
     m1 = ty_general ->
-    wf_sto G s ->
-    x \in fv_def d \/ x \in fv_dec D ->
+    x \in fv_def d \u fv_dec D ->
     x \in (dom G)) /\
   (forall m1 G x U ds T, ty_defs m1 G x U ds T ->
     m1 = ty_general ->
-    wf_sto G s ->
-    x \in fv_defs ds \/ x \in fv_typ T ->
+    x \in fv_defs ds \u fv_typ T ->
     x \in (dom G)) /\
   (forall G p, norm G p ->
-    wf_sto G s ->
     x \in fv_path p ->
     x \in (dom G)) /\
   (forall m1 m2 G T U, subtyp m1 m2 G T U ->
     m1 = ty_general ->
     m2 = sub_general ->
-    wf_sto G s ->
-    x \in fv_typ T \/ x \in fv_typ U ->
+    x \in fv_typ T \u fv_typ U ->
     x \in (dom G)).
 Proof.
-  intros x s. apply rules_mutind; eauto.
-  - intros. simpls. destruct H2 as [Hx0 | HT]. 
+  intro x. apply rules_mutind; eauto.
+  - intros. simpls. rewrite in_union in H1. destruct H1 as [Hx0 | HxT]. 
     * rewrite in_singleton in Hx0. subst x0. apply* (get_some_inv b).
     * 
+Admitted.
+
+Lemma in_fv_implies_in_G_p: forall G p T x,
+  ty_trm ty_general sub_general G (trm_path p) T ->
+  x \in (fv_path p \u fv_typ T)->
+  x \in (dom G).
+Proof.
+  intros. eapply (proj51 (in_fv_implies_in_G x)); eauto.
+Qed. 
 
 Lemma renaming_this_def: forall G z U d D, 
     ty_def ty_general G z U d D ->
@@ -2694,10 +2698,14 @@ Proof.
     specialize (Hp Hobv Hok Hz Hobv1 Hobv2 y). unfold subst_ctx in Hp. rewrite map_empty in Hp.
     rewrite concat_empty_r in Hp.
     apply Hp. assumption.
-  - simpl. destruct (notin_fv H Hz Hz') as [Hnp HnT]. simpl in Hnp.
-    assert (subst_path x y p = p) as Hp by (apply* subst_fresh_path).
-    assert (subst_typ x y T = T) as HT by (apply* subst_fresh_typ).
-    rewrite Hp. rewrite HT.
+  - simpl. unfold notin in Hz'. unfold not in Hz'.
+    assert (x \notin fv_path p \u fv_typ T) as Hpt. {
+      intro. lets Hf: (in_fv_implies_in_G_p H H1). auto.
+    }
+    rewrite notin_union in Hpt. destruct Hpt as [Hp HT].
+    assert (subst_path x y p = p) as Hsp by (apply* subst_fresh_path).
+    assert (subst_typ x y T = T) as HsT by (apply* subst_fresh_typ).
+    rewrite Hsp. rewrite HsT.
     constructor; assumption.
 Qed.
 
