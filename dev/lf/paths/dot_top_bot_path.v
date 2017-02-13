@@ -2866,39 +2866,55 @@ Lemma pt_rcd_trm_inversion: forall G s x v a T m,
     defs_has (open_defs x ds) (def_trm a t) /\
     ty_trm ty_general sub_general G t T.
 Proof.
-  introv Hwf Bis Hp. inversion Hp; subst.
-  - induction T0; simpl in H3; try solve [inversion H3].
-    induction d; simpl in H3; try solve [inversion H3].
-    unfold open_typ in H3. simpl in H3. inversions H3.
+  introv Hwf Bis Hp. dependent induction Hp; subst.
+  - (* pt_new *)
+    induction T0; simpl in x; try solve [inversion x].
+    induction d; simpl in x; try solve [inversion x].
+    unfold open_typ in x. simpl in x. inversions x.
     lets Hty: (val_new_typing Hwf Bis). inversion Hty; subst.
-    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
-    unfold open_typ in H3. simpl in H3. inversion H3; subst.
-    destruct ds; simpl in H; try solve [inversion H].
-    destruct ds; simpl in H; try solve [inversion H].
-    unfold open_defs in H. simpl in H. inversions H.
-    destruct d0; simpl in H6; inversion H6; subst.
-    inversion H6; subst.
-    assert (ty_trm ty_general sub_general G (open_trm x t1) (open_typ x t0)) as A. {
-      rewrite subst_intro_typ with (x:=y). rewrite subst_intro_trm with (x:=y).
-      eapply subst_ty_trm. eapply H7.
-      apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto. eauto.
-      simpl. rewrite <- subst_intro_typ with (x:=y).
-      lets Htyv: (var_new_typing Hwf Bis). unfold open_typ in Htyv. simpl in Htyv.
-      unfold open_typ. apply Htyv.
-      eauto.
-      apply notin_union_r1 in Fr. apply notin_union_r2 in Fr.
-      unfold fv_defs in Fr. apply notin_union_r2 in Fr. apply Fr.
-      eauto.
-    }
-    repeat eexists.
-    unfold open_defs. simpl. unfold defs_has. simpl.
-    rewrite If_l. reflexivity. reflexivity.
-    eapply A. 
-    assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
-    specialize (H Heqm1). destruct H. inversion H.
-  - repeat eexists. eassumption. assumption.
-  - admit.
-  - admit.
+    * pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
+      unfold open_typ in H3. simpl in H3. inversion H3; subst.
+      destruct ds; simpl in H; try solve [inversion H].
+      destruct ds; simpl in H; try solve [inversion H].
+      unfold open_defs in H. simpl in H. inversions H.
+      destruct d0; simpl in H6; inversion H6; subst.
+      + inversion H6; subst.
+        assert (ty_trm ty_general sub_general G (open_trm x0 t1) (open_typ x0 t0)) as A. {
+          rewrite subst_intro_typ with (x:=y). rewrite subst_intro_trm with (x:=y).
+          eapply subst_ty_trm. eapply H7.
+          apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto. eauto.
+          simpl. rewrite <- subst_intro_typ with (x:=y).
+          lets Htyv: (var_new_typing Hwf Bis). unfold open_typ in Htyv. simpl in Htyv.
+          unfold open_typ. apply Htyv.
+          eauto.
+          apply notin_union_r1 in Fr. apply notin_union_r2 in Fr.
+          unfold fv_defs in Fr. apply notin_union_r2 in Fr. apply Fr.
+          eauto.
+        }
+        repeat eexists.
+        unfold open_defs. simpl. unfold defs_has. simpl.
+        rewrite If_l. reflexivity. reflexivity.
+        eapply A. 
+      + exists (typ_rcd (dec_trm a path_strong t0)) (defs_cons defs_nil (def_trm a t1)) (open_trm x0 t1).
+        split. reflexivity. split. unfold open_defs. simpl. unfold defs_has. simpl. case_if. reflexivity.
+        rewrite subst_intro_typ with (x:=y). rewrite subst_intro_trm with (x:=y). apply* subst_ty_trm. 
+        unfold open_trm. rewrite <- H0. apply* weaken_ty_trm. unfold open_typ. apply* precise_to_general.
+        constructor. lets Hb: (wf_sto_val_new_in_G Hwf Bis).
+        assert (typ_bnd (typ_rcd (dec_trm a path_strong t0)) 
+               = subst_typ y x0 (typ_bnd (typ_rcd (dec_trm a path_strong t0)))) as Hsubst. {
+          simpl. rewrite* subst_fresh_typ.
+        }
+        rewrite Hsubst in Hb. eapply Hb.
+        assert (y \notin fv_defs (defs_cons defs_nil (def_trm a t1))) as Hy by auto. simpl in Hy.
+        rewrite notin_union in Hy. destruct Hy as [_ Ht1]. assumption. auto.
+    * assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
+      specialize (H Heqm1). destruct H. inversion H.
+  - (* pt_rcd_trm *)
+    repeat eexists. eassumption. assumption.
+  - (* pt_rcd_path *)
+    repeat eexists. eassumption. eassumption.
+  - (* pt_path *)
+    eapply IHHp; auto.
 Qed.
 
 Lemma pt_rcd_typ_inversion: forall G s x v A S U,
