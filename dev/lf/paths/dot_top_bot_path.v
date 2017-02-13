@@ -2385,18 +2385,17 @@ Inductive possible_types: ctx -> var -> val -> typ -> Prop :=
   possible_types G x v S1 ->
   possible_types G x v S2 ->
   possible_types G x v (typ_and S1 S2)
-| pt_sel : forall G x v y A S,
+| pt_sel : forall G x v p A S,
   possible_types G x v S ->
-  ty_trm ty_precise sub_general G (trm_path (p_var y)) (typ_rcd (dec_typ A S S)) ->
-  possible_types G x v (typ_path (p_var y) A)
+  ty_trm ty_precise sub_general G (trm_path p) (typ_rcd (dec_typ A S S)) ->
+  possible_types G x v (typ_path p A)
 | pt_bnd : forall G x v S S',
   possible_types G x v S ->
   S = open_typ x S' ->
   possible_types G x v (typ_bnd S')
 | pt_path : forall G x v T a,
   possible_types G x v (typ_rcd (dec_trm a path_strong T)) ->
-  possible_types G x v (typ_rcd (dec_trm a path_general T))
-.
+  possible_types G x v (typ_rcd (dec_trm a path_general T)).
 
 Lemma var_new_typing: forall G s x T ds,
   wf_sto G s ->
@@ -2936,9 +2935,9 @@ Proof.
     unfold open_typ in H3. simpl in H3. inversion H3; subst.
     destruct ds; simpl in H; try solve [inversion H].
     destruct ds; simpl in H; try solve [inversion H].
-    unfold open_defs in H. simpl in H. inversions H. Admitted. (*
-    destruct d0; simpl in H5; inversion H5; subst.
-    inversion H5; subst.
+    unfold open_defs in H. simpl in H. inversions H.
+    destruct d0; simpl in H6; inversion H6; subst.
+    inversion H6; subst.
     assert (t2 = t0). {
       eapply open_eq_typ; eauto.
       apply notin_union_r1 in Fr. apply notin_union_r1 in Fr.
@@ -2951,7 +2950,7 @@ Proof.
       apply notin_union_r2 in Fr.
       unfold fv_defs in Fr. eauto. eauto.
     }
-    subst. subst. clear H5. clear H8.
+    subst. subst.
     repeat eexists.
     unfold open_defs. simpl. unfold defs_has. simpl.
     rewrite If_l. reflexivity. reflexivity.
@@ -2959,7 +2958,7 @@ Proof.
     assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
     specialize (H Heqm1). destruct H. inversion H.
   - repeat eexists. eassumption. eassumption. eassumption.
-Qed. *)
+Qed.
 
 Lemma record_sub_and: forall T T1 T2,
   record_type T ->
