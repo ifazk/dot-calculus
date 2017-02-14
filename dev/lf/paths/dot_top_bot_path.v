@@ -2690,9 +2690,9 @@ Inductive possible_types: ctx -> var -> val -> typ -> Prop :=
   possible_types G x v S ->
   S = open_typ x S' ->
   possible_types G x v (typ_bnd S')
-| pt_path : forall G x v T a,
+(*| pt_path : forall G x v T a,
   possible_types G x v (typ_rcd (dec_trm a path_strong T)) ->
-  possible_types G x v (typ_rcd (dec_trm a path_general T)).
+  possible_types G x v (typ_rcd (dec_trm a path_general T))*).
 
 Lemma var_new_typing: forall G s x T ds,
   wf_sto G s ->
@@ -2973,8 +2973,6 @@ Proof.
     repeat eexists. eassumption. assumption.
   - (* pt_rcd_path *)
     repeat eexists. eassumption. eassumption.
-  - (* pt_path *)
-    eapply IHHp; auto.
 Qed.
 
 Lemma pt_rcd_typ_inversion: forall G s x v A S U,
@@ -3200,8 +3198,9 @@ Proof.
     eapply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
     eapply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
     eapply H; eauto.
-  - (* <:-path *)
-    constructor. assumption.
+  - apply pt_rcd_trm_inversion with (s:=s) in HT0; auto.
+    destruct HT0 as [S [ds [t [Hv [Hd Ht]]]]]. subst.
+    apply pt_rcd_trm with (t:=t); auto.
 Qed.
 
 (*
