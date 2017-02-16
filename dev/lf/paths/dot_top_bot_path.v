@@ -1959,11 +1959,11 @@ Proof.
       apply (record_type_sub_closed A). apply open_record_type. assumption.
 Qed.
 
-Lemma path_equivalence: forall G s p T,                                                                 
+Lemma path_equivalence: forall G s p T m2,
   wf_sto G s ->
-  ty_trm ty_precise sub_general G (trm_path p) T ->
+  ty_trm ty_precise m2 G (trm_path p) T ->
   norm G p ->
-  exists x, (eq_path s p x /\ ty_trm ty_precise sub_general G (trm_path (p_var (avar_f x))) T).
+  exists x, (eq_path s p x /\ ty_trm ty_precise m2 G (trm_path (p_var (avar_f x))) T).
 Proof. Admitted.
 
 Lemma unique_eq_path: forall s p x,
@@ -2024,8 +2024,7 @@ Lemma precise_to_general:
   (forall m1 m2 G t T,
      ty_trm m1 m2 G t T ->
      m1 = ty_precise ->
-     m2 = sub_general ->
-     ty_trm ty_general sub_general G t T) /\
+     ty_trm ty_general m2 G t T) /\
   (forall m1 G z T d D,
      ty_def m1 G z T d D ->
      m1 = ty_precise ->
@@ -2037,8 +2036,7 @@ Lemma precise_to_general:
   (forall m1 m2 G S U,
      subtyp m1 m2 G S U ->
      m1 = ty_precise ->
-     m2 = sub_general ->
-     subtyp ty_general sub_general G S U).
+     subtyp ty_general m2 G S U).
 Proof.
   apply tds_mutind; intros; subst; eauto.
 Qed.
@@ -2047,12 +2045,10 @@ Lemma tight_to_general:
   (forall m1 m2 G t T,
      ty_trm m1 m2 G t T ->
      m1 = ty_general ->
-     m2 = sub_tight ->
      ty_trm ty_general sub_general G t T) /\
   (forall m1 m2 G S U,
      subtyp m1 m2 G S U ->
      m1 = ty_general ->
-     m2 = sub_tight ->
      subtyp ty_general sub_general G S U).
 Proof.
   apply ts_mutind; intros; subst; eauto.
@@ -3296,19 +3292,32 @@ Lemma general_to_tight: forall G0 s0,
 Proof.
   intros G0 s0 Hwf.
   apply ts_mutind; intros; subst; eauto.
-  - 
-  assert (exists S ds, binds x (val_new S ds) s0) as Bis. {
-      eapply tight_ty_rcd_typ__new; eauto.
+  - assert (forall A, exists x, 
+            subtyp ty_general sub_tight G0 (typ_path (p_var (avar_f x)) A) (typ_path p A) /\
+            subtyp ty_general sub_tight G0 (typ_path p A) (typ_path (p_var (avar_f x)) A)).
+    admit. Admitted. (*
+  assert (exists S ds, binds x (val_new S ds) s0) as Bis. admit. (* {
+      eapply tight_ty_rcd_typ__new. eassumption.
+      apply precise_to_general in Hty; eauto.
+    }*)
+
+  assert (ty_trm ty_general sub_tight G0 (trm_path p) (typ_rcd (dec_typ A S T))) 
+      as Hs by (apply* H); clear H.
+Admitted. (*
+    assert (exists S ds, binds x (val_new S ds) s0) as Bis. {
+      eapply tight_ty_rcd_typ__new. eassumption.
+      apply precise_to_general in Hty; eauto.
     }
     destruct Bis as [? [? Bis]].
-    eapply proj2. eapply tight_bound_completeness; eauto.
+    eapply proj2 . eapply tight_bound_completeness; eauto.
+    * inversion Hs; subst.
   - assert (exists S ds, binds x (val_new S ds) s0) as Bis. {
       eapply tight_ty_rcd_typ__new; eauto.
     }
     destruct Bis as [? [? Bis]].
     eapply proj1. eapply tight_bound_completeness; eauto.
-Qed.
-
+Qed.*)
+*)
 Lemma general_to_tight_subtyping: forall G s S U,
    wf_sto G s ->
   subtyp ty_general sub_general G S U ->
@@ -3371,21 +3380,6 @@ Proof.
   assumption.
 Qed.
 
-Lemma ctx_binds_to_sto_binds_typing: forall G s x T,
-  wf_sto G s ->
-  binds x T G ->
-  exists v, binds x v s /\ ty_trm ty_precise sub_general G (trm_val v) T.
-Proof.
-  introv Hwf Bi.
-  lets A: (ctx_binds_to_sto_binds_raw Hwf Bi).
-  destruct A as [G1 [G2 [v [HeqG [Bis Hty]]]]].
-  exists v. split; eauto.
-  subst. rewrite <- concat_assoc.
-  apply weaken_ty_trm; eauto.
-  rewrite concat_assoc.
-  eapply wf_sto_to_ok_G; eauto.
-Qed.
-
 (*
 Lemma (Canonical forms 1)
 If G ~ s and G |- x: all(x: T)U then s(x) = lambda(x: T')t where G |- T <: T' and G, x: T |- t: U.
@@ -3421,10 +3415,10 @@ Lemma (Canonical forms 2)
 
 If G ~ s and G |- x: {a: T} then s(x) = new(x: S)d for some type S, definition d such that G |- d: S and d contains a definition {a = t} where G |- t: T.
 
-*)
+
 Lemma canonical_forms_2: forall G s x a T,
   wf_sto G s ->
-  ty_trm ty_general sub_general G (trm_path (p_var (avar_f x)))  (typ_rcd (dec_trm a T)) ->
+  ty_trm ty_general sub_general G (trm_path (p_var (avar_f x)))  (typ_rcd (dec_trm a path_general T)) ->
   (exists S ds t, binds x (val_new S ds) s /\ ty_defs G (open_defs x ds) (open_typ x S) /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm ty_general sub_general G t T).
 Proof.
   introv Hwf Hty.
@@ -3438,17 +3432,37 @@ Proof.
   split; try split; try split; try assumption.
   eapply new_ty_defs; eauto.
 Qed.
-
+*)
 (* ###################################################################### *)
 (** * Misc *)
 
-Lemma var_typing_implies_avar_f: forall G a T,
-  ty_trm ty_general sub_general G (trm_path (p_var a)) T ->
-  exists x, a = avar_f x.
+Lemma val_typing: forall v,
+  (forall m1 m2 G t T, ty_trm m1 m2 G t T ->
+    t = trm_val v ->
+    m1 = ty_general ->
+    m2 = sub_general ->
+    exists T',
+      ty_trm ty_precise sub_general G (trm_val v) T' /\
+      subtyp ty_general sub_general G T' T) /\
+  (forall m1 G x T d D, ty_def m1 G x T d D ->
+    m1 = ty_general ->
+    exists D',
+      ty_def ty_precise G x T d D' /\
+      subtyp ty_general sub_general G (typ_rcd D') (typ_rcd D)) /\
+  (forall m1 G x U ds T, ty_defs m1 G x U ds T ->
+    m1 = ty_general ->
+    exists T',
+      ty_defs ty_precise G x U ds T').
 Proof.
-  intros. dependent induction H; try solve [eexists; reflexivity].
-  apply IHty_trm.
-Qed.
+  intro v. apply ty_mutind'; intros; subst; eauto.
+  - eexists. split. inversion H. auto.
+  - inversion H0. subst. exists (typ_all T U). split.
+    apply ty_all_intro with (L:=L); auto. apply subtyp_refl.
+  - inversion H1.
+  - inversion H0. subst. exists (typ_bnd T). split.
+    apply ty_new_intro with (L:=L); auto. intros x Lx. 
+    assert (ty_general = ty_general) as Hobv by reflexivity.
+    destruct (H x Lx Hobv) as [T' Hd]; clear Hobv H t H0.
 
 Lemma val_typing: forall G v T,
   ty_trm ty_general sub_general G (trm_val v) T ->
@@ -3459,10 +3473,34 @@ Proof.
   - exists (typ_all T U). split.
     apply ty_all_intro with (L:=L); eauto. apply subtyp_refl.
   - exists (typ_bnd T). split.
-    apply ty_new_intro with (L:=L); eauto. apply subtyp_refl.
+    apply ty_new_intro with (L:=L); eauto. apply H. apply subtyp_refl.
   - destruct IHty_trm as [T' [Hty Hsub]].
     exists T'. split; eauto.
+Qed.*)
+
+(*Lemma val_typing: forall v s,
+  (forall m1 m2 G t ^, ty_trm m1 m2 G t T ->
+    wf_sto G s ->
+    t = trm_val v ->
+    m1 = ty_general ->
+    m2 = sub_general ->
+    exists T',
+      ty_trm ty_precise sub_general G (trm_val v) T' /\
+      subtyp ty_general sub_general G T' T) /\
+  (forall m1 G x T d D, ty_def m1 G x T d D ->
+    wf_sto G s ->) /\
+  (forall m1 G x U ds T, ty_defs m1 G x U ds T ->) /\
+  (forall G p, norm G p ->) /\
+  (forall m1 m2 G T U, subtyp m1 m2 G T U ->). *)
+
+Lemma var_typing_implies_avar_f: forall G a T,
+  ty_trm ty_general sub_general G (trm_path (p_var a)) T ->
+  exists x, a = avar_f x.
+Proof.
+  intros. dependent induction H; try solve [eexists; reflexivity].
+  apply IHty_trm.
 Qed.
+
 
 (* ###################################################################### *)
 (** * Safety *)
@@ -3506,23 +3544,23 @@ Proof.
     assumption. apply subtyp_refl.
     eauto. eauto. eauto. eauto.
   - (* New-E *) right. destruct p.
-    * destruct (var_typing_implies_avar_f H) as [x Hv]. subst.
-      lets C: (canonical_forms_2 Hwf H).
+    * destruct (var_typing_implies_avar_f H) as [x Hv]. subst. admit.
+   (*   lets C: (canonical_forms_2 Hwf H). 
       destruct C as [S [ds [t [Bis [Tyds [Has Ty]]]]]].
       exists s t G (@empty typ).
       split.
       apply red_sel with (T:=S) (ds:=ds); try assumption.
       split. rewrite concat_empty_r. reflexivity.
-      split. assumption. assumption.
+      split. assumption. assumption. *)
     * exists s (trm_let (trm_path (p_sel p t)) (trm_path (p_sel (p_var (avar_b 0)) m))) G (@empty typ).
       split. constructor. split. rewrite concat_empty_r. reflexivity. split.
       + pick_fresh x. lets L:  ((((dom G \u fv_ctx_types G) \u dom s) \u fv_typ T) \u fv_path p).
-        apply ty_let with (L:=L) (T:=typ_rcd (dec_trm m T)). assumption.
+        apply ty_let with (L:=L) (T:=typ_rcd (dec_trm m m3 T)). assumption.
         intros.
         assert (open_trm x0 (trm_path (p_sel (p_var (avar_b 0)) m)) = trm_path (p_sel (p_var (avar_f x0)) m)) as Hop. {
-          unfold open_trm. simpl. case_if reflexivity.
+          unfold open_trm. simpl. case_if. reflexivity.
         }
-        rewrite Hop. auto.
+        rewrite Hop. eauto.
       + assumption.
   - (* Let *) right.
     destruct t.
