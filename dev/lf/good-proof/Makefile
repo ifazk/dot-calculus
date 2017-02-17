@@ -1,6 +1,6 @@
 COQC=coqc
 
-FILES=Dot_proofs_safety.v
+FILES=Dot_proofs_simplified_possible_types.v
 
 DEFS= Dot_definitions.v
 DEFSOBJECTS=$(DEFS:.v=.vo)
