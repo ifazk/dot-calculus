@@ -37,7 +37,6 @@ Inductive good_typ : typ -> Prop :=
   | good_typ_all : forall S T, good_typ (typ_all S T) (* all(x: S)T *)
   | good_typ_rcd : forall d, good_dec d -> good_typ (typ_rcd d) (* { D } *)
   | good_typ_and : forall T U, good_typ T -> good_typ U -> good_typ (typ_and T U) (* T ^ U *)
-  (*| good_typ_bnd : forall T, good_typ (typ_bnd T).*) (* rec(x:T) *)
   | good_typ_bnd : forall T,
       record_type T ->
       good_typ (typ_bnd T). (* rec(x:T) *)
@@ -110,6 +109,9 @@ Proof.
 Qed.
 
 Inductive s_possible_types: ctx -> var -> typ -> Prop :=
+| s_pt_binds : forall G x T,
+  binds x T G ->
+  s_possible_types G x T (* 1. G(x)=T -> T in SPT *)
 | s_pt_top : forall G x,
   s_possible_types G x typ_top   (* 8. Top in SPT *)
 | s_pt_and : forall G x S1 S2,
@@ -125,7 +127,6 @@ Inductive s_possible_types: ctx -> var -> typ -> Prop :=
   S = open_typ x S' ->
   s_possible_types G x (typ_bnd S') (* 7. T is S -> rec(x:T) in SPT *)
 | s_pt_open : forall G x T,
-  (* binds x (typ_bnd T) G -> *)
   s_possible_types G x (typ_bnd T) ->
   s_possible_types G x (open_typ x T) (* ---- 1. G(x)=rec(T) -> T^x in SPT *)
 | s_pt_and_inv1 : forall G x T U,
@@ -145,18 +146,25 @@ Inductive s_possible_types: ctx -> var -> typ -> Prop :=
   (forall y, y \notin L ->
    subtyp ty_general sub_general (G & y ~ S') (open_typ y T) (open_typ y T')) ->
   s_possible_types G x (typ_all S' T')
-| s_pt_binds : forall G x T,
-  binds x T G ->
-  s_possible_types G x T (* 1. G(x)=T -> T in SPT *)
 .
 
-Lemma s_possible_types_bot_rec:
+Lemma good_bnd_record:
   forall T x G,
     good G ->
     s_possible_types G x (typ_bnd T) ->
     record_type T.
 Proof.
+  intros T.
+  induction T.
+  - intros. unfold record_type.
+  (*
   intros T x G Hgd Hspt.
+  dependent induction Hspt.
+  - pose proof (binds_good H Hgd) as H1.
+    inversion H1. auto.
+  -
+*)
+
 
 
 
