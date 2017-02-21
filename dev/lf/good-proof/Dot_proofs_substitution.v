@@ -238,7 +238,8 @@ Lemma subst_undo_avar: forall x y,
 Proof.
   intros. unfold subst_avar, subst_fvar, open_avar, open_rec_avar; destruct a.
   + reflexivity.
-  + unfold fv_avar in H. assert (y <> v) by auto. repeat case_if; reflexivity.
+  + unfold fv_avar in H. assert (y <> v) by auto.
+    repeat cases_if; reflexivity.
 Qed.
 
 Lemma subst_undo_typ_dec: forall x y,
@@ -370,7 +371,7 @@ Lemma subst_rules: forall y S,
 Proof.
   intros y S. apply rules_mutind; intros; subst.
   - (* ty_var *)
-    simpl. case_if.
+    simpl. cases_if.
     + apply binds_middle_eq_inv in b. subst. assumption. assumption.
     + apply subst_fresh_ctx with (y:=y) in H1.
       apply binds_subst in b.

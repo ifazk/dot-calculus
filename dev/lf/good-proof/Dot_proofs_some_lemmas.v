@@ -169,7 +169,7 @@ Lemma open_eq_avar: forall x i a1 a2,
   a1 = a2.
 Proof.
   introv Fr1 Fr2 H. induction a1; induction a2; simpl in H; inversion H.
-  - case_if; case_if.
+  - cases_if; cases_if.
     + reflexivity.
     + inversion H. subst. reflexivity.
   - case_if.
@@ -440,9 +440,9 @@ Proof.
   introv Hsub Hr. generalize dependent Hr. dependent induction Hsub.
   - intros HS.
     apply record_sub_trans with (T2:=T).
-    apply IHHsub1. apply HS.
-    apply IHHsub2.
-    eapply record_type_sub_closed. apply IHHsub1. apply HS. apply HS.
+    apply IHHsub1; auto.
+    apply IHHsub2; auto.
+    eapply record_type_sub_closed. apply IHHsub1; auto. apply HS.
   - intros Htype. destruct Htype as [ls Htyp].
     inversion Htyp; subst.
     apply rs_drop. apply rs_refl.
