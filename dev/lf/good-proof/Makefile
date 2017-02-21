@@ -22,16 +22,17 @@ PROOFOBJECTS=$(PROOFS:.v=.vo)
 
 OBJECTS=$(FILES:.v=.vo)
 
-INCLUDESDIR=../../../ln/tlc/
-LIBLN=$(INCLUDESDIR)/LibLN.vo
+TLCDIR=../../../ln/tlc/
+LIBLN=$(TLCDIR)/LibLN.vo
+TLCNAME=TLC
 
 all: $(OBJECTS)
 
 $(LIBLN):
-	cd $(INCLUDESDIR) && make
+	cd $(TLCDIR) && make
 
 %.vo:%.v $(LIBLN)
-	$(COQC) -I $(INCLUDESDIR) $<
+	$(COQC) -R $(TLCDIR) $(TLCNAME) $<
 
 .PHONY:clean
 
