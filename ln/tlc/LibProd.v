@@ -4,14 +4,30 @@
 **************************************************************************)
 
 Set Implicit Arguments.
-Require Import LibTactics LibLogic.
+Require Import LibTactics LibLogic LibReflect.
 Generalizable Variables A B.
 
 (* ********************************************************************** *)
 (** * Inhabited *)
 
-Instance prod_inhab : forall `{Inhab A, Inhab B}, Inhab (A * B).
-Proof. intros. apply (prove_Inhab (arbitrary, arbitrary)). Qed.
+Global Instance prod_inhab : forall `{Inhab A, Inhab B}, Inhab (A * B).
+Proof using. intros. apply (prove_Inhab (arbitrary, arbitrary)). Qed.
+
+
+(* ********************************************************************** *)
+(** * Comparable *)
+
+Definition prod_compare {A B : Type} `{Comparable A} `{Comparable B} (x y : A * B) :=
+  let (x1, x2) := x in let (y1, y2) := y in
+  decide (x1 = y1 /\ x2 = y2).
+
+Global Instance prod_comparable : forall A B : Type,
+  Comparable A -> Comparable B -> Comparable (A * B).
+Proof using.
+  introv CA CB. applys comparable_beq (@prod_compare A B _ _). intros x y.
+  destruct x; destruct y; simpl; rew_refl; iff H; inverts~ H;
+   tryfalse; auto; try congruence.
+Qed.
 
 
 (* ********************************************************************** *)
@@ -19,25 +35,25 @@ Proof. intros. apply (prove_Inhab (arbitrary, arbitrary)). Qed.
 
 (** Decomposition as projection *)
 
-Lemma tuple2_from_proj : forall A1 A2 (x:A1*A2), 
+Lemma tuple2_from_proj : forall A1 A2 (x:A1*A2),
   (fst x, snd x) = x.
-Proof. intros. destruct~ x. Qed.
+Proof using. intros. destruct~ x. Qed.
 
 (** Structural equality *)
 
 Section Properties.
-Variables (A1 A2 A3 A4 : Type). 
+Variables (A1 A2 A3 A4 : Type).
 Lemma eq_prod2 : forall (x1 y1:A1) (x2 y2:A2),
   x1 = y1 -> x2 = y2 -> (x1, x2) = (y1, y2).
-Proof. intros. subst~. Qed.
+Proof using. intros. subst~. Qed.
 
 Lemma eq_prod3 : forall (x1 y1:A1) (x2 y2:A2) (x3 y3:A3),
   x1 = y1 -> x2 = y2 -> x3 = y3 -> (x1, x2, x3) = (y1, y2, y3).
-Proof. intros. subst~. Qed.
+Proof using. intros. subst~. Qed.
 
 Lemma eq_prod4 : forall (x1 y1:A1) (x2 y2:A2) (x3 y3:A3) (x4 y4:A4),
   x1 = y1 -> x2 = y2 -> x3 = y3 -> x4 = y4 -> (x1, x2, x3, x4) = (y1, y2, y3, y4).
-Proof. intros. subst~. Qed.
+Proof using. intros. subst~. Qed.
 
 End Properties.
 
@@ -58,7 +74,7 @@ Implicit Arguments snd [[A] [B]].
 (** ** Notation for projections *)
 
 (** N-ary projections are defined as notations and not as
-    definitions, which has appeared to be more flexible with 
+    definitions, which has appeared to be more flexible with
     respect to type inference.
     TODO: investigate the possibility of using definitions. *)
 
@@ -87,7 +103,7 @@ Notation "'proj55' P" := (proj2 (proj2 (proj2 (proj2 P)))) (at level 69).
 
 Section Currying.
 Variables (A1 A2 A3 A4 A5 B : Type).
-Definition curry1 f : A1 -> B := 
+Definition curry1 f : A1 -> B :=
   f.
 Definition curry2 f : A1 -> A2 -> B :=
   fun x1 x2 => f (x1,x2).
@@ -104,7 +120,7 @@ End Currying.
 
 Section Uncurrying.
 Variables (A1 A2 A3 A4 A5 B : Type).
-Definition uncurry1 f : A1 -> B := 
+Definition uncurry1 f : A1 -> B :=
   f.
 Definition uncurry2 f : A1*A2 -> B :=
   fun p => match p with (x1,x2) =>
@@ -128,7 +144,7 @@ End Uncurrying.
 
 Section Uncurryp.
 Variables (A1 A2 A3 A4 B : Type).
-Definition uncurryp1 f : A1 -> A1 -> B := 
+Definition uncurryp1 f : A1 -> A1 -> B :=
   f.
 Definition uncurryp2 f : A1*A2 -> A1*A2 -> B :=
   fun p1 p2 => match p1,p2 with (x1,x2),(y1,y2) =>
@@ -158,7 +174,8 @@ Tactic Notation "unfolds_uncurryp" :=
     into a function of type [(A1*..*AN) -> (A1*..*AN) -> B]. *)
 
 Section Unproj.
-Variables (A1 A2 A3 A4 B : Type).
+Variables (A1 A2 A3 A4 A5 B : Type).
+
 Definition unproj21 f : A1*A2 -> A1*A2 -> B :=
   fun p1 p2 => match p1,p2 with (x1,x2),(y1,y2) =>
   f x1 y1 end.
@@ -186,6 +203,10 @@ Definition unproj43 f : A1*A2*A3*A4 -> A1*A2*A3*A4 -> B :=
 Definition unproj44 f : A1*A2*A3*A4 -> A1*A2*A3*A4 -> B :=
   fun p1 p2 => match p1,p2 with (x1,x2,x3,x4),(y1,y2,y3,y4) =>
   f x4 y4 end.
+Definition unproj51 f : A1*A2*A3*A4*A5 -> A1*A2*A3*A4*A5 -> B :=
+  fun p1 p2 => match p1,p2 with (x1,x2,x3,x4,x5),(y1,y2,y3,y4,y5) =>
+  f x1 y1 end.
+  (* TODO: complete *)
 End Unproj.
 
 Implicit Arguments unproj21 [ A1 B ].
@@ -197,14 +218,17 @@ Implicit Arguments unproj41 [ A1 B ].
 Implicit Arguments unproj42 [ A2 B ].
 Implicit Arguments unproj43 [ A3 B ].
 Implicit Arguments unproj44 [ A4 B ].
+Implicit Arguments unproj51 [ A1 B ].
 
 (** Unfolding *)
 
 Tactic Notation "unfold_unproj" :=
   unfold unproj21, unproj22, unproj31, unproj32, unproj33,
-         unproj41, unproj42, unproj43, unproj44.
+         unproj41, unproj42, unproj43, unproj44,
+         unproj51.
 
 Tactic Notation "unfolds_unproj" :=
   unfold unproj21, unproj22, unproj31, unproj32, unproj33,
-         unproj41, unproj42, unproj43, unproj44 in *.
+         unproj41, unproj42, unproj43, unproj44,
+         unproj51 in *.
 

@@ -46,10 +46,10 @@ Module Export Variables : VariablesType.
 Definition var := nat.
 
 Lemma var_inhab : Inhab var.
-Proof. apply (prove_Inhab 0). Qed.
+Proof using. apply (prove_Inhab 0). Qed.
 
 Lemma var_comp : Comparable var.
-Proof. apply nat_comparable. Qed.
+Proof using. apply nat_comparable. Qed.
 
 Instance var_comparable : Comparable var := var_comp.
 
@@ -60,7 +60,7 @@ Definition var_gen_list (l : list nat) :=
 
 Lemma var_gen_list_spec : forall n l,
   n \in from_list l -> n < var_gen_list l.
-Proof.
+Proof using.
   unfold var_gen_list. induction l; introv I.
   rewrite from_list_nil in I. false (in_empty_elim I).
   rewrite from_list_cons in I. rew_list.
@@ -73,14 +73,14 @@ Definition var_gen (E : vars) : var :=
   var_gen_list (epsilon (fun l => E = from_list l)).
 
 Lemma var_gen_spec : forall E, (var_gen E) \notin E.
-Proof.
+Proof using.
   intros. unfold var_gen. spec_epsilon as l.
   applys fset_finite. rewrite Hl. introv H.
   forwards M: var_gen_list_spec H. nat_math.
 Qed.
 
 Lemma var_fresh : forall (L : vars), { x : var | x \notin L }.
-Proof. intros L. exists (var_gen L). apply var_gen_spec. Qed.
+Proof using. intros L. exists (var_gen L). apply var_gen_spec. Qed.
 
 End Variables.
 
@@ -101,9 +101,9 @@ Hint Extern 1 (fresh _ _ _) => simpl.
 
 (* It is possible to build a list of n fresh variables. *)
 
-Lemma var_freshes : forall L n, 
+Lemma var_freshes : forall L n,
   { xs : list var | fresh L n xs }.
-Proof.
+Proof using.
   intros. gen L. induction n; intros L.
   exists* (nil : list var).
   destruct (var_fresh L) as [x Fr].
@@ -164,7 +164,7 @@ Ltac pick_fresh_gen L Y :=
   (destruct (var_fresh L) as [Y Fr]).
 
 (** [pick_fresh_gens L n Y] expects [L] to be a finite set of variables
-  and adds to the context a list of variables with name [Y] and a proof 
+  and adds to the context a list of variables with name [Y] and a proof
   that [Y] is of length [n] and contains variable fresh for [L] and
   distinct from one another. *)
 
@@ -185,39 +185,39 @@ Implicit Types x : var.
 
 Lemma notin_singleton_r : forall x y,
   x \notin \{y} -> x <> y.
-Proof. intros. rewrite~ <- notin_singleton. Qed.
+Proof using. intros. rewrite~ <- notin_singleton. Qed.
 
 Lemma notin_singleton_l : forall x y,
   x <> y -> x \notin \{y}.
-Proof. intros. rewrite~ notin_singleton. Qed.
+Proof using. intros. rewrite~ notin_singleton. Qed.
 
 Lemma notin_singleton_swap : forall x y,
   x \notin \{y} -> y \notin \{x}.
-Proof.
+Proof using.
   intros. apply notin_singleton_l.
   apply sym_not_eq. apply~ notin_singleton_r.
 Qed.
 
 Lemma notin_union_r : forall x E F,
   x \notin (E \u F) -> (x \notin E) /\ (x \notin F).
-Proof. intros. rewrite~ <- notin_union. Qed.
+Proof using. intros. rewrite~ <- notin_union. Qed.
 
 Lemma notin_union_r1 : forall x E F,
   x \notin (E \u F) -> (x \notin E).
-Proof. introv. rewrite* notin_union. Qed.
+Proof using. introv. rewrite* notin_union. Qed.
 
 Lemma notin_union_r2 : forall x E F,
   x \notin (E \u F) -> (x \notin F).
-Proof. introv. rewrite* notin_union. Qed.
+Proof using. introv. rewrite* notin_union. Qed.
 
 Lemma notin_union_l : forall x E F,
   x \notin E -> x \notin F -> x \notin (E \u F).
-Proof. intros. rewrite~ notin_union. Qed.
+Proof using. intros. rewrite~ notin_union. Qed.
 
 Lemma notin_var_gen : forall E F,
   (forall x, x \notin E -> x \notin F) ->
   (var_gen E) \notin F.
-Proof. intros. auto~ var_gen_spec. Qed.
+Proof using. intros. autos~ var_gen_spec. Qed.
 
 Implicit Arguments notin_singleton_r    [x y].
 Implicit Arguments notin_singleton_l    [x y].
@@ -230,48 +230,48 @@ Implicit Arguments notin_union_l  [x E F].
 (** Tactics to deal with notin.  *)
 
 Ltac notin_solve_target_from x E H :=
-  match type of H with 
+  match type of H with
   | x \notin E => constr:(H)
-  | x \notin (?F \u ?G) =>  
+  | x \notin (?F \u ?G) =>
      let H' :=
-        match F with 
+        match F with
         | context [E] => constr:(notin_union_r1 H)
-        | _ => match G with 
+        | _ => match G with
           | context [E] => constr:(notin_union_r2 H)
           | _ => fail 20
           end
         end in
-     notin_solve_target_from x E H' 
+     notin_solve_target_from x E H'
   end.
 
 Ltac notin_solve_target x E :=
-  match goal with 
+  match goal with
   | H: x \notin ?L |- _ =>
     match L with context[E] =>
       let F := notin_solve_target_from x E H in
-      apply F 
+      apply F
     end
-  | H: x <> ?y |- _ => 
-     match E with \{y} => 
+  | H: x <> ?y |- _ =>
+     match E with \{y} =>
        apply (notin_singleton_l H)
      end
   end.
 
 Ltac notin_solve_one :=
   match goal with
-  | |- ?x \notin \{?y} => 
-     apply notin_singleton_swap; 
-     notin_solve_target y (\{x}) 
-  | |- ?x \notin ?E => 
+  | |- ?x \notin \{?y} =>
+     apply notin_singleton_swap;
+     notin_solve_target y (\{x})
+  | |- ?x \notin ?E =>
     notin_solve_target x E
   (* If x is an evar, tries to instantiate it.
-     Problem: it might loop ! 
-  | |- ?x \notin ?E => 
+     Problem: it might loop !
+  | |- ?x \notin ?E =>
      match goal with y:var |- _ =>
-       match y with 
+       match y with
        | x => fail 1
        | _ =>
-         let H := fresh in cuts H: (y \notin E); 
+         let H := fresh in cuts H: (y \notin E);
          [ apply H | notin_solve_target y E ]
         end
      end
@@ -279,21 +279,21 @@ Ltac notin_solve_one :=
   end.
 
 Ltac notin_simpl :=
-  match goal with 
-  | |- _ \notin (_ \u _) => apply notin_union_l; notin_simpl 
+  match goal with
+  | |- _ \notin (_ \u _) => apply notin_union_l; notin_simpl
   | |- _ \notin (\{}) => apply notin_empty; notin_simpl
   | |- ?x <> ?y => apply notin_singleton_r; notin_simpl
   | |- _ => idtac
   end.
 
 Ltac notin_solve_false :=
-  match goal with 
+  match goal with
   | H: ?x \notin ?E |- _ =>
     match E with context[x] =>
-      apply (@notin_same _ x); 
+      apply (@notin_same _ x);
       let F := notin_solve_target_from x (\{x}) H in
       apply F
-    end 
+    end
   | H: ?x <> ?x |- _ => apply H; reflexivity
   end.
 
@@ -316,9 +316,9 @@ Hint Extern 1 (_ \notin _) => notin_solve.
 Hint Extern 1 (_ <> _ :> var) => notin_solve.
 Hint Extern 1 ((_ \notin _) /\ _) => splits.
 
-(* 
+(*
 LATER:
-  | |- ?x \notin ?E => 
+  | |- ?x \notin ?E =>
 	progress (unfold x); notin_simpl
   | |- (var_gen ?x) \notin _ =>
         apply notin_var_gen; intros; notin_simpl
@@ -331,7 +331,7 @@ LATER:
 
 Lemma fresh_union_r : forall xs L1 L2 n,
   fresh (L1 \u L2) n xs -> fresh L1 n xs /\ fresh L2 n xs.
-Proof.
+Proof using.
   induction xs; simpl; intros; destruct n;
   tryfalse*. auto.
   destruct H. split; split; auto.
@@ -345,18 +345,18 @@ Qed.
 
 Lemma fresh_union_r1 : forall xs L1 L2 n,
   fresh (L1 \u L2) n xs -> fresh L1 n xs.
-Proof. intros. forwards*: fresh_union_r. Qed.
+Proof using. intros. forwards*: fresh_union_r. Qed.
 
 Lemma fresh_union_r2 : forall xs L1 L2 n,
   fresh (L1 \u L2) n xs -> fresh L2 n xs.
-Proof. intros. forwards*: fresh_union_r. Qed.
+Proof using. intros. forwards*: fresh_union_r. Qed.
 
 Lemma fresh_union_l : forall xs L1 L2 n,
   fresh L1 n xs -> fresh L2 n xs -> fresh (L1 \u L2) n xs.
-Proof.
+Proof using.
   induction xs; simpl; intros; destruct n; tryfalse*. auto.
   destruct H. destruct H0. split~.
-  forwards~ K: (@IHxs (L1 \u \{a}) (L2 \u \{a}) n). 
+  forwards~ K: (@IHxs (L1 \u \{a}) (L2 \u \{a}) n).
   rewrite <- (union_same \{a}).
   rewrite union_assoc.
   rewrite <- (union_assoc L1).
@@ -367,29 +367,29 @@ Qed.
 
 Lemma fresh_empty : forall L n xs,
   fresh L n xs -> fresh \{} n xs.
-Proof.
+Proof using.
   intros. rewrite <- (union_empty_r L) in H.
   destruct* (fresh_union_r _ _ _ _ H).
 Qed.
 
 Lemma fresh_length : forall L n xs,
   fresh L n xs -> n = length xs.
-Proof.
+Proof using.
   intros. gen n L. induction xs; simpl; intros n L Fr;
-    destruct n; tryfalse*. 
+    destruct n; tryfalse*.
   auto.
   rew_length. rewrite* <- (@IHxs n (L \u \{a})).
 Qed.
 
 Lemma fresh_resize : forall L n xs,
   fresh L n xs -> forall m, m = n -> fresh L m xs.
-Proof.
+Proof using.
   introv Fr Eq. subst~.
 Qed.
 
 Lemma fresh_resize_length : forall L n xs,
   fresh L n xs -> fresh L (length xs) xs.
-Proof.
+Proof using.
   introv Fr. rewrite* <- (fresh_length _ _ _ Fr).
 Qed.
 
@@ -405,7 +405,7 @@ Implicit Arguments fresh_resize_length [L n xs].
 Lemma fresh_single_notin : forall x xs n,
   fresh \{x} n xs ->
   x \notin from_list xs.
-Proof.
+Proof using.
   induction xs; destruct n; introv F; simpl in F; tryfalse.
   rewrite~ from_list_nil.
   destruct F as [Fr F']. lets [? ?]: (fresh_union_r F').
@@ -413,45 +413,45 @@ Proof.
 Qed.
 
 Ltac fresh_solve_target_from E n xs H :=
-  match type of H with 
+  match type of H with
   | fresh E n xs => constr:(H)
-  | fresh E ?m xs => 
-      match n with 
-      | length xs => constr:(fresh_resize_length H) 
-      | _ => 
-         match goal with 
-         | Eq: m = n |- _ => constr:(fresh_resize H _ (sym_eq Eq)) 
-         | Eq: n = m |- _ => constr:(fresh_resize H _ Eq) 
+  | fresh E ?m xs =>
+      match n with
+      | length xs => constr:(fresh_resize_length H)
+      | _ =>
+         match goal with
+         | Eq: m = n |- _ => constr:(fresh_resize H _ (sym_eq Eq))
+         | Eq: n = m |- _ => constr:(fresh_resize H _ Eq)
          end
       end
-  | fresh (?F \u ?G) ?m xs => 
+  | fresh (?F \u ?G) ?m xs =>
      let H' :=
-        match F with 
+        match F with
         | context [E] => constr:(fresh_union_r1 H)
-        | _ => match G with 
+        | _ => match G with
           | context [E] => constr:(fresh_union_r2 H)
           | _ => fail 20
           end
         end in
-     fresh_solve_target_from E n xs H' 
+     fresh_solve_target_from E n xs H'
   end.
 
 Ltac fresh_solve_target E n xs :=
   match goal with H: fresh ?L _ xs |- _ =>
     match L with context[E] =>
       let F := fresh_solve_target_from E n xs H in
-      apply F 
+      apply F
     end
   end.
 
 Ltac fresh_solve_one :=
-  match goal with 
-  | |- fresh ?E ?n ?xs =>   
-    fresh_solve_target E n xs 
+  match goal with
+  | |- fresh ?E ?n ?xs =>
+    fresh_solve_target E n xs
   | |- fresh \{} ?n ?xs =>
     match goal with H: fresh ?F ?m xs |- _ =>
       apply (fresh_empty H);
-      fresh_solve_target F n xs 
+      fresh_solve_target F n xs
     end
   end.
 
@@ -463,9 +463,9 @@ Ltac fresh_solve_by_notins :=
   simpl; splits; try notin_solve.
 
 Ltac fresh_solve :=
-  fresh_simpl; 
-  first [ fresh_solve_one 
-        | fresh_solve_by_notins 
+  fresh_simpl;
+  first [ fresh_solve_one
+        | fresh_solve_by_notins
         | idtac ].
 
 Hint Extern 1 (fresh _ _ _) => fresh_solve.

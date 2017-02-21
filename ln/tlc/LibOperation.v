@@ -11,7 +11,7 @@ Require Import LibTactics.
 
 Definition oper1 (A : Type) := A -> A.
 Definition oper2 (A : Type) := A -> A -> A.
-Definition predb (A:Type) := A -> bool. 
+Definition predb (A:Type) := A -> bool.
 
 (* ********************************************************************** *)
 (** * Definition of the properties of operators *)
@@ -27,7 +27,7 @@ Implicit Types i : oper1 A.
 
 (** Commutativity *)
 
-Definition comm f := forall x y, 
+Definition comm f := forall x y,
   f x y = f y x.
 
 (** Associativity *)
@@ -88,25 +88,39 @@ Definition absorb_r f a := forall x,
 
 (** Idempotence *)
 
-Definition idempotent i := forall x, 
+Definition idempotent i := forall x,
+  i (i x) = i x.
+
+Lemma use_idempotent : forall i x y,
+  idempotent i ->
+  y = i x ->
+  i y = y.
+  (* Expanded statement, for easier use by [eauto]. *)
+Proof using.
+  intros. subst. eauto.
+Qed.
+
+(** Idempotence *)
+
+Definition involutive i := forall x,
   i (i x) = x.
 
-(** Idempotence for binary operators *)
+(** Idempotence for binary operators *) (* TEMPORARY strange terminology! *)
 
-Definition idempotent2 f := forall x, 
+Definition idempotent2 f := forall x,
   f x x = x.
 
 (** Self Neutral *)
 
-Definition self_neutral f e x := 
+Definition self_neutral f e x :=
   f x x = e.
 
 (* ---------------------------------------------------------------------- *)
 (** ** Inverses *)
 
-(** Left Inverse *) 
+(** Left Inverse *)
 
-Definition inverse_for_l f e a b := 
+Definition inverse_for_l f e a b :=
   f a b = e.
 
 (** Right Inverse *)
@@ -126,7 +140,7 @@ Definition inverse_r f e i := forall x,
 
 (** Self Inverse *)
 
-Definition self_inverse i x := 
+Definition self_inverse i x :=
   i x = x.
 
 End Definitions.
@@ -160,31 +174,33 @@ Variable (A : Type).
 Implicit Types f g : oper2 A.
 Implicit Types h : oper1 A.
 
-(** For commutative operators, right-properties can be derived from 
+(** For commutative operators, right-properties can be derived from
     corresponding left-properties *)
 
-Lemma neutral_r_from_comm_neutral_l : forall f e, 
+Lemma neutral_r_from_comm_neutral_l : forall f e,
   comm f -> neutral_l f e -> neutral_r f e.
-Proof. introv C N. intros_all. rewrite* C. Qed.
+Proof using. introv C N. intros_all. rewrite* C. Qed.
 
-Lemma inverse_r_from_comm_inverse_l : forall f e i, 
+Lemma inverse_r_from_comm_inverse_l : forall f e i,
   comm f -> inverse_l f e i -> inverse_r f e i.
-Proof. introv C I. intros_all. rewrite* C. Qed. 
+Proof using. introv C I. intros_all. rewrite* C. Qed.
 
-Lemma distrib_r_from_comm_distrib_l : forall f g, 
+Lemma distrib_r_from_comm_distrib_l : forall f g,
   comm f -> distrib_l f g -> distrib_r f g.
-Proof.
+Proof using.
   introv C N. intros_all. unfolds distrib_l.
   do 3 rewrite <- (C x). auto.
-Qed.  
+Qed.
 
 (** [comm_assoc] derivable *)
 
 Lemma comm_assoc_prove : forall f,
   comm f -> assoc f -> comm_assoc f.
-Proof.
-  introv C S. intros_all. rewrite C. 
+Proof using.
+  introv C S. intros_all. rewrite C.
   rewrite <- S. rewrite~ (C x).
 Qed.
 
 End OpProperties.
+
+

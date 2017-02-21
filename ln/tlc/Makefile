@@ -1,125 +1,63 @@
+##############################################################################
+# Certain custom settings can be defined in settings.sh.
 
-############################################################################
-# You can define your own path to COQBIN by creating a file called
-# "settings.sh" and placing the right definitions into it, e.g.
-#     COQBIN=/var/tmp/charguer/v8.4/bin/
-# Note the use of a leading slash.
+# To specify the location of the Coq binaries, define COQBIN (with a
+# trailing slash), e.g. COQBIN=/var/tmp/coq/bin/.
+# If COQBIN is undefined, then "coqc" is used.
 
-COQBIN=
+# To request installation via a symbolic link, as opposed to
+# installation via a copy, define ARTHUR.
 
+# To request creation of .vio files, as opposed to creation of .vo
+# files, define SERIOUS=0.
+
+SERIOUS := 1
 -include settings.sh
 
-#######################################################
-# BINARIES
+############################################################################
+# Compilation.
 
-COQC=$(COQBIN)coqc
-COQDEP=$(COQBIN)coqdep
+# By default, we compile and install only .vo files. We could compile
+# and install both .vio and .vo files (by using the targets "quick"
+# and "proof_vo" in succession), but would it be a good idea? A .vio
+# file can be 80x larger than the corresponding .vo file.
 
-#######################################################
-# FILES
+export COQINCLUDE := -R $(shell pwd) TLC
+export SERIOUS
+export COQBIN
+export COQFLAGS
 
-LIB=\
-	LibTactics.v \
-	LibAxioms.v \
-	LibEqual.v \
-	LibLogic.v \
-	LibEpsilon.v \
-	LibFunc.v \
-	LibChoice.v \
-	LibOperation.v \
-	LibBool.v \
-	LibReflect.v \
-	LibUnit.v \
-	LibProd.v \
-	LibSum.v \
-	LibOption.v \
-	LibStruct.v \
-	LibRelation.v \
-	LibOrder.v \
-	LibWf.v \
-	LibNat.v \
-	LibInt.v \
-	LibStruct.v \
-	LibList.v \
-	LibListSorted.v \
-	LibListZ.v \
-	LibBag.v \
-	LibSet.v \
-	LibMultiset.v \
-	LibMap.v \
-	LibArray.v \
-	LibGraph.v \
-	LibPer.v \
-	LibString.v \
-	LibFset.v \
-	LibVar.v \
-	LibEnv.v \
-	LibLN.v \
-	LibHeap.v \
-	LibCore.v 
+.PHONY: all clean
 
-#	LibBigop.v \
-#  LibQuotient.v \
-#	LibOperator.v \
-#	LibGroup.v \
-#	LibFset.v \
-#	LibEnv.v \
-#	LibRelationb.v \
-#	LibRing.v \
-#	LibMonoid.v \
-#	LibAtom.v \
-#	LibData.v \
+all clean _CoqProject:
+	$(MAKE) -f Makefile.coq $@
 
-EXTRA=\
-	LibFix.v \
-	LibStream.v 
+############################################################################
+# Installation.
 
-DEMO=\
-	LibTacticsDemos.v \
-	LibFixDemos.v \
-	LibOtherDemos.v 
+CONTRIB := $(shell $(COQBIN)coqc -where)/user-contrib
+TARGET  := $(CONTRIB)/TLC
 
-#	LibCoreDemos.v \
+.PHONY: install uninstall
 
-TACTICS=\
-	LibTactics.v \
-	LibTacticsDemos.v 
+ifndef ARTHUR
 
-ALL= $(LIB) $(EXTRA) $(DEMO)
-
-
-#######################################################
-# TARGETS
-
-.SUFFIXES: .v .vo
-.PHONY: all lib demo depend
-
-all: $(ALL:.v=.vo) 
-lib: $(LIB:.v=.vo) 
-extra: $(EXTRA:.v=.vo)
-demo: $(DEMO:.v=.vo) 
-tactics: $(TACTICS:.v=.vo)
-depend: .depend
-
-.v.vo : .depend
-	$(COQC) $<
-
-
-#######################################################
-#DEPENDENCIES
-
-.depend : $(ALL)
-	$(COQDEP) -I . $(ALL) > .depend
-
-ifeq ($(findstring $(MAKECMDGOALS),depend clean),)
-include .depend
+install:
+	rm -rf $(TARGET)
+	mkdir -p $(TARGET)
+	install -m 644 *.v *.vo *.glob Makefile Makefile.coq $(TARGET)
+ifeq ($(SERIOUS),0)
+	install -m 644 *.vio $(TARGET)
 endif
 
-#######################################################
-#CLEAN
+else
 
-clean:
-	@rm -f *.vo || echo ok
-	@rm -f .depend || echo ok
+install:
+	rm -rf $(TARGET)
+	mkdir -p $(CONTRIB)
+	ln -s `pwd` $(TARGET)
 
+endif
 
+uninstall:
+	rm -rf $(TARGET)

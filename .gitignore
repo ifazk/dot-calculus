@@ -1,6 +1,9 @@
+*.v.d
 *.vo
+*.vo.aux
 *.glob
 .depend
 *~
 *#
 *.swo
+*.cache

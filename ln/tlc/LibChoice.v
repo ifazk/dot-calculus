@@ -20,16 +20,17 @@ Generalizable Variables A B.
 (* ---------------------------------------------------------------------- *)
 (** ** Functional choice *)
 
-(** This result can be used to build a function from a relation that maps 
+(** This result can be used to build a function from a relation that maps
     every input to at least one output. *)
 
 Lemma func_choice : forall A B (R:A->B->Prop),
-  (forall x, exists y, R x y) ->
+  (forall x, exists y, R x y) -> (* TEMPORARY this is called [defined] in LibRelation *)
   (exists f, forall x, R x (f x)).
-Proof.
+Proof using.
   intros. exists (fun x => proj1_sig (indefinite_description (H x))).
   intro x. apply (proj2_sig (indefinite_description (H x))).
 Qed.
+(* TEMPORARY functionality -> definedness? *)
 
 (* ---------------------------------------------------------------------- *)
 (** ** Dependent functional choice *)
@@ -39,14 +40,14 @@ Qed.
 Scheme and_indd := Induction for and Sort Prop.
 Scheme eq_indd := Induction for eq Sort Prop.
 
-Lemma dependent_func_choice : 
+Lemma dependent_func_choice :
   forall A (B:A->Type) (R:forall x, B x -> Prop),
   (forall x , exists y, R x y) ->
   (exists f, forall x, R x (f x)).
-Proof.
+Proof using.
   introv H.
-  pose (B' := { x:A & B x }). 
-  pose (R' := fun (x:A) (y:B') => projT1 y = x /\ R (projT1 y) (projT2 y)). 
+  pose (B' := { x:A & B x }).
+  pose (R' := fun (x:A) (y:B') => projT1 y = x /\ R (projT1 y) (projT2 y)).
   destruct (func_choice R') as (f,Hf).
     intros x. destruct (H x) as (y,Hy).
      exists (existT (fun x => B x) x y). split~.
@@ -67,10 +68,10 @@ Implicit Arguments dependent_func_choice [A B].
 Lemma guarded_func_choice : forall A `{Inhab B} (P : A->Prop) (R : A->B->Prop),
   (forall x, P x -> exists y, R x y) ->
   (exists f, forall x, P x -> R x (f x)).
-Proof.
+Proof using.
   intros. apply (func_choice (fun x y => P x -> R x y)).
   intros. apply~ indep_general_premises.
-Qed. 
+Qed.
 
 (* ---------------------------------------------------------------------- *)
 (** ** Omniscient functional choice *)
@@ -80,7 +81,7 @@ Qed.
 
 Lemma omniscient_func_choice : forall A `{Inhab B} (R : A->B->Prop),
   exists f, forall x, (exists y, R x y) -> R x (f x).
-Proof. intros. apply~ guarded_func_choice. Qed.
+Proof using. intros. apply~ guarded_func_choice. Qed.
 
 
 (* ********************************************************************** *)
@@ -95,7 +96,7 @@ Proof. intros. apply~ guarded_func_choice. Qed.
 Lemma func_unique_choice : forall A B (R:A->B->Prop),
   (forall x , exists! y, R x y) ->
   (exists! f, forall x, R x (f x)).
-Proof.
+Proof using.
   intros. destruct (func_choice R) as [f Hf].
   intros. apply (ex_unique_to_ex (H x)).
   exists f. split. auto.
@@ -110,7 +111,7 @@ Theorem dependent_func_unique_choice :
   forall (A:Type) (B:A -> Type) (R:forall x:A, B x -> Prop),
   (forall x:A, exists! y : B x, R x y) ->
   (exists! f : (forall x:A, B x), forall x:A, R x (f x)).
-Proof.
+Proof using.
   intros. destruct (dependent_func_choice R) as [f Hf].
   intros. apply (ex_unique_to_ex (H x)).
   exists f. split. auto.
@@ -127,21 +128,21 @@ Lemma guarded_func_unique_choice :
   forall A `{Inhab B} (P : A->Prop) (R : A->B->Prop),
   (forall x, P x -> exists! y, R x y) ->
   (exists f, forall x, P x -> R x (f x)).
-Proof.
+Proof using.
   introv I M. apply (func_choice (fun x y => P x -> R x y)).
   intros. apply indep_general_premises.
   introv H. destruct* (M _ H) as (y&Hy&_).
-Qed. 
+Qed.
 
 (* ---------------------------------------------------------------------- *)
 (** ** Omniscient functional unique choice *)
 
-Lemma omniscient_func_unique_choice : 
+Lemma omniscient_func_unique_choice :
   forall A `{Inhab B} (R : A->B->Prop),
   exists f, forall x, (exists! y, R x y) -> R x (f x).
-Proof.
+Proof using.
   intros. destruct (omniscient_func_choice R) as [f F].
-  exists f. introv (y&Hy&Uy). auto*.
+  exists f. introv (y&Hy&Uy). autos*.
 Qed.
 
 
@@ -159,9 +160,9 @@ Definition subrelation A B (R1 R2 : A->B->Prop) :=
 
 Lemma rel_choice : forall A B (R:A->B->Prop),
   (forall x, exists y, R x y) ->
-  (exists R', subrelation R' R 
+  (exists R', subrelation R' R
            /\ forall x, exists! y, R' x y).
-Proof.
+Proof using.
   introv H. destruct~ (func_choice R) as [f Hf].
   exists (fun x y => f x = y). split.
     introv E. simpls. subst~.
@@ -175,11 +176,11 @@ Qed.
 
 Lemma guarded_rel_choice : forall A B (P : A->Prop) (R : A->B->Prop),
   (forall x, P x -> exists y, R x y) ->
-  (exists R', subrelation R' R 
+  (exists R', subrelation R' R
            /\ forall x, P x -> exists! y, R' x y).
-Proof.
-  intros. destruct (rel_choice (fun (x:sigT P) (y:B) => R (projT1 x) y)) 
-   as (R',(HR'R,M)). 
+Proof using.
+  intros. destruct (rel_choice (fun (x:sigT P) (y:B) => R (projT1 x) y))
+   as (R',(HR'R,M)).
     intros (x,HPx). destruct (H _ HPx) as (y,HRxy). exists~ y.
   set (R'' := fun (x:A) (y:B) => exists (H : P x), R' (existT P x H) y).
   exists R''. split.
@@ -195,9 +196,9 @@ Qed.
 (** ** Omniscient relation choice *)
 
 Lemma omniscient_rel_choice : forall A B (R : A->B->Prop),
-  exists R', subrelation R' R 
+  exists R', subrelation R' R
           /\ forall x, (exists y, R x y) -> (exists! y, R' x y).
-Proof. intros. apply~ guarded_rel_choice. Qed.
+Proof using. intros. apply~ guarded_rel_choice. Qed.
 
 
 

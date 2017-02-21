@@ -1,6 +1,13 @@
+#!/bin/bash
+
+pwd
 COQBIN=
-if [ -f settings.sh ]
+if [ -f ./settings.sh ]
 then
     source settings.sh 
 fi
-${COQBIN}coqide -dont-load-proofs $*
+echo coqbin=${COQBIN}
+${COQBIN}coqide -R . TLC $*
+
+
+#-dont-load-proofs  -async-proofs-j 1
