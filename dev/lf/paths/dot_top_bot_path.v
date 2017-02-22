@@ -228,60 +228,69 @@ Inductive red : trm -> sto -> trm -> sto -> Prop :=
     red t0 s t0' s' ->
     red (trm_let t0 t) s (trm_let t0' t) s'.
 
+Inductive eq_path : sto -> path -> var -> Prop :=
+| eq_v: forall x s, eq_path s (p_var (avar_f x)) x
+| eq_p: forall p x y T ds s q a,
+    eq_path s p x ->
+    binds x (val_new T ds) s ->
+    defs_has (open_defs x ds) (def_trm a (trm_path q)) ->
+    eq_path s q y ->
+    eq_path s (p_sel p a) y.
+
 (* ###################################################################### *)
 (** ** Typing *)
 
 Inductive tymode: Set := ty_precise | ty_general.
 Inductive submode: Set := sub_tight | sub_general.
 
-Inductive ty_trm : tymode -> submode -> ctx -> trm -> typ -> Prop :=
-| ty_var : forall m1 m2 G x T,
+Inductive ty_trm : tymode -> ctx -> trm -> typ -> Prop :=
+| ty_var : forall m1 G x T,
     binds x T G ->
-    ty_trm m1 m2 G (trm_path (p_var (avar_f x))) T
-| ty_all_intro : forall L m1 m2 G T t U,
+    ty_trm m1 G (trm_path (p_var (avar_f x))) T
+| ty_all_intro : forall L m1 G T t U,
     (forall x, x \notin L ->
-      ty_trm ty_general sub_general (G & x ~ T) (open_trm x t) (open_typ x U)) ->
-    ty_trm m1 m2 G (trm_val (val_lambda T t)) (typ_all T U)
-| ty_all_elim : forall m2 G x z S T,
-    ty_trm ty_general m2 G (trm_path (p_var (avar_f x)))  (typ_all S T) ->
-    ty_trm ty_general m2 G (trm_path (p_var (avar_f z)))  S ->
-    ty_trm ty_general m2 G (trm_app (avar_f x) (avar_f z)) (open_typ z T)
-| ty_new_intro : forall L m1 m2 G T ds,
+      ty_trm ty_general (G & x ~ T) (open_trm x t) (open_typ x U)) ->
+    ty_trm m1 G (trm_val (val_lambda T t)) (typ_all T U)
+| ty_all_elim : forall G x z S T,
+    ty_trm ty_general G (trm_path (p_var (avar_f x)))  (typ_all S T) ->
+    ty_trm ty_general G (trm_path (p_var (avar_f z)))  S ->
+    ty_trm ty_general G (trm_app (avar_f x) (avar_f z)) (open_typ z T)
+| ty_new_intro : forall L m1 G T ds,
     (forall x, x \notin L ->
       ty_defs G x (open_typ x T) (open_defs x ds) (open_typ x T)) ->
-    ty_trm m1 m2 G (trm_val (val_new T ds)) (typ_bnd T)
-| ty_fld_elim : forall m2 m3 G p m T,
-    ty_trm ty_general m2 G (trm_path p) (typ_rcd (dec_trm m m3 T)) ->
-    ty_trm ty_general m2 G (trm_path (p_sel p m)) T
-| ty_let : forall L m2 G t u T U,
-    ty_trm ty_general m2 G t T ->
+    ty_trm m1 G (trm_val (val_new T ds)) (typ_bnd T)
+| ty_fld_elim : forall m3 G p m T,
+    ty_trm ty_general G (trm_path p) (typ_rcd (dec_trm m m3 T)) ->
+    ty_trm ty_general G (trm_path (p_sel p m)) T
+| ty_let : forall L G t u T U,
+    ty_trm ty_general G t T ->
     (forall x, x \notin L ->
-      ty_trm ty_general sub_general (G & x ~ T) (open_trm x u) U) ->
-    ty_trm ty_general m2 G (trm_let t u) U
-| ty_rec_intro : forall m2 G x T,
-    ty_trm ty_general m2 G (trm_path (p_var (avar_f x)))  (open_typ x T) ->
-    ty_trm ty_general m2 G (trm_path (p_var (avar_f x)))  (typ_bnd T)
-| ty_rec_elim : forall m1 m2 G x T,
-    ty_trm m1 m2 G (trm_path (p_var (avar_f x)))  (typ_bnd T) ->
-    ty_trm m1 m2 G (trm_path (p_var (avar_f x)))  (open_typ x T)
-| ty_and_intro : forall m2 G x T U,
-    ty_trm ty_general m2 G (trm_path (p_var (avar_f x)))  T ->
-    ty_trm ty_general m2 G (trm_path (p_var (avar_f x)))  U ->
-    ty_trm ty_general m2 G (trm_path (p_var (avar_f x)))  (typ_and T U)
-| ty_sub : forall m1 m2 G t T U,
+      ty_trm ty_general (G & x ~ T) (open_trm x u) U) ->
+    ty_trm ty_general G (trm_let t u) U
+| ty_rec_intro : forall G x T,
+    ty_trm ty_general G (trm_path (p_var (avar_f x)))  (open_typ x T) ->
+    ty_trm ty_general G (trm_path (p_var (avar_f x)))  (typ_bnd T)
+| ty_rec_elim : forall m1 G x T,
+    ty_trm m1 G (trm_path (p_var (avar_f x)))  (typ_bnd T) ->
+    ty_trm m1 G (trm_path (p_var (avar_f x)))  (open_typ x T)
+| ty_and_intro : forall G x T U,
+    ty_trm ty_general G (trm_path (p_var (avar_f x)))  T ->
+    ty_trm ty_general G (trm_path (p_var (avar_f x)))  U ->
+    ty_trm ty_general G (trm_path (p_var (avar_f x)))  (typ_and T U)
+| ty_sub : forall m1 G t T U,
     (m1 = ty_precise -> exists x, t = trm_path (p_var (avar_f x))) ->
-    ty_trm m1 m2 G t T ->
-    subtyp m1 m2 G T U ->
-    ty_trm m1 m2 G t U
+    ty_trm m1 G t T ->
+    subtyp m1 G T U ->
+    ty_trm m1 G t U
 
 with ty_def : ctx -> var -> typ -> def -> dec -> Prop := (* Γ; z: U |= d: T U *)
 | ty_def_typ : forall x G A T U,
     ty_def G x U (def_typ A T) (dec_typ A T T)
 | ty_def_trm : forall x G a t T U,
-    ty_trm ty_general sub_general (G & x ~ U) t T ->
+    ty_trm ty_general (G & x ~ U) t T ->
     ty_def G x U (def_trm a t) (dec_trm a path_general T)
 | ty_def_path : forall x G a p T U,
-    ty_trm ty_general sub_general G (trm_path p) T ->
+    ty_trm ty_general G (trm_path p) T ->
     norm G p ->
     ty_def G x U (def_trm a (trm_path p)) (dec_trm a path_strong T)
 with ty_defs : ctx -> var -> typ -> defs -> typ -> Prop :=
@@ -299,59 +308,51 @@ with norm : ctx -> path -> Prop :=
     binds x T G ->
     norm G (p_var (avar_f x))
 | norm_path : forall p T m G,
-    ty_trm ty_general sub_general G (trm_path p) (typ_rcd (dec_trm m path_strong T)) ->
+    ty_trm ty_general G (trm_path p) (typ_rcd (dec_trm m path_strong T)) ->
     norm G p ->
     norm G (p_sel p m)
 
-with subtyp : tymode -> submode -> ctx -> typ -> typ -> Prop :=
-| subtyp_top: forall m2 G T,
-    subtyp ty_general m2 G T typ_top
-| subtyp_bot: forall m2 G T,
-    subtyp ty_general m2 G typ_bot T
-| subtyp_refl: forall m2 G T,
-    subtyp ty_general m2 G T T
-| subtyp_trans: forall m1 m2 G S T U,
-    subtyp m1 m2 G S T ->
-    subtyp m1 m2 G T U ->
-    subtyp m1 m2 G S U
-| subtyp_and11: forall m1 m2 G T U,
-    subtyp m1 m2 G (typ_and T U) T
-| subtyp_and12: forall m1 m2 G T U,
-    subtyp m1 m2 G (typ_and T U) U
-| subtyp_and2: forall m2 G S T U,
-    subtyp ty_general m2 G S T ->
-    subtyp ty_general m2 G S U ->
-    subtyp ty_general m2 G S (typ_and T U)
-| subtyp_fld: forall m2 G a T U,
-    subtyp ty_general m2 G T U ->
-    subtyp ty_general m2 G (typ_rcd (dec_trm a path_general T)) (typ_rcd (dec_trm a path_general U))
-| subtyp_typ: forall m2 G A S1 T1 S2 T2,
-    subtyp ty_general m2 G S2 S1 ->
-    subtyp ty_general m2 G T1 T2 ->
-    subtyp ty_general m2 G (typ_rcd (dec_typ A S1 T1)) (typ_rcd (dec_typ A S2 T2))
+with subtyp : tymode -> ctx -> typ -> typ -> Prop :=
+| subtyp_top: forall G T,
+    subtyp ty_general G T typ_top
+| subtyp_bot: forall G T,
+    subtyp ty_general G typ_bot T
+| subtyp_refl: forall G T,
+    subtyp ty_general G T T
+| subtyp_trans: forall m1 G S T U,
+    subtyp m1 G S T ->
+    subtyp m1 G T U ->
+    subtyp m1 G S U
+| subtyp_and11: forall m1 G T U,
+    subtyp m1 G (typ_and T U) T
+| subtyp_and12: forall m1 G T U,
+    subtyp m1 G (typ_and T U) U
+| subtyp_and2: forall G S T U,
+    subtyp ty_general G S T ->
+    subtyp ty_general G S U ->
+    subtyp ty_general G S (typ_and T U)
+| subtyp_fld: forall G a T U,
+    subtyp ty_general G T U ->
+    subtyp ty_general G (typ_rcd (dec_trm a path_general T)) (typ_rcd (dec_trm a path_general U))
+| subtyp_typ: forall G A S1 T1 S2 T2,
+    subtyp ty_general G S2 S1 ->
+    subtyp ty_general G T1 T2 ->
+    subtyp ty_general G (typ_rcd (dec_typ A S1 T1)) (typ_rcd (dec_typ A S2 T2))
 | subtyp_sel2: forall G p A S T,
-    ty_trm ty_general sub_general G (trm_path p)  (typ_rcd (dec_typ A S T)) ->
+    ty_trm ty_general G (trm_path p)  (typ_rcd (dec_typ A S T)) ->
     norm G p ->
-    subtyp ty_general sub_general G S (typ_path p A)
+    subtyp ty_general G S (typ_path p A)
 | subtyp_sel1: forall G p A S T,
-    ty_trm ty_general sub_general G (trm_path p)  (typ_rcd (dec_typ A S T)) ->
+    ty_trm ty_general G (trm_path p)  (typ_rcd (dec_typ A S T)) ->
     norm G p ->
-    subtyp ty_general sub_general G (typ_path p A) T
-| subtyp_sel2_tight: forall G p A T,
-    ty_trm ty_precise sub_general G (trm_path p)  (typ_rcd (dec_typ A T T)) ->
-    norm G p ->
-    subtyp ty_general sub_tight G T (typ_path p A)
-| subtyp_sel1_tight: forall G p A T,
-    ty_trm ty_precise sub_general G (trm_path p)  (typ_rcd (dec_typ A T T)) ->
-    norm G p ->
-    subtyp ty_general sub_tight G (typ_path p A) T
-| subtyp_all: forall L m2 G S1 T1 S2 T2,
-    subtyp ty_general m2 G S2 S1 ->
+    subtyp ty_general G (typ_path p A) T
+| subtyp_all: forall L G S1 T1 S2 T2,
+    subtyp ty_general G S2 S1 ->
     (forall x, x \notin L ->
-       subtyp ty_general sub_general (G & x ~ S2) (open_typ x T1) (open_typ x T2)) ->
-    subtyp ty_general m2 G (typ_all S1 T1) (typ_all S2 T2)
-| subtyp_path: forall m2 G a T,
-    subtyp ty_general m2 G (typ_rcd (dec_trm a path_strong T)) (typ_rcd (dec_trm a path_general T)).
+       subtyp ty_general (G & x ~ S2) (open_typ x T1) (open_typ x T2)) ->
+    subtyp ty_general G (typ_all S1 T1) (typ_all S2 T2)
+| subtyp_path: forall G a T,
+    subtyp ty_general G (typ_rcd (dec_trm a path_strong T)) (typ_rcd (dec_trm a path_general T)).
 
 Inductive wf_sto: ctx -> sto -> Prop :=
 | wf_sto_empty: wf_sto empty empty
@@ -359,9 +360,93 @@ Inductive wf_sto: ctx -> sto -> Prop :=
     wf_sto G s ->
     x # G ->
     x # s ->
-    ty_trm ty_precise sub_general G (trm_val v) T ->
+    ty_trm ty_precise G (trm_val v) T ->
     wf_sto (G & x ~ T) (s & x ~ v).
 
+Inductive ty_trm_t : tymode -> ctx -> trm -> typ -> Prop :=
+| ty_var_t : forall m1 G x T,
+    binds x T G ->
+    ty_trm_t m1 G (trm_path (p_var (avar_f x))) T
+| ty_all_intro_t : forall L m1 G T t U,
+    (forall x, x \notin L ->
+      ty_trm ty_general (G & x ~ T) (open_trm x t) (open_typ x U)) ->
+    ty_trm_t m1 G (trm_val (val_lambda T t)) (typ_all T U)
+| ty_all_elim_t : forall G x z S T,
+    ty_trm_t ty_general G (trm_path (p_var (avar_f x)))  (typ_all S T) ->
+    ty_trm_t ty_general G (trm_path (p_var (avar_f z)))  S ->
+    ty_trm_t ty_general G (trm_app (avar_f x) (avar_f z)) (open_typ z T)
+| ty_new_intro_t : forall L m1 G T ds,
+    (forall x, x \notin L ->
+      ty_defs G x (open_typ x T) (open_defs x ds) (open_typ x T)) ->
+    ty_trm_t m1 G (trm_val (val_new T ds)) (typ_bnd T)
+| ty_fld_elim_t : forall m3 G p m T,
+    ty_trm_t ty_general G (trm_path p) (typ_rcd (dec_trm m m3 T)) ->
+    ty_trm_t ty_general G (trm_path (p_sel p m)) T
+| ty_let_t : forall L G t u T U,
+    ty_trm_t ty_general G t T ->
+    (forall x, x \notin L ->
+      ty_trm ty_general (G & x ~ T) (open_trm x u) U) ->
+    ty_trm_t ty_general G (trm_let t u) U
+| ty_rec_intro_t : forall G x T,
+    ty_trm_t ty_general G (trm_path (p_var (avar_f x)))  (open_typ x T) ->
+    ty_trm_t ty_general G (trm_path (p_var (avar_f x)))  (typ_bnd T)
+| ty_rec_elim_t : forall m1 G x T,
+    ty_trm_t m1 G (trm_path (p_var (avar_f x)))  (typ_bnd T) ->
+    ty_trm_t m1 G (trm_path (p_var (avar_f x)))  (open_typ x T)
+| ty_and_intro_t : forall G x T U,
+    ty_trm_t ty_general G (trm_path (p_var (avar_f x)))  T ->
+    ty_trm_t ty_general G (trm_path (p_var (avar_f x)))  U ->
+    ty_trm_t ty_general G (trm_path (p_var (avar_f x)))  (typ_and T U)
+| ty_sub_t : forall m1 G t T U,
+    (m1 = ty_precise -> exists x, t = trm_path (p_var (avar_f x))) ->
+    ty_trm_t m1 G t T ->
+    subtyp_t m1 G T U ->
+    ty_trm_t m1 G t U
+
+with subtyp_t : tymode -> ctx -> typ -> typ -> Prop :=
+| subtyp_top_t: forall G T,
+    subtyp_t ty_general G T typ_top
+| subtyp_bot_t: forall G T,
+    subtyp_t ty_general G typ_bot T
+| subtyp_refl_t: forall G T,
+    subtyp_t ty_general G T T
+| subtyp_trans_t: forall m1 G S T U,
+    subtyp_t m1 G S T ->
+    subtyp_t m1 G T U ->
+    subtyp_t m1 G S U
+| subtyp_and11_t: forall m1 G T U,
+    subtyp_t m1 G (typ_and T U) T
+| subtyp_and12_t: forall m1 G T U,
+    subtyp_t m1 G (typ_and T U) U
+| subtyp_and2_t: forall G S T U,
+    subtyp_t ty_general G S T ->
+    subtyp_t ty_general G S U ->
+    subtyp_t ty_general G S (typ_and T U)
+| subtyp_fld_t: forall G a T U,
+    subtyp_t ty_general G T U ->
+    subtyp_t ty_general G (typ_rcd (dec_trm a path_general T)) (typ_rcd (dec_trm a path_general U))
+| subtyp_typ_t: forall G A S1 T1 S2 T2,
+    subtyp_t ty_general G S2 S1 ->
+    subtyp_t ty_general G T1 T2 ->
+    subtyp_t ty_general G (typ_rcd (dec_typ A S1 T1)) (typ_rcd (dec_typ A S2 T2))
+| subtyp_sel2_: forall G x p A T s,
+    ty_trm ty_precise G (trm_path (p_var (avar_f x))) (typ_rcd (dec_typ A T T)) ->
+    wf_sto G s ->
+    eq_path s p x ->
+    subtyp_t ty_general G T (typ_path p A)
+| subtyp_sel1_tight: forall G x p A T s,
+    ty_trm ty_precise G (trm_path (p_var (avar_f x))) (typ_rcd (dec_typ A T T)) ->
+    wf_sto G s ->
+    eq_path s p x ->
+    subtyp_t ty_general G (typ_path p A) T
+| subtyp_all_t: forall L G S1 T1 S2 T2,
+    subtyp ty_general G S2 S1 ->
+    (forall x, x \notin L ->
+       subtyp ty_general (G & x ~ S2) (open_typ x T1) (open_typ x T2)) ->
+    subtyp_t ty_general G (typ_all S1 T1) (typ_all S2 T2)
+| subtyp_path_t: forall G a T,
+    subtyp_t ty_general G (typ_rcd (dec_trm a path_strong T)) (typ_rcd (dec_trm a path_general T)).
+    
 (* ###################################################################### *)
 (* ###################################################################### *)
 (** * Infrastructure *)
@@ -394,6 +479,10 @@ Combined Scheme tds_mutind from tds_ty_trm_mut, tds_ty_def_mut, tds_ty_defs_mut,
 Scheme ts_ty_trm_mut  := Induction for ty_trm    Sort Prop
 with   ts_subtyp      := Induction for subtyp    Sort Prop.
 Combined Scheme ts_mutind from ts_ty_trm_mut, ts_subtyp.
+
+Scheme ts_ty_trm_mut_t  := Induction for ty_trm_t    Sort Prop
+with   ts_subtyp_t      := Induction for subtyp_t    Sort Prop.
+Combined Scheme ts_mutind_t from ts_ty_trm_mut_t, ts_subtyp_t.
 
 Scheme rules_trm_mut    := Induction for ty_trm    Sort Prop
 with   rules_def_mut    := Induction for ty_def    Sort Prop
@@ -442,8 +531,7 @@ Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
   apply_fresh_base T gather_vars x.
 
 Hint Constructors
-  ty_trm ty_def ty_defs
-  subtyp.
+  ty_trm ty_def ty_defs subtyp ty_trm_t subtyp_t.
 
 Hint Constructors wf_sto.
 
@@ -461,11 +549,12 @@ Qed.
 (* ###################################################################### *)
 (** ** Weakening *)
 
+(* also defined for tight *)
 Lemma weaken_rules:
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G1 G2 G3,
+  (forall m1 G t T, ty_trm m1 G t T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    ty_trm m1 m2 (G1 & G2 & G3) t T) /\
+    ty_trm m1 (G1 & G2 & G3) t T) /\
   (forall G x T d D, ty_def G x T d D -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3 & x ~ T) ->
@@ -478,10 +567,10 @@ Lemma weaken_rules:
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
     norm (G1 & G2 & G3) p) /\
-  (forall m1 m2 G T U, subtyp m1 m2 G T U -> forall G1 G2 G3,
+  (forall m1 G T U, subtyp m1 G T U -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    subtyp m1 m2 (G1 & G2 & G3) T U).
+    subtyp m1 (G1 & G2 & G3) T U).
 Proof.
   apply rules_mutind; try solve [eauto].
   + intros. subst.
@@ -517,10 +606,11 @@ Proof.
     apply* H0.
 Qed.
 
-Lemma weaken_ty_trm:  forall m1 m2 G1 G2 t T,
-    ty_trm m1 m2 G1 t T ->
+(* also defined for tight *)
+Lemma weaken_ty_trm:  forall m1 G1 G2 t T,
+    ty_trm m1 G1 t T ->
     ok (G1 & G2) ->
-    ty_trm m1 m2 (G1 & G2) t T.
+    ty_trm m1 (G1 & G2) t T.
 Proof. 
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {
@@ -531,10 +621,11 @@ Proof.
   rewrite <- EqG. assumption.
 Qed.
 
-Lemma weaken_subtyp: forall m1 m2 G1 G2 S U,
-  subtyp m1 m2 G1 S U ->
+(* also defined for tight *)
+Lemma weaken_subtyp: forall m1 G1 G2 S U,
+  subtyp m1 G1 S U ->
   ok (G1 & G2) ->
-  subtyp m1 m2 (G1 & G2) S U.
+  subtyp m1 (G1 & G2) S U.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {
@@ -583,7 +674,7 @@ Hint Resolve wf_sto_to_ok_s wf_sto_to_ok_G.
 Lemma ctx_binds_to_sto_binds_raw: forall s G x T,
   wf_sto G s ->
   binds x T G ->
-  exists G1 G2 v, G = G1 & (x ~ T) & G2 /\ binds x v s /\ ty_trm ty_precise sub_general G1 (trm_val v) T.
+  exists G1 G2 v, G = G1 & (x ~ T) & G2 /\ binds x v s /\ ty_trm ty_precise G1 (trm_val v) T.
 Proof.
   introv Wf Bi. gen x T Bi. induction Wf; intros.
   + false* binds_empty_inv.
@@ -594,11 +685,10 @@ Proof.
       subst. exists G1 (G2 & x ~ T) ds'. rewrite concat_assoc. auto.
 Qed.
 
-
 Lemma ctx_binds_to_sto_binds_typing: forall G s x T,
   wf_sto G s ->
   binds x T G ->
-  exists v, binds x v s /\ ty_trm ty_precise sub_general G (trm_val v) T.
+  exists v, binds x v s /\ ty_trm ty_precise G (trm_val v) T.
 Proof.
   introv Hwf Bi.
   lets A: (ctx_binds_to_sto_binds_raw Hwf Bi).
@@ -613,7 +703,7 @@ Qed.
 Lemma sto_binds_to_ctx_binds_raw: forall s G x v,
   wf_sto G s ->
   binds x v s ->
-  exists G1 G2 T, G = G1 & (x ~ T) & G2 /\ ty_trm ty_precise sub_general G1 (trm_val v) T.
+  exists G1 G2 T, G = G1 & (x ~ T) & G2 /\ ty_trm ty_precise G1 (trm_val v) T.
 Proof.
   introv Wf Bi. gen x v Bi. induction Wf; intros.
   + false* binds_empty_inv.
@@ -624,8 +714,8 @@ Proof.
       subst. exists G1 (G2 & x ~ T) T0'. rewrite concat_assoc. auto.
 Qed.
 
-Lemma typing_implies_bound: forall m1 m2 G x T,
-  ty_trm m1 m2 G (trm_path (p_var (avar_f x)))  T ->
+Lemma typing_implies_bound: forall m1 G x T,
+  ty_trm m1 G (trm_path (p_var (avar_f x)))  T ->
   exists S, binds x S G.
 Proof.
   intros. remember (trm_path (p_var (avar_f x)))  as t.
@@ -636,15 +726,17 @@ Proof.
   - inversion Heqt. subst. exists T. assumption.
 Qed.
 
-Inductive eq_path : sto -> path -> var -> Prop :=
-| eq_v: forall x s, eq_path s (p_var (avar_f x)) x
-| eq_p: forall p x y T ds s q a,
-    eq_path s p x ->
-    binds x (val_new T ds) s ->
-    defs_has (open_defs x ds) (def_trm a (trm_path q)) ->
-    eq_path s q y ->
-    eq_path s (p_sel p a) y.
-
+Lemma typing_implies_bound_t: forall m1 G x T,
+  ty_trm_t m1 G (trm_path (p_var (avar_f x)))  T ->
+  exists S, binds x S G.
+Proof.
+  intros. remember (trm_path (p_var (avar_f x)))  as t.
+  induction H;
+    try solve [inversion Heqt];
+    try solve [inversion Heqt; eapply IHty_trm_t; eauto];
+    try solve [inversion Heqt; eapply IHty_trm_t1; eauto].
+  - inversion Heqt. subst. exists T. assumption.
+Qed.
 
 (* ###################################################################### *)
 (** ** Substitution *)
@@ -896,40 +988,38 @@ Qed.
 (** ** The substitution principle *)
 
 Lemma subst_rules: forall y S,
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G1 G2 x,
+  (forall m1 G t T, ty_trm m1 G t T -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
+    ty_trm ty_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
     m1 = ty_general ->
-    m2 = sub_general ->
-    ty_trm m1 m2 (G1 & (subst_ctx x y G2)) (subst_trm x y t) (subst_typ x y T)) /\
+    ty_trm m1 (G1 & (subst_ctx x y G2)) (subst_trm x y t) (subst_typ x y T)) /\
   (forall G z T d D, ty_def G z T d D -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2 & z ~ T) ->
     x \notin fv_ctx_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
+    ty_trm ty_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
     ty_def (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_def x y d) (subst_dec x y D)) /\
   (forall G z T ds U, ty_defs G z T ds U -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2 & z ~ T) ->
     x \notin fv_ctx_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
+    ty_trm ty_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
     ty_defs (G1 & (subst_ctx x y G2)) z (subst_typ x y T) (subst_defs x y ds) (subst_typ x y U)) /\
   (forall G p, norm G p -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
+    ty_trm ty_general (G1 & (subst_ctx x y G2)) (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
     norm (G1 & (subst_ctx x y G2)) (subst_path x y p)) /\
-  (forall m1 m2 G T U, subtyp m1 m2 G T U -> forall G1 G2 x,
+  (forall m1 G T U, subtyp m1 G T U -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
-    ty_trm ty_general sub_general (G1 & (subst_ctx x y G2))  (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
+    ty_trm ty_general (G1 & (subst_ctx x y G2))  (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
     m1 = ty_general ->
-    m2 = sub_general ->
-    subtyp m1 m2 (G1 & (subst_ctx x y G2)) (subst_typ x y T) (subst_typ x y U)).
+    subtyp m1 (G1 & (subst_ctx x y G2)) (subst_typ x y T) (subst_typ x y U)).
 Proof.
   intros y S. apply rules_mutind; intros; subst.
   - (* ty_var *)
@@ -1090,8 +1180,6 @@ Proof.
   - (* subtyp_sel1 *)
     eapply subtyp_sel1; eauto.
     eapply H; eauto.
-  - (* subtyp_sel2_tight *) inversion H6.
-  - (* subtyp_sel1_tight *) inversion H6.
   - (* subtyp_all *)
     simpl. apply_fresh subtyp_all as z; eauto.
     assert (z \notin L) as FrL by eauto.
@@ -1113,11 +1201,11 @@ Proof.
 Qed.
 
 Lemma subst_ty_trm: forall y S G x t T,
-    ty_trm ty_general sub_general (G & x ~ S) t T -> 
+    ty_trm ty_general (G & x ~ S) t T -> 
     ok (G & x ~ S) ->
     x \notin fv_ctx_types G ->
-    ty_trm ty_general sub_general G (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
-    ty_trm ty_general sub_general G (subst_trm x y t) (subst_typ x y T).
+    ty_trm ty_general G (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
+    ty_trm ty_general G (subst_trm x y t) (subst_typ x y T).
 Proof.
   intros.
   apply (proj51 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H.
@@ -1128,14 +1216,13 @@ Proof.
   assumption.
   unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption.
   reflexivity.
-  reflexivity.
 Qed.
 
 Lemma subst_ty_defs: forall y S G x ds z U T,
     ty_defs (G & x ~ S) z U ds T ->
     ok (G & x ~ S & z ~ U) ->
     x \notin fv_ctx_types G ->
-    ty_trm ty_general sub_general G (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
+    ty_trm ty_general G (trm_path (p_var (avar_f y))) (subst_typ x y S) ->
     ty_defs G z (subst_typ x y U) (subst_defs x y ds) (subst_typ x y T).
 Proof.
   intros.
@@ -1184,9 +1271,10 @@ Proof.
     rewrite values_def, concat_def, single_def in *; simpl; subst; rewrite* in_union.
 Qed.
 
-Definition rename_ctx x y G := subst_ctx x y (map_keys (fun k => If k = x then y else k) G).
-
 Definition rename_var (x y z : var)  := If z = x then y else z.
+
+Definition rename_ctx x y G := subst_ctx x y (map_keys (rename_var x y) G).
+
 
 Lemma binds_destruct: forall {A} x (v:A) E,
   binds x v E ->
@@ -1199,13 +1287,44 @@ Proof.
     exists E' (E'' & x0 ~ v0). rewrite concat_assoc. reflexivity. assumption.
 Qed.
 
+Lemma map_keys_notin: forall x y (G:ctx),
+  x # G ->
+  map_keys (rename_var x y) G = G.
+Proof.
+  intros. induction G using env_ind. rewrite map_keys_empty. reflexivity.
+  rewrite map_keys_push. rewrite* IHG. assert (x <> x0) as Hxx0. {
+    simpl_dom. rewrite notin_union in H. destruct H as [H _]. auto. 
+  }
+  unfold rename_var. case_if. reflexivity.
+Qed.
+
+Lemma binds_map_keys: forall x y G' (T:typ) G'',
+  ok (G' & x ~ T & G'') ->
+  map_keys (rename_var x y) (G' & x ~ T & G'') = G' & y ~ T & G''.
+Proof.
+  intros. rewrite map_keys_concat. rewrite map_keys_push.
+  destruct (ok_middle_inv H) as [H1 H2]. repeat rewrite* map_keys_notin.
+  unfold rename_var. case_if. reflexivity.
+Qed.  
+
+Lemma map_other_keys: forall x y z (G:ctx),
+  x <> z ->
+  z <> y ->
+  z # G ->
+  z # map_keys (rename_var x y) G.
+Proof.
+  intros. induction G using env_ind.
+  rewrite map_keys_empty. assumption.
+  rewrite map_keys_push. simpl_dom. rewrite notin_union. split.
+  unfold rename_var. case_if*. auto.
+Qed.
+
 Lemma renaming_gen: forall x y,
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T ->
+  (forall m1 G t T, ty_trm m1 G t T ->
     ok G ->
     m1 = ty_general ->
-    m2 = sub_general ->
     y # G ->
-    ty_trm m1 m2 (rename_ctx x y G) (subst_trm x y t) (subst_typ x y T)) /\
+    ty_trm m1 (rename_ctx x y G) (subst_trm x y t) (subst_typ x y T)) /\
   (forall G z U d D, ty_def G z U d D ->
     ok (G & z ~ U) ->
     y # (G & z ~ U) ->
@@ -1220,18 +1339,34 @@ Lemma renaming_gen: forall x y,
     ok G ->
     y # G ->
     norm (rename_ctx x y G) (subst_path x y p)) /\
-  (forall m1 m2 G T U, subtyp m1 m2 G T U ->
+  (forall m1 G T U, subtyp m1 G T U ->
     ok G ->
     m1 = ty_general ->
-    m2 = sub_general ->
     y # G ->
-    subtyp m1 m2 (rename_ctx x y G) (subst_typ x y T) (subst_typ x y U)).
+    subtyp m1 (rename_ctx x y G) (subst_typ x y T) (subst_typ x y U)).
 Proof.
-(*  intros. apply rules_mutind; intros; subst; simpl; try (econstructor; apply* H); eauto .
+  intros. apply rules_mutind; intros; subst; simpl; try (econstructor; apply* H); eauto .
   - (* ty_var *)
     constructor. unfold rename_ctx. unfold subst_ctx.
-    destruct (binds_destruct b) as [G' [G'' HG]]. subst. case_if.
-    *) Admitted. 
+    destruct (binds_destruct b) as [G' [G'' HG]]. subst. case_if. rewrite* binds_map_keys.
+    apply binds_map. rewrite map_keys_concat. rewrite map_keys_push.
+    destruct (ok_middle_inv H) as [Hl Hr].
+    assert (x0 <> y) as Hx0y. {
+      simpl_dom. repeat rewrite notin_union in H1.  destruct H1 as [[_ Hy] _]. auto.
+    }
+    assert (x <> x0) as Hxx0 by auto.
+    lets Ho: (map_other_keys Hxx0 Hx0y Hr). unfold rename_var. case_if. apply binds_middle_eq. auto.
+  - (* ty_all_intro *)
+    apply_fresh ty_all_intro as z. assert (z \notin L) as Lz by auto.
+    specialize (H z Lz). rewrite subst_open_commute_trm in H. rewrite subst_open_commute_typ in H.
+    unfold subst_fvar in H. assert (z <> x) as Hzx by auto. case_if.
+    assert (rename_ctx x y G & z ~ subst_typ x y T = rename_ctx x y (G & z ~ T) ) as Hr. {
+      unfold rename_ctx. unfold subst_ctx. rewrite map_keys_concat.
+      assert (map_keys (rename_var x y) (z ~ T) = z ~ T) as Hm by (rewrite* map_keys_notin). rewrite Hm.
+      rewrite map_push. reflexivity.
+    }
+    rewrite Hr. apply* H.
+  - Admitted.    
 
 Lemma renaming_def: forall G z U ds T y,
   ty_defs G z U ds T ->
@@ -1262,10 +1397,10 @@ Lemma corresponding_types: forall G s x T,
   wf_sto G s ->
   binds x T G ->
   ((exists S U t, binds x (val_lambda S t) s /\
-                  ty_trm ty_precise sub_general G (trm_val (val_lambda S t)) (typ_all S U) /\
+                  ty_trm ty_precise G (trm_val (val_lambda S t)) (typ_all S U) /\
                   T = typ_all S U) \/
    (exists S ds, binds x (val_new S ds) s /\
-                 ty_trm ty_precise sub_general G (trm_val (val_new S ds)) (typ_bnd S) /\
+                 ty_trm ty_precise G (trm_val (val_new S ds)) (typ_bnd S) /\
                  T = typ_bnd S)).
 Proof.
   introv H Bi. induction H.
@@ -1299,30 +1434,28 @@ Proof.
 Qed.
 
 Lemma unique_rec_subtyping: forall G S T,
-  subtyp ty_precise sub_general G (typ_bnd S) T ->
+  subtyp ty_precise G (typ_bnd S) T ->
   T = typ_bnd S.
 Proof.
   introv Hsub.
   remember (typ_bnd S) as T'.
   remember ty_precise as m1.
-  remember sub_general as m2.
   induction Hsub; try solve [inversion Heqm1].
-  - specialize (IHHsub1 HeqT' Heqm1 Heqm2). subst.
+  - specialize (IHHsub1 HeqT' Heqm1). subst.
     apply IHHsub2; reflexivity.
   - inversion HeqT'.
   - inversion HeqT'.
 Qed.
 
 Lemma unique_all_subtyping: forall G S U T,
-  subtyp ty_precise sub_general G (typ_all S U) T ->
+  subtyp ty_precise G (typ_all S U) T ->
   T = typ_all S U.
 Proof.
   introv Hsub.
   remember (typ_all S U) as T'.
   remember ty_precise as m1.
-  remember sub_general as m2.
   induction Hsub; try solve [inversion Heqm1].
-  - specialize (IHHsub1 HeqT' Heqm1 Heqm2). subst.
+  - specialize (IHHsub1 HeqT' Heqm1). subst.
     apply IHHsub2; reflexivity.
   - inversion HeqT'.
   - inversion HeqT'.
@@ -1330,7 +1463,7 @@ Qed.
 
 Lemma unique_lambda_typing: forall G x S U T,
   binds x (typ_all S U) G ->
-  ty_trm ty_precise sub_general G (trm_path (p_var (avar_f x)))  T ->
+  ty_trm ty_precise G (trm_path (p_var (avar_f x)))  T ->
   T = typ_all S U.
 Proof.
   introv Bi Hty.
@@ -1342,16 +1475,16 @@ Proof.
     unfold binds in Bi. unfold binds in H.
     rewrite H in Bi. inversion Bi.
     reflexivity.
-  - specialize (IHHty Bi Heqt Heqm1 Heqm2).
+  - specialize (IHHty Bi Heqt Heqm1).
     inversion IHHty. 
-  - specialize (IHHty Bi Heqt Heqm1 Heqm2). destruct (H Heqm1).
-    rewrite IHHty in H0. rewrite Heqm1 in H0. rewrite Heqm2 in H0.
+  - specialize (IHHty Bi Heqt Heqm1). destruct (H Heqm1).
+    rewrite IHHty in H0. rewrite Heqm1 in H0.
     apply unique_all_subtyping in H0. apply H0.
 Qed.
 
 Lemma lambda_not_rcd: forall G x S U A T,
   binds x (typ_all S U) G ->
-  ty_trm ty_precise sub_general G (trm_path (p_var (avar_f x)))  (typ_rcd (dec_typ A T T)) ->
+  ty_trm ty_precise G (trm_path (p_var (avar_f x)))  (typ_rcd (dec_typ A T T)) ->
   False.
 Proof.
   introv Bi Hty.
@@ -1605,7 +1738,7 @@ Proof.
 Qed.
 
 Lemma record_new_typing: forall G S ds,
-  ty_trm ty_precise sub_general G (trm_val (val_new S ds)) (typ_bnd S) ->
+  ty_trm ty_precise G (trm_val (val_new S ds)) (typ_bnd S) ->
   record_type S.
 Proof.
   intros.
@@ -1613,7 +1746,7 @@ Proof.
   + pick_fresh x.
     apply open_record_type_rev with (x:=x).
     eauto.
-    eapply record_defs_typing. eapply H4. eauto.
+    eapply record_defs_typing. eapply H3. eauto.
   + assert (exists x, trm_val (val_new S ds) = trm_path (p_var (avar_f x))) as Contra. {
       apply H0; eauto.
     }
@@ -1690,7 +1823,7 @@ Proof.
 Qed.
 
 Lemma record_subtyping: forall G T T',
-  subtyp ty_precise sub_general G T T' ->
+  subtyp ty_precise G T T' ->
   record_type T ->
   record_sub T T'.
 Proof.
@@ -1758,7 +1891,7 @@ Qed.
 Lemma shape_new_typing: forall G x S T,
   binds x (typ_bnd S) G ->
   record_type S ->
-  ty_trm ty_precise sub_general G (trm_path (p_var (avar_f x))) T ->
+  ty_trm ty_precise G (trm_path (p_var (avar_f x))) T ->
   T = typ_bnd S \/ record_sub (open_typ x S) T.
 Proof.
   introv Bi HS Hx. dependent induction Hx.
@@ -1779,11 +1912,11 @@ Proof.
       apply (record_type_sub_closed A). apply open_record_type. assumption.
 Qed.
 
-Lemma path_equivalence: forall G s p T m2,
+Lemma path_equivalence: forall G s p T m1,
   wf_sto G s ->
-  ty_trm ty_precise m2 G (trm_path p) T ->
+  ty_trm m1 G (trm_path p) T ->
   norm G p ->
-  exists x, (eq_path s p x /\ ty_trm ty_precise m2 G (trm_path (p_var (avar_f x))) T).
+  exists x, (eq_path s p x /\ ty_trm m1 G (trm_path (p_var (avar_f x))) T).
 Proof. Admitted.
 
 Lemma unique_eq_path: forall s p x,
@@ -1806,8 +1939,8 @@ Qed.
 Lemma unique_tight_bounds: forall G s p T1 T2 A,
   wf_sto G s ->
   norm G p ->
-  ty_trm ty_precise sub_general G (trm_path p)  (typ_rcd (dec_typ A T1 T1)) ->
-  ty_trm ty_precise sub_general G (trm_path p)  (typ_rcd (dec_typ A T2 T2)) ->
+  ty_trm ty_precise G (trm_path p)  (typ_rcd (dec_typ A T1 T1)) ->
+  ty_trm ty_precise G (trm_path p)  (typ_rcd (dec_typ A T2 T2)) ->
   T1 = T2.
 Proof.
   introv Hwf Hn Hty1 Hty2.
@@ -1841,38 +1974,66 @@ Proof.
 Qed.
 
 Lemma precise_to_general:
-  (forall m1 m2 G t T,
-     ty_trm m1 m2 G t T ->
+  (forall m1 G t T,
+     ty_trm m1 G t T ->
      m1 = ty_precise ->
-     ty_trm ty_general m2 G t T) /\
-  (forall m1 m2 G S U,
-     subtyp m1 m2 G S U ->
+     ty_trm ty_general G t T) /\
+  (forall m1 G S U,
+     subtyp m1 G S U ->
      m1 = ty_precise ->
-     subtyp ty_general m2 G S U).
+     subtyp ty_general G S U).
 Proof.
   apply ts_mutind; intros; subst; eauto.
 Qed.
 
-Lemma tight_to_general:
-  (forall m1 m2 G t T,
-     ty_trm m1 m2 G t T ->
-     m1 = ty_general ->
-     ty_trm ty_general sub_general G t T) /\
-  (forall m1 m2 G S U,
-     subtyp m1 m2 G S U ->
-     m1 = ty_general ->
-     subtyp ty_general sub_general G S U).
+Lemma precise_to_general_t:
+  (forall m1 G t T,
+     ty_trm_t m1 G t T ->
+     m1 = ty_precise ->
+     ty_trm_t ty_general G t T) /\
+  (forall m1 G S U,
+     subtyp_t m1 G S U ->
+     m1 = ty_precise ->
+     subtyp_t ty_general G S U).
 Proof.
-  apply ts_mutind; intros; subst; eauto.
-  - apply precise_to_general in t; auto.
-    eapply subtyp_sel2. eassumption. assumption.
-  - apply precise_to_general in t; auto.
-    eapply subtyp_sel1. eassumption. assumption.
+  apply ts_mutind_t; intros; subst; eauto.
+Qed.
+
+Lemma path_equivalence_typing: forall p x G T s,
+  wf_sto G s ->
+  eq_path s p x ->
+  ty_trm ty_precise G (trm_path (p_var (avar_f x))) T ->
+  ty_trm ty_precise G (trm_path p) T.
+Proof. Admitted.
+
+Lemma equiv_to_norm: forall G s p x,
+  wf_sto G s ->
+  eq_path s p x ->
+  norm G p.
+Proof. Admitted.
+
+Lemma tight_to_general:
+  (forall m1 G t T,
+     ty_trm_t m1 G t T ->
+     m1 = ty_general ->
+     ty_trm ty_general G t T) /\
+  (forall m1 G S U,
+     subtyp_t m1 G S U ->
+     m1 = ty_general ->
+     subtyp ty_general G S U).
+Proof.
+  apply ts_mutind_t; intros; subst; eauto.
+  - eapply subtyp_sel2.
+    lets He: (path_equivalence_typing w e t). apply* precise_to_general.
+    apply* equiv_to_norm.
+  - eapply subtyp_sel1.
+    lets He: (path_equivalence_typing w e t). apply* precise_to_general.
+    apply* equiv_to_norm.
 Qed.
 
 Lemma tight_to_general_subtyping: forall G S U,
-  subtyp ty_general sub_tight G S U ->
-  subtyp ty_general sub_general G S U.
+  subtyp_t ty_general G S U ->
+  subtyp ty_general G S U.
 Proof.
   intros. apply* tight_to_general.
 Qed.
@@ -1915,7 +2076,7 @@ Definition subenv(G1 G2: ctx) :=
   forall x T2, binds x T2 G2 ->
     binds x T2 G1 \/
     exists T1,
-      binds x T1 G1 /\ subtyp ty_general sub_general G1 T1 T2.
+      binds x T1 G1 /\ subtyp ty_general G1 T1 T2.
 
 Lemma subenv_push: forall G G' x T,
   subenv G' G ->
@@ -1935,7 +2096,7 @@ Proof.
 Qed.
 
 Lemma subenv_last: forall G x S U,
-  subtyp ty_general sub_general G S U ->
+  subtyp ty_general G S U ->
   ok (G & x ~ S) ->
   subenv (G & x ~ S) (G & x ~ U).
 Proof.
@@ -1946,13 +2107,13 @@ Proof.
   - destruct Bi. left. eauto.
 Qed.
 
+(* also proven for sub_general *)
 Lemma narrow_rules:
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G',
+  (forall m1 G t T, ty_trm m1 G t T -> forall G',
     m1 = ty_general ->
-    m2 = sub_general ->
     ok G' ->
     subenv G' G ->
-    ty_trm m1 m2 G' t T)
+    ty_trm m1 G' t T)
 /\ (forall G z U d D, ty_def  G z U d D -> forall G',
     ok (G' & z ~ U) ->
     subenv G' G ->
@@ -1965,17 +2126,16 @@ Lemma narrow_rules:
     ok G' ->
     subenv G' G ->
     norm G' p)
-/\ (forall m1 m2 G S U, subtyp m1 m2 G S U -> forall G',
+/\ (forall m1 G S U, subtyp m1 G S U -> forall G',
     m1 = ty_general ->
-    m2 = sub_general ->
     ok G' ->
     subenv G' G ->
-    subtyp m1 m2 G' S U).
+    subtyp m1 G' S U).
 Proof.
   apply rules_mutind; intros; eauto.
   - (* ty_var *)
-    subst. unfold subenv in H2. specialize (H2 x T b).
-    destruct H2.
+    subst. unfold subenv in H1. specialize (H1 x T b).
+    destruct H1.
     + eauto.
     + destruct H as [T' [Bi Hsub]].
       eapply ty_sub; eauto.
@@ -1998,9 +2158,6 @@ Proof.
     econstructor. eassumption.
   - (* norm_path *)
     econstructor; eauto.
-  - (* sub_tight *)
-    inversion H2.
-  - inversion H2.
   - (* subtyp_all *)
     subst.
     apply_fresh subtyp_all as y; eauto.
@@ -2008,17 +2165,17 @@ Proof.
 Qed. 
 
 Lemma narrow_typing: forall G G' t T,
-  ty_trm ty_general sub_general G t T ->
+  ty_trm ty_general G t T ->
   subenv G' G -> ok G' ->
-  ty_trm ty_general sub_general G' t T.
+  ty_trm ty_general G' t T.
 Proof.
   intros. apply* narrow_rules.
 Qed.
 
 Lemma narrow_subtyping: forall G G' S U,
-  subtyp ty_general sub_general G S U ->
+  subtyp ty_general G S U ->
   subenv G' G -> ok G' ->
-  subtyp ty_general sub_general G' S U.
+  subtyp ty_general G' S U.
 Proof.
   intros. apply* narrow_rules.
 Qed.
@@ -2028,7 +2185,7 @@ Qed.
 
 Inductive has_member: ctx -> var -> typ -> typ_label -> typ -> typ -> Prop :=
 | has_any : forall G x T A S U,
-  ty_trm ty_general sub_tight G (trm_path (p_var (avar_f x)))  T ->
+  ty_trm_t ty_general G (trm_path (p_var (avar_f x)))  T ->
   has_member_rules G x T A S U ->
   has_member G x T A S U
 with has_member_rules: ctx -> var -> typ -> typ_label -> typ -> typ -> Prop :=
@@ -2044,7 +2201,7 @@ with has_member_rules: ctx -> var -> typ -> typ_label -> typ -> typ -> Prop :=
   has_member G x (open_typ x T) A S U ->
   has_member_rules G x (typ_bnd T) A S U
 | has_sel : forall G x p B T' A S U,
-  ty_trm ty_precise sub_general G (trm_path p) (typ_rcd (dec_typ B T' T')) ->
+  ty_trm ty_precise G (trm_path p) (typ_rcd (dec_typ B T' T')) ->
   has_member G x T' A S U ->
   has_member_rules G x (typ_path p B) A S U
 | has_bot  : forall G x A S U,
@@ -2063,7 +2220,7 @@ Lemma has_member_rules_inv: forall G x T A S U, has_member_rules G x T A S U ->
   (exists T', T = typ_bnd T' /\
     has_member G x (open_typ x T') A S U) \/
   (exists p B T', T = typ_path p B /\
-    ty_trm ty_precise sub_general G (trm_path p) (typ_rcd (dec_typ B T' T')) /\
+    ty_trm ty_precise G (trm_path p) (typ_rcd (dec_typ B T' T')) /\
     has_member G x T' A S U) \/
   (T = typ_bot).
 Proof.
@@ -2084,7 +2241,7 @@ Lemma has_member_inv: forall G x T A S U, has_member G x T A S U ->
   (exists T', T = typ_bnd T' /\
     has_member G x (open_typ x T') A S U) \/
   (exists p B T', T = typ_path p B /\
-    ty_trm ty_precise sub_general G (trm_path p) (typ_rcd (dec_typ B T' T')) /\
+    ty_trm ty_precise G (trm_path p) (typ_rcd (dec_typ B T' T')) /\
     has_member G x T' A S U) \/
   (T = typ_bot).
 Proof.
@@ -2094,7 +2251,7 @@ Qed.
 Lemma val_new_typing: forall G s x T ds,
   wf_sto G s ->
   binds x (val_new T ds) s ->
-  ty_trm ty_precise sub_general G (trm_val (val_new T ds)) (typ_bnd T).
+  ty_trm ty_precise G (trm_val (val_new T ds)) (typ_bnd T).
 Proof.
   introv Hwf Bis.
   assert (exists T, binds x T G) as Bi. {
@@ -2172,12 +2329,12 @@ Qed.
 
 Lemma has_member_covariance: forall G s T1 T2 x A S2 U2,
   wf_sto G s ->
-  subtyp ty_general sub_tight G T1 T2 ->
-  ty_trm ty_general sub_tight G (trm_path (p_var (avar_f x)))  T1 ->
+  subtyp_t ty_general G T1 T2 ->
+  ty_trm_t ty_general G (trm_path (p_var (avar_f x)))  T1 ->
   has_member G x T2 A S2 U2 ->
   exists S1 U1, has_member G x T1 A S1 U1 /\
-                subtyp ty_general sub_tight G S2 S1 /\
-                subtyp ty_general sub_tight G U1 U2.
+                subtyp_t ty_general G S2 S1 /\
+                subtyp_t ty_general G U1 U2.
 Proof.
   introv Hwf Hsub Hty Hmem.
   generalize dependent U2.
@@ -2188,12 +2345,12 @@ Proof.
   - (* bot *)
     exists S2 U2. split.
     apply has_any. assumption. apply has_bot.
-    split; apply subtyp_refl.
+    split; apply subtyp_refl_t.
   - (* refl *)
     exists S2 U2. eauto.
   - (* trans *)
-    assert (ty_trm ty_general sub_tight G (trm_path (p_var (avar_f x)))  T) as HS. {
-      eapply ty_sub. intros Hp. subst. eexists; eauto.
+    assert (ty_trm_t ty_general G (trm_path (p_var (avar_f x)))  T) as HS. {
+      eapply ty_sub_t. intros Hp. subst. eexists; eauto.
       eapply Hty.
       eassumption.
     }
@@ -2241,16 +2398,15 @@ Proof.
     + destruct Hmem as [T1' [Heq _]]. inversion Heq.
     + destruct Hmem as [q [B [T' [Heq [Htyb Hmem]]]]]. inversions Heq.
       assert (T' = T) as HeqT. {
-        eapply unique_tight_bounds; eassumption.
+        apply* unique_tight_bounds. apply* equiv_to_norm.
+        apply* path_equivalence_typing.
       }
       subst. eauto.
     + inversion Hmem.
   - (* sel1 *)
     exists S2 U2. split.
     eapply has_any. assumption.
-    destruct (path_equivalence Hwf H) as [y [Heq Ht]].
-    assumption.
-    eapply has_sel. eassumption. eassumption.
+    apply* has_sel. apply* path_equivalence_typing.
     eauto.
   - (* all *)
     inversion Hmem; subst. inversion H2; subst.
@@ -2266,8 +2422,8 @@ Lemma has_member_monotonicity: forall G s x T0 ds T A S U,
   binds x (val_new T0 ds) s ->
   has_member G x T A S U ->
   exists T1, has_member G x (typ_bnd T0) A T1 T1 /\
-             subtyp ty_general sub_tight G S T1 /\
-             subtyp ty_general sub_tight G T1 U.
+             subtyp_t ty_general G S T1 /\
+             subtyp_t ty_general G T1 U.
 Proof.
   introv Hwf Bis Hmem. inversion Hmem; subst.
   generalize dependent U. generalize dependent S.
@@ -2279,7 +2435,7 @@ Proof.
     assert (S = U). {
       eapply has_member_tightness. eassumption. eassumption.
       eapply has_any.
-      eapply ty_var. eassumption.
+      eapply ty_var_t. eassumption.
       eassumption.
     }
     subst.
@@ -2290,13 +2446,13 @@ Proof.
     + inversion Hmem.
     + destruct Hmem as [T1' [T2' [Heq _]]]. inversion Heq.
     + destruct Hmem as [T1' [Heq _]]. inversions Heq.
-      apply IHty_trm; eauto.
+      apply IHty_trm_t; eauto.
       inversions H0. assumption.
       inversions H0. inversions H4. assumption.
     + destruct Hmem as [y [B [T' [Heq [Htyb Hmem]]]]]. inversion Heq.
     + inversion Hmem.
   - (* rec_elim *)
-    apply IHty_trm; eauto.
+    apply IHty_trm_t; eauto.
     apply has_any. assumption. apply has_bnd. assumption.
     apply has_bnd. assumption.
   - (* and_intro *)
@@ -2305,18 +2461,18 @@ Proof.
     + inversion Hmem.
     + destruct Hmem as [T1' [T2' [Heq [Hmem | Hmem]]]];
       inversions Heq; inversions H1; inversions H9.
-      apply IHty_trm1; eauto.
-      apply IHty_trm2; eauto. apply has_any; assumption.
-      apply IHty_trm1; eauto. apply has_any; assumption.
-      apply IHty_trm2; eauto.
+      apply IHty_trm_t1; eauto.
+      apply IHty_trm_t2; eauto. apply has_any; assumption.
+      apply IHty_trm_t1; eauto. apply has_any; assumption.
+      apply IHty_trm_t2; eauto.
     + destruct Hmem as [T1' [Heq _]]. inversion Heq.
     + destruct Hmem as [y [B [T' [Heq [Htyb Hmem]]]]]. inversion Heq.
     + inversion Hmem.
   - (* sub *)
     destruct (has_member_covariance Hwf H1 H0 Hmem) as [S' [U' [Hmem' [Hsub1' Hsub2']]]].
     inversion Hmem'; subst.
-    specialize (IHty_trm Hwf Bis S' U' Hmem' H4).
-    destruct IHty_trm as [T1 [Hmem1 [Hsub1 Hsub2]]].
+    specialize (IHty_trm_t Hwf Bis S' U' Hmem' H4).
+    destruct IHty_trm_t as [T1 [Hmem1 [Hsub1 Hsub2]]].
     exists T1. eauto.
 Qed.
 
@@ -2327,11 +2483,11 @@ Lemma has_member_rcd_typ_sub2_mut:
   (forall G x T A S U,
     has_member G x T A S U ->
     record_type T ->
-    T = (typ_rcd (dec_typ A S U)) \/ subtyp ty_precise sub_general G T (typ_rcd (dec_typ A S U)))  /\
+    T = (typ_rcd (dec_typ A S U)) \/ subtyp ty_precise G T (typ_rcd (dec_typ A S U)))  /\
   (forall G x T A S U,
     has_member_rules G x T A S U ->
     record_type T ->
-    T = (typ_rcd (dec_typ A S U)) \/ subtyp ty_precise sub_general G T (typ_rcd (dec_typ A S U))).
+    T = (typ_rcd (dec_typ A S U)) \/ subtyp ty_precise G T (typ_rcd (dec_typ A S U))).
 Proof.
   apply has_mutind; intros.
   - apply H; eauto.
@@ -2371,9 +2527,9 @@ Qed.
 Lemma tight_bound_completeness: forall G s x T ds A S U,
   wf_sto G s ->
   binds x (val_new T ds) s ->
-  ty_trm ty_general sub_tight G (trm_path (p_var (avar_f x)))  (typ_rcd (dec_typ A S U)) ->
-  subtyp ty_general sub_tight G (typ_path (p_var (avar_f x)) A) U /\
-  subtyp ty_general sub_tight G S (typ_path (p_var (avar_f x)) A).
+  ty_trm_t ty_general G (trm_path (p_var (avar_f x)))  (typ_rcd (dec_typ A S U)) ->
+  subtyp_t ty_general G (typ_path (p_var (avar_f x)) A) U /\
+  subtyp_t ty_general G S (typ_path (p_var (avar_f x)) A).
 Proof.
   introv Hwf Bis Hty.
   assert (has_member G x (typ_rcd (dec_typ A S U)) A S U) as Hmem. {
@@ -2396,33 +2552,33 @@ Proof.
   assert (record_type (open_typ x T)) as Htypex. {
     apply open_record_type. assumption.
   }
-  assert (open_typ x T = (typ_rcd (dec_typ A T1 T1)) \/ subtyp ty_precise sub_general G (open_typ x T) (typ_rcd (dec_typ A T1 T1))) as Hsub. {
+  assert (open_typ x T = (typ_rcd (dec_typ A T1 T1)) \/ subtyp ty_precise G (open_typ x T) (typ_rcd (dec_typ A T1 T1))) as Hsub. {
     destruct has_member_rcd_typ_sub2_mut as [HE _].
     eapply HE; eauto.
   }
-  assert (ty_trm ty_precise sub_general G (trm_path (p_var (avar_f x)))  (open_typ x T)) as Htypx. {
+  assert (ty_trm ty_precise G (trm_path (p_var (avar_f x)))  (open_typ x T)) as Htypx. {
     eapply ty_rec_elim.
     eapply ty_var.
     eapply wf_sto_val_new_in_G; eauto.
   }
-  assert (ty_trm ty_precise sub_general G (trm_path (p_var (avar_f x)))  (typ_rcd (dec_typ A T1 T1))) as Htyp. {
+  assert (ty_trm ty_precise G (trm_path (p_var (avar_f x)))  (typ_rcd (dec_typ A T1 T1))) as Htyp. {
     destruct Hsub as [Heq | Hsub].
     - rewrite Heq in Htypx. apply Htypx.
     - eapply ty_sub.
       intro. eexists. reflexivity.
       eapply Htypx. eapply Hsub.
   }
-  destruct (typing_implies_bound Hty) as [V HG]. split.
-  eapply subtyp_trans. eapply subtyp_sel1_tight. eapply Htyp. apply* norm_var. eapply Hsub2.
-  eapply subtyp_trans. eapply Hsub1. eapply subtyp_sel2_tight. eapply Htyp. apply* norm_var.
-  eapply Hwf. eapply Bis.
+  destruct (typing_implies_bound_t Hty) as [V HG]. split.
+  eapply subtyp_trans_t. eapply subtyp_sel1_tight. eapply Htyp. eassumption. constructor.
+  assumption. apply subtyp_trans_t with (T:=T1). assumption. eapply subtyp_sel2_. eassumption.
+  eassumption. constructor. assumption. assumption.
 Qed.
 
 (* ###################################################################### *)
 (** * Misc Inversions *)
 
 Lemma all_intro_inversion: forall G S t U,
-  ty_trm ty_precise sub_general G (trm_val (val_lambda S t)) U ->
+  ty_trm ty_precise G (trm_val (val_lambda S t)) U ->
   exists T, U = typ_all S T.
 Proof.
   intros. dependent induction H.
@@ -2432,7 +2588,7 @@ Proof.
 Qed.
 
 Lemma new_intro_inversion: forall G T ds U,
-  ty_trm ty_precise sub_general G (trm_val (val_new T ds)) U ->
+  ty_trm ty_precise G (trm_val (val_new T ds)) U ->
   U = typ_bnd T /\ record_type T.
 Proof.
   intros. inversion H; subst.
@@ -2465,24 +2621,24 @@ Inductive possible_types: ctx -> var -> val -> typ -> Prop :=
   possible_types G x (val_new T ds) (open_typ x T)
 | pt_rcd_trm : forall G x T ds a t T',
   defs_has (open_defs x ds) (def_trm a t) ->
-  ty_trm ty_general sub_general G t T' ->
+  ty_trm ty_general G t T' ->
   possible_types G x (val_new T ds) (typ_rcd (dec_trm a path_general T'))
 | pt_rcd_path : forall G x T ds a p T',
   defs_has (open_defs x ds) (def_trm a (trm_path p)) ->
-  ty_trm ty_general sub_general G (trm_path p) T' ->
+  ty_trm ty_general G (trm_path p) T' ->
   norm G p ->
   possible_types G x (val_new T ds) (typ_rcd (dec_trm a path_strong T'))
 | pt_rcd_typ : forall G x T ds A T' S U,
   defs_has (open_defs x ds) (def_typ A T') ->
-  subtyp ty_general sub_general G S T' ->
-  subtyp ty_general sub_general G T' U ->
+  subtyp ty_general G S T' ->
+  subtyp ty_general G T' U ->
   possible_types G x (val_new T ds) (typ_rcd (dec_typ A S U))
 | pt_lambda : forall L G x S t T S' T',
   (forall y, y \notin L ->
-   ty_trm ty_general sub_general (G & y ~ S) (open_trm y t) (open_typ y T)) ->
-  subtyp ty_general sub_general G S' S ->
+   ty_trm ty_general (G & y ~ S) (open_trm y t) (open_typ y T)) ->
+  subtyp ty_general G S' S ->
   (forall y, y \notin L ->
-   subtyp ty_general sub_general (G & y ~ S') (open_typ y T) (open_typ y T')) ->
+   subtyp ty_general (G & y ~ S') (open_typ y T) (open_typ y T')) ->
   possible_types G x (val_lambda S t) (typ_all S' T')
 | pt_and : forall G x v S1 S2,
   possible_types G x v S1 ->
@@ -2490,20 +2646,16 @@ Inductive possible_types: ctx -> var -> val -> typ -> Prop :=
   possible_types G x v (typ_and S1 S2)
 | pt_sel : forall G x v p A S,
   possible_types G x v S ->
-  ty_trm ty_precise sub_general G (trm_path p) (typ_rcd (dec_typ A S S)) ->
   possible_types G x v (typ_path p A)
 | pt_bnd : forall G x v S S',
   possible_types G x v S ->
   S = open_typ x S' ->
-  possible_types G x v (typ_bnd S')
-(*| pt_path : forall G x v T a,
-  possible_types G x v (typ_rcd (dec_trm a path_strong T)) ->
-  possible_types G x v (typ_rcd (dec_trm a path_general T))*).
+  possible_types G x v (typ_bnd S').
 
 Lemma var_new_typing: forall G s x T ds,
   wf_sto G s ->
   binds x (val_new T ds) s ->
-  ty_trm ty_general sub_general G (trm_path (p_var (avar_f x)))  (open_typ x T).
+  ty_trm ty_general G (trm_path (p_var (avar_f x)))  (open_typ x T).
 Proof.
   intros.
   apply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
@@ -2549,7 +2701,7 @@ Qed.
 
 Lemma wf_sto_new_typing: forall G s x T ds,
   wf_sto (G & x ~ (typ_bnd T)) (s & x ~ (val_new T ds)) ->
-  ty_trm ty_precise sub_general G (trm_val (val_new T ds)) (typ_bnd T).
+  ty_trm ty_precise G (trm_val (val_new T ds)) (typ_bnd T).
 Proof.
   introv Hwf. inversion Hwf.
   - false* empty_push_inv.
@@ -2589,12 +2741,11 @@ Proof.
 Qed.
 
 Lemma unfold_rec: forall G1 G2 x U,
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T ->
+  (forall m1 G t T, ty_trm m1 G t T ->
     ok G ->
     G = G1 & x ~ open_typ x U & G2 ->
     m1 = ty_general ->
-    m2 = sub_general ->
-    ty_trm m1 m2 (G1 & x ~ typ_bnd U & G2) t T) /\
+    ty_trm m1 (G1 & x ~ typ_bnd U & G2) t T) /\
   (forall G z V d D, ty_def  G z V d D ->
     ok G ->
     G = G1 & x ~ open_typ x U & G2 ->
@@ -2607,12 +2758,11 @@ Lemma unfold_rec: forall G1 G2 x U,
     ok G ->
     G = G1 & x ~ open_typ x U & G2  ->
     norm (G1 & x ~ typ_bnd U & G2) p) /\
-  (forall m1 m2 G T V, subtyp m1 m2 G T V ->
+  (forall m1 G T V, subtyp m1 G T V ->
     ok G ->
     G = G1 & x ~ open_typ x U & G2 ->
     m1 = ty_general ->
-    m2 = sub_general ->
-    subtyp m1 m2 (G1 & x ~ open_typ x U & G2) T V).
+    subtyp m1 (G1 & x ~ open_typ x U & G2) T V).
 Proof.
   intros G1 G2 x U. apply rules_mutind; intros; subst; eauto.
   - destruct (classicT (x0=x)); subst.
@@ -2625,8 +2775,8 @@ Admitted.
 
 Lemma unfold_rec_trm: forall G1 x U G2 t T,
   ok (G1 & x ~ open_typ x U & G2) ->
-  ty_trm ty_general sub_general (G1 & x ~ open_typ x U & G2) t T ->
-  ty_trm ty_general sub_general (G1 & x ~ typ_bnd U & G2) t T.
+  ty_trm ty_general (G1 & x ~ open_typ x U & G2) t T ->
+  ty_trm ty_general (G1 & x ~ typ_bnd U & G2) t T.
 Proof.
   intros. apply* unfold_rec.
 Qed.
@@ -2726,7 +2876,7 @@ Lemma pt_rcd_trm_inversion: forall G s x v a T m,
   exists S ds t,
     v = val_new S ds /\
     defs_has (open_defs x ds) (def_trm a t) /\
-    ty_trm ty_general sub_general G t T.
+    ty_trm ty_general G t T.
 Proof.
   introv Hwf Bis Hp. dependent induction Hp; subst.
   - (* pt_new *)
@@ -2734,14 +2884,14 @@ Proof.
     induction d; simpl in x; try solve [inversion x].
     unfold open_typ in x. simpl in x. inversions x.
     lets Hty: (val_new_typing Hwf Bis). inversion Hty; subst.
-    * pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
-      unfold open_typ in H3. simpl in H3. inversion H3; subst.
+    * pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H2 y FrL).
+      unfold open_typ in H2. simpl in H2. inversion H2; subst.
       destruct ds; simpl in H; try solve [inversion H].
       destruct ds; simpl in H; try solve [inversion H].
       unfold open_defs in H. simpl in H. inversions H.
       destruct d0; simpl in H5; inversion H5; subst.
       + inversion H5; subst.
-        assert (ty_trm ty_general sub_general G (open_trm x0 t1) (open_typ x0 t0)) as A. {
+        assert (ty_trm ty_general G (open_trm x0 t1) (open_typ x0 t0)) as A. {
           rewrite subst_intro_typ with (x:=y). rewrite subst_intro_trm with (x:=y).
           eapply subst_ty_trm. eapply H6.
           apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto. eauto.
@@ -2784,16 +2934,16 @@ Lemma pt_rcd_typ_inversion: forall G s x v A S U,
   exists T ds T',
     v = val_new T ds /\
     defs_has (open_defs x ds) (def_typ A T') /\
-    subtyp ty_general sub_general G S T' /\
-    subtyp ty_general sub_general G T' U.
+    subtyp ty_general G S T' /\
+    subtyp ty_general G T' U.
 Proof.
   introv Hwf Bis Hp. inversion Hp; subst.
   - induction T; simpl in H3; try solve [inversion H3].
     induction d; simpl in H3; try solve [inversion H3].
     unfold open_typ in H3. simpl in H3. inversions H3.
     lets Hty: (val_new_typing Hwf Bis). inversion Hty; subst.
-    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
-    unfold open_typ in H3. simpl in H3. inversion H3; subst.
+    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H2 y FrL).
+    unfold open_typ in H2. simpl in H2. inversion H2; subst.
     destruct ds; simpl in H; try solve [inversion H].
     destruct ds; simpl in H; try solve [inversion H].
     unfold open_defs in H. simpl in H. inversions H.
@@ -2933,7 +3083,7 @@ Lemma possible_types_closure_tight: forall G s x v T0 U0,
   wf_sto G s ->
   binds x v s ->
   possible_types G x v T0 ->
-  subtyp ty_general sub_tight G T0 U0 ->
+  subtyp_t ty_general G T0 U0 ->
   possible_types G x v U0.
 Proof.
   introv Hwf Bis HT0 Hsub. dependent induction Hsub.
@@ -2973,16 +3123,18 @@ Proof.
     eassumption.
     eapply subtyp_trans. eapply tight_to_general_subtyping. eassumption. eassumption.
     eapply subtyp_trans. eassumption. eapply tight_to_general_subtyping. eassumption.
-  - (* <:-Sel-tight *)
-    eapply pt_sel. eassumption. assumption.
-  - (* Sel-<:-tight *)
+  - (* <:-Sel *)
+    eapply pt_sel. eassumption.
+  - (* Sel-<: *)
     inversion HT0; subst.
     assert (record_type (open_typ x T0)) as B. {
-      eapply record_type_new; eassumption.
+      eapply record_type_new. eapply Hwf. eassumption.
     }
-    rewrite H5 in B. destruct B as [? B]. inversion B.
+    rewrite H6 in B. destruct B as [? B]. inversion B.
     assert (T = S) as B. {
-      eapply unique_tight_bounds; eauto.
+      apply* unique_tight_bounds. destruct (typing_implies_bound H) as [T0 Hb].
+      apply norm_var with (T:=T0). assumption.
+      admit.
     }
     subst. assumption.
   - (* All-<:-All *)
@@ -2993,13 +3145,13 @@ Proof.
     rewrite H5 in B. destruct B as [? B]. inversion B.
     apply_fresh pt_lambda as y.
     eapply H3; eauto.
-    eapply subtyp_trans. eapply tight_to_general_subtyping. eassumption. eassumption.
+    eapply subtyp_trans. eapply tight_to_general_subtyping. auto. eauto.
     eapply subtyp_trans.
     eapply narrow_subtyping. eapply H8; eauto.
-    eapply subenv_last. eapply tight_to_general_subtyping. eapply Hsub.
+    eapply subenv_last. assumption.
     eapply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
     eapply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
-    eapply H; eauto.
+    auto.
   - apply pt_rcd_trm_inversion with (s:=s) in HT0; auto.
     destruct HT0 as [S [ds [t [Hv [Hd Ht]]]]]. subst.
     apply pt_rcd_trm with (t:=t); auto.
@@ -3014,7 +3166,7 @@ If `G ~ s` and `x = v in s` and  `G |-! v: T` then `T in Ts(G, x, v)`.
 Lemma possible_types_completeness_for_values: forall G s x v T,
   wf_sto G s ->
   binds x v s ->
-  ty_trm ty_precise sub_general G (trm_val v) T ->
+  ty_trm ty_precise G (trm_val v) T ->
   possible_types G x v T.
 Proof.
   introv Hwf Bis Hty. destruct v as [S ds | S t].
@@ -3023,7 +3175,7 @@ Proof.
   - remember Hty as Hty'. clear HeqHty'. inversion Hty'; subst.
     + apply all_intro_inversion in Hty. destruct Hty as [T' Heq]. subst.
       apply_fresh pt_lambda as y.
-      eapply H5; eauto.
+      eapply H4; eauto.
       apply subtyp_refl.
       apply subtyp_refl.
     + assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
@@ -3043,11 +3195,11 @@ If `G ~ s` and `G |- x: T` then, for some value `v`,
 
 Lemma possible_types_completeness_tight: forall G s x T,
   wf_sto G s ->
-  ty_trm ty_general sub_tight G (trm_path (p_var (avar_f x)))  T ->
+  ty_trm_t ty_general G (trm_path (p_var (avar_f x)))  T ->
   exists v, binds x v s /\ possible_types G x v T.
 Proof.
   introv Hwf H. dependent induction H.
-  - assert (exists v, binds x v s /\ ty_trm ty_precise sub_general G (trm_val v) T) as A. {
+  - assert (exists v, binds x v s /\ ty_trm ty_precise G (trm_val v) T) as A. {
       destruct (ctx_binds_to_sto_binds_raw Hwf H) as [G1 [? [v [? [Bi Hty]]]]].
       exists v. split. apply Bi. subst. rewrite <- concat_assoc.
       eapply weaken_ty_trm. assumption. rewrite concat_assoc.
@@ -3055,25 +3207,25 @@ Proof.
     }
     destruct A as [v [Bis Hty]].
     exists v. split. apply Bis. eapply possible_types_completeness_for_values; eauto.
-  - specialize (IHty_trm Hwf).
-    destruct IHty_trm as [v [Bis Hp]].
+  - specialize (IHty_trm_t Hwf).
+    destruct IHty_trm_t as [v [Bis Hp]].
     exists v. split. assumption. eapply pt_bnd. eapply Hp. reflexivity.
-  - specialize (IHty_trm Hwf).
-    destruct IHty_trm as [v [Bis Hp]].
+  - specialize (IHty_trm_t Hwf).
+    destruct IHty_trm_t as [v [Bis Hp]].
     exists v. split. assumption. inversion Hp; subst.
     + lets Htype: (record_type_new Hwf Bis). rewrite H4 in Htype. inversion Htype. inversion H0.
     + assumption.
-  - specialize (IHty_trm1 Hwf). destruct IHty_trm1 as [v [Bis1 Hp1]].
-    specialize (IHty_trm2 Hwf). destruct IHty_trm2 as [v' [Bis2 Hp2]].
+  - specialize (IHty_trm_t1 Hwf). destruct IHty_trm_t1 as [v [Bis1 Hp1]].
+    specialize (IHty_trm_t2 Hwf). destruct IHty_trm_t2 as [v' [Bis2 Hp2]].
     unfold binds in Bis1. unfold binds in Bis2. rewrite Bis2 in Bis1. inversions Bis1.
     exists v. split. eauto. apply pt_and; assumption.
-  - specialize (IHty_trm Hwf). destruct IHty_trm as [v [Bis Hp]].
+  - specialize (IHty_trm_t Hwf). destruct IHty_trm_t as [v [Bis Hp]].
     exists v. split. apply Bis. eapply possible_types_closure_tight; eauto.
 Qed.
 
 Lemma tight_ty_rcd_typ__new: forall G s x A S U,
   wf_sto G s ->
-  ty_trm ty_general sub_tight G (trm_path (p_var (avar_f x)))  (typ_rcd (dec_typ A S U)) ->
+  ty_trm_t ty_general G (trm_path (p_var (avar_f x)))  (typ_rcd (dec_typ A S U)) ->
   exists T ds, binds x (val_new T ds) s.
 Proof.
   introv Hwf Hty.
@@ -3083,34 +3235,20 @@ Qed.
 
 Lemma general_to_tight: forall G0 s0,
   wf_sto G0 s0 ->
-  (forall m1 m2 G t T,
-     ty_trm m1 m2 G t T ->
+  (forall m1 G t T,
+     ty_trm m1 G t T ->
      G = G0 ->
      m1 = ty_general ->
-     m2 = sub_general ->
-     ty_trm ty_general sub_tight G t T) /\
-  (forall m1 m2 G S U,
-     subtyp m1 m2 G S U ->
+     ty_trm_t ty_general G t T) /\
+  (forall m1 G S U,
+     subtyp m1 G S U ->
      G = G0 ->
      m1 = ty_general ->
-     m2 = sub_general ->
-     subtyp ty_general sub_tight G S U).
+     subtyp_t ty_general G S U).
 Proof.
   intros G0 s0 Hwf.
-  apply ts_mutind; intros; subst; eauto.
-  - assert (forall A, exists x, 
-            subtyp ty_general sub_tight G0 (typ_path (p_var (avar_f x)) A) (typ_path p A) /\
-            subtyp ty_general sub_tight G0 (typ_path p A) (typ_path (p_var (avar_f x)) A)).
-    admit. Admitted. (*
-  assert (exists S ds, binds x (val_new S ds) s0) as Bis. admit. (* {
-      eapply tight_ty_rcd_typ__new. eassumption.
-      apply precise_to_general in Hty; eauto.
-    }*)
-
-  assert (ty_trm ty_general sub_tight G0 (trm_path p) (typ_rcd (dec_typ A S T))) 
-      as Hs by (apply* H); clear H.
-Admitted. (*
-    assert (exists S ds, binds x (val_new S ds) s0) as Bis. {
+  apply ts_mutind; intros; subst; eauto. Admitted. (*
+  - assert (exists S ds, binds x (val_new S ds) s0) as Bis. {
       eapply tight_ty_rcd_typ__new. eassumption.
       apply precise_to_general in Hty; eauto.
     }
@@ -3123,11 +3261,11 @@ Admitted. (*
     destruct Bis as [? [? Bis]].
     eapply proj1. eapply tight_bound_completeness; eauto.
 Qed.*)
-*)
+
 Lemma general_to_tight_subtyping: forall G s S U,
    wf_sto G s ->
-  subtyp ty_general sub_general G S U ->
-  subtyp ty_general sub_tight G S U.
+  subtyp ty_general G S U ->
+  subtyp_t ty_general G S U.
 Proof.
   intros. apply* general_to_tight.
 Qed.
@@ -3136,7 +3274,7 @@ Lemma possible_types_closure: forall G s x v S T,
   wf_sto G s ->
   binds x v s ->
   possible_types G x v S ->
-  subtyp ty_general sub_general G S T ->
+  subtyp ty_general G S T ->
   possible_types G x v T.
 Proof.
   intros. eapply possible_types_closure_tight; eauto.
@@ -3145,11 +3283,11 @@ Qed.
 
 Lemma possible_types_completeness: forall G s x T,
   wf_sto G s ->
-  ty_trm ty_general sub_general G (trm_path (p_var (avar_f x)))  T ->
+  ty_trm ty_general G (trm_path (p_var (avar_f x)))  T ->
   exists v, binds x v s /\ possible_types G x v T.
 Proof.
   introv Hwf H. dependent induction H.
-  - assert (exists v, binds x v s /\ ty_trm ty_precise sub_general G (trm_val v) T) as A. {
+  - assert (exists v, binds x v s /\ ty_trm ty_precise G (trm_val v) T) as A. {
       destruct (ctx_binds_to_sto_binds_raw Hwf H) as [G1 [? [v [? [Bi Hty]]]]].
       exists v. split. apply Bi. subst. rewrite <- concat_assoc.
       eapply weaken_ty_trm. assumption. rewrite concat_assoc.
@@ -3176,7 +3314,7 @@ Qed.
 Lemma possible_types_lemma: forall G s x v T,
   wf_sto G s ->
   binds x v s ->
-  ty_trm ty_general sub_general G (trm_path (p_var (avar_f x)))  T ->
+  ty_trm ty_general G (trm_path (p_var (avar_f x)))  T ->
   possible_types G x v T.
 Proof.
   introv Hwf Bis Hty.
@@ -3192,9 +3330,9 @@ If G ~ s and G |- x: all(x: T)U then s(x) = lambda(x: T')t where G |- T <: T' an
  *)
 Lemma canonical_forms_1: forall G s x T U,
   wf_sto G s ->
-  ty_trm ty_general sub_general G (trm_path (p_var (avar_f x)))  (typ_all T U) ->
-  (exists L T' t, binds x (val_lambda T' t) s /\ subtyp ty_general sub_general G T T' /\
-  (forall y, y \notin L -> ty_trm ty_general sub_general (G & y ~ T) (open_trm y t) (open_typ y U))).
+  ty_trm ty_general G (trm_path (p_var (avar_f x)))  (typ_all T U) ->
+  (exists L T' t, binds x (val_lambda T' t) s /\ subtyp ty_general G T T' /\
+  (forall y, y \notin L -> ty_trm ty_general (G & y ~ T) (open_trm y t) (open_typ y U))).
 Proof.
   introv Hwf Hty.
   lets Bi: (typing_implies_bound Hty). destruct Bi as [S Bi].
@@ -3243,9 +3381,9 @@ Qed.
 (** * Misc *)
 
 Lemma val_typing: forall G v T,
-  ty_trm ty_general sub_general G (trm_val v) T ->
-  exists T', ty_trm ty_precise sub_general G (trm_val v) T' /\
-             subtyp ty_general sub_general G T' T.
+  ty_trm ty_general G (trm_val v) T ->
+  exists T', ty_trm ty_precise G (trm_val v) T' /\
+             subtyp ty_general G T' T.
 Proof.
   intros. dependent induction H.
   - exists (typ_all T U). split.
@@ -3257,7 +3395,7 @@ Proof.
 Qed.
 
 Lemma var_typing_implies_avar_f: forall G a T,
-  ty_trm ty_general sub_general G (trm_path (p_var a)) T ->
+  ty_trm ty_general G (trm_path (p_var a)) T ->
   exists x, a = avar_f x.
 Proof.
   intros. dependent induction H; try solve [eexists; reflexivity].
@@ -3284,8 +3422,8 @@ The proof is by a induction on typing derivations of G |- t: T.
 
 Lemma safety: forall G s t T,
   wf_sto G s ->
-  ty_trm ty_general sub_general G t T ->
-  (normal_form t \/ (exists s' t' G' G'', red t s t' s' /\ G' = G & G'' /\ ty_trm ty_general sub_general G' t' T /\ wf_sto G' s')).
+  ty_trm ty_general G t T ->
+  (normal_form t \/ (exists s' t' G' G'', red t s t' s' /\ G' = G & G'' /\ ty_trm ty_general G' t' T /\ wf_sto G' s')).
 Proof.
   introv Hwf H. dependent induction H; try solve [left; eauto].
   - (* All-E *) right.
