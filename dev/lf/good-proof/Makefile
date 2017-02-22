@@ -36,13 +36,11 @@ $(LIBLN):
 
 .PHONY:clean
 
+COMPILEFILES=$(DEFS) $(PROOFS) $(FILES)
+CLEANFILES=$(COMPILEFILES:.v=.vo) $(COMPILEFILES:%.v=.%.vo.aux) $(COMPILEFILES:.v=.glob)
+
 clean::
-	rm -f $(DEFSOBJECTS)
-	rm -f $(DEFS:.v=.glob)
-	rm -f $(PROOFOBJECTS)
-	rm -f $(PROOFS:.v=.glob)
-	rm -f $(OBJECTS)
-	rm -f $(FILES:.v=.glob)
+	rm -f $(CLEANFILES)
 
 # Extra deps
 $(PROOFOBJECTS): Dot_definitions.vo
