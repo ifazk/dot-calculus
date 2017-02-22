@@ -1308,7 +1308,6 @@ Proof.
 Qed.  
 
 Lemma map_other_keys: forall x y z (G:ctx),
-  x <> z ->
   z <> y ->
   z # G ->
   z # map_keys (rename_var x y) G.
@@ -1354,8 +1353,7 @@ Proof.
     assert (x0 <> y) as Hx0y. {
       simpl_dom. repeat rewrite notin_union in H1.  destruct H1 as [[_ Hy] _]. auto.
     }
-    assert (x <> x0) as Hxx0 by auto.
-    lets Ho: (map_other_keys Hxx0 Hx0y Hr). unfold rename_var. case_if. apply binds_middle_eq. auto.
+    lets Ho: (map_other_keys Hx0y Hr (x:=x)). unfold rename_var. case_if. apply binds_middle_eq. auto.
   - (* ty_all_intro *)
     apply_fresh ty_all_intro as z. assert (z \notin L) as Lz by auto.
     specialize (H z Lz). rewrite subst_open_commute_trm in H. rewrite subst_open_commute_typ in H.
@@ -1378,7 +1376,7 @@ Proof.
   introv Hds Hok Hy Hz.
   assert (HG: G = subst_ctx z y G) by (rewrite (subst_fresh_ctx y G Hz); reflexivity).
   destruct (ok_push_inv Hok) as [_ Hn].
-  assert (HG': G = (map_keys (fun k : var => If k = z then y else k) G)) by admit.
+  assert (HG': G = (map_keys (rename_var z y) G)) by admit.
   assert (Hrg: G = rename_ctx z y G). {
     unfold rename_ctx. rewrite <- HG'. assumption.
   }    
