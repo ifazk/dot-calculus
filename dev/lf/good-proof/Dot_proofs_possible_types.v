@@ -251,13 +251,13 @@ Proof.
       eapply open_eq_typ; eauto.
       apply notin_union_r1 in Fr. apply notin_union_r1 in Fr.
       apply notin_union_r2 in Fr.
-      unfold fv_defs in Fr. eauto. eauto.
+      unfold fv_defs in Fr. eauto.
     }
     assert (t2 = t1). {
       eapply open_eq_typ; eauto.
       apply notin_union_r1 in Fr. apply notin_union_r1 in Fr.
       apply notin_union_r2 in Fr.
-      unfold fv_defs in Fr. eauto. eauto.
+      unfold fv_defs in Fr. eauto.
     }
     subst. subst. clear H5. clear H8.
     repeat eexists.
@@ -391,8 +391,8 @@ Proof.
     destruct Htype as [ls Htyp]. rewrite H3 in Htyp. inversion Htyp.
   - (* Refl-<: *) assumption.
   - (* Trans-<: *)
-    apply IHHsub2; try assumption.
-    apply IHHsub1; assumption.
+    apply IHHsub2; try assumption; try reflexivity.
+    apply IHHsub1; try assumption; try reflexivity.
   - (* And-<: *)
     apply pt_and_inversion with (s:=s) in HT0; eauto.
     destruct HT0 as [HT HU].
@@ -402,7 +402,7 @@ Proof.
     destruct HT0 as [HT HU].
     assumption.
   - (* <:-And *)
-    apply pt_and. apply IHHsub1; assumption. apply IHHsub2; assumption.
+    apply pt_and. apply IHHsub1; try reflexivity; assumption. apply IHHsub2; try reflexivity; assumption.
   - (* Fld-<:-Fld *)
     apply pt_rcd_trm_inversion with (s:=s) in HT0; eauto.
     destruct HT0 as [S [ds [t [Heq [Hhas Hty]]]]].
@@ -500,19 +500,19 @@ Proof.
     }
     destruct A as [v [Bis Hty]].
     exists v. split. apply Bis. eapply possible_types_completeness_for_values; eauto.
-  - specialize (IHty_trm Hwf).
-    destruct IHty_trm as [v [Bis Hp]].
+  - specialize (IHty_trm x Hwf).
+    destruct IHty_trm as [v [Bis Hp]]; try reflexivity.
     exists v. split. assumption. eapply pt_bnd. eapply Hp. reflexivity.
-  - specialize (IHty_trm Hwf).
-    destruct IHty_trm as [v [Bis Hp]].
+  - specialize (IHty_trm x Hwf).
+    destruct IHty_trm as [v [Bis Hp]]; try reflexivity.
     exists v. split. assumption. inversion Hp; subst.
     + lets Htype: (record_type_new Hwf Bis). rewrite H4 in Htype. inversion Htype. inversion H0.
     + assumption.
-  - specialize (IHty_trm1 Hwf). destruct IHty_trm1 as [v [Bis1 Hp1]].
-    specialize (IHty_trm2 Hwf). destruct IHty_trm2 as [v' [Bis2 Hp2]].
+  - specialize (IHty_trm1 x Hwf). destruct IHty_trm1 as [v [Bis1 Hp1]]; try reflexivity.
+    specialize (IHty_trm2 x Hwf). destruct IHty_trm2 as [v' [Bis2 Hp2]]; try reflexivity.
     unfold binds in Bis1. unfold binds in Bis2. rewrite Bis2 in Bis1. inversions Bis1.
     exists v. split. eauto. apply pt_and; assumption.
-  - specialize (IHty_trm Hwf). destruct IHty_trm as [v [Bis Hp]].
+  - specialize (IHty_trm x Hwf). destruct IHty_trm as [v [Bis Hp]]; try reflexivity.
     exists v. split. apply Bis. eapply possible_types_closure_tight; eauto.
 Qed.
 
@@ -589,19 +589,19 @@ Proof.
     }
     destruct A as [v [Bis Hty]].
     exists v. split. apply Bis. eapply possible_types_completeness_for_values; eauto.
-  - specialize (IHty_trm Hwf).
-    destruct IHty_trm as [v [Bis Hp]].
+  - specialize (IHty_trm x Hwf).
+    destruct IHty_trm as [v [Bis Hp]]; try reflexivity.
     exists v. split. assumption. eapply pt_bnd. eapply Hp. reflexivity.
-  - specialize (IHty_trm Hwf).
-    destruct IHty_trm as [v [Bis Hp]].
+  - specialize (IHty_trm x Hwf).
+    destruct IHty_trm as [v [Bis Hp]]; try reflexivity.
     exists v. split. assumption. inversion Hp; subst.
     + lets Htype: (record_type_new Hwf Bis). rewrite H4 in Htype. inversion Htype. inversion H0.
     + assumption.
-  - specialize (IHty_trm1 Hwf). destruct IHty_trm1 as [v [Bis1 Hp1]].
-    specialize (IHty_trm2 Hwf). destruct IHty_trm2 as [v' [Bis2 Hp2]].
+  - specialize (IHty_trm1 x Hwf). destruct IHty_trm1 as [v [Bis1 Hp1]]; try reflexivity.
+    specialize (IHty_trm2 x Hwf). destruct IHty_trm2 as [v' [Bis2 Hp2]]; try reflexivity.
     unfold binds in Bis1. unfold binds in Bis2. rewrite Bis2 in Bis1. inversions Bis1.
     exists v. split. eauto. apply pt_and; assumption.
-  - specialize (IHty_trm Hwf). destruct IHty_trm as [v [Bis Hp]].
+  - specialize (IHty_trm x Hwf). destruct IHty_trm as [v [Bis Hp]]; try reflexivity.
     exists v. split. apply Bis. eapply possible_types_closure; eauto.
 Qed.
 

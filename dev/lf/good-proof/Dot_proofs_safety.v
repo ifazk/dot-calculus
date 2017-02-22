@@ -98,7 +98,7 @@ Proof.
       apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
       apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
       apply wf_sto_push. assumption. eauto. eauto. assumption.
-    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
+    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; try reflexivity. inversion IH.
       destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
       exists s' (trm_let t' u) G' G''.
       split. apply red_let_tgt. assumption.
@@ -108,7 +108,7 @@ Proof.
       rewrite <- IH2. apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
       rewrite IH2.
       rewrite <- IH2. eauto.
-    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
+    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; try reflexivity. inversion IH.
       destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
       exists s' (trm_let t' u) G' G''.
       split. apply red_let_tgt. assumption.
@@ -118,7 +118,7 @@ Proof.
       rewrite <- IH2. apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
       rewrite IH2.
       rewrite <- IH2. eauto.
-    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
+    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; try reflexivity. inversion IH.
       destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
       exists s' (trm_let t' u) G' G''.
       split. apply red_let_tgt. assumption.
@@ -128,7 +128,7 @@ Proof.
       rewrite <- IH2. apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
       rewrite IH2.
       rewrite <- IH2. eauto.
-  - specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH].
+  - specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; try reflexivity.
     + left. assumption.
     + right. destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
       exists s' t' G' G''.

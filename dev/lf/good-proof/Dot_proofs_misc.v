@@ -12,7 +12,7 @@ Lemma var_typing_implies_avar_f: forall G a T,
   exists x, a = avar_f x.
 Proof.
   intros. dependent induction H; try solve [eexists; reflexivity].
-  apply IHty_trm.
+  apply IHty_trm; reflexivity.
 Qed.
 
 Lemma val_typing: forall G v T,
@@ -25,6 +25,6 @@ Proof.
     apply ty_all_intro with (L:=L); eauto. apply subtyp_refl.
   - exists (typ_bnd T). split.
     apply ty_new_intro with (L:=L); eauto. apply subtyp_refl.
-  - destruct IHty_trm as [T' [Hty Hsub]].
+  - destruct (IHty_trm v) as [T' [Hty Hsub]]; try reflexivity.
     exists T'. split; eauto.
 Qed.
