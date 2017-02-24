@@ -2768,8 +2768,26 @@ Proof.
       apply binds_middle_eq. apply (ok_middle_inv_r H). assumption.
     * constructor. apply binds_remove in b. apply* binds_weaken. apply* ok_middle_change.
       auto.
-  -
-Admitted.
+  - (* ty_all_intro *) (* H not usable? *)
+    apply_fresh ty_all_intro as z. 
+    apply (proj51 weaken_rules) with (G:=(G1 & x ~ typ_bnd U & G2)).
+    + apply* H. admit.
+    + admit.
+    + admit.
+  - (* ty_let *) (* H0 not usable *)
+    apply_fresh ty_let as z; auto. apply H in H1; auto. admit.
+  - (* ty_sub *)
+    apply H in H1; auto. 
+    apply ty_sub with (T:=T); auto. admit.
+  - (* ty_def_trm *) (* H not usable *)
+    constructor. admit.
+  - destruct (classicT (x0=x)); subst.
+    + apply norm_var with (T:=(typ_bnd U)). apply binds_middle_eq.
+      apply (ok_middle_inv_r H). 
+    + apply norm_var with (T:=T). apply binds_remove in b. apply* binds_weaken.
+      apply* ok_middle_change. auto.
+  - apply norm_path with (T:=T). apply* H. apply* H0.
+Qed.
 
 Lemma unfold_rec_trm: forall G1 x U G2 t T,
   ok (G1 & x ~ open_typ x U & G2) ->
