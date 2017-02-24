@@ -718,7 +718,7 @@ Lemma typing_implies_bound: forall m1 G x T,
   ty_trm m1 G (trm_path (p_var (avar_f x)))  T ->
   exists S, binds x S G.
 Proof.
-  intros. remember (trm_path (p_var (avar_f x)))  as t.
+  intros. remember (trm_path (p_var (avar_f x))) as t.
   induction H;
     try solve [inversion Heqt];
     try solve [inversion Heqt; eapply IHty_trm; eauto];
@@ -2759,42 +2759,41 @@ Proof.
     specialize (H Heqm1). destruct H as [? Contra]. inversion Contra.
 Qed.
 
-Lemma unfold_rec: forall G1 G2 x U,
-  (forall m1 G t T, ty_trm m1 G t T ->
+Lemma unfold_rec: 
+  (forall m1 G t T, ty_trm m1 G t T -> forall G1 G2 x U,
     ok G ->
     G = G1 & x ~ open_typ x U & G2 ->
     m1 = ty_general ->
     ty_trm m1 (G1 & x ~ typ_bnd U & G2) t T) /\
-  (forall G z V d D, ty_def  G z V d D ->
+  (forall G z V d D, ty_def  G z V d D -> forall G1 G2 x U,
     ok G ->
     G = G1 & x ~ open_typ x U & G2 ->
     ty_def  (G1 & x ~ typ_bnd U & G2) z V d D) /\
-  (forall G z V ds T, ty_defs G z V ds T ->
+  (forall G z V ds T, ty_defs G z V ds T -> forall G1 G2 x U,
     ok G ->
     G = G1 & x ~ open_typ x U & G2 ->
     ty_defs (G1 & x ~ typ_bnd U & G2) z V ds T) /\
-  (forall G p, norm G p ->
+  (forall G p, norm G p -> forall G1 G2 x U,
     ok G ->
     G = G1 & x ~ open_typ x U & G2  ->
     norm (G1 & x ~ typ_bnd U & G2) p) /\
-  (forall m1 G T V, subtyp m1 G T V ->
+  (forall m1 G T V, subtyp m1 G T V -> forall G1 G2 x U,
     ok G ->
     G = G1 & x ~ open_typ x U & G2 ->
     m1 = ty_general ->
     subtyp m1 (G1 & x ~ open_typ x U & G2) T V).
 Proof.
-  intros G1 G2 x U. apply rules_mutind; intros; subst; eauto.
+  apply rules_mutind; intros; subst; eauto.
   - destruct (classicT (x0=x)); subst.
     * apply binds_middle_eq_inv in b. subst. apply ty_rec_elim. constructor.
       apply binds_middle_eq. apply (ok_middle_inv_r H). assumption.
     * constructor. apply binds_remove in b. apply* binds_weaken. apply* ok_middle_change.
       auto.
   - (* ty_all_intro *) (* H not usable? *)
-    apply_fresh ty_all_intro as z. 
-    apply (proj51 weaken_rules) with (G:=(G1 & x ~ typ_bnd U & G2)).
-    + apply* H. admit.
-    + admit.
-    + admit.
+    apply_fresh ty_all_intro as z.
+    assert (z \notin L) as Lz by auto.
+    specialize (H z Lz G1 (G2 & z ~ T) x U0). repeat rewrite concat_assoc in H.
+    apply* H.
   - (* ty_let *) (* H0 not usable *)
     apply_fresh ty_let as z; auto. apply H in H1; auto. admit.
   - (* ty_sub *)
