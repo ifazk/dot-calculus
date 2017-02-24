@@ -2765,23 +2765,23 @@ Lemma unfold_rec:
     G = G1 & x ~ open_typ x U & G2 ->
     m1 = ty_general ->
     ty_trm m1 (G1 & x ~ typ_bnd U & G2) t T) /\
-  (forall G z V d D, ty_def  G z V d D -> forall G1 G2 x U,
-    ok G ->
+  (forall G z V d D, ty_def G z V d D -> forall G1 G2 x U,
+    ok (G & z ~ V) ->
     G = G1 & x ~ open_typ x U & G2 ->
-    ty_def  (G1 & x ~ typ_bnd U & G2) z V d D) /\
+    ty_def (G1 & x ~ typ_bnd U & G2) z V d D) /\
   (forall G z V ds T, ty_defs G z V ds T -> forall G1 G2 x U,
-    ok G ->
+    ok (G & z ~ V) ->
     G = G1 & x ~ open_typ x U & G2 ->
     ty_defs (G1 & x ~ typ_bnd U & G2) z V ds T) /\
   (forall G p, norm G p -> forall G1 G2 x U,
     ok G ->
-    G = G1 & x ~ open_typ x U & G2  ->
+    G = G1 & x ~ open_typ x U & G2 ->
     norm (G1 & x ~ typ_bnd U & G2) p) /\
   (forall m1 G T V, subtyp m1 G T V -> forall G1 G2 x U,
     ok G ->
     G = G1 & x ~ open_typ x U & G2 ->
     m1 = ty_general ->
-    subtyp m1 (G1 & x ~ open_typ x U & G2) T V).
+    subtyp m1 (G1 & x ~ typ_bnd U & G2) T V).
 Proof.
   apply rules_mutind; intros; subst; eauto.
   - destruct (classicT (x0=x)); subst.
@@ -2789,24 +2789,28 @@ Proof.
       apply binds_middle_eq. apply (ok_middle_inv_r H). assumption.
     * constructor. apply binds_remove in b. apply* binds_weaken. apply* ok_middle_change.
       auto.
-  - (* ty_all_intro *) (* H not usable? *)
-    apply_fresh ty_all_intro as z.
-    assert (z \notin L) as Lz by auto.
+  - (* ty_all_intro *)
+    apply_fresh ty_all_intro as z. assert (z \notin L) as Lz by auto.
     specialize (H z Lz G1 (G2 & z ~ T) x U0). repeat rewrite concat_assoc in H.
     apply* H.
-  - (* ty_let *) (* H0 not usable *)
-    apply_fresh ty_let as z; auto. apply H in H1; auto. admit.
-  - (* ty_sub *)
-    apply H in H1; auto. 
-    apply ty_sub with (T:=T); auto. admit.
-  - (* ty_def_trm *) (* H not usable *)
-    constructor. admit.
+  - (* ty_new_intro *)
+    apply_fresh ty_new_intro as z. assert (z \notin L) as Lz by auto.
+    apply* H.
+  - (* ty_let *)
+    apply_fresh ty_let as z; auto. assert (z \notin L) as Lz by auto.
+    specialize (H0 z Lz G1 (G2 & z ~ T) x U0). repeat rewrite concat_assoc in H0. apply* H0.
+  - (* ty_def_trm *)
+    constructor. specialize (H G1 (G2 & x ~ U) x0 U0). repeat rewrite concat_assoc in H. 
+    apply* H. 
   - destruct (classicT (x0=x)); subst.
     + apply norm_var with (T:=(typ_bnd U)). apply binds_middle_eq.
       apply (ok_middle_inv_r H). 
     + apply norm_var with (T:=T). apply binds_remove in b. apply* binds_weaken.
       apply* ok_middle_change. auto.
   - apply norm_path with (T:=T). apply* H. apply* H0.
+  - apply_fresh subtyp_all as z; auto. assert (z \notin L) as Lz by auto. 
+    specialize (H0 z Lz G1 (G2 & z ~ S2) x U). repeat rewrite concat_assoc in H0.
+    apply* H0.
 Qed.
 
 Lemma unfold_rec_trm: forall G1 x U G2 t T,
