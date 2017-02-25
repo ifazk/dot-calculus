@@ -3297,35 +3297,18 @@ Proof.
     }
     destruct Bis as [U [ds Bis]].
     destruct (tight_bound_completeness Hwf Bis Ht) as [T1 [Htyp [Hs1 Hs2]]].
-    apply subtyp_sel2_t with (x:=x) (s:=s); auto.
-    assert (open_typ x U = (typ_rcd (dec_typ A T1 T1)) \/ subtyp ty_precise G (open_typ x U) (typ_rcd (dec_typ A T1 T1)))
-      as Ho by admit.
-    
-
-
+    lets Hs: (subtyp_sel2_t Htyp Hwf Heq).
+    apply subtyp_trans_t with (T:=T1); auto.
+  - assert (G = G) as Hobv by reflexivity. specialize (H Hobv H1).
+    destruct (path_equivalence_t Hwf H n) as [x [Heq Ht]].
     assert (exists S ds, binds x (val_new S ds) s) as Bis. {
       eapply tight_ty_rcd_typ__new. eassumption. eapply Ht.
     }
-    assert (exists V, typ_rcd (dec_typ A S S) = open_typ x (typ_rcd (dec_typ A V V))). admit.
-    destruct H0 as [V HV].
-    rewrite HV.
-    apply ty_rec_elim.
-    assert (S = open_typ x V) as HSV by admit. subst.
     destruct Bis as [U [ds Bis]].
-    assert (subtyp_t ty_general G (open_typ x V) (typ_path (p_var (avar_f x)) A)) as Hs
-      by (apply* tight_bound_completeness). Admitted. (*
-    lets Hv: (val_new_typing Hwf Bis).
-    
-
-
-    eapply proj2 . eapply tight_bound_completeness; eauto.
-    * inversion Hs; subst.
-  - assert (exists S ds, binds x (val_new S ds) s0) as Bis. {
-      eapply tight_ty_rcd_typ__new; eauto.
-    }
-    destruct Bis as [? [? Bis]].
-    eapply proj1. eapply tight_bound_completeness; eauto.
-Qed.*)
+    destruct (tight_bound_completeness Hwf Bis Ht) as [T1 [Htyp [Hs1 Hs2]]].
+    lets Hs: (subtyp_sel1_t Htyp Hwf Heq).
+    apply subtyp_trans_t with (T:=T1); auto.
+Qed.
 
 Lemma general_to_tight_subtyping: forall G s S U,
    wf_sto G s ->
