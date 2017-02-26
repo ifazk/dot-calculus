@@ -3408,26 +3408,24 @@ Lemma (Canonical forms 2)
 If G ~ s and G |- x: {a: T} then s(x) = new(x: S)d for some type S, definition d such that G |- d: S and d contains a definition {a = t} where G |- t: T. *)
 
 
-Lemma canonical_forms_2: forall G s x a T,
+Lemma canonical_forms_2: forall G s x a T m,
   wf_sto G s ->
-  ty_trm ty_general G (trm_path (p_var (avar_f x)))  (typ_rcd (dec_trm a path_general T)) ->
-  (exists S ds t,
-    forall z, z \notin L ->
+  ty_trm ty_general G (trm_path (p_var (avar_f x)))  (typ_rcd (dec_trm a m T)) ->
+  (exists S ds t G' G'' z,
+    G = G' & z ~ typ_bnd S & G'' /\
     binds x (val_new S ds) s /\ 
-    ty_defs G z (subst_typ x z S) (open_defs z ds) (open_typ z S) /\ 
+    ty_defs G' z (open_typ z S) (open_defs z ds) (open_typ z S) /\ 
     defs_has (open_defs x ds) (def_trm a t) /\ 
-    ty_trm ty_general sub_general G t T).
+    ty_trm ty_general G t T).
 Proof.
   introv Hwf Hty.
   lets Bi: (typing_implies_bound Hty). destruct Bi as [S Bi].
   lets A: (ctx_binds_to_sto_binds_typing Hwf Bi). destruct A as [v [Bis Htyv]].
   lets Hp: (possible_types_lemma Hwf Bis Hty).
   apply pt_rcd_trm_inversion with (s:=s) in Hp; eauto.
-  destruct Hp as [S' [ds [t' [Heq [Hdefs Htyd]]]]].
-  subst.
-  exists S' ds t'.
-  split; try split; try split; try assumption.
-  eapply new_ty_defs; eauto.
+  destruct Hp as [S' [ds [t' [Heq [Hdefs Htyd]]]]]. subst.
+  destruct (new_ty_defs Hwf Bis) as [G' [G'' [HG Hd]]].
+  exists S' ds t' G' G'' x. split; try split; try auto.
 Qed.
 
 (* ###################################################################### *)
@@ -3498,14 +3496,14 @@ Proof.
     assumption. apply subtyp_refl.
     eauto. eauto. eauto. eauto.
   - (* New-E *) right. destruct p.
-    * destruct (var_typing_implies_avar_f H) as [x Hv]. subst. admit.
-   (*   lets C: (canonical_forms_2 Hwf H). 
-      destruct C as [S [ds [t [Bis [Tyds [Has Ty]]]]]].
+    * destruct (var_typing_implies_avar_f H) as [x Hv]. subst.
+      lets C: (canonical_forms_2 Hwf H).
+      destruct C as [S [ds [t [G' [G'' [z [HG [Bis [Tyds [Has Ty]]]]]]]]]].
       exists s t G (@empty typ).
       split.
       apply red_sel with (T:=S) (ds:=ds); try assumption.
       split. rewrite concat_empty_r. reflexivity.
-      split. assumption. assumption. *)
+      split. assumption. assumption.
     * exists s (trm_let (trm_path (p_sel p t)) (trm_path (p_sel (p_var (avar_b 0)) m))) G (@empty typ).
       split. constructor. split. rewrite concat_empty_r. reflexivity. split.
       + pick_fresh x. lets L:  ((((dom G \u fv_ctx_types G) \u dom s) \u fv_typ T) \u fv_path p).
@@ -3558,3 +3556,35 @@ Proof.
         }
         destruct A as [x A]. subst a.
         exists s (open_trm x u) G (@empty typ).
+        split.
+        apply red_let_var.
+        split.
+        rewrite concat_empty_r. reflexivity.
+        split.
+        pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H0 y FrL).
+        rewrite subst_intro_trm with (x:=y).
+        rewrite <- subst_fresh_typ with (x:=y) (y:=x).
+        eapply subst_ty_trm. eapply H0.
+        apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto.
+        rewrite subst_fresh_typ. assumption. eauto. eauto. eauto. eauto.
+      * specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
+        destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
+        exists s' (trm_let t' u) G' G''.
+        split. apply red_let_tgt. assumption.
+        split. assumption. split.
+        apply ty_let with (L:=L \u dom G') (T:=T); eauto.
+        intros. rewrite IH2. eapply (proj51 weaken_rules). apply H0. auto. reflexivity.
+        rewrite <- IH2. apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
+        rewrite IH2.
+        rewrite <- IH2. eauto.
+  - specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH].
+    + left. assumption.
+    + right. destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
+      exists s' t' G' G''.
+      split; try split; try split; try assumption.
+      apply ty_sub with (T:=T).
+      intro Contra. inversion Contra.
+      assumption.
+      rewrite IH2. apply weaken_subtyp. assumption.
+      rewrite <- IH2. eapply wf_sto_to_ok_G. eassumption.
+Qed.
