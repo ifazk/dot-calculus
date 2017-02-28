@@ -229,7 +229,9 @@ Inductive red : trm -> sto -> trm -> sto -> Prop :=
     red (trm_let t0 t) s (trm_let t0' t) s'.
 
 Inductive eq_path : sto -> path -> var -> Prop :=
-| eq_v: forall x s, eq_path s (p_var (avar_f x)) x
+| eq_v: forall x s v,
+    binds x v s ->
+    eq_path s (p_var (avar_f x)) x
 | eq_p: forall p x y T ds s q a,
     eq_path s p x ->
     binds x (val_new T ds) s ->
@@ -1910,6 +1912,145 @@ Proof.
       apply (record_type_sub_closed A). apply open_record_type. assumption.
 Qed.
 
+Lemma sto_binds_to_ctx_binds: forall G s x v,
+  wf_sto G s -> binds x v s -> exists S, binds x S G.
+Proof.
+  introv Hwf Bis.
+  remember Hwf as Hwf'. clear HeqHwf'.
+  apply sto_binds_to_ctx_binds_raw with (x:=x) (v:=v) in Hwf.
+  destruct Hwf as [G1 [G2 [T [EqG Hty]]]].
+  subst.
+  exists T.
+  eapply binds_middle_eq. apply wf_sto_to_ok_G in Hwf'.
+  apply ok_middle_inv in Hwf'. destruct Hwf'. assumption.
+  assumption.
+Qed.
+
+Lemma val_new_typing: forall G s x T ds,
+  wf_sto G s ->
+  binds x (val_new T ds) s ->
+  ty_trm ty_precise G (trm_val (val_new T ds)) (typ_bnd T).
+Proof.
+  introv Hwf Bis.
+  assert (exists T, binds x T G) as Bi. {
+    eapply sto_binds_to_ctx_binds; eauto.
+  }
+  destruct Bi as [T0 Bi].
+  destruct (corresponding_types Hwf Bi).
+  - destruct H as [S [U [t [Bis' [Ht EqT]]]]].
+    false.
+  - destruct H as [T' [ds' [Bis' [Ht EqT]]]]. subst.
+    unfold binds in Bis. unfold binds in Bis'. rewrite Bis' in Bis.
+    inversion Bis. subst.
+    assumption.
+Qed.
+
+Lemma wf_sto_val_new_in_G: forall G s x T ds,
+  wf_sto G s ->
+  binds x (val_new T ds) s ->
+  binds x (typ_bnd T) G.
+Proof.
+  introv Hwf Bis.
+  assert (exists S, binds x S G) as Bi. {
+    eapply sto_binds_to_ctx_binds; eauto.
+  }
+  destruct Bi as [S Bi].
+  destruct (corresponding_types Hwf Bi).
+  - destruct H as [? [? [? [Bis' _]]]].
+    unfold binds in Bis'. unfold binds in Bis. rewrite Bis in Bis'. inversion Bis'.
+  - destruct H as [T' [ds' [Bis' [Hty Heq]]]].
+    unfold binds in Bis'. unfold binds in Bis. rewrite Bis' in Bis. inversions Bis.
+    assumption.
+Qed.
+
+Lemma var_new_typing: forall G s x T ds,
+  wf_sto G s ->
+  binds x (val_new T ds) s ->
+  ty_trm ty_precise G (trm_path (p_var (avar_f x)))  (open_typ x T).
+Proof.
+  intros.
+  apply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
+Qed.
+
+Lemma wf_sto_sub: forall G G' G'' s s' s'' x T v,
+  wf_sto G s ->
+  G = G' & x ~ T & G'' ->
+  s = s' & x ~ v & s'' ->
+  wf_sto (G' & x ~ T) (s' & x ~ v).
+Proof.
+  introv Hwf HG Hs. gen G G' s s' s''.
+  induction G'' using env_ind; intros G G' HG s Hwf s' s'' Hs; destruct s'' using env_ind.
+  - rewrite concat_empty_r in *. subst. assumption.
+  - rewrite concat_assoc in Hs. subst. rewrite concat_empty_r in Hwf.
+    assert (x <> x0) as Hxn. {
+      lets Hok: (wf_sto_to_ok_s Hwf). destruct (ok_push_inv Hok) as [_ Hn].
+      simpl_dom. auto.
+    }
+    inversion Hwf. false* empty_push_inv.
+    destruct (eq_push_inv H0) as [Hx _]. destruct (eq_push_inv H) as [Hx' _]. subst. subst.
+    false* Hxn.
+  - rewrite concat_assoc in HG. subst. rewrite concat_empty_r in Hwf.
+    assert (x <> x0) as Hxn. {
+      lets Hok: (wf_sto_to_ok_G Hwf). destruct (ok_push_inv Hok) as [_ Hn].
+      simpl_dom. auto.
+    }
+    inversion Hwf. false* empty_push_inv.
+    destruct (eq_push_inv H0) as [Hx _]. destruct (eq_push_inv H) as [Hx' _]. subst. subst.
+    false* Hxn.
+  - assert (G' & x ~ T & G'' = G' & x ~ T & G'') as Hobv by reflexivity.
+    assert (wf_sto (G' & x ~ T & G'') (s' & x ~ v & s'')) as Hwf'. {
+      subst. inversion Hwf.
+      * false* empty_middle_inv.
+      * rewrite concat_assoc in *.
+        destruct (eq_push_inv H) as [Hx [Ht Hg]]. destruct (eq_push_inv H0) as [Hx' [Hv Hs']]. 
+        subst. subst. assumption.
+    }
+    assert (s' & x ~ v & s'' = s' & x ~ v & s'') as Hobv' by reflexivity.
+    specialize (IHG'' (G' & x ~ T & G'') G' Hobv (s' & x ~ v & s'') Hwf' s' s'' Hobv').
+    apply IHG''.
+Qed.
+
+Lemma wf_sto_new_typing: forall G s x T ds,
+  wf_sto (G & x ~ (typ_bnd T)) (s & x ~ (val_new T ds)) ->
+  ty_trm ty_precise G (trm_val (val_new T ds)) (typ_bnd T).
+Proof.
+  introv Hwf. inversion Hwf.
+  - false* empty_push_inv.
+  - destruct (eq_push_inv H) as [Hx [HT HG]]. destruct (eq_push_inv H0) as [Hx' [Hv Hs]]. subst.
+    assumption.
+Qed.
+
+Lemma new_ty_defs: forall G s x T ds,
+  wf_sto G s ->
+  binds x (val_new T ds) s ->
+  exists G' G'',
+    G = G' & x ~ (typ_bnd T) & G'' /\
+    ty_defs G' x (open_typ x T) (open_defs x ds) (open_typ x T).
+Proof.
+  introv Hwf Bis.
+  assert (exists s' s'', s = s' & x ~ (val_new T ds) & s'') as Hs by (apply* (binds_destruct Bis)).
+  destruct Hs as [s' [s'' Hs]].
+  lets Bis': (binds_push_eq x (val_new T ds) s').
+  destruct (sto_binds_to_ctx_binds_raw Hwf Bis) as [G' [G'' [T0 [HG _]]]].
+  exists G' G''.
+  assert (T0 = typ_bnd T) as Ht. {
+    lets Hb: (wf_sto_val_new_in_G Hwf Bis).
+    apply wf_sto_to_ok_G in Hwf. rewrite HG in Hwf.
+    assert (x # G'') as Hx by (apply* ok_middle_inv_r).
+    assert (binds x T0 (G' & x ~ T0 & G'')) as Hxt by (apply* binds_middle_eq).
+    rewrite <- HG in Hxt. apply (binds_func Hxt Hb).
+  }
+  subst T0. split. assumption.
+  lets Hwf': (wf_sto_sub Hwf HG Hs).
+  lets Hn: (wf_sto_new_typing Hwf').
+  inversion Hn; subst. 
+  - pick_fresh y. lets Hok': (wf_sto_to_ok_G Hwf'). 
+    rewrite subst_intro_typ with (x:=y). rewrite subst_intro_defs with (x:=y).
+    apply* renaming_def. auto. auto.
+  - assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
+    specialize (H Heqm1). destruct H as [? Contra]. inversion Contra.
+Qed.
+
 Lemma path_equivalence: forall G s p T m1,
   wf_sto G s ->
   ty_trm m1 G (trm_path p) T ->
@@ -1931,11 +2072,67 @@ Lemma path_equivalence_typing: forall p x G T s,
   ty_trm ty_precise G (trm_path p) T.
 Proof. Admitted.
 
+Lemma defs_has_subtyping: forall G x T S ds q a y s,
+  ty_defs G x T ds S ->
+  defs_has ds (def_trm a (trm_path q)) ->
+  eq_path s q y ->
+  exists U m,
+    S = typ_rcd (dec_trm a m U) \/ subtyp ty_precise G S (typ_rcd (dec_trm a m U)).
+Proof. 
+  introv Hds Hdh Heq.
+  dependent induction Hds.
+  - inversion Hdh. case_if. inversion H1. subst. destruct D. inversion H. inversion H; 
+    subst; eexists; eexists; left; auto.
+  - inversion Hdh. case_if. inversion H2. subst. clear H1 H2 Hdh.
+    * inversion H; subst; eexists; eexists; right; auto.
+    * assert (defs_has ds (def_trm a (trm_path q))) as Hdsh by auto.
+      destruct (IHHds Hdsh Heq) as [V [m [HT | Hs]]]; subst; exists V m; right*.
+Qed.
+
+Lemma precise_to_general:
+  (forall m1 G t T,
+     ty_trm m1 G t T ->
+     m1 = ty_precise ->
+     ty_trm ty_general G t T) /\
+  (forall m1 G S U,
+     subtyp m1 G S U ->
+     m1 = ty_precise ->
+     subtyp ty_general G S U).
+Proof.
+  apply ts_mutind; intros; subst; eauto.
+Qed.
+
 Lemma equiv_to_norm: forall G s p x,
   wf_sto G s ->
   eq_path s p x ->
   norm G p.
-Proof. Admitted.
+Proof.
+  introv Hwf Heq. induction Heq.
+  lets Hs: (sto_binds_to_ctx_binds_raw Hwf H). destruct Hs as [G' [G'' [T [HG _]]]].
+  apply norm_var with (T:=T). subst. apply binds_middle_eq. apply wf_sto_to_ok_G in Hwf.
+  apply* ok_middle_inv_r.
+  lets Hv: (var_new_typing Hwf H).
+  destruct (new_ty_defs Hwf H) as [G' [G'' [HG Htd]]].
+  destruct (defs_has_subtyping Htd H0 Heq2) as [U [m [Heq | Hs]]].
+  - apply norm_path with (T:=U).
+    apply* precise_to_general.
+    assert (ty_trm ty_precise G (trm_path (p_var (avar_f x))) (typ_rcd (dec_trm a path_strong U))) as Hx. {
+      apply ty_sub with (T:=open_typ x T). intro. exists x. reflexivity. assumption. subst.
+      apply* weaken_subtyp. apply weaken_subtyp. assumption. apply wf_sto_to_ok_G in Hwf.
+      apply ok_concat_inv_l in Hwf. assumption.
+    }
+    apply (path_equivalence_typing Hwf Heq1 Hx). auto.
+
+
+  apply norm_path with (T:=U).
+  apply* precise_to_general.
+  assert (ty_trm ty_precise G (trm_path (p_var (avar_f x))) (typ_rcd (dec_trm a path_strong U))) as Hx. {
+    apply ty_sub with (T:=open_typ x T). intro. exists x. reflexivity. assumption. subst.
+    apply* weaken_subtyp. apply weaken_subtyp. assumption. apply wf_sto_to_ok_G in Hwf.
+    apply ok_concat_inv_l in Hwf. assumption.
+  }
+  apply (path_equivalence_typing Hwf Heq1 Hx). auto.  
+Qed.
 
 Lemma unique_eq_path: forall s p x,
   eq_path s p x ->
@@ -1991,32 +2188,6 @@ Proof.
     eassumption.
 Qed.
 
-Lemma precise_to_general:
-  (forall m1 G t T,
-     ty_trm m1 G t T ->
-     m1 = ty_precise ->
-     ty_trm ty_general G t T) /\
-  (forall m1 G S U,
-     subtyp m1 G S U ->
-     m1 = ty_precise ->
-     subtyp ty_general G S U).
-Proof.
-  apply ts_mutind; intros; subst; eauto.
-Qed.
-
-Lemma precise_to_general_t:
-  (forall m1 G t T,
-     ty_trm_t m1 G t T ->
-     m1 = ty_precise ->
-     ty_trm_t ty_general G t T) /\
-  (forall m1 G S U,
-     subtyp_t m1 G S U ->
-     m1 = ty_precise ->
-     subtyp_t ty_general G S U).
-Proof.
-  apply ts_mutind_t; intros; subst; eauto.
-Qed.
-
 Lemma tight_to_general:
   (forall m1 G t T,
      ty_trm_t m1 G t T ->
@@ -2041,20 +2212,6 @@ Lemma tight_to_general_subtyping: forall G S U,
   subtyp ty_general G S U.
 Proof.
   intros. apply* tight_to_general.
-Qed.
-
-Lemma sto_binds_to_ctx_binds: forall G s x v,
-  wf_sto G s -> binds x v s -> exists S, binds x S G.
-Proof.
-  introv Hwf Bis.
-  remember Hwf as Hwf'. clear HeqHwf'.
-  apply sto_binds_to_ctx_binds_raw with (x:=x) (v:=v) in Hwf.
-  destruct Hwf as [G1 [G2 [T [EqG Hty]]]].
-  subst.
-  exists T.
-  eapply binds_middle_eq. apply wf_sto_to_ok_G in Hwf'.
-  apply ok_middle_inv in Hwf'. destruct Hwf'. assumption.
-  assumption.
 Qed.
 
 Lemma record_type_new: forall G s x T ds,
@@ -2252,26 +2409,6 @@ Lemma has_member_inv: forall G x T A S U, has_member G x T A S U ->
 Proof.
   intros. inversion H; subst. apply has_member_rules_inv in H1. apply H1.
 Qed.
-
-Lemma val_new_typing: forall G s x T ds,
-  wf_sto G s ->
-  binds x (val_new T ds) s ->
-  ty_trm ty_precise G (trm_val (val_new T ds)) (typ_bnd T).
-Proof.
-  introv Hwf Bis.
-  assert (exists T, binds x T G) as Bi. {
-    eapply sto_binds_to_ctx_binds; eauto.
-  }
-  destruct Bi as [T0 Bi].
-  destruct (corresponding_types Hwf Bi).
-  - destruct H as [S [U [t [Bis' [Ht EqT]]]]].
-    false.
-  - destruct H as [T' [ds' [Bis' [Ht EqT]]]]. subst.
-    unfold binds in Bis. unfold binds in Bis'. rewrite Bis' in Bis.
-    inversion Bis. subst.
-    assumption.
-Qed.
-
 
 Lemma rcd_typ_eq_bounds: forall T A S U,
   record_type T ->
@@ -2510,24 +2647,6 @@ Proof.
   - destruct H as [ls H]. inversion H.
 Qed.
 
-Lemma wf_sto_val_new_in_G: forall G s x T ds,
-  wf_sto G s ->
-  binds x (val_new T ds) s ->
-  binds x (typ_bnd T) G.
-Proof.
-  introv Hwf Bis.
-  assert (exists S, binds x S G) as Bi. {
-    eapply sto_binds_to_ctx_binds; eauto.
-  }
-  destruct Bi as [S Bi].
-  destruct (corresponding_types Hwf Bi).
-  - destruct H as [? [? [? [Bis' _]]]].
-    unfold binds in Bis'. unfold binds in Bis. rewrite Bis in Bis'. inversion Bis'.
-  - destruct H as [T' [ds' [Bis' [Hty Heq]]]].
-    unfold binds in Bis'. unfold binds in Bis. rewrite Bis' in Bis. inversions Bis.
-    assumption.
-Qed.
-
 Lemma tight_bound_completeness: forall G s x T ds A S U,
   wf_sto G s ->
   binds x (val_new T ds) s ->
@@ -2671,93 +2790,6 @@ Inductive possible_types: ctx -> var -> val -> typ -> Prop :=
   S = open_typ x S' ->
   possible_types G x v (typ_bnd S').
 
-Lemma var_new_typing: forall G s x T ds,
-  wf_sto G s ->
-  binds x (val_new T ds) s ->
-  ty_trm ty_general G (trm_path (p_var (avar_f x)))  (open_typ x T).
-Proof.
-  intros.
-  apply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
-Qed.
-
-Lemma wf_sto_sub: forall G G' G'' s s' s'' x T v,
-  wf_sto G s ->
-  G = G' & x ~ T & G'' ->
-  s = s' & x ~ v & s'' ->
-  wf_sto (G' & x ~ T) (s' & x ~ v).
-Proof.
-  introv Hwf HG Hs. gen G G' s s' s''.
-  induction G'' using env_ind; intros G G' HG s Hwf s' s'' Hs; destruct s'' using env_ind.
-  - rewrite concat_empty_r in *. subst. assumption.
-  - rewrite concat_assoc in Hs. subst. rewrite concat_empty_r in Hwf.
-    assert (x <> x0) as Hxn. {
-      lets Hok: (wf_sto_to_ok_s Hwf). destruct (ok_push_inv Hok) as [_ Hn].
-      simpl_dom. auto.
-    }
-    inversion Hwf. false* empty_push_inv.
-    destruct (eq_push_inv H0) as [Hx _]. destruct (eq_push_inv H) as [Hx' _]. subst. subst.
-    false* Hxn.
-  - rewrite concat_assoc in HG. subst. rewrite concat_empty_r in Hwf.
-    assert (x <> x0) as Hxn. {
-      lets Hok: (wf_sto_to_ok_G Hwf). destruct (ok_push_inv Hok) as [_ Hn].
-      simpl_dom. auto.
-    }
-    inversion Hwf. false* empty_push_inv.
-    destruct (eq_push_inv H0) as [Hx _]. destruct (eq_push_inv H) as [Hx' _]. subst. subst.
-    false* Hxn.
-  - assert (G' & x ~ T & G'' = G' & x ~ T & G'') as Hobv by reflexivity.
-    assert (wf_sto (G' & x ~ T & G'') (s' & x ~ v & s'')) as Hwf'. {
-      subst. inversion Hwf.
-      * false* empty_middle_inv.
-      * rewrite concat_assoc in *.
-        destruct (eq_push_inv H) as [Hx [Ht Hg]]. destruct (eq_push_inv H0) as [Hx' [Hv Hs']]. 
-        subst. subst. assumption.
-    }
-    assert (s' & x ~ v & s'' = s' & x ~ v & s'') as Hobv' by reflexivity.
-    specialize (IHG'' (G' & x ~ T & G'') G' Hobv (s' & x ~ v & s'') Hwf' s' s'' Hobv').
-    apply IHG''.
-Qed.
-
-Lemma wf_sto_new_typing: forall G s x T ds,
-  wf_sto (G & x ~ (typ_bnd T)) (s & x ~ (val_new T ds)) ->
-  ty_trm ty_precise G (trm_val (val_new T ds)) (typ_bnd T).
-Proof.
-  introv Hwf. inversion Hwf.
-  - false* empty_push_inv.
-  - destruct (eq_push_inv H) as [Hx [HT HG]]. destruct (eq_push_inv H0) as [Hx' [Hv Hs]]. subst.
-    assumption.
-Qed.
-
-Lemma new_ty_defs: forall G s x T ds,
-  wf_sto G s ->
-  binds x (val_new T ds) s ->
-  exists G' G'',
-    G = G' & x ~ (typ_bnd T) & G'' /\
-    ty_defs G' x (open_typ x T) (open_defs x ds) (open_typ x T).
-Proof.
-  introv Hwf Bis.
-  assert (exists s' s'', s = s' & x ~ (val_new T ds) & s'') as Hs by (apply* (binds_destruct Bis)).
-  destruct Hs as [s' [s'' Hs]].
-  lets Bis': (binds_push_eq x (val_new T ds) s').
-  destruct (sto_binds_to_ctx_binds_raw Hwf Bis) as [G' [G'' [T0 [HG _]]]].
-  exists G' G''.
-  assert (T0 = typ_bnd T) as Ht. {
-    lets Hb: (wf_sto_val_new_in_G Hwf Bis).
-    apply wf_sto_to_ok_G in Hwf. rewrite HG in Hwf.
-    assert (x # G'') as Hx by (apply* ok_middle_inv_r).
-    assert (binds x T0 (G' & x ~ T0 & G'')) as Hxt by (apply* binds_middle_eq).
-    rewrite <- HG in Hxt. apply (binds_func Hxt Hb).
-  }
-  subst T0. split. assumption.
-  lets Hwf': (wf_sto_sub Hwf HG Hs).
-  lets Hn: (wf_sto_new_typing Hwf').
-  inversion Hn; subst. 
-  - pick_fresh y. lets Hok': (wf_sto_to_ok_G Hwf'). 
-    rewrite subst_intro_typ with (x:=y). rewrite subst_intro_defs with (x:=y).
-    apply* renaming_def. auto. auto.
-  - assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
-    specialize (H Heqm1). destruct H as [? Contra]. inversion Contra.
-Qed.
 
 Lemma unfold_rec: 
   (forall m1 G t T, ty_trm m1 G t T -> forall G1 G2 x U,
@@ -2852,15 +2884,6 @@ Proof.
     assumption.
 Qed.
 
-Inductive record_has: typ -> dec -> Prop :=
-| rh_one : forall D,
-  record_has (typ_rcd D) D
-| rh_andl : forall T D,
-  record_has (typ_and T (typ_rcd D)) D
-| rh_and : forall T D D',
-  record_has T D' ->
-  record_has (typ_and T D) D'.
-
 Lemma defs_has_hasnt_neq: forall ds d1 d2,
   defs_has ds d1 ->
   defs_hasnt ds (label_of_def d2) ->
@@ -2875,6 +2898,15 @@ Proof.
     + inversions Hhas. assumption.
     + apply IHds; eauto.
 Qed.
+
+Inductive record_has: typ -> dec -> Prop :=
+| rh_one : forall D,
+  record_has (typ_rcd D) D
+| rh_andl : forall T D,
+  record_has (typ_and T (typ_rcd D)) D
+| rh_and : forall T D D',
+  record_has T D' ->
+  record_has (typ_and T D) D'.
 
 Lemma record_has_ty_defs: forall G z U T ds D,
   ty_defs G z U ds T ->
