@@ -82,6 +82,15 @@ end.
 Definition defs_has(ds: defs)(d: def) := get_def (label_of_def d) ds = Some d.
 Definition defs_hasnt(ds: defs)(l: label) := get_def l ds = None.
 
+Inductive record_has: typ -> dec -> Prop :=
+| rh_one : forall D,
+  record_has (typ_rcd D) D
+| rh_andl : forall T D,
+  record_has (typ_and T (typ_rcd D)) D
+| rh_and : forall T D D',
+  record_has T D' ->
+  record_has (typ_and T D) D'.
+
 (* ###################################################################### *)
 (** ** Opening *)
 
@@ -232,9 +241,10 @@ Inductive eq_path : sto -> path -> var -> Prop :=
 | eq_v: forall x s v,
     binds x v s ->
     eq_path s (p_var (avar_f x)) x
-| eq_p: forall p x y T ds s q a,
+| eq_p: forall p x y T U ds s q a,
     eq_path s p x ->
     binds x (val_new T ds) s ->
+    record_has T (dec_trm a path_strong U) ->
     defs_has (open_defs x ds) (def_trm a (trm_path q)) ->
     eq_path s q y ->
     eq_path s (p_sel p a) y.
@@ -2072,23 +2082,6 @@ Lemma path_equivalence_typing: forall p x G T s,
   ty_trm ty_precise G (trm_path p) T.
 Proof. Admitted.
 
-Lemma defs_has_subtyping: forall G x T S ds q a y s,
-  ty_defs G x T ds S ->
-  defs_has ds (def_trm a (trm_path q)) ->
-  eq_path s q y ->
-  exists U m,
-    S = typ_rcd (dec_trm a m U) \/ subtyp ty_precise G S (typ_rcd (dec_trm a m U)).
-Proof. 
-  introv Hds Hdh Heq.
-  dependent induction Hds.
-  - inversion Hdh. case_if. inversion H1. subst. destruct D. inversion H. inversion H; 
-    subst; eexists; eexists; left; auto.
-  - inversion Hdh. case_if. inversion H2. subst. clear H1 H2 Hdh.
-    * inversion H; subst; eexists; eexists; right; auto.
-    * assert (defs_has ds (def_trm a (trm_path q))) as Hdsh by auto.
-      destruct (IHHds Hdsh Heq) as [V [m [HT | Hs]]]; subst; exists V m; right*.
-Qed.
-
 Lemma precise_to_general:
   (forall m1 G t T,
      ty_trm m1 G t T ->
@@ -2102,6 +2095,68 @@ Proof.
   apply ts_mutind; intros; subst; eauto.
 Qed.
 
+Lemma record_has_sub: forall T D G,
+  record_has T D ->
+  T = typ_rcd D \/ subtyp ty_precise G T (typ_rcd D).
+Proof.
+  introv Hr. dependent induction Hr; auto.
+  destruct IHHr as [IHHr | IHHr]; right.
+  - subst. auto.
+  - apply subtyp_trans with (T:=T); auto.
+Qed.
+
+Lemma open_fun_eq_var: forall x x1 x2 n,
+  open_rec_avar n x x1 = open_rec_avar n x x2 ->
+  (avar_f x) <> x1 ->
+  (avar_f x) <> x2 ->
+  x1 = x2.
+Proof.
+  introv H H1 H2. destruct x1; destruct x2; auto; simpl in H; case_if; case_if; auto.
+Qed.
+
+Lemma notin_neq: forall x y,
+  x \notin fv_avar y -> avar_f x <> y.
+Proof.
+  introv H. unfold fv_avar in H. destruct y. intro. inversion H0. intro. inversion H0.
+  subst. apply* notin_same.
+Qed.
+
+Lemma open_fun_eq_path: forall x p1 p2 n,
+  open_rec_path n x p1 = open_rec_path n x p2 -> 
+  x \notin fv_path p1 ->
+  x \notin fv_path p2 ->
+  p1 = p2.
+Proof.
+  introv H H1 H2. gen p2. induction p1; destruct p2; intros; inversion H; f_equal.
+  - simpls. apply notin_neq in H1. apply notin_neq in H2.
+    apply* open_fun_eq_var. 
+  - subst. apply* IHp1.
+Qed.
+
+Lemma open_fun_eq_typ: forall x,
+  (forall T, forall U n,
+    x \notin fv_typ T ->
+    x \notin fv_typ U ->
+    open_rec_typ n x T = open_rec_typ n x U -> 
+    T = U) /\
+  (forall D1, forall D2 n, 
+    x \notin fv_dec D1 ->
+    x \notin fv_dec D2 ->
+    open_rec_dec n x D1 = open_rec_dec n x D2 -> 
+    D1 = D2).
+Proof.
+  intro x. apply typ_mutind; intros; (destruct U || destruct D2); 
+  try (inversion H1 || inversion H2 || inversion H3); simpls; f_equal; try (apply* H || apply* H0); auto.
+  apply* open_fun_eq_path.
+Qed. 
+
+Lemma record_has_open: forall x T D,
+  record_has T D -> record_has (open_typ x T) (open_dec x D).
+Proof.
+  introv H. gen D. induction T; intros; inversion H; subst; unfold open_typ; simpl; constructor. 
+  apply* IHT1.
+Qed.
+
 Lemma equiv_to_norm: forall G s p x,
   wf_sto G s ->
   eq_path s p x ->
@@ -2113,25 +2168,25 @@ Proof.
   apply* ok_middle_inv_r.
   lets Hv: (var_new_typing Hwf H).
   destruct (new_ty_defs Hwf H) as [G' [G'' [HG Htd]]].
-  destruct (defs_has_subtyping Htd H0 Heq2) as [U [m [Heq | Hs]]].
-  - apply norm_path with (T:=U).
-    apply* precise_to_general.
-    assert (ty_trm ty_precise G (trm_path (p_var (avar_f x))) (typ_rcd (dec_trm a path_strong U))) as Hx. {
-      apply ty_sub with (T:=open_typ x T). intro. exists x. reflexivity. assumption. subst.
-      apply* weaken_subtyp. apply weaken_subtyp. assumption. apply wf_sto_to_ok_G in Hwf.
-      apply ok_concat_inv_l in Hwf. assumption.
-    }
-    apply (path_equivalence_typing Hwf Heq1 Hx). auto.
-
-
-  apply norm_path with (T:=U).
+  lets Hn: (IHHeq2 Hwf).
+  apply norm_path with (T:=open_typ x U).
+  assert (record_has (open_typ x T) (open_dec x (dec_trm a path_strong U))) as Hrh by (apply* record_has_open).
   apply* precise_to_general.
-  assert (ty_trm ty_precise G (trm_path (p_var (avar_f x))) (typ_rcd (dec_trm a path_strong U))) as Hx. {
-    apply ty_sub with (T:=open_typ x T). intro. exists x. reflexivity. assumption. subst.
-    apply* weaken_subtyp. apply weaken_subtyp. assumption. apply wf_sto_to_ok_G in Hwf.
-    apply ok_concat_inv_l in Hwf. assumption.
+  assert (ty_trm ty_precise G (trm_path (p_var (avar_f x)))
+                              (open_typ x (typ_rcd (dec_trm a path_strong U)))) as Hx. {
+    lets rhs: (record_has_sub G' Hrh). destruct rhs as [Trcd | Tsub].
+    - assert (T = typ_rcd (dec_trm a path_strong U)) as Ho. {
+      assert (typ_rcd (open_dec x (dec_trm a path_strong U)) = open_typ x (typ_rcd (dec_trm a path_strong U)))
+        as Htr by auto.
+      rewrite Htr in Trcd. apply* open_fun_eq_typ.
+    }
+    subst. auto.
+    - apply ty_sub with (T:=open_typ x T). intro. exists x. reflexivity. assumption. subst.
+      apply* weaken_subtyp. apply weaken_subtyp. auto.
+      apply wf_sto_to_ok_G in Hwf.
+      apply ok_concat_inv_l in Hwf. assumption.
   }
-  apply (path_equivalence_typing Hwf Heq1 Hx). auto.  
+  apply (path_equivalence_typing Hwf Heq1 Hx). auto.
 Qed.
 
 Lemma unique_eq_path: forall s p x,
@@ -2898,15 +2953,6 @@ Proof.
     + inversions Hhas. assumption.
     + apply IHds; eauto.
 Qed.
-
-Inductive record_has: typ -> dec -> Prop :=
-| rh_one : forall D,
-  record_has (typ_rcd D) D
-| rh_andl : forall T D,
-  record_has (typ_and T (typ_rcd D)) D
-| rh_and : forall T D D',
-  record_has T D' ->
-  record_has (typ_and T D) D'.
 
 Lemma record_has_ty_defs: forall G z U T ds D,
   ty_defs G z U ds T ->
