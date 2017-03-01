@@ -2105,51 +2105,6 @@ Proof.
   - apply subtyp_trans with (T:=T); auto.
 Qed.
 
-Lemma open_fun_eq_var: forall x x1 x2 n,
-  open_rec_avar n x x1 = open_rec_avar n x x2 ->
-  (avar_f x) <> x1 ->
-  (avar_f x) <> x2 ->
-  x1 = x2.
-Proof.
-  introv H H1 H2. destruct x1; destruct x2; auto; simpl in H; case_if; case_if; auto.
-Qed.
-
-Lemma notin_neq: forall x y,
-  x \notin fv_avar y -> avar_f x <> y.
-Proof.
-  introv H. unfold fv_avar in H. destruct y. intro. inversion H0. intro. inversion H0.
-  subst. apply* notin_same.
-Qed.
-
-Lemma open_fun_eq_path: forall x p1 p2 n,
-  open_rec_path n x p1 = open_rec_path n x p2 -> 
-  x \notin fv_path p1 ->
-  x \notin fv_path p2 ->
-  p1 = p2.
-Proof.
-  introv H H1 H2. gen p2. induction p1; destruct p2; intros; inversion H; f_equal.
-  - simpls. apply notin_neq in H1. apply notin_neq in H2.
-    apply* open_fun_eq_var. 
-  - subst. apply* IHp1.
-Qed.
-
-Lemma open_fun_eq_typ: forall x,
-  (forall T, forall U n,
-    x \notin fv_typ T ->
-    x \notin fv_typ U ->
-    open_rec_typ n x T = open_rec_typ n x U -> 
-    T = U) /\
-  (forall D1, forall D2 n, 
-    x \notin fv_dec D1 ->
-    x \notin fv_dec D2 ->
-    open_rec_dec n x D1 = open_rec_dec n x D2 -> 
-    D1 = D2).
-Proof.
-  intro x. apply typ_mutind; intros; (destruct U || destruct D2); 
-  try (inversion H1 || inversion H2 || inversion H3); simpls; f_equal; try (apply* H || apply* H0); auto.
-  apply* open_fun_eq_path.
-Qed. 
-
 Lemma record_has_open: forall x T D,
   record_has T D -> record_has (open_typ x T) (open_dec x D).
 Proof.
@@ -2169,23 +2124,22 @@ Proof.
   lets Hv: (var_new_typing Hwf H).
   destruct (new_ty_defs Hwf H) as [G' [G'' [HG Htd]]].
   lets Hn: (IHHeq2 Hwf).
-  apply norm_path with (T:=open_typ x U).
   assert (record_has (open_typ x T) (open_dec x (dec_trm a path_strong U))) as Hrh by (apply* record_has_open).
-  apply* precise_to_general.
-  assert (ty_trm ty_precise G (trm_path (p_var (avar_f x)))
-                              (open_typ x (typ_rcd (dec_trm a path_strong U)))) as Hx. {
-    lets rhs: (record_has_sub G' Hrh). destruct rhs as [Trcd | Tsub].
-    - assert (T = typ_rcd (dec_trm a path_strong U)) as Ho. {
-      assert (typ_rcd (open_dec x (dec_trm a path_strong U)) = open_typ x (typ_rcd (dec_trm a path_strong U)))
-        as Htr by auto.
-      rewrite Htr in Trcd. apply* open_fun_eq_typ.
-    }
-    subst. auto.
-    - apply ty_sub with (T:=open_typ x T). intro. exists x. reflexivity. assumption. subst.
+  assert (exists U', ty_trm ty_precise G (trm_path (p_var (avar_f x)))
+                              (open_typ x (typ_rcd (dec_trm a path_strong U')))) as Hx. {
+    destruct (record_has_sub G' Hrh) as [Trcd | Tsub].
+    - assert (exists U', T = typ_rcd (dec_trm a path_strong U')) as HU'. {
+        destruct T; inversion Trcd.
+        unfold open_typ in Trcd. simpl in Trcd.
+        destruct d. inversion H3. inversion H3. subst. exists t0. reflexivity.
+      } 
+      destruct HU' as [U' HT]. exists U'. subst. auto.
+    - exists U. apply ty_sub with (T:=open_typ x T). intro. exists x. reflexivity. assumption. subst.
       apply* weaken_subtyp. apply weaken_subtyp. auto.
       apply wf_sto_to_ok_G in Hwf.
       apply ok_concat_inv_l in Hwf. assumption.
   }
+  destruct Hx as [U' Hx]. apply norm_path with (T:=open_typ x U'). apply* precise_to_general.
   apply (path_equivalence_typing Hwf Heq1 Hx). auto.
 Qed.
 
