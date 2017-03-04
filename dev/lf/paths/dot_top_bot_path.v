@@ -2116,22 +2116,21 @@ Qed.
 
 Lemma path_equivalence: forall G s p T,
   wf_sto G s ->
-  ty_trm ty_precise G (trm_path p) T ->
+  ty_trm ty_general G (trm_path p) T ->
   norm G p ->
-  exists x, (eq_path s p x /\ ty_trm ty_precise G (trm_path (p_var (avar_f x))) T).
+  exists x, (eq_path s p x /\ ty_trm ty_general G (trm_path (p_var (avar_f x))) T).
 Proof.
   introv Hwf Hty Hn. gen T. induction Hn; intros.
   - exists x. split. destruct (ctx_binds_to_sto_binds_typing Hwf H) as [v [Hv _]].
     apply* eq_v. assumption.
-  - inversion Hty; subst. assert (ty_precise=ty_precise) as Hp by reflexivity.
-    destruct (H0 Hp) as [x Ht]. inversion Ht.
-Qed.
+  - inversion Hty; subst.
+    * Admitted. 
 
-Lemma path_equivalence_t: forall G s p T m1,
+Lemma path_equivalence_t: forall G s p T,
   wf_sto G s ->
-  ty_trm_t m1 G (trm_path p) T ->
+  ty_trm_t ty_general G (trm_path p) T ->
   norm G p ->
-  exists x, (eq_path s p x /\ ty_trm_t m1 G (trm_path (p_var (avar_f x))) T).
+  exists x, (eq_path s p x /\ ty_trm_t ty_general G (trm_path (p_var (avar_f x))) T).
 Proof. Admitted.
 
 Lemma record_has_sub: forall T D G,
@@ -2227,17 +2226,13 @@ Proof.
   apply (IHHeqx2 y0 H10).
 Qed.
 
-Lemma unique_tight_bounds: forall G s p T1 T2 A,
+Lemma unique_tight_bounds: forall G s x T1 T2 A,
   wf_sto G s ->
-  norm G p ->
-  ty_trm ty_precise G (trm_path p)  (typ_rcd (dec_typ A T1 T1)) ->
-  ty_trm ty_precise G (trm_path p)  (typ_rcd (dec_typ A T2 T2)) ->
+  ty_trm ty_precise G (trm_path (p_var (avar_f x))) (typ_rcd (dec_typ A T1 T1)) ->
+  ty_trm ty_precise G (trm_path (p_var (avar_f x))) (typ_rcd (dec_typ A T2 T2)) ->
   T1 = T2.
 Proof.
-  introv Hwf Hn Hty1 Hty2.
-  destruct (path_equivalence Hwf Hty1 Hn) as [x [Heq Htyx]].
-  destruct (path_equivalence Hwf Hty2 Hn) as [x' [Heq' Htyx']].
-  lets He: (unique_eq_path Heq Heq'). subst x'. clear Heq'.
+  introv Hwf Hty1 Hty2.
   assert (exists T, binds x T G) as Bi. {
     eapply typing_implies_bound. eassumption.
   }
@@ -2251,9 +2246,9 @@ Proof.
     assert (record_type S) as Htype. {
       eapply record_new_typing. eassumption.
     }
-    destruct (shape_new_typing Bi Htype Htyx) as [Contra1 | A1].
+    destruct (shape_new_typing Bi Htype Hty1) as [Contra1 | A1].
     inversion Contra1.
-    destruct (shape_new_typing Bi Htype Htyx') as [Contra2 | A2].
+    destruct (shape_new_typing Bi Htype Hty2) as [Contra2 | A2].
     inversion Contra2.
     assert (record_type (open_typ x S)) as HXtype. {
       apply open_record_type. assumption.
@@ -2438,10 +2433,10 @@ with has_member_rules: ctx -> var -> typ -> typ_label -> typ -> typ -> Prop :=
 | has_bnd : forall G x T A S U,
   has_member G x (open_typ x T) A S U ->
   has_member_rules G x (typ_bnd T) A S U
-| has_sel : forall G x p B T' A S U s,
-  ty_trm ty_general G (trm_path p) (typ_rcd (dec_typ B T' T')) ->
+| has_sel : forall G x y p B T' A S U s,
+  ty_trm ty_precise G (trm_path (p_var (avar_f y))) (typ_rcd (dec_typ B T' T')) ->
   wf_sto G s ->
-  eq_path s p x ->
+  eq_path s p y ->
   has_member G x T' A S U ->
   has_member_rules G x (typ_path p B) A S U
 | has_bot  : forall G x A S U,
@@ -2459,8 +2454,10 @@ Lemma has_member_rules_inv: forall G x T A S U, has_member_rules G x T A S U ->
      has_member G x T2 A S U)) \/
   (exists T', T = typ_bnd T' /\
     has_member G x (open_typ x T') A S U) \/
-  (exists p B T', T = typ_path p B /\
-    ty_trm ty_general G (trm_path p) (typ_rcd (dec_typ B T' T')) /\
+  (exists p y s B T', T = typ_path p B /\
+    wf_sto G s /\
+    eq_path s p y /\
+    ty_trm ty_precise G (trm_path (p_var (avar_f y))) (typ_rcd (dec_typ B T' T')) /\
     has_member G x T' A S U) \/
   (T = typ_bot).
 Proof.
@@ -2469,7 +2466,8 @@ Proof.
   - right. left. exists T1 T2. eauto.
   - right. left. exists T1 T2. eauto.
   - right. right. left. exists T0. eauto.
-  - right. right. right. left. exists p B T'. eauto.
+  - right. right. right. left. exists p y s B T'. split. reflexivity.
+    split. assumption. split. assumption. split. assumption. assumption.
   - right. right. right. right. reflexivity.
 Qed.
 
@@ -2480,8 +2478,10 @@ Lemma has_member_inv: forall G x T A S U, has_member G x T A S U ->
      has_member G x T2 A S U)) \/
   (exists T', T = typ_bnd T' /\
     has_member G x (open_typ x T') A S U) \/
-  (exists p B T', T = typ_path p B /\
-    ty_trm ty_general G (trm_path p) (typ_rcd (dec_typ B T' T')) /\
+  (exists p y s B T', T = typ_path p B /\
+    wf_sto G s /\
+    eq_path s p y /\
+    ty_trm ty_precise G (trm_path (p_var (avar_f y))) (typ_rcd (dec_typ B T' T')) /\
     has_member G x T' A S U) \/
   (T = typ_bot).
 Proof.
@@ -2602,7 +2602,7 @@ Proof.
       * specialize (IHHsub1 Hwf Hty S2 U2 Hmem). apply IHHsub1.
       * specialize (IHHsub2 Hwf Hty S2 U2 Hmem). apply IHHsub2.
     + destruct Hmem as [T1' [Heq _]]. inversion Heq.
-    + destruct Hmem as [y [B [T' [Heq _]]]]. inversion Heq.
+    + destruct Hmem as [p [y [s' [B [T' [Heq _]]]]]]. inversion Heq.
     + inversion Hmem.
   - (* fld *)
     inversion Hmem; subst. inversion H0; subst.
@@ -2615,7 +2615,7 @@ Proof.
       split; assumption.
     + destruct Hmem as [T1' [T2' [Heq _]]]. inversion Heq.
     + destruct Hmem as [T1' [Heq _]]. inversion Heq.
-    + destruct Hmem as [y [B [T' [Heq _]]]]. inversion Heq.
+    + destruct Hmem as [p [y [s' [B [T' [Heq _]]]]]]. inversion Heq.
     + inversion Hmem.
   - (* sel2 *)
     apply has_member_inv in Hmem.
@@ -2623,40 +2623,24 @@ Proof.
     + inversion Hmem.
     + destruct Hmem as [T1' [T2' [Heq _]]]. inversion Heq.
     + destruct Hmem as [T1' [Heq _]]. inversion Heq.
-    + destruct Hmem as [q [B [T' [Heq [Htyb Hmem]]]]]. inversions Heq.
-      inversion Htyb; subst.
-      assert (eq_path s0 (p_var (avar_f x1)) x1) as Heqs. {
-        destruct (ctx_binds_to_sto_binds_typing H0 H5) as [v [Bi _]].
-        apply eq_v with (v:=v). assumption.
-      }
-      assert (T' = T) as HeqT. {
-        apply* unique_tight_bounds. apply* equiv_to_norm.
-        apply eq_path_var in H1. subst. assumption. 
-      }
-      subst. eauto.
-      assert (T' = T) as HeqT. {
-        apply* unique_tight_bounds. apply* equiv_to_norm.
-        apply eq_path_var in H1. subst. assumption. 
-      }
-      subst. eauto. assert (ty_precise = ty_precise) as Hobv by reflexivity.
-      destruct (H2 Hobv) as [y Hq]. inversions Hq.
-      apply eq_path_var in H1. subst.
-       assert (T' = T) as HeqT. {
-        apply* unique_tight_bounds. apply equiv_to_norm with (s:=s) (x:=x0).
-        assumption. 
-        destruct (typing_implies_bound H3) as [S Hb].
-        destruct (ctx_binds_to_sto_binds_typing Hwf Hb) as [v [Bi _]].
-        apply eq_v with (v:=v). assumption.
-      }
-      subst. eauto.
+    + destruct Hmem as [q [y [s' [B [T' [Ht [Hw [Heq [Htyb Hmem]]]]]]]]]. inversions Heq.
+      inversion Htyb; subst; inversion Ht; subst.
+      * apply eq_path_var in H1. subst.
+        assert (T' = T) as HeqT by (apply* unique_tight_bounds). 
+        subst. eauto.
+      * apply eq_path_var in H1. subst. assert (T' = T) as HeqT by (apply* unique_tight_bounds).
+        subst. eauto.
+      * apply eq_path_var in H1. subst. assert (T' = T) as HeqT by (apply* unique_tight_bounds).
+        subst. eauto.
+      * inversion Ht. subst.
+        subst. eauto.
+
     + inversion Hmem.
   - (* sel1 *)
     exists S2 U2. split.
     eapply has_any. assumption.
-    apply* has_sel.
+    apply* has_sel. admit. (* apply* path_equivalence_typing.*)
     
-apply* path_equivalence_typing.
-    eauto.
   - (* all *)
     inversion Hmem; subst. inversion H2; subst.
   - (* path *)
