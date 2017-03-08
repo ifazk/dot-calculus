@@ -1444,7 +1444,7 @@ Proof.
   introv Hds Hok Hy Hz.
   assert (HG: G = subst_ctx z y G) by (rewrite (subst_fresh_ctx y G Hz); reflexivity).
   destruct (ok_push_inv Hok) as [_ Hn].
-  assert (HG': G = (map_keys (rename_var z y) G)) by admit.
+  assert (HG': G = (map_keys (rename_var z y) G)) by rewrite* map_keys_notin.
   assert (Hrg: G = rename_ctx z y G). {
     unfold rename_ctx. rewrite <- HG'. assumption.
   }    
