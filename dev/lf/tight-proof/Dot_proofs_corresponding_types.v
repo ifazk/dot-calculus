@@ -29,4 +29,8 @@ Lemma tight_to_precise_typ_dec: forall G s x A S U,
     subtyp ty_general sub_tight G S T.
 Proof.
   introv Hwf Ht.
+  assert (good G) as HG by admit. (* todo: Paul's wf_sto_to_good lemma *)
+  lets Htp: (tight_possible_types_lemma HG Ht).
+  dependent induction Htp.
+  - 
 Admitted.
