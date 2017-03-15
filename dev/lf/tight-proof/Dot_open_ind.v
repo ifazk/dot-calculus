@@ -4,13 +4,10 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Dot_definitions.
 
-(*
-Definition open_rec_avar (k: nat) (u: var) (a: avar) : avar :=
-  match a with
-  | avar_b i => If k = i then avar_f u else avar_b i
-  | avar_f x => avar_f x
-  end.
-*)
+(* ###################################################################### *)
+(** ** Inductive opening *)
+
+(* Inductive definitions of opening together with rewrite rules *)
 
 Inductive open_ind_avar : (nat * var * avar) -> avar -> Prop :=
 | open_avar_b_eq : forall k u,
@@ -22,7 +19,7 @@ Inductive open_ind_avar : (nat * var * avar) -> avar -> Prop :=
     open_ind_avar (k, u, avar_f x) (avar_f x)
 .
 
-Theorem open_rec_avar_ind_avar : forall k u a res,
+Theorem open_avar_rewrite : forall k u a res,
     res = open_rec_avar k u a <->
     open_ind_avar (k, u, a) res.
 Proof.
@@ -40,6 +37,15 @@ Proof.
   - intros res. split; intros Hres.
     + simpl in Hres. subst. constructor.
     + inversion Hres. reflexivity.
+Qed.
+
+Theorem open_avar_rewrite' : forall k u a res,
+    open_rec_avar k u a = res <->
+    open_ind_avar (k, u, a) res.
+Proof.
+  intros. split; intros H.
+  - symmetry in H. apply open_avar_rewrite. apply H.
+  - symmetry. apply open_avar_rewrite. apply H.
 Qed.
 
 Inductive open_ind_typ : (nat * var * typ) -> typ -> Prop :=
@@ -92,7 +98,7 @@ Proof.
     simpl in Hres; subst; constructor; auto.
   - intros a T Tres k u Hres.
     simpl in Hres; subst; constructor.
-    apply open_rec_avar_ind_avar.
+    apply open_avar_rewrite.
     reflexivity.
   - intros T HT T_res k u Hres.
     simpl in Hres; subst; constructor.
@@ -147,7 +153,7 @@ Proof.
     simpl. f_equal; auto.
   - intros k u x x' L Hx k' u' T Hp.
     inversion Hp; simpl; f_equal.
-    apply open_rec_avar_ind_avar; subst; auto.
+    apply open_avar_rewrite; subst; auto.
   - intros k u T1 T1' HT1 IHT1 k' u' T Hp.
     inversion Hp; subst; simpl; f_equal; auto.
   - intros k u T1 T2 T1' T2' HT1 IHT1 HT2 IHT2 k' u' T Hp.
