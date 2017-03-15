@@ -250,6 +250,17 @@ Proof.
   - specialize (IHHpf Hrec H). false.
 Qed.
 
+Lemma record_precise_dec_implies_record_dec : forall x G T D,
+    record_type T ->
+    precise_flow x G (typ_bnd T) (typ_rcd D) ->
+    record_dec D.
+Proof.
+  introv Hrt Hpf.
+  pose proof (precise_flow_bnd_inv'' Hrt Hpf) as [[U [Contra H1]] | [ls H1]].
+  - inversion Contra.
+  - inversion H1. assumption.
+Qed.
+
 Lemma record_dec_precise_open : forall x G D1 D2,
     record_dec D1 ->
     precise_flow x G (typ_bnd (typ_rcd D1)) (typ_rcd D2) ->

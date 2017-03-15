@@ -171,6 +171,32 @@ Proof.
   apply (good_ty_precise_bot' H HT H0).
 Qed.
 
+Lemma good_precise_dec_implies_record_dec : forall G x D,
+    good G ->
+    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd D) ->
+    record_dec D.
+Proof.
+  introv Hgd Hpt.
+  pose proof (typing_implies_bound Hpt) as [T' Bis].
+  pose proof (good_binds Hgd Bis) as Hgt.
+  pose proof (precise_flow_lemma Bis Hpt) as Hpf.
+  induction Hgt.
+  - apply (precise_flow_all_inv) in Hpf.
+    inversion Hpf.
+  - apply (record_precise_dec_implies_record_dec H Hpf).
+Qed.
+
+Lemma good_precise_dec_typ_inv : forall G x A S U,
+    good G ->
+    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A S U)) ->
+    S = U.
+Proof.
+  introv Hgd Hpt.
+  pose proof (good_precise_dec_implies_record_dec Hgd Hpt) as Hrec.
+  inversion Hrec.
+  reflexivity.
+Qed.
+
 (* ###################################################################### *)
 (** ** Good Has Member *)
 
