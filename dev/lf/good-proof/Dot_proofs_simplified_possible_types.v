@@ -3,6 +3,7 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Dot_definitions.
+Require Import Dot_open_ind.
 Require Import Dot_proofs_weakening.
 Require Import Dot_proofs_wellformed_store.
 Require Import Dot_proofs_substitution.
@@ -11,35 +12,29 @@ Require Import Dot_proofs_narrowing.
 Require Import Dot_proofs_has_member.
 Require Import Dot_proofs_tight_bound_completeness.
 Require Import Dot_proofs_misc_inversions.
-Require Import Dot_open_ind.
 Require Import Dot_proofs_precise_flow.
 Require Import Dot_proofs_good_types.
 
 (* ###################################################################### *)
-(** ** Possible types *)
+(** ** Simplified Possible types *)
 
 (*
-In the previous def of possible_types for anything that was not one of
-- ty_top          (* *)
-- (typ_bnd T)     (* rec(T) *)
-- (typ_sel y A)   (* y.A *)
-- (typ_and T1 T2) (* T1 /\ T2 *)
-- (typ_all S T)   (* forall(x:S)T *)
-we could invert to get a record type.
+Definition (Simplified Possible types)
 
-Can we possible go back to that state?
-*)
+For a variable x, environment G, the set SPT(G, x) of simplified possible types
+of x defined as v in G is the smallest set SS such that:
 
-(*
-  Need a inductive definition of precise typing
-want to turn
-
-     |-! x :W              Prt T W
-  ---------------        -----------------
-     |-! x :W'             Prt T W'
+If G |-! x:T then T in SS.
+If {a:T} in SS and G |- T<:T' then {a:T'} in SS.
+If {A:T..U} in SS, G |- T'<:T and G |- U<:U' then {A:T'..U'} in SS.
+If all(x: S)T in SS, G |- S'<:S and G, x: S' |- T<:T' then all(x: S')T' in SS.
+If S1 in SS and S2 in SS then (S1 & S2) in SS.
+If S in SS and G |-! y: {A: S..S} then y.A in SS.
+If S in SS then rec(x: S) in SS.
 *)
 
 Inductive s_possible_types: ctx -> var -> typ -> Prop :=
+  (* Top *)
 | s_pt_top : forall G x T,
   s_possible_types G x T ->
   s_possible_types G x typ_top   (* 8. Top in SPT *)
@@ -50,45 +45,31 @@ Inductive s_possible_types: ctx -> var -> typ -> Prop :=
   (forall y, y \notin L ->
    subtyp ty_general sub_general (G & y ~ S') (open_typ y T) (open_typ y T')) ->
   s_possible_types G x (typ_all S' T')
-  (* This was required because previously we had that
-     { a = t} in ds, then { a: T' } in PT of nu(x:T)ds
-     and we needed a way to and things back together
-We still need this for reordering, etc.
-*)
+  (* And *)
 | s_pt_and : forall G x S1 S2,
   s_possible_types G x S1 ->
   s_possible_types G x S2 ->
   s_possible_types G x (typ_and S1 S2) (* 5. S1, S2 in SPT -> S1 ^ S2 in SPT *)
-  (* tight selection
-*)
+  (* Tight Selection *)
 | s_pt_sel : forall G x y A S,
   s_possible_types G x S ->
   ty_trm ty_precise sub_general G (trm_var y) (typ_rcd (dec_typ A S S)) ->
   s_possible_types G x (typ_sel y A) (* 6. S in SPT, G |-! y : {A : S .. S} -> y.A in SPT *)
-  (*
-????????????
-recursive types
-| pt_bnd : forall G x v S S',
-  possible_types G x v S ->
-  S = open_typ x S' ->
-  possible_types G x v (typ_bnd S')
-*)
+  (* Recursive Types *)
 | s_pt_bnd : forall G x S S',
   s_possible_types G x S ->
   S = open_typ x S' ->
   s_possible_types G x (typ_bnd S') (* 7. T is S -> rec(x:T) in SPT *)
-(* analog of
- * v = new(x:T)ds -> T in SPT (expect T to be of the form (typ_bnd T')
- * v = new(x:T)ds { a = t } in ds, and G|- t : T' -> {a : T'} in SPT
- * v = new(x:T)ds { A = T' } in ds, and G|- S <:T' <: U -> { A = S .. U } is SPT
- *)
+  (* Precise typing *)
 | s_pt_precise : forall G x T,
   ty_trm ty_precise sub_general G (trm_var (avar_f x)) T ->
   s_possible_types G x T
+  (* Term member subtyping *)
 | s_pt_dec_trm : forall G x a T T',
   s_possible_types G x (typ_rcd (dec_trm a T)) ->
   subtyp ty_general sub_general G T T' ->
   s_possible_types G x (typ_rcd (dec_trm a T'))
+  (* Type member subtyping *)
 | s_pt_dec_typ : forall G x A T T' U' U,
   s_possible_types G x (typ_rcd (dec_typ A T U)) ->
   subtyp ty_general sub_general G T' T ->
@@ -142,19 +123,20 @@ Lemma s_possible_types_closure_tight: forall G x T0 U0,
 Proof.
   intros G x T0 U0 Hgd HT0 Hsub.
   dependent induction Hsub.
-  - apply s_pt_top with T. assumption.
-  - dependent induction HT0.
+  - (* Top *) apply s_pt_top with T. assumption.
+  - (* Bot *) dependent induction HT0.
     false. apply (good_ty_precise_bot Hgd H).
-  - assumption.
-  - apply IHHsub2; try assumption.
+  - (* Refl *) assumption.
+  - (* Trans *)
+    apply IHHsub2; try assumption.
     apply IHHsub1; try assumption.
-  - dependent induction HT0; auto.
+  - (* And left inv *) dependent induction HT0; auto.
     apply ty_precise_var_and_inv1 in H.
     auto.
-  - dependent induction HT0; auto.
+  - (* And right inv *) dependent induction HT0; auto.
     apply ty_precise_var_and_inv2 in H.
     auto.
-  - specialize (IHHsub1 Hgd HT0).
+  - (* And *) specialize (IHHsub1 Hgd HT0).
     specialize (IHHsub2 Hgd HT0).
     auto.
   - (* Fld-<:-Fld *)
@@ -178,7 +160,7 @@ Proof.
         inversion H2.
       * pose proof (precise_flow_lemma Bis H) as H2.
         pose proof (precise_flow_bnd_inv'' H1 H2) as [[U [H3 H4]] | [ls H3]]; inversion H3.
-  - apply tight_to_general_subtyping in Hsub.
+  - (* Forall *) apply tight_to_general_subtyping in Hsub.
     apply (s_pt_all _ HT0 Hsub H).
 Qed.
 
@@ -376,10 +358,12 @@ Proof.
     inversions H1.
     + auto.
     + auto.
-  - specialize (IHHty1 Hgc Bis).
+  - (* Hty : G |- x : T0, G |- x : U *)
+    specialize (IHHty1 Hgc Bis).
     specialize (IHHty2 Hgc Bis).
     auto.
-  - specialize (IHHty Hgc Bis).
+  - (* Hty : G |- x : T0, G |- T0 <: U *)
+    specialize (IHHty Hgc Bis).
     apply (good_general_to_tight_subtyping Hgc) in H0.
     apply (s_possible_types_closure_tight Hgc IHHty H0).
 Qed.

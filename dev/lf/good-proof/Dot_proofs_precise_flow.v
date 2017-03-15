@@ -6,6 +6,21 @@ Require Import Dot_definitions.
 Require Import Dot_proofs_wellformed_store.
 Require Import Dot_proofs_some_lemmas.
 
+(* ###################################################################### *)
+(** ** Precise flow *)
+
+(*
+Definition (Precise flow of a variable)
+
+For a variable x, environment G, type T, the set Pf(x,G,T) is the set of all
+precise types that x can have if G(x)=T. More "precisely":
+
+If G(x)=T, then T is in Pf(x,G,T).
+If rec(x:U) is in Pf(x,G,T), then U is in Pf(x,G,T).
+If (U1 & U2) is in Pf(x,G,T), then U1 is in Pf(x,G,T).
+If (U1 & U2) is in Pf(x,G,T), then U2 is in Pf(x,G,T).
+
+*)
 Inductive precise_flow : var -> ctx -> typ -> typ -> Prop :=
   | pf_bind : forall x G T,
       binds x T G ->
