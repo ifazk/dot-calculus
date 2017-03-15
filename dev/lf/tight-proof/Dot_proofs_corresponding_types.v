@@ -27,4 +27,6 @@ Lemma tight_to_precise_typ_dec: forall G s x A S U,
     ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A T T)) /\
     subtyp ty_general sub_tight G T U /\
     subtyp ty_general sub_tight G S T.
-Proof. Admitted.
+Proof.
+  introv Hwf Ht.
+Admitted.

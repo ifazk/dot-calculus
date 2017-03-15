@@ -57,8 +57,7 @@ Inductive tight_pt : ctx -> var -> typ -> Prop :=
 Lemma tight_possible_types_lemma :
   forall G T U x,
     good G -> (* G good *)
-    binds x T G -> (* G(x) = T *)
-    ty_trm ty_general sub_tight G (trm_var (avar_f x)) U -> (* G |- x : U *)
+    ty_trm ty_general sub_tight G (trm_var (avar_f x)) U -> (* G |-# x : U *)
     tight_pt G x U (* U \in TPT(G,x,T) *).
 Proof.
 Admitted.
