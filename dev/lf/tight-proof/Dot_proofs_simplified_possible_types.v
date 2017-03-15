@@ -338,32 +338,30 @@ Proof.
 Qed.
 
 Lemma s_possible_types_lemma :
-  forall G T U x,
+  forall G U x,
     good G -> (* G good *)
-    binds x T G -> (* G(x) = T *)
     ty_trm ty_general sub_general G (trm_var (avar_f x)) U -> (* G |- x : U *)
-    s_possible_types G x U (* U \in SPT(G,x,T) *).
+    s_possible_types G x U (* U \in SPT(G,x) *).
 Proof.
-  introv Hgc Bis Hty.
+  introv Hgc Hty.
   dependent induction Hty.
-  - (* Hty : G(x)=T0 *)
-    rewrite (binds_func H Bis).
-    constructor; auto.
-  - (* Hty : G |- x : T0^x *)
-    pose proof (IHHty Hgc Bis) as H.
-    apply (s_pt_bnd T0 H).
+  - (* Hty : G(x)=T *)
+    auto.
+  - (* Hty : G |- x : T^x *)
+    pose proof (IHHty Hgc) as H.
+    apply (s_pt_bnd T H).
     reflexivity.
-  - (* Hty : G |- x : rec(y:T0) *)
-    pose proof (IHHty Hgc Bis) as H1.
+  - (* Hty : G |- x : rec(y:T) *)
+    pose proof (IHHty Hgc) as H1.
     inversions H1.
     + auto.
     + auto.
-  - (* Hty : G |- x : T0, G |- x : U *)
-    specialize (IHHty1 Hgc Bis).
-    specialize (IHHty2 Hgc Bis).
+  - (* Hty : G |- x : T, G |- x : U *)
+    specialize (IHHty1 Hgc).
+    specialize (IHHty2 Hgc).
     auto.
-  - (* Hty : G |- x : T0, G |- T0 <: U *)
-    specialize (IHHty Hgc Bis).
+  - (* Hty : G |- x : T, G |- T <: U *)
+    specialize (IHHty Hgc).
     apply (good_general_to_tight_subtyping Hgc) in H0.
     apply (s_possible_types_closure_tight Hgc IHHty H0).
 Qed.

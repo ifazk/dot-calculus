@@ -33,7 +33,6 @@ Inductive good_typ : typ -> Prop :=
   | good_typ_rcd : forall d, good_dec d -> good_typ (typ_rcd d)
   | good_typ_and : forall T U, good_typ T -> good_typ U -> good_typ (typ_and T U)
   | good_typ_bnd : forall T, good_typ (typ_bnd T)
-  | good_typ_sub : forall G T U, subtyp ty_precise sub_general G T U -> good_typ T -> good_typ U
 with good_dec : dec -> Prop :=
   | good_dec_typ : forall A T, good_dec (dec_typ A T T)
   | good_dec_trm : forall a T, good_dec (dec_trm a T).
@@ -57,13 +56,7 @@ Proof.
       + destruct H0. apply (IHGood H1).
 Qed.
 
-Lemma test1 : forall G, good G -> exists s, wf_sto G s.
-Proof.
-  intros. induction H; eauto. destruct IHgood as [s' IH]. inversion H0.
-  - exists (s' & x ~ (val_lambda S (trm_var (avar_f x)))). (* uhhh *) apply wf_sto_push; eauto.
-    + Admitted.
-
-Lemma test : forall G s, wf_sto G s -> good G.
+Lemma wf_good : forall G s, wf_sto G s -> good G.
 Proof.
   intros. induction H.
   - apply good_empty.
@@ -72,7 +65,7 @@ Proof.
     + dependent induction H2.
       * apply good_typ_all.
       * apply good_typ_bnd.
-      * apply good_typ_sub with (G:=G) (T:=T).
-        { assumption. }
-        { apply IHty_trm; assumption. }
+      * assert (ty_precise = ty_precise) by reflexivity. apply H4 in H5.
+        destruct H5. inversion H5.
 Qed.
+
