@@ -18,3 +18,13 @@ Require Import Dot_proofs_tight_possible_types.
 
 (* ###################################################################### *)
 (** ** Corresponding types *)
+
+(* Lemma 1 *)
+Lemma tight_to_precise_typ_dec: forall G s x A S U,
+  wf_sto G s ->
+  ty_trm ty_general sub_tight G (trm_var (avar_f x)) (typ_rcd (dec_typ A S U)) ->
+  exists T,
+    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A T T)) /\
+    subtyp ty_general sub_tight G T U /\
+    subtyp ty_general sub_tight G S T.
+Proof. Admitted.
