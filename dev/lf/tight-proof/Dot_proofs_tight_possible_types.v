@@ -88,7 +88,8 @@ Proof.
   intros G x T U Hgd HT Hsub.
   dependent induction Hsub; auto.
   - eauto.
-  - admit.
+  - inversion HT.
+    destruct (good_ty_precise_bot Hgd H).
   - inversion HT.
     + apply ty_precise_var_and_inv1 in H.
       auto.
