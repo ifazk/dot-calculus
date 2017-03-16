@@ -79,10 +79,49 @@ Inductive tight_pt : ctx -> var -> typ -> Prop :=
 
 Hint Constructors tight_pt.
 
+Lemma tight_possible_types_closure_tight: forall G x T U,
+  good G ->
+  tight_pt G x T ->
+  subtyp ty_general sub_tight G T U ->
+  tight_pt G x U.
+Proof.
+  intros G x T U Hgd HT Hsub.
+  dependent induction Hsub; auto.
+  - eauto.
+  - admit.
+  - inversion HT.
+    + apply ty_precise_var_and_inv1 in H.
+      auto.
+    + auto.
+  - inversion HT.
+    + apply ty_precise_var_and_inv2 in H.
+      auto.
+    + auto.
+  - eapply t_pt_dec_trm; eauto.
+  - eapply t_pt_dec_typ; eauto.
+  - eapply t_pt_sel; eassumption.
+  - dependent induction HT.
+    + false * good_precise_sel_inv.
+    + pose proof (good_unique_tight_bounds Hgd H H0) as H1.
+      rewrite <- H1. assumption.
+  - apply t_pt_all with (L:=L) (S:=S1) (T:=T1); auto.
+Qed.
+
 Lemma tight_possible_types_lemma :
   forall G U x,
     good G -> (* G good *)
     ty_trm ty_general sub_tight G (trm_var (avar_f x)) U -> (* G |-# x : U *)
     tight_pt G x U (* U \in TPT(G,x,T) *).
 Proof.
-Admitted.
+  intros G U x Hgd Hty.
+  dependent induction Hty.
+  - auto.
+  - specialize (IHHty Hgd).
+    eapply t_pt_bnd.
+    apply IHHty.
+    reflexivity.
+  - specialize (IHHty Hgd).
+    inversion IHHty; subst; auto.
+  - apply t_pt_and; auto.
+  - eapply tight_possible_types_closure_tight; auto.
+Qed.
