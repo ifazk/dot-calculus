@@ -53,24 +53,24 @@ Inductive tight_pt : ctx -> var -> typ -> Prop :=
 | t_pt_bnd : forall G x S S',
   tight_pt G x S ->
   S = open_typ x S' ->
-  tight_pt G x (typ_bnd S') (* 7. T is S -> rec(x:T) in SPT *)
+  tight_pt G x (typ_bnd S')
   (* Forall *)
 | t_pt_all : forall L G x S T S' T',
   tight_pt G x (typ_all S T) ->
   subtyp ty_general sub_tight G S' S ->
   (forall y, y \notin L ->
-   subtyp ty_general sub_tight (G & y ~ S') (open_typ y T) (open_typ y T')) ->
+   subtyp ty_general sub_general (G & y ~ S') (open_typ y T) (open_typ y T')) ->
   tight_pt G x (typ_all S' T')
   (* And *)
 | t_pt_and : forall G x S1 S2,
   tight_pt G x S1 ->
   tight_pt G x S2 ->
-  tight_pt G x (typ_and S1 S2) (* 5. S1, S2 in SPT -> S1 ^ S2 in SPT *)
+  tight_pt G x (typ_and S1 S2)
   (* Tight Selection *)
 | t_pt_sel : forall G x y A S,
   tight_pt G x S ->
   ty_trm ty_precise sub_general G (trm_var y) (typ_rcd (dec_typ A S S)) ->
-  tight_pt G x (typ_sel y A) (* 6. S in SPT, G |-! y : {A : S .. S} -> y.A in SPT *)
+  tight_pt G x (typ_sel y A)
   (* Top *)
 | t_pt_top : forall G x T,
   tight_pt G x T ->
