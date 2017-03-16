@@ -185,6 +185,21 @@ Proof.
   apply (good_ty_precise_bot' H HT H0).
 Qed.
 
+Lemma good_precise_sel_inv : forall G x y A,
+    good G ->
+    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_sel y A) ->
+    False.
+Proof.
+  introv Hgd Hpt.
+  pose proof (typing_implies_bound Hpt) as [T Bis].
+  pose proof (good_binds Hgd Bis) as Hgt.
+  pose proof (precise_flow_lemma Bis Hpt) as Hpf.
+  induction Hgt.
+  - apply (precise_flow_all_inv) in Hpf.
+    inversion Hpf.
+  - pose proof (precise_flow_bnd_inv'' H Hpf) as [[U [Contra H1]] | [ls Contra]]; inversion Contra.
+Qed.
+
 Lemma good_precise_dec_implies_record_dec : forall G x D,
     good G ->
     ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd D) ->
