@@ -577,7 +577,6 @@ Qed.
 (* ###################################################################### *)
 (** ** Weakening *)
 
-(* also defined for tight *)
 Lemma weaken_rules:
   (forall m1 G t T, ty_trm m1 G t T -> forall G1 G2 G3,
     G = G1 & G3 ->
@@ -635,7 +634,6 @@ Proof.
     apply* H0.
 Qed.
 
-(* also defined for tight *)
 Lemma weaken_ty_trm:  forall m1 G1 G2 t T,
     ty_trm m1 G1 t T ->
     ok (G1 & G2) ->
@@ -650,7 +648,6 @@ Proof.
   rewrite <- EqG. assumption.
 Qed.
 
-(* also defined for tight *)
 Lemma weaken_subtyp: forall m1 G1 G2 S U,
   subtyp m1 G1 S U ->
   ok (G1 & G2) ->
