@@ -2,7 +2,7 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Dot_definitions.
+Require Import Definitions.
 
 (* ###################################################################### *)
 (** * Misc *)
