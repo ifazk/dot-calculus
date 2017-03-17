@@ -3,7 +3,6 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Dot_definitions.
-(*
 Require Import Dot_proofs_weakening.
 Require Import Dot_proofs_wellformed_store.
 Require Import Dot_proofs_substitution.
@@ -11,8 +10,45 @@ Require Import Dot_proofs_some_lemmas.
 Require Import Dot_proofs_narrowing.
 Require Import Dot_proofs_has_member.
 Require Import Dot_proofs_tight_bound_completeness.
-Require Import Dot_proofs_misc_inversions.
-*)
+Require Import Dot_proofs_tight_possible_types.
+Require Import Dot_proofs_good_types.
+Require Import Dot_proofs_tight_to_precise.
+(*Require Import Dot_proofs_misc_inversions.*)
+
+Lemma ctx_binds_to_sto_binds_typing: forall G s x T,
+  wf_sto G s ->
+  binds x T G ->
+  exists v, binds x v s /\ ty_trm ty_precise sub_general G (trm_val v) T.
+Proof.
+  introv Hwf Bi.
+  lets A: (ctx_binds_to_sto_binds_raw Hwf Bi).
+  destruct A as [G1 [G2 [v [HeqG [Bis Hty]]]]].
+  exists v. split; eauto.
+  subst. rewrite <- concat_assoc.
+  apply weaken_ty_trm; eauto.
+  rewrite concat_assoc.
+  eapply wf_sto_to_ok_G; eauto.
+Qed.
+
+Lemma wf_sto_val_new_in_G': forall G s x T,
+  wf_sto G s ->
+  binds x (typ_bnd T) G ->
+  exists ds, binds x (val_new T ds) s.
+Proof.
+  introv Hwf Bis.
+  assert (exists v, binds x v s) as Bi. {
+    eapply ctx_binds_to_sto_binds; eauto.
+  }
+  destruct Bi as [v Bi].
+  lets Hc: (ctx_binds_to_sto_binds_typing Hwf Bis). destruct Hc as [v' [Hv HT]].
+  destruct (corresponding_types Hwf Bis).
+  - destruct H as [? [? [? [Bis' _]]]].
+    assert (v' = val_lambda x0 x2) as Hv' by admit. subst. inversion HT. subst.
+    assert (ty_precise = ty_precise) as Hobv by reflexivity. destruct (H Hobv) as [x3 Contra]. inversion Contra.
+  - destruct H as [S [ds' [Hb [Hn He]]]]. inversions He. exists ds'.
+    assumption.
+Qed.
+
 
 (*
 Lemma (Canonical forms 1)
@@ -24,27 +60,15 @@ Lemma canonical_forms_1: forall G s x T U,
   (exists L T' t, binds x (val_lambda T' t) s /\ subtyp ty_general sub_general G T T' /\
   (forall y, y \notin L -> ty_trm ty_general sub_general (G & y ~ T) (open_trm y t) (open_typ y U))).
 Proof.
-  (*
   introv Hwf Hty.
+  lets HG: (wf_good Hwf).
   lets Bi: (typing_implies_bound Hty). destruct Bi as [S Bi].
   lets A: (ctx_binds_to_sto_binds_typing Hwf Bi). destruct A as [v [Bis Htyv]].
-  lets Hp: (possible_types_lemma Hwf Bis Hty).
-  inversion Hp; subst.
-  - lets Htype: (record_type_new Hwf Bis). rewrite H3 in Htype.
-    destruct Htype as [ls Htyp]. inversion Htyp.
-  - pick_fresh y. exists (dom G \u L). exists S0. exists t.
-    split. apply Bis. split. assumption.
-    intros y0 Fr0.
-    eapply ty_sub.
-    intros Contra. inversion Contra.
-    eapply narrow_typing.
-    eapply H1; eauto.
-    apply subenv_last. apply H5.
-    apply ok_push. eapply wf_sto_to_ok_G; eauto. eauto.
-    apply ok_push. eapply wf_sto_to_ok_G; eauto. eauto.
-    eapply H6; eauto.
-Qed.
-   *)
+  lets Hgt: (general_to_tight_typing Hwf Hty).
+  lets Hct: (corresponding_types Hwf Bi).
+  lets Hp: (tight_possible_types_lemma HG Hgt).
+  inversion Hp; destruct Hct as [[V [U0 [t [Hb [Hl HS]]]]] | [V [ds [Hb [Hn HS]]]]]; subst; clear Hp Hty.
+  - pick_fresh y. exists (dom G).
 Admitted.
 
 (*

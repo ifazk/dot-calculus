@@ -61,3 +61,11 @@ Proof.
   intros G0 s0 Hwf.
   apply ts_mutind; intros; subst; eauto; apply* tight_subtyping_sel.
 Qed.
+
+Lemma general_to_tight_typing: forall G s t T,
+  wf_sto G s ->
+  ty_trm ty_general sub_general G t T ->
+  ty_trm ty_general sub_tight G t T.
+Proof.
+  intros. apply* general_to_tight.
+Qed.
