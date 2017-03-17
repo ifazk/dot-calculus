@@ -3,6 +3,7 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Dot_definitions.
+(*
 Require Import Dot_proofs_weakening.
 Require Import Dot_proofs_wellformed_store.
 Require Import Dot_proofs_substitution.
@@ -11,6 +12,7 @@ Require Import Dot_proofs_narrowing.
 Require Import Dot_proofs_has_member.
 Require Import Dot_proofs_tight_bound_completeness.
 Require Import Dot_proofs_misc_inversions.
+*)
 
 (*
 Lemma (Canonical forms 1)
@@ -22,6 +24,7 @@ Lemma canonical_forms_1: forall G s x T U,
   (exists L T' t, binds x (val_lambda T' t) s /\ subtyp ty_general sub_general G T T' /\
   (forall y, y \notin L -> ty_trm ty_general sub_general (G & y ~ T) (open_trm y t) (open_typ y U))).
 Proof.
+  (*
   introv Hwf Hty.
   lets Bi: (typing_implies_bound Hty). destruct Bi as [S Bi].
   lets A: (ctx_binds_to_sto_binds_typing Hwf Bi). destruct A as [v [Bis Htyv]].
@@ -41,6 +44,8 @@ Proof.
     apply ok_push. eapply wf_sto_to_ok_G; eauto. eauto.
     eapply H6; eauto.
 Qed.
+   *)
+Admitted.
 
 (*
 Lemma (Canonical forms 2)
@@ -53,6 +58,7 @@ Lemma canonical_forms_2: forall G s x a T,
   ty_trm ty_general sub_general G (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
   (exists S ds t, binds x (val_new S ds) s /\ ty_defs G (open_defs x ds) (open_typ x S) /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm ty_general sub_general G t T).
 Proof.
+  (*
   introv Hwf Hty.
   lets Bi: (typing_implies_bound Hty). destruct Bi as [S Bi].
   lets A: (ctx_binds_to_sto_binds_typing Hwf Bi). destruct A as [v [Bis Htyv]].
@@ -64,3 +70,5 @@ Proof.
   split; try split; try split; try assumption.
   eapply new_ty_defs; eauto.
 Qed.
+*)
+Admitted.

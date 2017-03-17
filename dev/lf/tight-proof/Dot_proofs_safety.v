@@ -7,7 +7,7 @@ Require Import Dot_proofs_weakening.
 Require Import Dot_proofs_wellformed_store.
 Require Import Dot_proofs_substitution.
 Require Import Dot_proofs_narrowing.
-Require Import Dot_proofs_possible_types.
+Require Import Dot_proofs_canonical_forms.
 Require Import Dot_proofs_misc.
 
 (* ###################################################################### *)
