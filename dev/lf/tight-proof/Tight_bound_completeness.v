@@ -2,9 +2,9 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Dot_definitions.
-Require Import Dot_proofs_some_lemmas.
-Require Import Dot_proofs_has_member.
+Require Import Definitions.
+Require Import Some_lemmas.
+Require Import Has_member.
 
 (* ###################################################################### *)
 (** * Tight bound completeness *)

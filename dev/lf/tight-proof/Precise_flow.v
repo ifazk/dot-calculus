@@ -2,9 +2,9 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Dot_definitions.
-Require Import Dot_proofs_wellformed_store.
-Require Import Dot_proofs_some_lemmas.
+Require Import Definitions.
+Require Import Wellformed_store.
+Require Import Some_lemmas.
 
 (* ###################################################################### *)
 (** ** Precise flow *)

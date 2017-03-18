@@ -1,21 +1,25 @@
 COQC=coqc
 
-FILES=Dot_proofs_tight_to_precise.v Dot_proofs_safety.v
+FILES=General_to_tight.v Safety.v
 
-DEFS= Dot_definitions.v
+DEFS= Definitions.v
 DEFSOBJECTS=$(DEFS:.v=.vo)
 
 PROOFS= \
-      Dot_proofs_weakening.v \
-      Dot_proofs_wellformed_store.v \
-      Dot_proofs_extra_rec.v \
-      Dot_proofs_substitution.v \
-      Dot_proofs_some_lemmas.v \
-      Dot_proofs_narrowing.v \
-      Dot_proofs_has_member.v \
-      Dot_proofs_tight_bound_completeness.v \
-      Dot_proofs_misc_inversions.v \
-      Dot_proofs_misc.v
+      Weakening.v \
+      Wellformed_store.v \
+      Extra_rec.v \
+      Substitution.v \
+      Some_lemmas.v \
+      Narrowing.v \
+      Has_member.v \
+      Tight_bound_completeness.v \
+      Misc_inversions.v \
+      Misc.v \
+      Precise_flow.v \
+      Inductive_opens.v \
+      Inductive_opens.v \
+      General_to_tight.v
 PROOFOBJECTS=$(PROOFS:.v=.vo)
 
 
@@ -43,42 +47,42 @@ clean::
 	rm -f $(FILES:.v=.glob)
 
 # Extra deps
-$(PROOFOBJECTS): Dot_definitions.vo
-Dot_proofs_substitution.vo: Dot_proofs_weakening.vo
-Dot_proofs_some_lemmas.vo: Dot_proofs_weakening.vo Dot_proofs_wellformed_store.vo
-Dot_proofs_narrowing.vo: Dot_proofs_weakening.vo
-Dot_proofs_has_member.vo: Dot_proofs_some_lemmas.vo
-Dot_proofs_tight_bound_completeness.vo: Dot_proofs_some_lemmas.vo Dot_proofs_has_member.vo
-Dot_proofs_misc_inversions.vo: Dot_proofs_some_lemmas.vo
-Dot_proofs_safety.vo: Dot_definitions.vo \
-                      Dot_proofs_weakening.vo \
-                      Dot_proofs_wellformed_store.vo \
-                      Dot_proofs_substitution.vo \
-                      Dot_proofs_narrowing.vo \
-                      Dot_proofs_misc.vo \
-                      Dot_proofs_canonical_forms.vo
-Dot_open_ind.vo: Dot_definitions.vo
-Dot_proofs_precise_flow.vo: Dot_definitions.vo Dot_open_ind.vo Dot_proofs_wellformed_store.vo Dot_proofs_some_lemmas.vo
-Dot_proofs_good_types.vo: Dot_definitions.vo \
-                          Dot_open_ind.vo \
-                          Dot_proofs_wellformed_store.vo \
-                          Dot_proofs_has_member.vo \
-                          Dot_proofs_some_lemmas.vo \
-                          Dot_proofs_precise_flow.vo \
-                          Dot_proofs_tight_bound_completeness.vo
-Dot_proofs_simplified_possible_types.vo: Dot_definitions.vo \
-                                         Dot_open_ind.vo \
-                                         Dot_proofs_weakening.vo \
-                                         Dot_proofs_wellformed_store.vo \
-                                         Dot_proofs_substitution.vo \
-                                         Dot_proofs_some_lemmas.vo \
-                                         Dot_proofs_narrowing.vo \
-                                         Dot_proofs_has_member.vo \
-                                         Dot_proofs_tight_bound_completeness.vo \
-                                         Dot_proofs_misc_inversions.vo \
-                                         Dot_proofs_precise_flow.vo \
-                                         Dot_proofs_good_types.vo
-Dot_proofs_tight_possible_types.vo: Dot_proofs_precise_flow.vo \
-                                    Dot_proofs_good_types.vo
-Dot_proofs_tight_to_precise.vo: Dot_proofs_good_types.vo \
-                                   Dot_proofs_tight_possible_types.vo
+$(PROOFOBJECTS): Definitions.vo
+Substitution.vo: Weakening.vo
+Some_lemmas.vo: Weakening.vo Wellformed_store.vo
+Narrowing.vo: Weakening.vo
+Has_member.vo: Some_lemmas.vo
+Tight_bound_completeness.vo: Some_lemmas.vo Has_member.vo
+Misc_inversions.vo: Some_lemmas.vo
+Safety.vo: Definitions.vo \
+           Weakening.vo \
+           Wellformed_store.vo \
+           Substitution.vo \
+           Narrowing.vo \
+           Misc.vo \
+           Canonical_forms.vo
+Inductive_opens.vo: Definitions.vo
+Precise_flow.vo: Definitions.vo Inductive_opens.vo Wellformed_store.vo Some_lemmas.vo
+Good_types.vo: Definitions.vo \
+               Inductive_opens.vo \
+               Wellformed_store.vo \
+               Has_member.vo \
+               Some_lemmas.vo \
+               Precise_flow.vo \
+               Tight_bound_completeness.vo
+Simplified_possible_types.vo: Definitions.vo \
+                              Inductive_opens.vo \
+                              Weakening.vo \
+                              Wellformed_store.vo \
+                              Substitution.vo \
+                              Some_lemmas.vo \
+                              Narrowing.vo \
+                              Has_member.vo \
+                              Tight_bound_completeness.vo \
+                              Misc_inversions.vo \
+                              Precise_flow.vo \
+                              Good_types.vo
+Tight_possible_types.vo: Precise_flow.vo \
+                         Good_types.vo
+General_to_tight.vo: Good_types.vo \
+                     Tight_possible_types.vo

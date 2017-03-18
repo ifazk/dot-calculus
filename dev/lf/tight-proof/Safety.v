@@ -2,13 +2,13 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Dot_definitions.
-Require Import Dot_proofs_weakening.
-Require Import Dot_proofs_wellformed_store.
-Require Import Dot_proofs_substitution.
-Require Import Dot_proofs_narrowing.
-Require Import Dot_proofs_canonical_forms.
-Require Import Dot_proofs_misc.
+Require Import Definitions.
+Require Import Weakening.
+Require Import Wellformed_store.
+Require Import Substitution.
+Require Import Narrowing.
+Require Import Canonical_forms.
+Require Import Misc.
 
 (* ###################################################################### *)
 (* ###################################################################### *)

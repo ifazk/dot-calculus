@@ -2,9 +2,9 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Dot_definitions.
-Require Import Dot_proofs_precise_flow.
-Require Import Dot_proofs_good_types.
+Require Import Definitions.
+Require Import Precise_flow.
+Require Import Good_types.
 
 (* ###################################################################### *)
 (** ** Tight Possible types *)

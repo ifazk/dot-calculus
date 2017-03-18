@@ -2,13 +2,13 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Dot_definitions.
-Require Import Dot_open_ind.
-Require Import Dot_proofs_wellformed_store.
-Require Import Dot_proofs_has_member.
-Require Import Dot_proofs_some_lemmas.
-Require Import Dot_proofs_precise_flow.
-Require Import Dot_proofs_tight_bound_completeness.
+Require Import Definitions.
+Require Import Inductive_opens.
+Require Import Wellformed_store.
+Require Import Has_member.
+Require Import Some_lemmas.
+Require Import Precise_flow.
+Require Import Tight_bound_completeness.
 
 (* ###################################################################### *)
 (** ** Good types *)
@@ -49,7 +49,7 @@ Proof.
     + dependent induction H2.
       * apply good_typ_all.
       * apply good_typ_bnd. pick_fresh z. apply open_record_type_rev with (x:=z); auto.
-        apply record_defs_typing with (G:=G & z ~ open_typ z T) (ds:= open_defs z ds); auto. 
+        apply record_defs_typing with (G:=G & z ~ open_typ z T) (ds:= open_defs z ds); auto.
       * assert (ty_precise = ty_precise) by reflexivity. apply H4 in H5.
         destruct H5. inversion H5.
 Qed.

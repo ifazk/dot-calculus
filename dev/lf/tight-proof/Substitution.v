@@ -2,8 +2,8 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Dot_definitions.
-Require Import Dot_proofs_weakening.
+Require Import Definitions.
+Require Import Weakening.
 
 (* ###################################################################### *)
 (** ** Substitution *)
