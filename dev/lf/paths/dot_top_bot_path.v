@@ -1016,6 +1016,54 @@ Proof.
     simpl in Eq. case_if. apply (IHds Eq).
 Qed.
 
+Lemma binds_destruct: forall {A} x (v:A) E,
+  binds x v E ->
+  exists E' E'', E = E' & x ~ v & E''.
+Proof.
+  introv Hb. induction E using env_ind. false* binds_empty_inv.
+  destruct (binds_push_inv Hb) as [[Hx HT] | [Hn Hbx]]; subst.
+  - exists E (@empty A). rewrite concat_empty_r. reflexivity.
+  - apply binds_push_neq_inv in Hb. destruct (IHE Hb) as [E' [E'' HE]]. subst.
+    exists E' (E'' & x0 ~ v0). rewrite concat_assoc. reflexivity. assumption.
+Qed.
+
+Lemma double_binds_false: forall E1 E2 x (v v' : typ),
+  ok (E1 & x ~ v & E2 & x ~ v') -> False.
+Proof.
+  intros.
+  apply ok_push_inv in H. destruct H as [H Hnot].
+  assert (binds x v (E1 & x ~ v & E2)) as HBi. {
+    lets Ht: (binds_tail x v E1).
+    apply (binds_concat_left_ok H Ht).
+  }
+  false (binds_fresh_inv HBi Hnot).
+Qed.
+
+Lemma binds_middle: forall E1 E2 E1' E2' x (v v' : typ), 
+  ok (E1 & x ~ v & E2) ->
+  E1 & x ~ v & E2 = E1' & x ~ v' & E2' ->
+  E1 = E1' /\ v = v' /\ E2 = E2'.
+Proof.
+  introv Hok. gen E1' E2'. induction E2 using env_ind; intros.
+  - rewrite concat_empty_r in H.
+    destruct E2' using env_ind.
+    + rewrite concat_empty_r in H. apply eq_push_inv in H.
+      destruct H as [_ [Hv Hs]]. auto.
+    + rewrite concat_assoc in H. rewrite concat_empty_r in Hok.
+      lets Heq: (eq_push_inv H).
+      destruct Heq as [Hx [Hv Hs]]. subst.
+      false (double_binds_false Hok).
+  - destruct E2' using env_ind.
+    + rewrite concat_empty_r in H. rewrite concat_assoc in H. apply eq_push_inv in H.
+      destruct H as [Hx [Hv Hs]]. subst.
+      rewrite concat_assoc in Hok.
+      false (double_binds_false Hok).
+    + repeat rewrite concat_assoc in H.
+      apply eq_push_inv in H. destruct H as [Hx [Hv Hs]]. subst.
+      rewrite concat_assoc in Hok. apply ok_push_inv_ok in Hok.
+      specialize (IHE2 Hok E1' E2' Hs).
+      destruct IHE2 as [Hs' [Hv Hs'']]. subst. auto.
+Qed.
 
 (* ###################################################################### *)
 (** ** The substitution principle *)
@@ -1142,12 +1190,26 @@ Proof.
     rewrite A.
     apply ty_and_intro; eauto.
   - (* ty_sngl_intro *)
-    simpl. case_if. destruct (typing_implies_bound H2) as [U Hb]. 
-    apply ty_sngl_intro with (T:=U). assumption. apply ty_sngl_intro with (T:=T).
-    apply binds_subst in b. 
-    destruct (binds_concat_inv b) as [Hb | [Hn Hb]].
-    apply binds_concat_right. unfold subst_ctx. admit.
-    apply binds_concat_left. assumption. admit. assumption.
+    simpl. case_if.
+    * destruct (typing_implies_bound H2) as [U Hb]. 
+      apply ty_sngl_intro with (T:=U). assumption. 
+    * apply* ty_sngl_intro.
+      apply binds_subst in b. 
+      destruct (binds_concat_inv b) as [Hb | [Hn Hb]].
+      + apply binds_concat_right. unfold subst_ctx. apply binds_map. eapply Hb.
+      + apply binds_concat_left. 
+        assert (subst_typ x0 y T = T) as Hs. {
+          lets Hs: (subst_fresh_ctx y G1 H1). 
+          destruct (binds_destruct Hb) as [G1' [G1'' HG1]]. subst.
+          unfold subst_ctx in Hs. rewrite map_concat in Hs. rewrite map_concat in Hs.
+          rewrite map_single in Hs.
+          apply ok_concat_inv_l in H0. apply ok_concat_inv_l in H0.
+          lets Hok: (ok_concat_inv_l H0). repeat apply ok_concat_inv_l in Hok.
+          symmetry in Hs. apply (binds_middle H0) in Hs. destruct* Hs.
+        }
+        rewrite Hs. assumption.
+        unfold subst_ctx. simpl_dom. assumption.
+      + assumption.
   - (* ty_sngl_elim *)
     eapply ty_sngl_elim. apply* H. apply* H0.
   - (* ty_sub *)
@@ -1317,18 +1379,6 @@ Qed.
 Definition rename_var (x y z : var)  := If z = x then y else z.
 
 Definition rename_ctx x y G := subst_ctx x y (map_keys (rename_var x y) G).
-
-
-Lemma binds_destruct: forall {A} x (v:A) E,
-  binds x v E ->
-  exists E' E'', E = E' & x ~ v & E''.
-Proof.
-  introv Hb. induction E using env_ind. false* binds_empty_inv.
-  destruct (binds_push_inv Hb) as [[Hx HT] | [Hn Hbx]]; subst.
-  - exists E (@empty A). rewrite concat_empty_r. reflexivity.
-  - apply binds_push_neq_inv in Hb. destruct (IHE Hb) as [E' [E'' HE]]. subst.
-    exists E' (E'' & x0 ~ v0). rewrite concat_assoc. reflexivity. assumption.
-Qed.
 
 Lemma map_keys_notin: forall x y (G:ctx),
   x # G ->
