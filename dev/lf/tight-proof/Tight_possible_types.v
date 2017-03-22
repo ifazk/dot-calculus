@@ -77,8 +77,7 @@ Lemma tight_possible_types_closure_tight: forall G x T U,
   tight_pt G x U.
 Proof.
   intros G x T U Hgd HT Hsub.
-  dependent induction Hsub; auto.
-  - eauto.
+  dependent induction Hsub; eauto.
   - inversion HT.
     destruct (good_ty_precise_bot Hgd H).
   - inversion HT.
@@ -89,14 +88,9 @@ Proof.
     + apply ty_precise_var_and_inv2 in H.
       auto.
     + auto.
-  - eapply t_pt_dec_trm; eauto.
-  - eapply t_pt_dec_typ; eauto.
-  - eapply t_pt_sel; eassumption.
-  - dependent induction HT.
+  - inversion HT.
     + false * good_precise_sel_inv.
-    + pose proof (good_unique_tight_bounds Hgd H H0) as H1.
-      rewrite <- H1. assumption.
-  - apply t_pt_all with (L:=L) (S:=S1) (T:=T1); auto.
+    + pose proof (good_unique_tight_bounds Hgd H H5) as Hu. subst. assumption.
 Qed.
 
 Lemma tight_possible_types_lemma :
