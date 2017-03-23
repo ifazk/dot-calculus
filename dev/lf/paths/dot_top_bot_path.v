@@ -262,9 +262,10 @@ Inductive ty_trm : tymode -> ctx -> trm -> typ -> Prop :=
     (forall x, x \notin L ->
       ty_defs G x (open_typ x T) (open_defs x ds) (open_typ x T)) ->
     ty_trm m1 G (trm_val (val_new T ds)) (typ_bnd T)
-| ty_fld_elim : forall G p m m3 T,
-    ty_trm ty_general G (trm_path p) (typ_rcd (dec_trm m m3 T)) ->
-    ty_trm ty_general G (trm_path (p_sel p m)) T
+| ty_fld_elim : forall G p m1 m m3 T,
+    ty_trm m1 G (trm_path p) (typ_rcd (dec_trm m m3 T)) ->
+    (m1 = ty_precise -> m3 = path_strong) ->
+    ty_trm m1 G (trm_path (p_sel p m)) T
 | ty_let : forall L G t u T U,
     ty_trm ty_general G t T ->
     (forall x, x \notin L ->
@@ -389,8 +390,9 @@ Inductive ty_trm_t : tymode -> ctx -> trm -> typ -> Prop :=
     (forall x, x \notin L ->
       ty_defs G x (open_typ x T) (open_defs x ds) (open_typ x T)) ->
     ty_trm_t m1 G (trm_val (val_new T ds)) (typ_bnd T)
-| ty_fld_elim_t : forall G p m m3 T,
+| ty_fld_elim_t : forall G p m1 m m3 T,
     ty_trm_t ty_general G (trm_path p) (typ_rcd (dec_trm m m3 T)) ->
+     (m1 = ty_precise -> m3 = path_strong) ->
     ty_trm_t ty_general G (trm_path (p_sel p m)) T
 | ty_let_t : forall L G t u T U,
     ty_trm_t ty_general G t T ->
@@ -508,9 +510,8 @@ with   ts_subtyp      := Induction for subtyp    Sort Prop.
 Combined Scheme ts_mutind from ts_ty_trm_mut, ts_subtyp.
 
 Scheme ts_ty_trm_mut_t  := Induction for ty_trm_t    Sort Prop
-with   ts_subtyp_t      := Induction for subtyp_t    Sort Prop
-with   ts_norm_t        := Induction for norm_t      Sort Prop.
-Combined Scheme ts_mutind_t from ts_ty_trm_mut_t, ts_subtyp_t, ts_norm_t.
+with   ts_subtyp_t      := Induction for subtyp_t    Sort Prop.
+Combined Scheme ts_mutind_t from ts_ty_trm_mut_t, ts_subtyp_t.
 
 Scheme rules_trm_mut    := Induction for ty_trm    Sort Prop
 with   rules_def_mut    := Induction for ty_def    Sort Prop
@@ -1150,7 +1151,7 @@ Proof.
     } 
     apply H; eauto.
   - (* ty_fld_elim *)
-    simpl. eapply ty_fld_elim. apply H; eauto.
+    simpl. eapply ty_fld_elim. apply H; eauto. intro Contra. inversion Contra.
   - (* ty_let *)
     simpl.
     apply_fresh ty_let as z; eauto.
@@ -1468,6 +1469,8 @@ Proof.
     rewrite subst_open_commute_typ in H. rewrite subst_open_commute_defs in H.
     unfold rename_var in H. unfold subst_fvar in H. assert (Hzx: z <> x) by auto. 
     case_if. apply* H.
+  - (* ty_fld_elim *)
+    apply* ty_fld_elim. apply* H.
   - (* ty_let *)
     apply_fresh ty_let as z; auto. assert (Lz: z \notin L) by auto. specialize (H0 z Lz). 
     rewrite subst_open_commute_trm in H0. 
@@ -3405,70 +3408,73 @@ Definition (Tight Possible types)
 For a variable x, environment G, the set TPT(G, x) of simplified possible types
 of x defined as v in G is the smallest set SS such that:
 
-t_pt_precise   If G |-! x:T then T in SS.
-t_pt_dec_trm   If {a: T} in SS and G |-# T<:T' then {a:T'} in SS.
-t_pt_dec_typ   If {A:T..U} in SS, G |-# T'<:T and G |-# U<:U' then {A:T'..U'} in SS.
-t_pt_dec_bnd   If S in SS then rec(x: S) in SS.
-t_pt_all       If all(x: S)T in SS, G |-# S'<:S and G, x: S' |-# T<:T' then all(x: S')T' in SS.
-t_pt_and       If S1 in SS and S2 in SS then (S1 & S2) in SS.
-t_pt_path      If S in SS and G |-! y: {A: S..S} and G |- p: y.type and G |- norm p then y.A in SS.
-t_pt_top       top in SS
+t_pt_precise   If G |-! x:T then T in SS(x).
+t_pt_dec_trm   If {a: T} in SS(p) and G |-# T<:T' then {a:T'} in SS(p).
+t_pt_dec_typ   If {A:T..U} in SS(p), G |-# T'<:T and G |-# U<:U' then {A:T'..U'} in SS(p).
+t_pt_dec_bnd   If S in SS(x) then rec(x: S) in SS(x).
+t_pt_all       If all(x: S)T in SS(p), G |-# S'<:S and G, x: S' |-# T<:T' then all(x: S')T' in SS(x).
+t_pt_and       If S1 in SS(p) and S2 in SS(p) then (S1 & S2) in SS(p).
+t_pt_path      If S in SS(q) and G |-! y: {A: S..S} and G |- p: y.type and G |- norm p then y.A in SS(q).
+t_pt_sngl      If x in dom G then x.type in SS(x).
+t_pt_sel       If {a :strong T} in SS(p) then T in SS(p)
+t_pt_top       top in SS(p)
  *)
 
 Inductive tight_pt : ctx -> path -> typ -> Prop :=
   (* Precise typing *)
-| t_pt_precise : forall G x T,
+| tpt_precise : forall G p T,
+  ty_trm ty_precise G (trm_path p) T ->
+  tight_pt G p T
+  (* Path-variable equivalence *)
+| tpt_equiv : forall G p x T,
   ty_trm ty_precise G (trm_path (p_var (avar_f x))) T ->
-  tight_pt G (p_var (avar_f x)) T
+  tight_pt G p (typ_sngl (avar_f x)) ->
+  tight_pt G p T
   (* Term member subtyping *)
-| t_pt_dec_trm : forall G p a T T',
+| tpt_fld_sub : forall G p a T T',
   tight_pt G p (typ_rcd (dec_trm a path_general T)) ->
   subtyp_t ty_general G T T' ->
   tight_pt G p (typ_rcd (dec_trm a path_general T'))
 (* Strong typing *)
-(*| t_pt_dec_trm_strong: forall G p a T,
+| tpt_fld_strong_sub: forall G p a T,
   tight_pt G p (typ_rcd (dec_trm a path_strong T)) ->
-  tight_pt G p (typ_rcd (dec_trm a path_general T))*)
+  tight_pt G p (typ_rcd (dec_trm a path_general T))
   (* Type member subtyping *)
-| t_pt_dec_typ : forall G p A T T' U' U,
+| tpt_typ : forall G p A T T' U' U,
   tight_pt G p (typ_rcd (dec_typ A T U)) ->
   subtyp_t ty_general G T' T ->
   subtyp_t ty_general G U U' ->
   tight_pt G p (typ_rcd (dec_typ A T' U'))
   (* Recursive Types *)
-| t_pt_bnd : forall G x S S',
+| tpt_rec : forall G x S S',
   tight_pt G (p_var (avar_f x)) S ->
   S = open_typ x S' ->
   tight_pt G (p_var (avar_f x)) (typ_bnd S')
   (* Forall *)
-| t_pt_all : forall L G p S T S' T',
+| tpt_all : forall L G p S T S' T',
   tight_pt G p (typ_all S T) ->
   subtyp_t ty_general G S' S ->
   (forall y, y \notin L ->
    subtyp ty_general (G & y ~ S') (open_typ y T) (open_typ y T')) ->
   tight_pt G p (typ_all S' T')
   (* And *)
-| t_pt_and : forall G p S1 S2,
+| tpt_and : forall G p S1 S2,
   tight_pt G p S1 ->
   tight_pt G p S2 ->
   tight_pt G p (typ_and S1 S2)
   (* Tight Selection *)
-| t_pt_path : forall G q y p A S,
+| tpt_typ_sel : forall G q y p A S,
   tight_pt G q S ->
   ty_trm ty_precise G (trm_path (p_var (avar_f y))) (typ_rcd (dec_typ A S S)) ->
   ty_trm_t ty_general G (trm_path p) (typ_sngl (avar_f y)) ->
   norm_t G p ->
   tight_pt G q (typ_path p A)
   (* Singleton Intro *)
-| t_pt_sngl : forall G x T,
+| tpt_sngl : forall G x T,
   binds x T G ->
   tight_pt G (p_var (avar_f x)) (typ_sngl (avar_f x))
-  (* Path selection *)
-| t_pt_sel : forall G p a T,
-  tight_pt G p (typ_rcd (dec_trm a path_strong T)) ->
-  tight_pt G (p_sel p a) T
   (* Top *)
-| t_pt_top : forall G p T,
+| tpt_top : forall G p T,
   tight_pt G p T ->
   tight_pt G p typ_top
 .
@@ -3501,7 +3507,7 @@ Proof.
     + pose proof (precise_flow_bnd_inv'' H Hpf) as H1.
       destruct H1 as [[U' [H11 H12]] | [ls H1]]; try false.
       inversion H1.
-Qed.*)
+Qed.
 
 Lemma precise_flow_record_has : forall x G T U D,
   good G ->
@@ -3515,7 +3521,7 @@ Proof.
     apply* good_typ_bnd_record. apply* precise_flow_implies_bound.*)
   - Admitted.
 
-(*Lemma good_ty_precise_rcd_bot : forall G x a m s,
+Lemma good_ty_precise_rcd_bot : forall G x a m s,
     wf_sto G s ->
     ty_trm ty_precise G (trm_path (p_var (avar_f x))) (typ_rcd (dec_trm a m typ_bot)) ->
     False.
@@ -3531,7 +3537,7 @@ Proof.
     }
     lets Hrh: (rh_one (dec_trm a m typ_bot)).
     lets Hr: (precise_flow_record_has Hg Hf Hrh).
-Qed.*)
+Qed.
 
 Lemma rcd_binds: forall G x D,
   good G ->
@@ -3560,17 +3566,71 @@ Proof.
   inversions Hd.*)
 Admitted.
 
-Lemma tpt_bot: forall G p T,
-  good G ->
+Lemma good_ty_precise_rcd_bot : forall G x a m s,
+    wf_sto G s ->
+    ty_trm ty_precise G (trm_path (p_var (avar_f x))) (typ_rcd (dec_trm a m typ_bot)) ->
+    False.
+Proof.
+  introv Hwf Ht. lets Hg: (wf_good Hwf).
+  pose proof (typing_implies_bound Ht) as [T HT].
+  lets Hc: (corresponding_types Hwf HT). 
+  destruct Hc as [[S [U [t [Hb [Hl HA]]]]] | [S [ds [Hb [Hn HS]]]]]; subst;
+  lets Hf: (precise_flow_lemma HT Ht).
+  - apply precise_flow_all_inv in Hf. inversion Hf.
+  - assert (record_type (typ_rcd (dec_trm a m typ_bot))) as Hrt. {
+      unfold record_type. eexists. apply* rt_one. apply* rd_trm.
+    }
+    lets Hrh: (rh_one (dec_trm a m typ_bot)).
+    lets Hr: (precise_flow_record_has Hg Hf Hrh).
+Admitted.
+
+Inductive record_path: ctx -> path -> trm_label -> typ -> Prop :=
+| rp_one: forall G x a T,
+  ty_trm ty_general G (trm_path (p_var (avar_f x))) (typ_rcd (dec_trm a path_strong T)) ->
+  record_path G (p_var (avar_f x)) a T
+| rp_cons: forall G p a b T,
+  record_path G p a (typ_rcd (dec_trm b path_strong T)) ->
+  record_path G (p_sel p a) b T.
+
+Lemma tpt_bot: forall G p s,
+  wf_sto G s ->
   norm_t G p ->
-  tight_pt G p T ->
-  (T = typ_bot \/ exists a, record_has T (dec_trm a path_strong typ_bot)) ->
+  tight_pt G p typ_bot ->
   False.
 Proof.
-  introv Hg Hn Ht Hor.
-  dependent induction Ht; destruct Hor as [Hb | [b Hr]]; subst.
+  introv Hwf Hn Ht. lets Hg: (wf_good Hwf).
+  inversions Ht.
   - false* good_ty_precise_bot.
-  - Admitted.
+  - inversions H. apply* good_ty_precise_rcd_bot. Admitted. *)
+
+Lemma t_pt_lemma: 
+  (forall m1 G t T, ty_trm_t m1 G t T -> forall s p,
+    wf_sto G s ->
+    m1 = ty_general ->
+    t = trm_path p ->
+    norm_t G p ->
+    tight_pt G p T) /\
+  (forall m1 G T U, subtyp_t m1 G T U -> forall s p,
+    wf_sto G s ->
+    norm_t G p ->
+    tight_pt G p T ->
+    m1 = ty_general ->
+    tight_pt G p U).
+Proof.
+  apply ts_mutind_t; intros; subst; try solve [inversion H1 | inversion H2 | inversion H3]; eauto.
+  - (* ty_var *)
+    destruct p; inversions H1. auto.
+  - (* ty_fld_elim *)
+    destruct p0; inversions H2.
+    apply* tpt_sel. apply* H. inversions H3. assumption.
+  - (* ty_rec_intro *)
+    destruct p; inversions H2. eapply tpt_rec. apply* H. reflexivity.
+  - (* ty_rec_elim *)
+    destruct p; inversions H2. assert (tight_pt G (p_var (avar_f x)) (typ_bnd T)) as Hb by (apply* H).
+    inversions Hb.
+    * apply ty_rec_elim in H1. auto.
+    * apply ty_rec_elim in H1.
+
 
 Lemma tight_possible_types_closure_tight: forall G p T U s,
   wf_sto G s ->
@@ -3585,9 +3645,11 @@ Proof.
     false* tpt_bot.
   - (* subtyp_and11_t *)
     inversions HT; eauto.
-   (* apply t_pt_dec_trm_strong in H. 
     assert (subtyp_t ty_general G (typ_and T U) T) as Hsub by constructor.
-    lets Ht: (t_pt_dec_trm H Hsub). apply t_pt_sel. *) admit.
+    destruct m.
+      * apply t_pt_dec_trm_strong in H.
+        lets Ht: (t_pt_dec_trm H Hsub). apply* t_pt_sel. 
+      * lets Ht: (t_pt_dec_trm H Hsub). apply* t_pt_sel. 
   - (* subtyp_and12_t *)
     inversions HT; eauto.
     (*analogous to prev case*) admit.
@@ -3596,8 +3658,6 @@ Proof.
     + false* good_precise_sel_inv.
     + admit.
     + admit.
-  - (* subtyp_path_t *)
-    
 Qed.
 
 Lemma tight_possible_types_lemma :
