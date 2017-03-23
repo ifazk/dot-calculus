@@ -773,8 +773,6 @@ Proof.
     try solve [inversion Heqt; eapply IHty_trm; eauto];
     try solve [inversion Heqt; eapply IHty_trm1; eauto].
   - inversion Heqt. subst. exists T. assumption.
-  - inversions Heqt. exists T. assumption.
-  - inversions Heqt. auto.
 Qed.
 
 Lemma typing_implies_bound_t: forall m1 G x T,
@@ -787,8 +785,6 @@ Proof.
     try solve [inversion Heqt; eapply IHty_trm_t; eauto];
     try solve [inversion Heqt; eapply IHty_trm_t1; eauto].
   - inversion Heqt. subst. exists T. assumption.
-  - inversion Heqt. subst. exists T. assumption.
-  - inversions Heqt. auto.
 Qed.
 
 (* ###################################################################### *)
@@ -815,7 +811,6 @@ Fixpoint subst_typ (z: var) (u: var) (T: typ) { struct T } : typ :=
   | typ_path p L   => typ_path (subst_path z u p) L
   | typ_bnd T      => typ_bnd (subst_typ z u T)
   | typ_all T U    => typ_all (subst_typ z u T) (subst_typ z u U)
-  | typ_sngl x     => typ_sngl (subst_avar z u x)
   end
 with subst_dec (z: var) (u: var) (D: dec) { struct D } : dec :=
   match D with
@@ -874,7 +869,6 @@ Lemma subst_fresh_typ_dec: forall x y,
   (forall D : dec , x \notin fv_dec  D  -> subst_dec  x y D  = D ).
 Proof.
   intros x y. apply typ_mutind; intros; simpls; f_equal*. apply* subst_fresh_path.
-  apply* subst_fresh_avar.
 Qed.
 
 Definition subst_fresh_typ(x y: var) := proj1 (subst_fresh_typ_dec x y).
@@ -947,6 +941,20 @@ Proof.
   + simpl; f_equal. assumption.
 Qed.
 
+Lemma subst_open_commute_path_p: forall x y u,
+  (forall p: path, forall n: nat,
+    subst_path x y (open_rec_path_p n u p)
+    = open_rec_path_p n (subst_path x y u) (subst_path x y p)).
+Proof.
+  intros. induction p.
+Admitted. (*
+  + unfold subst_path, open_rec_path, subst_avar, open_rec_avar, subst_fvar. destruct a.
+    * repeat case_if; auto.
+    * case_var*.
+  + simpl; f_equal. assumption.
+Qed.*)
+
+
 (* "open and then substitute" = "substitute and then open" *)
 Lemma subst_open_commute_typ_dec: forall x y u,
   (forall t : typ, forall n: nat,
@@ -957,13 +965,30 @@ Lemma subst_open_commute_typ_dec: forall x y u,
      = open_rec_dec n (subst_fvar x y u) (subst_dec x y D)).
 Proof.
   intros. apply typ_mutind; intros; simpl; f_equal*. apply subst_open_commute_path.
-  apply subst_open_commute_avar.
 Qed.
 
 Lemma subst_open_commute_typ: forall x y u T,
   subst_typ x y (open_typ u T) = open_typ (subst_fvar x y u) (subst_typ x y T).
 Proof.
   intros. apply* subst_open_commute_typ_dec.
+Qed.
+
+(* "open and then substitute" = "substitute and then open" *)
+Lemma subst_open_commute_typ_dec_p: forall x y u,
+  (forall t : typ, forall n: nat,
+     subst_typ x y (open_rec_typ_p n u t)
+     = open_rec_typ_p n (subst_path x y u) (subst_typ x y t)) /\
+  (forall D : dec, forall n: nat,
+     subst_dec x y (open_rec_dec_p n u D)
+     = open_rec_dec_p n (subst_path x y u) (subst_dec x y D)).
+Proof.
+  intros. apply typ_mutind; intros; simpl; f_equal*. apply subst_open_commute_path_p.
+Qed.
+
+Lemma subst_open_commute_typ_p: forall x y u T,
+  subst_typ x y (open_typ_p u T) = open_typ_p (subst_path x y u) (subst_typ x y T).
+Proof.
+  intros. apply* subst_open_commute_typ_dec_p.
 Qed.
 
 (* "open and then substitute" = "substitute and then open" *)
@@ -1192,49 +1217,18 @@ Proof.
     apply ok_push. apply ok_concat_map. eauto. unfold subst_ctx. eauto.
   - (* ty_rec_intro *)
     simpl. apply ty_rec_intro.
-    assert (trm_path (p_var (avar_f (If x = x0 then y else x))) = subst_trm x0 y (trm_path (p_var (avar_f x))) ) as A. {
-      simpl. reflexivity.
-    }
-    rewrite A.
-    assert (open_typ (If x = x0 then y else x) (subst_typ x0 y T) = subst_typ x0 y (open_typ x T)) as B. {
-      rewrite subst_open_commute_typ. unfold subst_fvar. reflexivity.
-    }
-    rewrite B.
-    apply H; eauto.
+    simpl in H. 
+
+    assert (G1 & x ~ S & G2 = G1 & x ~ S & G2) as Hg by admit.
+    specialize (H G1 G2 x Hg H1 H2 H3 H4).
+    rewrite <- subst_open_commute_typ_p. apply* H.
   - (* ty_rec_elim *)
-    simpl. rewrite subst_open_commute_typ.
+    simpl. rewrite subst_open_commute_typ_p.
     apply ty_rec_elim.
     apply H; eauto.
   - (* ty_and_intro *)
     simpl.
-    assert (trm_path (p_var (avar_f (If x = x0 then y else x))) = subst_trm x0 y (trm_path (p_var (avar_f x))) ) as A. {
-      simpl. reflexivity.
-    }
-    rewrite A.
     apply ty_and_intro; eauto.
-  - (* ty_sngl_intro *)
-    simpl. case_if.
-    * destruct (typing_implies_bound H2) as [U Hb]. 
-      apply ty_sngl_intro with (T:=U). assumption. 
-    * apply* ty_sngl_intro.
-      apply binds_subst in b. 
-      destruct (binds_concat_inv b) as [Hb | [Hn Hb]].
-      + apply binds_concat_right. unfold subst_ctx. apply binds_map. eapply Hb.
-      + apply binds_concat_left. 
-        assert (subst_typ x0 y T = T) as Hs. {
-          lets Hs: (subst_fresh_ctx y G1 H1). 
-          destruct (binds_destruct Hb) as [G1' [G1'' HG1]]. subst.
-          unfold subst_ctx in Hs. rewrite map_concat in Hs. rewrite map_concat in Hs.
-          rewrite map_single in Hs.
-          apply ok_concat_inv_l in H0. apply ok_concat_inv_l in H0.
-          lets Hok: (ok_concat_inv_l H0). repeat apply ok_concat_inv_l in Hok.
-          symmetry in Hs. apply (binds_middle H0) in Hs. destruct* Hs.
-        }
-        rewrite Hs. assumption.
-        unfold subst_ctx. simpl_dom. assumption.
-      + assumption.
-  - (* ty_sngl_elim *)
-    eapply ty_sngl_elim. apply* H. apply* H0.
   - (* ty_sub *)
     eapply ty_sub; eauto.
     intro Contra. inversion Contra.
@@ -1268,6 +1262,8 @@ Proof.
     apply ok_remove in H1. assumption.
   - (* ty_def_path *)
     simpl. apply ty_def_path. apply* H. auto.
+  - (* ty_def_val *)
+    simpl. apply ty_def_val. admit.
   - (* ty_defs_one *)
     simpl. apply* ty_defs_one.
   - (* ty_defs_cons *)
@@ -1499,40 +1495,23 @@ Proof.
     unfold subst_fvar in H0. assert (Hzx: z <> x) by auto. case_if.
     rewrite* rename_ctx_other_var.
   - (* ty_rec_intro *)
-    apply ty_rec_intro. simpl in H. rewrite subst_open_commute_typ in H. 
+    apply ty_rec_intro. simpl in H. rewrite subst_open_commute_typ_p in H. 
     unfold subst_fvar in H. apply* H.
   - (* ty_rec_elim. *) 
-    rewrite subst_open_commute_typ. apply ty_rec_elim. unfold subst_typ in H.
+    rewrite subst_open_commute_typ_p. apply ty_rec_elim. unfold subst_typ in H.
     apply* H.
-  - (* ty_sngl_intro *)
-    destruct (binds_destruct b) as [G' [G'' HG]]. subst. unfold rename_ctx. unfold subst_ctx.
-    case_if.
-    * unfold rename_ctx. rewrite* binds_map_keys.
-    * admit. (*apply* ty_sngl_intro.
-      apply binds_subst in b. 
-      destruct (binds_concat_inv b) as [Hb | [Hn Hb]].
-      + repeat rewrite map_keys_concat. apply binds_map. apply binds_concat_right.
-        
-        
-      + apply binds_concat_left. 
-        assert (subst_typ x0 y T = T) as Hs. {
-          lets Hs: (subst_fresh_ctx y G1 H1). 
-          destruct (binds_destruct Hb) as [G1' [G1'' HG1]]. subst.
-          unfold subst_ctx in Hs. rewrite map_concat in Hs. rewrite map_concat in Hs.
-          rewrite map_single in Hs.
-          apply ok_concat_inv_l in H0. apply ok_concat_inv_l in H0.
-          lets Hok: (ok_concat_inv_l H0). repeat apply ok_concat_inv_l in Hok.
-          symmetry in Hs. apply (binds_middle H0) in Hs. destruct* Hs.
-        }
-        rewrite Hs. assumption.
-        unfold subst_ctx. simpl_dom. assumption.
-      + assumption.*)
   - (* ty_sub *)
     apply ty_sub with (T:=(subst_typ x y T)); auto.
     + intros. inversion H2.
   - (* ty_def_trm *)
     apply ty_def_trm. 
     replace (rename_ctx x y G & rename_var x y x0 ~ subst_typ x y U) with (rename_ctx x y (G & x0 ~ U)).
+    + apply* H.
+    + unfold rename_ctx. rewrite map_keys_concat. rewrite map_keys_single. 
+      unfold subst_ctx. apply map_push.
+  - (* ty_def val *)
+    apply ty_def_val.
+     replace (rename_ctx x y G & rename_var x y x0 ~ subst_typ x y U) with (rename_ctx x y (G & x0 ~ U)).
     + apply* H.
     + unfold rename_ctx. rewrite map_keys_concat. rewrite map_keys_single. 
       unfold subst_ctx. apply map_push.
@@ -1607,7 +1586,11 @@ Proof.
         split. auto. split.
         apply weaken_ty_trm. assumption. apply ok_push. eapply wf_sto_to_ok_G. eassumption. assumption.
         reflexivity.
-      * assert (exists x, trm_val v = trm_path (p_var (avar_f x))) as A. {
+      * 
+      
+      assert (exists x, trm_val v = trm_path (p_var (avar_f x))) as A. {
+          
+      {
           apply H3. reflexivity.
         }
         destruct A as [? A]. inversion A.
