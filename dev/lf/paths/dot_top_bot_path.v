@@ -305,16 +305,16 @@ Inductive ty_trm : tymode -> ctx -> trm -> typ -> Prop :=
     (forall x, x \notin L ->
       ty_trm ty_general (G & x ~ T) (open_trm x u) U) ->
     ty_trm ty_general G (trm_let t u) U
-| ty_rec_intro : forall G p T,
-    ty_trm ty_general G (trm_path p)  (open_typ_p p T) ->
-    ty_trm ty_general G (trm_path p)  (typ_bnd T)
+| ty_rec_intro : forall G x T,
+    ty_trm ty_general G (trm_path (p_var (avar_f x)))  (open_typ x T) ->
+    ty_trm ty_general G (trm_path (p_var (avar_f x)))  (typ_bnd T)
 | ty_rec_elim : forall m1 G p T,
     ty_trm m1 G (trm_path p)  (typ_bnd T) ->
     ty_trm m1 G (trm_path p)  (open_typ_p p T)
 | ty_and_intro : forall G p T U,
-    ty_trm ty_general G (trm_path p)  T ->
-    ty_trm ty_general G (trm_path p)  U ->
-    ty_trm ty_general G (trm_path p)  (typ_and T U)
+    ty_trm ty_general G (trm_path p) T ->
+    ty_trm ty_general G (trm_path p) U ->
+    ty_trm ty_general G (trm_path p) (typ_and T U)
 | ty_sub : forall m1 G t T U,
     (m1 = ty_precise -> exists p, t = trm_path p) ->
     ty_trm m1 G t T ->
@@ -429,9 +429,9 @@ Inductive ty_trm_t : tymode -> ctx -> trm -> typ -> Prop :=
     (forall x, x \notin L ->
       ty_trm ty_general (G & x ~ T) (open_trm x u) U) ->
     ty_trm_t ty_general G (trm_let t u) U
-| ty_rec_intro_t : forall G p T,
-    ty_trm_t ty_general G (trm_path p)  (open_typ_p p T) ->
-    ty_trm_t ty_general G (trm_path p)  (typ_bnd T)
+| ty_rec_intro_t : forall G x T,
+    ty_trm_t ty_general G (trm_path (p_var (avar_f x)))  (open_typ x T) ->
+    ty_trm_t ty_general G (trm_path (p_var (avar_f x)))  (typ_bnd T)
 | ty_rec_elim_t : forall m1 G p T,
     ty_trm_t m1 G (trm_path p)  (typ_bnd T) ->
     ty_trm_t m1 G (trm_path p)  (open_typ_p p T)
@@ -1219,7 +1219,7 @@ Proof.
     simpl. apply ty_rec_intro.
     simpl in H. 
 
-    assert (G1 & x ~ S & G2 = G1 & x ~ S & G2) as Hg by admit.
+    assert (G1 & x ~ S & G2 = G1 & x ~ S & G2) as Hg by reflexivity.
     specialize (H G1 G2 x Hg H1 H2 H3 H4).
     rewrite <- subst_open_commute_typ_p. apply* H.
   - (* ty_rec_elim *)
@@ -1586,14 +1586,7 @@ Proof.
         split. auto. split.
         apply weaken_ty_trm. assumption. apply ok_push. eapply wf_sto_to_ok_G. eassumption. assumption.
         reflexivity.
-      * 
-      
-      assert (exists x, trm_val v = trm_path (p_var (avar_f x))) as A. {
-          
-      {
-          apply H3. reflexivity.
-        }
-        destruct A as [? A]. inversion A.
+      * assert (ty_precise = ty_precise) as Hp by reflexivity. destruct (H3 Hp) as [p Hn]. inversion Hn.
     + specialize (IHwf_sto Bi).
       inversion IHwf_sto as [IH | IH].
       * destruct IH as [S [U [t [IH1 [IH2 IH3]]]]].
@@ -1695,10 +1688,22 @@ Proof.
   intros. induction D; simpl; reflexivity.
 Qed.
 
+Lemma open_dec_preserves_label_p: forall D x i,
+  label_of_dec D = label_of_dec (open_rec_dec_p i x D).
+Proof.
+  intros. induction D; simpl; reflexivity.
+Qed.
+
 Lemma open_record_dec: forall D x,
   record_dec D -> record_dec (open_dec x D).
 Proof.
   intros. inversion H; unfold open_dec; simpl; constructor.
+Qed.
+
+Lemma open_record_dec_p: forall D x,
+  record_dec D -> record_dec (open_dec_p x D).
+Proof.
+  intros. inversion H; unfold open_dec_p; simpl; constructor.
 Qed.
 
 Lemma open_record_typ: forall T x ls,
@@ -1713,6 +1718,20 @@ Proof.
     apply rt_cons; try assumption.
     apply open_record_dec. assumption.
     rewrite <- open_dec_preserves_label. assumption.
+Qed.
+
+Lemma open_record_typ_p: forall T p ls,
+  record_typ T ls -> record_typ (open_typ_p p T) ls.
+Proof.
+  intros. induction H.
+  - unfold open_typ_p. simpl.
+    apply rt_one.
+    apply open_record_dec_p. assumption.
+    rewrite <- open_dec_preserves_label_p. assumption.
+  - unfold open_typ_p. simpl.
+    apply rt_cons; try assumption.
+    apply open_record_dec_p. assumption.
+    rewrite <- open_dec_preserves_label_p. assumption.
 Qed.
 
 Lemma open_eq_avar: forall x i a1 a2,
@@ -1776,8 +1795,6 @@ Proof.
     f_equal.
     eapply H; eauto using notin_union_r1.
     eapply H0; eauto using notin_union_r2.
-  - simpl in H1. induction T2; simpl in H1; inversion H1.
-    apply open_eq_avar in H3; auto. subst. reflexivity.
   - simpl in H3. induction D2; simpl in H3; inversion H3.
     subst.
     f_equal.
@@ -1846,6 +1863,13 @@ Proof.
   eassumption.
 Qed.
 
+Lemma open_record_type_p: forall T p,
+  record_type T -> record_type (open_typ_p p T).
+Proof.
+  intros. destruct H as [ls H]. exists ls. eapply open_record_typ_p.
+  eassumption.
+Qed.
+
 Lemma open_record_type_rev: forall T x,
   x \notin fv_typ T ->
   record_type (open_typ x T) -> record_type T.
@@ -1858,6 +1882,10 @@ Lemma label_same_typing: forall G d z U D,
 Proof.
   intros. inversion H; subst; simpl; reflexivity.
 Qed.
+
+Lemma open_var_path_typ_eq: forall x T,
+  open_typ x T = open_typ_p (p_var (avar_f x)) T.
+Proof. Admitted.
 
 Lemma record_defs_typing_rec: forall G ds S z U,
   ty_defs  G z U ds S ->
@@ -1924,10 +1952,7 @@ Proof.
     apply open_record_type_rev with (x:=x).
     eauto.
     eapply record_defs_typing. eapply H3. eauto.
-  + assert (exists x, trm_val (val_new S ds) = trm_path (p_var (avar_f x))) as Contra. {
-      apply H0; eauto.
-    }
-    destruct Contra as [? Contra]. inversion Contra.
+  + assert (ty_precise = ty_precise) as Hp by reflexivity. destruct (H0 Hp). inversion H3.
 Qed.
 
 Inductive record_sub : typ -> typ -> Prop :=
@@ -2052,13 +2077,13 @@ Proof.
   - eapply IHHtyp; eassumption.
 Qed.
 
-Lemma record_type_sub_not_rec: forall S T x,
-  record_sub (open_typ x S) (typ_bnd T) ->
+Lemma record_type_sub_not_rec: forall S T p,
+  record_sub (open_typ_p p S) (typ_bnd T) ->
   record_type S ->
   False.
 Proof.
-  introv Hsub Htype. remember (open_typ x S) as Sx.
-  apply open_record_type with (x:=x) in Htype.
+  introv Hsub Htype. remember (open_typ_p p S) as Sx.
+  apply open_record_type_p with (p:=p) in Htype.
   rewrite <- HeqSx in Htype. clear HeqSx.
   destruct Htype as [ls Htyp]. induction Htyp.
   - inversion Hsub.
@@ -2078,8 +2103,10 @@ Proof.
       eapply IHHx; eauto.
     }
     destruct A as [A | A].
-    + inversion A. right. apply rs_refl.
-    + apply record_type_sub_not_rec in A. inversion A. assumption.
+    + inversion A. right. rewrite open_var_path_typ_eq.
+      apply rs_refl.
+    + rewrite open_var_path_typ_eq in A.
+    apply record_type_sub_not_rec in A. inversion A. assumption.
   - assert (T = typ_bnd S \/ record_sub (open_typ x S) T) as A. {
       eapply IHHx; eauto.
     }
@@ -2146,6 +2173,7 @@ Lemma var_new_typing: forall G s x T ds,
   ty_trm ty_precise G (trm_path (p_var (avar_f x)))  (open_typ x T).
 Proof.
   intros.
+  rewrite open_var_path_typ_eq.
   apply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
 Qed.
 
@@ -2343,7 +2371,7 @@ Proof.
     constructor. assumption.
   - assert (H : precise_flow x G T (typ_bnd T0)).
     { apply IHHtyp; auto. }
-    auto.
+    rewrite <- open_var_path_typ_eq. auto.
   - rename H into H1.
     assert (H : precise_flow x G T T0).
     { apply IHHtyp; auto. }
@@ -2392,15 +2420,15 @@ Proof.
   pose proof (precise_flow_implies_bound H) as H1.
   induction H.
   - auto.
-  - auto.
+  - rewrite open_var_path_typ_eq. auto.
   - pose proof (IHprecise_flow H1) as H2.
     eapply ty_sub.
-    + intros H3. exists x. reflexivity.
+    + intros H3. exists (p_var (avar_f x)). reflexivity.
     + eauto.
     + eauto.
   - pose proof (IHprecise_flow H1) as H2.
     eapply ty_sub.
-    + intros H3. exists x. reflexivity.
+    + intros H3. exists (p_var (avar_f x)). reflexivity.
     + eauto.
     + eauto.
 Qed.
@@ -2843,22 +2871,6 @@ Proof.
   - pose proof (precise_flow_bnd_inv'' H Hpf) as [[U [Contra H1]] | [ls Contra]]; inversion Contra.
 Qed.
 
-Lemma good_precise_sngl_inv: forall G x y,
-  good G ->
-  ty_trm ty_precise G (trm_path (p_var (avar_f x))) (typ_sngl (avar_f y)) ->
-  False.
-Proof.
-  introv Hgd Hpt.
-  pose proof (typing_implies_bound Hpt) as [T Bis].
-  pose proof (good_binds Hgd Bis) as Hgt.
-  pose proof (precise_flow_lemma Bis Hpt) as Hpf.
-  induction Hgt.
-  - apply (precise_flow_all_inv) in Hpf.
-    inversion Hpf.
-  - pose proof (precise_flow_bnd_inv'' H Hpf) as [[U [Contra H1]] | [ls Contra]]; inversion Contra.
-Qed.
-
-
 Lemma good_precise_dec_implies_record_dec : forall G x D,
     good G ->
     ty_trm ty_precise G (trm_path (p_var (avar_f x))) (typ_rcd D) ->
@@ -2982,11 +2994,9 @@ Proof.
     subst.
     apply_fresh ty_let as y; eauto.
     apply H0 with (x:=y); eauto. apply subenv_push; eauto.
-  - (* ty_sngl_intro *)
-    unfold subenv in H1. destruct (H1 x T b) as [Hb | [T1 [Hb Hs]]].
-    * apply ty_sngl_intro with (T:=T). assumption.
-    * apply ty_sngl_intro with (T:=T1). assumption.
   - (* ty_def_path *)
+    constructor. apply H; auto. apply subenv_push. assumption. assumption.
+  - (* ty_def_val *)
     constructor. apply H; auto. apply subenv_push. assumption. assumption.
   - (* norm_var *)
     unfold subenv in H0. destruct (H0 x T b) as [Hb | [T1 [Hb Hs]]].
@@ -3036,9 +3046,8 @@ with has_member_rules: ctx -> var -> typ -> typ_label -> typ -> typ -> Prop :=
 | has_bnd : forall G x T A S U,
   has_member G x (open_typ x T) A S U ->
   has_member_rules G x (typ_bnd T) A S U
-| has_sel : forall G x y p B T' A S U,
-  ty_trm ty_precise G (trm_path (p_var (avar_f y))) (typ_rcd (dec_typ B T' T')) ->
-  ty_trm ty_general G (trm_path p) (typ_sngl (avar_f y)) ->
+| has_sel : forall G x p B T' A S U,
+  ty_trm ty_precise G (trm_path p) (typ_rcd (dec_typ B T' T')) ->
   has_member G x T' A S U ->
   has_member_rules G x (typ_path p B) A S U
 | has_bot  : forall G x A S U,
@@ -3055,9 +3064,8 @@ Lemma has_member_rules_inv: forall G x T A S U, has_member_rules G x T A S U ->
      has_member G x T2 A S U)) \/
   (exists T', T = typ_bnd T' /\
     has_member G x (open_typ x T') A S U) \/
-  (exists p y B T', T = typ_path p B /\
-    ty_trm ty_general G (trm_path p) (typ_sngl (avar_f y)) /\
-    ty_trm ty_precise G (trm_path (p_var (avar_f y))) (typ_rcd (dec_typ B T' T')) /\
+  (exists p B T', T = typ_path p B /\
+    ty_trm ty_precise G (trm_path p) (typ_rcd (dec_typ B T' T')) /\
     has_member G x T' A S U) \/
   (T = typ_bot).
 Proof.
@@ -3066,7 +3074,7 @@ Proof.
   - right. left. exists T1 T2. eauto.
   - right. left. exists T1 T2. eauto.
   - right. right. left. exists T0. eauto.
-  - right. right. right. left. exists p y B T'. split. reflexivity.
+  - right. right. right. left. exists p B T'. split. reflexivity.
     split. assumption. split. assumption. assumption.
   - right. right. right. right. reflexivity.
 Qed.
