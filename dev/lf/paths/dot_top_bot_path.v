@@ -1217,11 +1217,15 @@ Proof.
     apply ok_push. apply ok_concat_map. eauto. unfold subst_ctx. eauto.
   - (* ty_rec_intro *)
     simpl. apply ty_rec_intro.
-    simpl in H. 
-
-    assert (G1 & x ~ S & G2 = G1 & x ~ S & G2) as Hg by reflexivity.
-    specialize (H G1 G2 x Hg H1 H2 H3 H4).
-    rewrite <- subst_open_commute_typ_p. apply* H.
+    assert (trm_path (p_var (avar_f (If x = x0 then y else x))) 
+        = subst_trm x0 y (trm_path (p_var (avar_f x))) ) as A. {
+      simpl. reflexivity.
+    }
+    rewrite A.
+    assert (open_typ (If x = x0 then y else x) (subst_typ x0 y T) = subst_typ x0 y (open_typ x T)) as B. {
+      rewrite subst_open_commute_typ. unfold subst_fvar. reflexivity.
+    }
+    rewrite B. apply* H.
   - (* ty_rec_elim *)
     simpl. rewrite subst_open_commute_typ_p.
     apply ty_rec_elim.
@@ -1495,8 +1499,7 @@ Proof.
     unfold subst_fvar in H0. assert (Hzx: z <> x) by auto. case_if.
     rewrite* rename_ctx_other_var.
   - (* ty_rec_intro *)
-    apply ty_rec_intro. simpl in H. rewrite subst_open_commute_typ_p in H. 
-    unfold subst_fvar in H. apply* H.
+    apply ty_rec_intro. simpl in H. rewrite subst_open_commute_typ in H. unfold subst_fvar in H. apply* H.
   - (* ty_rec_elim. *) 
     rewrite subst_open_commute_typ_p. apply ty_rec_elim. unfold subst_typ in H.
     apply* H.
