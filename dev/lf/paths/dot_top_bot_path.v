@@ -935,8 +935,8 @@ Lemma subst_open_commute_path: forall x y u,
     = open_rec_path n (subst_fvar x y u) (subst_path x y p)).
 Proof.
   intros. induction p.
-  + unfold subst_path, open_rec_path, subst_avar, open_rec_avar, subst_fvar. destruct a.
-    * repeat case_if; auto.
+  + unfold subst_path, open_rec_path, subst_avar, open_rec_avar, subst_fvar. destruct a; simpl.
+    * case_if*.
     * case_var*.
   + simpl; f_equal. assumption.
 Qed.
@@ -946,14 +946,12 @@ Lemma subst_open_commute_path_p: forall x y u,
     subst_path x y (open_rec_path_p n u p)
     = open_rec_path_p n (subst_path x y u) (subst_path x y p)).
 Proof.
-  intros. induction p.
-Admitted. (*
-  + unfold subst_path, open_rec_path, subst_avar, open_rec_avar, subst_fvar. destruct a.
-    * repeat case_if; auto.
-    * case_var*.
-  + simpl; f_equal. assumption.
-Qed.*)
-
+  intros. induction p. 
+  - unfold subst_path, open_rec_path_p, open_rec_avar_p. destruct a; simpl.
+    + case_if*. 
+    + case_var*. 
+  - simpl. f_equal. assumption. 
+Qed. 
 
 (* "open and then substitute" = "substitute and then open" *)
 Lemma subst_open_commute_typ_dec: forall x y u,
@@ -1267,7 +1265,15 @@ Proof.
   - (* ty_def_path *)
     simpl. apply ty_def_path. apply* H. auto.
   - (* ty_def_val *)
-    simpl. apply ty_def_val. admit.
+    simpl. apply ty_def_val. specialize (H G1 (G2 & x ~ U) x0). 
+    replace (G1 & subst_ctx x0 y G2 & x ~ subst_typ x0 y U) with (G1 & subst_ctx x0 y (G2 & x ~ U)).
+    + apply H; auto; try rewrite* concat_assoc. unfold subst_ctx. rewrite map_concat. 
+      rewrite concat_assoc. unfold subst_ctx in H3. apply* weaken_ty_trm. 
+      apply ok_concat_map. rewrite <- concat_assoc in H1. 
+      apply ok_remove in H1. rewrite concat_assoc in H1. apply ok_push. 
+      * apply* ok_concat_map. 
+      * apply ok_push_inv in H1. destruct* H1. 
+    + unfold subst_ctx. rewrite map_concat. rewrite concat_assoc. rewrite* map_single.
   - (* ty_defs_one *)
     simpl. apply* ty_defs_one.
   - (* ty_defs_cons *)
