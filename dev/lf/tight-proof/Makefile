@@ -18,8 +18,9 @@ PROOFS= \
       Misc.v \
       Precise_flow.v \
       Inductive_opens.v \
-      Inductive_opens.v \
-      General_to_tight.v
+      Good_types.v \
+      General_to_tight.v \
+      Canonical_forms.v
 PROOFOBJECTS=$(PROOFS:.v=.vo)
 
 
