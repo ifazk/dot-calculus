@@ -85,5 +85,8 @@ Simplified_possible_types.vo: Definitions.vo \
                               Good_types.vo
 Tight_possible_types.vo: Precise_flow.vo \
                          Good_types.vo
-General_to_tight.vo: Good_types.vo \
+General_to_tight.vo: Wellformed_store.vo \
+                     Narrowing.vo \
+                     Good_types.vo \
+                     Some_lemmas.vo \
                      Tight_possible_types.vo
