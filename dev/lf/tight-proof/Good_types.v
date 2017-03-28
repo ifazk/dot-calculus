@@ -226,6 +226,32 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma good_precise_flow_all_inv : forall x G S T U,
+    good G ->
+    precise_flow x G U (typ_all S T) ->
+    U = (typ_all S T).
+Proof.
+  introv Hgd Hpf.
+  pose proof (precise_flow_implies_bound Hpf) as Bis.
+  pose proof (good_binds Hgd Bis) as Hgt.
+  dependent induction Hgt.
+  - eapply precise_flow_all_inv'. eassumption.
+  - pose proof (precise_flow_bnd_inv'' H Hpf) as [ [? [Contra _]] | [? Contra]]; inversion Contra.
+Qed.
+
+Lemma good_precise_all_inv : forall x G S T,
+    good G ->
+    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_all S T) ->
+    binds x (typ_all S T) G.
+Proof.
+  introv Hgd Htyp.
+  pose proof (typing_implies_bound Htyp) as [U Bi].
+  pose proof (precise_flow_lemma Bi Htyp) as Hpf.
+  pose proof (good_precise_flow_all_inv Hgd Hpf) as H.
+  rewrite <- H.
+  assumption.
+Qed.
+
 (* ###################################################################### *)
 (** ** Good Has Member *)
 

@@ -143,6 +143,15 @@ Proof.
   - inversion IHHpf.
 Qed.
 
+Lemma precise_flow_all_inv' : forall x G S T U,
+    precise_flow x G (typ_all S T) U ->
+    (typ_all S T) = U.
+Proof.
+  introv Hpf. symmetry.
+  eapply precise_flow_all_inv.
+  eassumption.
+Qed.
+
 Lemma precise_flow_bnd_inv'' : forall x G T,
     record_type T ->
     (forall U, precise_flow x G (typ_bnd T) U ->

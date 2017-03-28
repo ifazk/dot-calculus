@@ -21,10 +21,6 @@ Inductive avar : Set :=
   | avar_b : nat -> avar  (* bound var (de Bruijn index) *)
   | avar_f : var -> avar. (* free var ("name"), refers to store or ctx *)
 
-Inductive path : Set :=
-  | p_var : avar -> path
-  | p_sel : path -> trm_label -> path.
-
 Inductive pathmode: Set := path_strong | path_general.
 
 Inductive typ : Set :=
@@ -37,7 +33,10 @@ Inductive typ : Set :=
   | typ_all  : typ -> typ -> typ (* all(x: S)T *)
 with dec : Set :=
   | dec_typ  : typ_label -> typ -> typ -> dec (* A: S..U *)
-  | dec_trm  : trm_label -> pathmode -> typ -> dec (* {a: T} or {a:! T} *).
+  | dec_trm  : trm_label -> pathmode -> typ -> dec (* {a: T} or {a:! T} *)
+with path : Set :=
+  | p_var : avar -> path
+  | p_sel : path -> trm_label -> path.
 
 Inductive trm : Set :=
   | trm_val  : val -> trm
@@ -505,8 +504,9 @@ with subtyp_t : tymode -> ctx -> typ -> typ -> Prop :=
 (** ** Induction principles *)
 
 Scheme typ_mut := Induction for typ Sort Prop
-with   dec_mut := Induction for dec Sort Prop.
-Combined Scheme typ_mutind from typ_mut, dec_mut.
+with   dec_mut := Induction for dec Sort Prop
+with   path_mut := Induction for path Sort Prop.
+Combined Scheme typ_mutind from typ_mut, dec_mut, path_mut.
 
 Scheme trm_mut  := Induction for trm  Sort Prop
 with   val_mut  := Induction for val Sort Prop
@@ -852,27 +852,17 @@ Proof.
   intros. destruct* a. simpl. case_var*. simpls. notin_false.
 Qed.
 
-Lemma subst_fresh_path: forall x y,
-  forall p : path, x \notin fv_path p -> subst_path x y p = p.
+Lemma subst_fresh_typ_dec_path: forall x y,
+  (forall T : typ  , x \notin fv_typ  T  -> subst_typ  x y T  = T ) /\
+  (forall D : dec  , x \notin fv_dec  D  -> subst_dec  x y D  = D ) /\
+  (forall P : path , x \notin fv_path P  -> subst_path x y P  = P ).
 Proof.
-  intros. induction p; simpls.
-  - assert (subst_avar x y a = a) as Hs. {
-      apply subst_fresh_avar. assumption.
-    }
-    rewrite Hs. reflexivity.
-  - rewrite (IHp H). reflexivity.
+  intros x y. apply typ_mutind; intros; simpls; f_equal*. apply subst_fresh_avar. assumption. 
 Qed.
 
-
-Lemma subst_fresh_typ_dec: forall x y,
-  (forall T : typ , x \notin fv_typ  T  -> subst_typ  x y T  = T ) /\
-  (forall D : dec , x \notin fv_dec  D  -> subst_dec  x y D  = D ).
-Proof.
-  intros x y. apply typ_mutind; intros; simpls; f_equal*. apply* subst_fresh_path.
-Qed.
-
-Definition subst_fresh_typ(x y: var) := proj1 (subst_fresh_typ_dec x y).
-Definition subst_fresh_dec(x y: var) := proj2 (subst_fresh_typ_dec x y).
+Definition subst_fresh_typ (x y: var) := proj31 (subst_fresh_typ_dec_path x y).
+Definition subst_fresh_dec (x y: var) := proj32 (subst_fresh_typ_dec_path x y).
+Definition subst_fresh_path(x y: var) := proj33 (subst_fresh_typ_dec_path x y).
 
 Lemma subst_fresh_trm_val_def_defs: forall x y,
   (forall t : trm , x \notin fv_trm  t  -> subst_trm  x y t  = t ) /\
@@ -881,7 +871,7 @@ Lemma subst_fresh_trm_val_def_defs: forall x y,
   (forall ds: defs, x \notin fv_defs ds -> subst_defs x y ds = ds).
 Proof.
   intros x y. apply trm_mutind; intros; simpls; f_equal*;
-  (apply* subst_fresh_avar || apply* subst_fresh_path || apply* subst_fresh_typ_dec).
+  (apply* subst_fresh_avar || apply* subst_fresh_path || apply* subst_fresh_typ_dec_path).
 Qed.
 
 Definition subst_fresh_trm (x y: var) := proj41 (subst_fresh_trm_val_def_defs x y).
@@ -913,7 +903,7 @@ Proof.
     apply invert_fv_ctx_types_push in N. destruct N as [N1 N2].
     unfold subst_ctx in *. rewrite map_push.
     rewrite (IH N2).
-    rewrite ((proj1 (subst_fresh_typ_dec _ _)) _ N1).
+    rewrite ((proj31 (subst_fresh_typ_dec_path _ _)) _ N1).
     reflexivity.
 Qed.
 
@@ -929,18 +919,6 @@ Proof.
   + case_var*.
 Qed.
 
-Lemma subst_open_commute_path: forall x y u,
-  (forall p: path, forall n: nat,
-    subst_path x y (open_rec_path n u p)
-    = open_rec_path n (subst_fvar x y u) (subst_path x y p)).
-Proof.
-  intros. induction p.
-  + unfold subst_path, open_rec_path, subst_avar, open_rec_avar, subst_fvar. destruct a; simpl.
-    * case_if*.
-    * case_var*.
-  + simpl; f_equal. assumption.
-Qed.
-
 Lemma subst_open_commute_path_p: forall x y u,
   (forall p: path, forall n: nat,
     subst_path x y (open_rec_path_p n u p)
@@ -954,39 +932,47 @@ Proof.
 Qed. 
 
 (* "open and then substitute" = "substitute and then open" *)
-Lemma subst_open_commute_typ_dec: forall x y u,
+Lemma subst_open_commute_typ_dec_path: forall x y u,
   (forall t : typ, forall n: nat,
      subst_typ x y (open_rec_typ n u t)
      = open_rec_typ n (subst_fvar x y u) (subst_typ x y t)) /\
   (forall D : dec, forall n: nat,
      subst_dec x y (open_rec_dec n u D)
-     = open_rec_dec n (subst_fvar x y u) (subst_dec x y D)).
+     = open_rec_dec n (subst_fvar x y u) (subst_dec x y D)) /\
+  (forall p : path, forall n: nat,
+     subst_path x y (open_rec_path n u p)
+     = open_rec_path n (subst_fvar x y u) (subst_path x y p)).
 Proof.
-  intros. apply typ_mutind; intros; simpl; f_equal*. apply subst_open_commute_path.
+  intros. apply typ_mutind; intros; simpl; f_equal*. 
+  destruct a; simpl. case_if*. case_var*. 
 Qed.
 
 Lemma subst_open_commute_typ: forall x y u T,
   subst_typ x y (open_typ u T) = open_typ (subst_fvar x y u) (subst_typ x y T).
 Proof.
-  intros. apply* subst_open_commute_typ_dec.
+  intros. apply* subst_open_commute_typ_dec_path.
 Qed.
 
 (* "open and then substitute" = "substitute and then open" *)
-Lemma subst_open_commute_typ_dec_p: forall x y u,
+Lemma subst_open_commute_typ_dec_path_p: forall x y u,
   (forall t : typ, forall n: nat,
      subst_typ x y (open_rec_typ_p n u t)
      = open_rec_typ_p n (subst_path x y u) (subst_typ x y t)) /\
   (forall D : dec, forall n: nat,
      subst_dec x y (open_rec_dec_p n u D)
-     = open_rec_dec_p n (subst_path x y u) (subst_dec x y D)).
+     = open_rec_dec_p n (subst_path x y u) (subst_dec x y D)) /\
+  (forall p: path, forall n: nat,
+    subst_path x y (open_rec_path_p n u p)
+    = open_rec_path_p n (subst_path x y u) (subst_path x y p)).
 Proof.
-  intros. apply typ_mutind; intros; simpl; f_equal*. apply subst_open_commute_path_p.
+  intros. apply typ_mutind; intros; simpl; f_equal*. 
+  destruct a; simpl. case_if*. case_var*.
 Qed.
 
 Lemma subst_open_commute_typ_p: forall x y u T,
   subst_typ x y (open_typ_p u T) = open_typ_p (subst_path x y u) (subst_typ x y T).
 Proof.
-  intros. apply* subst_open_commute_typ_dec_p.
+  intros. apply* subst_open_commute_typ_dec_path_p.
 Qed.
 
 (* "open and then substitute" = "substitute and then open" *)
@@ -1005,7 +991,7 @@ Lemma subst_open_commute_trm_val_def_defs: forall x y u,
      = open_rec_defs n (subst_fvar x y u) (subst_defs x y ds)).
 Proof.
   intros. apply trm_mutind; intros; simpl; f_equal*;
-    (apply* subst_open_commute_avar || apply* subst_open_commute_path || apply* subst_open_commute_typ_dec).
+    (apply* subst_open_commute_avar || apply* subst_open_commute_typ_dec_path).
 Qed.
 
 Lemma subst_open_commute_trm: forall x y u t,
@@ -1042,7 +1028,7 @@ Lemma subst_intro_typ: forall x u T, x \notin (fv_typ T) ->
   open_typ u T = subst_typ x u (open_typ x T).
 Proof.
   introv Fr. unfold open_typ. rewrite* subst_open_commute_typ.
-  destruct (@subst_fresh_typ_dec x u) as [Q _]. rewrite* (Q T).
+  destruct (@subst_fresh_typ_dec_path x u) as [Q _]. rewrite* (Q T).
   unfold subst_fvar. case_var*.
 Qed.
 
@@ -1759,20 +1745,7 @@ Proof.
   - subst. reflexivity.
 Qed.
 
-Lemma open_eq_path: forall x i p1 p2,
-  x \notin fv_path p1 -> x \notin fv_path p2 ->
-  open_rec_path i x p1 = open_rec_path i x p2 ->
-  p1 = p2.
-Proof.
-  introv Fr1 Fr2 H.
-  dependent induction p1; dependent induction p2.
-  - inversion H; f_equal; simpls. eapply open_eq_avar; eassumption.
-  - inversion H.
-  - inversion H.
-  - inversion H. subst. f_equal. simpls. eapply IHp1; eassumption.
-Qed.
-
-Lemma open_eq_typ_dec: forall x,
+Lemma open_eq_typ_dec_path: forall x,
   (forall T1, x \notin fv_typ T1 ->
    forall T2, x \notin fv_typ T2 ->
    forall i, open_rec_typ i x T1 = open_rec_typ i x T2 ->
@@ -1780,7 +1753,11 @@ Lemma open_eq_typ_dec: forall x,
   (forall D1, x \notin fv_dec D1 ->
    forall D2, x \notin fv_dec D2 ->
    forall i, open_rec_dec i x D1 = open_rec_dec i x D2 ->
-   D1 = D2).
+   D1 = D2) /\ 
+  (forall P1, x \notin fv_path P1 -> 
+   forall P2, x \notin fv_path P2 ->
+   forall i, open_rec_path i x P1 = open_rec_path i x P2 ->
+   P1 = P2).
 Proof.
   intros. apply typ_mutind; intros.
   - simpl in H1. induction T2; simpl in H1; inversion H1.
@@ -1793,15 +1770,15 @@ Proof.
     f_equal.
     eapply H; eauto using notin_union_r1.
     eapply H0; eauto using notin_union_r2.
-  - simpl in H1; induction T2; simpl in H1; inversion H1.
-    f_equal. eapply open_eq_path; eauto.
   - simpl in H2. induction T2; simpl in H2; inversion H2.
     f_equal.
     eapply H; eauto.
-  - simpl in H3. induction T2; simpl in H3; inversion H3.
+  - simpl in H2. induction T2; simpl in H2; inversion H2. 
+    f_equal. eapply H; eauto.
+  - simpl in H1. induction T2; inversion H3.
     f_equal.
-    eapply H; eauto using notin_union_r1.
-    eapply H0; eauto using notin_union_r2.
+    + eapply H; eauto using notin_union_r1.
+    + eapply H0; eauto using notin_union_r2.
   - simpl in H3. induction D2; simpl in H3; inversion H3.
     subst.
     f_equal.
@@ -1811,6 +1788,10 @@ Proof.
     subst.
     f_equal.
     eapply H; eauto.
+  - simpl in H1. induction P2; simpl in H1; inversion H1. 
+    f_equal. eauto using open_eq_avar.
+  - simpl in H2. induction P2; simpl in H2; inversion H2.
+    f_equal. eapply H; eauto.
 Qed.
 
 Lemma open_eq_typ: forall x i T1 T2,
@@ -1819,7 +1800,7 @@ Lemma open_eq_typ: forall x i T1 T2,
   T1 = T2.
 Proof.
   introv Fr1 Fr2 Heq.
-  destruct (open_eq_typ_dec x) as [HT HD].
+  destruct (open_eq_typ_dec_path x) as [HT HD HP].
   eapply HT; eauto.
 Qed.
 
@@ -1890,10 +1871,41 @@ Proof.
   intros. inversion H; subst; simpl; reflexivity.
 Qed.
 
+Lemma open_var_eq_p_typ_dec_path: forall x,
+    (forall T : typ, forall n : nat,
+          open_rec_typ n x T = open_rec_typ_p n (p_var (avar_f x)) T) /\
+    (forall D : dec, forall n : nat,
+          open_rec_dec n x D = open_rec_dec_p n (p_var (avar_f x)) D) /\
+    (forall P : path, forall n : nat,
+          open_rec_path n x P = open_rec_path_p n (p_var (avar_f x)) P).
+Proof.
+  intros. apply typ_mutind; unfold open_typ, open_typ_p; simpl; intros; auto. 
+  - (* typ_rcd *)
+    f_equal*. 
+  - (* typ_and *)
+    rewrite H. rewrite* H0.
+  - (* typ_path *)
+    rewrite* H.
+  - (* typ_bnd *)
+    f_equal*. 
+  - (* typ_all *)
+    rewrite H. rewrite* H0.
+  - (* dec_typ *)
+    rewrite H. rewrite* H0. 
+  - (* dec_trm *)
+    rewrite* H.
+  - (* p_var *)
+    unfold open_rec_avar, open_rec_avar_p. destruct a; simpl. case_if*. f_equal*. 
+  - (* p_sel *)
+    rewrite* H.
+Qed.
+      
 Lemma open_var_path_typ_eq: forall x T,
   open_typ x T = open_typ_p (p_var (avar_f x)) T.
-Proof. Admitted.
-
+Proof.
+  intros. apply open_var_eq_p_typ_dec_path.
+Qed.
+    
 Lemma record_defs_typing_rec: forall G ds S z U,
   ty_defs  G z U ds S ->
   exists ls, record_typ S ls /\ forall l, l \notin ls <-> defs_hasnt ds l.

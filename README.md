@@ -9,4 +9,4 @@ It provides extensions of the [original proof](https://github.com/amaurremi/dot-
 - expanded type paths
   ([proof](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/paths/dot_top_bot_path.v) | [description](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/paths/README.md)).
 
-We are also working on [simplifying](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/good-proof) the original proof by changing the definition of possible types.
+We are also working on [simplifying](https://github.com/amaurremi/dot-calculus/blob/master/dev/lf/tight-proof) the original proof by changing the definition of possible types and restructuring the proof.
