@@ -3505,16 +3505,21 @@ Inductive tight_pt : ctx -> path -> typ -> Prop :=
 
 Hint Constructors tight_pt.
 
-Lemma tight_to_precise_dec: forall G s p a U,
+Lemma tpt_to_precise_dec: forall G s p a U m,
   wf_sto G  s ->
-  ty_trm_t ty_general G (trm_path p) (typ_rcd (dec_trm a path_general U)) ->
+  tight_pt G p (typ_rcd (dec_trm a m U)) ->
   norm_t G p ->
-  exists V, ty_trm ty_precise G (trm_path p) (typ_rcd (dec_trm a path_general V)) /\
+  exists V, ty_trm ty_precise G (trm_path p) (typ_rcd (dec_trm a m V)) /\
             subtyp_t ty_general G V U.
 Proof.
   introv Hwf Ht Hn. dependent induction Ht.
-  - apply (ty_var ty_precise) in H. exists U. split*. 
-  - Admitted.
+  - exists U. split*.
+  - assert (typ_rcd (dec_trm a path_general T) = typ_rcd (dec_trm a path_general T)) as Hobv 
+      by reflexivity.
+    specialize (IHHt a T path_general Hwf Hobv Hn). destruct IHHt as [V [Hpr Hsub]].
+    exists V. split*.
+  - admit.
+Qed.
 
 (*
 Scheme tsn_ty_trm_mut_t  := Induction for ty_trm_t    Sort Prop
@@ -3575,6 +3580,30 @@ Proof.
     * 
 Qed.*)
 
+Lemma tpt_sub_closure: forall G s p T U,
+  wf_sto G s ->
+  tight_pt G p T ->
+  norm_t G p ->
+  subtyp_t ty_general G T U ->
+  tight_pt G p U.
+Proof.
+  introv Hwf Htpt Hn Hsub. dependent induction Hsub; eauto.
+  - admit.
+  - inversions Htpt; eauto.
+  - inversions Htpt; eauto.
+  - admit.
+Qed.
+
+Lemma tpt_typ_closure: forall G s p T,
+  wf_sto G s ->
+  norm_t G p ->
+  ty_trm_t ty_general G (trm_path p) T ->
+  tight_pt G p T.
+Proof.
+  introv Hwf Hn Ht.
+  dependent induction Ht; eauto.
+  - inversions Hn. specialize (IHHt Hwf H3). 
+
 Lemma t_pt_lemma: 
   (forall m1 G t T, ty_trm_t m1 G t T -> forall s p,
     wf_sto G s ->
@@ -3597,18 +3626,14 @@ Proof.
     assert (trm_path p0 = trm_path p0) as Hp0 by reflexivity.
     inversions H3.
     specialize (H s p0 H0 Hg Hp0 H6).
-    inversions H.
-    * apply tpt_precise. apply* ty_fld_elim.
-    * lets Htp: (tight_to_precise_dec H0 t H6). destruct Htp as [V [Hpr Hsub]].
-      apply ty_fld_elim in Hpr. apply tpt_precise in Hpr.
-      apply* tpt_precise.
-    * lets Htp: (tight_to_precise_dec H0 t H6). destruct Htp as [V [Hpr Hsub]].
-      apply ty_fld_elim in Hpr. apply* tpt_precise.
+    lets Htp: (tpt_to_precise_dec H0 H H6).
+    destruct Htp as [V [Hpr Hsub]]. 
   - (* ty_rec_intro *)
     destruct p; inversions H2. eapply tpt_rec. apply* H. reflexivity.
   - (* ty_rec_elim *)
     inversions H2. assert (tight_pt G p0 (typ_bnd T)) as Ht. apply* H.
     inversions Ht. apply ty_rec_elim in H1. auto. rewrite <- open_var_path_typ_eq. assumption.
+    apply* tpt_path.
   - (* subtyp_bot *)
     admit.
   - (* subtyp_and11 *)
