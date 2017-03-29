@@ -96,19 +96,14 @@ Lemma precise_flow_lemma_rev : forall T U G x,
 Proof.
   introv H.
   pose proof (precise_flow_implies_bound H) as H1.
-  induction H.
-  - auto.
-  - auto.
-  - pose proof (IHprecise_flow H1) as H2.
-    eapply ty_sub.
-    + intros H3. exists x. reflexivity.
-    + eauto.
-    + eauto.
-  - pose proof (IHprecise_flow H1) as H2.
-    eapply ty_sub.
-    + intros H3. exists x. reflexivity.
-    + eauto.
-    + eauto.
+  induction H; eauto.
+Qed.
+
+Lemma precise_flow_lemma_rev' : forall T U G x,
+    precise_flow x G T U ->
+    binds x T G /\ ty_trm ty_precise sub_general G (trm_var (avar_f x)) U.
+Proof.
+  eauto using precise_flow_implies_bound, precise_flow_lemma_rev.
 Qed.
 
 Lemma ty_precise_var_and_inv1 : forall x G T U,
