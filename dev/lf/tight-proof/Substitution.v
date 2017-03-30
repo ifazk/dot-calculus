@@ -238,7 +238,7 @@ Lemma subst_undo_avar: forall x y,
 Proof.
   intros. unfold subst_avar, subst_fvar, open_avar, open_rec_avar; destruct a.
   + reflexivity.
-  + unfold fv_avar in H. assert (y <> v) by auto. repeat case_if; reflexivity.
+  + unfold fv_avar in H. assert (y <> v) by auto. repeat cases_if; reflexivity.
 Qed.
 
 Lemma subst_undo_typ_dec: forall x y,
@@ -370,13 +370,13 @@ Lemma subst_rules: forall y S,
 Proof.
   intros y S. apply rules_mutind; intros; subst.
   - (* ty_var *)
-    simpl. case_if.
-    + apply binds_middle_eq_inv in b. subst. assumption. assumption.
+    simpl. cases_if.
+    + apply binds_middle_eq_inv in b; subst; assumption.
     + apply subst_fresh_ctx with (y:=y) in H1.
-      apply binds_subst in b.
+      apply binds_subst in b; auto.
       apply ty_var. rewrite <- H1.
       unfold subst_ctx. rewrite <- map_concat.
-      apply binds_map. assumption. assumption.
+      apply binds_map; auto.
   - (* ty_all_intro *)
     simpl.
     apply_fresh ty_all_intro as z; eauto.
@@ -545,11 +545,8 @@ Lemma subst_ty_defs: forall y S G x ds T,
     ty_defs G (subst_defs x y ds) (subst_typ x y T).
 Proof.
   intros.
-  apply (proj53 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H.
-  unfold subst_ctx in H. rewrite map_empty in H. rewrite concat_empty_r in H.
-  apply H.
-  rewrite concat_empty_r. reflexivity.
-  rewrite concat_empty_r. assumption.
-  assumption.
-  unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption.
+  apply (proj53 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H; try rewrite concat_empty_r; auto.
+  - unfold subst_ctx in H. rewrite map_empty in H. rewrite concat_empty_r in H.
+    auto.
+  - unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption.
 Qed.

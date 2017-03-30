@@ -26,26 +26,25 @@ PROOFOBJECTS=$(PROOFS:.v=.vo)
 
 OBJECTS=$(FILES:.v=.vo)
 
-INCLUDESDIR=../../../ln/tlc/
-LIBLN=$(INCLUDESDIR)/LibLN.vo
+TLCDIR=../../../ln/tlc/
+LIBLN=$(TLCDIR)/LibLN.vo
+TLCNAME=TLC
 
 all: $(OBJECTS)
 
 $(LIBLN):
-	cd $(INCLUDESDIR) && make
+	cd $(TLCDIR) && make
 
 %.vo:%.v $(LIBLN)
-	$(COQC) -I $(INCLUDESDIR) $<
+	$(COQC) -R $(TLCDIR) $(TLCNAME) $<
 
 .PHONY:clean
 
+COMPILEFILES=$(DEFS) $(PROOFS) $(FILES)
+CLEANFILES=$(COMPILEFILES:.v=.vo) $(COMPILEFILES:%.v=.%.vo.aux) $(COMPILEFILES:.v=.glob)
+
 clean::
-	rm -f $(DEFSOBJECTS)
-	rm -f $(DEFS:.v=.glob)
-	rm -f $(PROOFOBJECTS)
-	rm -f $(PROOFS:.v=.glob)
-	rm -f $(OBJECTS)
-	rm -f $(FILES:.v=.glob)
+	rm -f $(CLEANFILES)
 
 # Extra deps
 $(PROOFOBJECTS): Definitions.vo

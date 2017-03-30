@@ -27,7 +27,8 @@ Proof.
   dependent induction Htp.
   - lets Hp: (good_precise_dec_typ_inv HG H). subst.
     exists U. split*.
-  - specialize (IHHtp Hwf HG). destruct IHHtp as [V [Hx [Hs1 Hs2]]].
+  - specialize (IHHtp A T U0 Hwf HG eq_refl).
+    destruct IHHtp as [V [Hx [Hs1 Hs2]]].
     exists V. split*.
 Qed.
 
@@ -43,7 +44,7 @@ Proof.
   lets Htp: (tight_possible_types_lemma Hgd Ht). clear Ht.
   dependent induction Htp.
   - exists T. auto.
-  - specialize (IHHtp Hwf Hgd). destruct IHHtp as [V [Hx Hs]].
+  - specialize (IHHtp _ _ Hwf Hgd eq_refl). destruct IHHtp as [V [Hx Hs]].
     exists V. split; auto.
     eapply subtyp_trans; eassumption.
 Qed.
@@ -70,7 +71,7 @@ Proof.
     split; auto.
     exists (dom G).
     auto.
-  - specialize (IHHtp Hwf HG).
+  - specialize (IHHtp _ _ Hwf HG eq_refl).
     destruct IHHtp as [S' [T' [Hpt [Hsub1 [HSsub [L' HTsub]]]]]].
     exists S' T'.
     split; auto.

@@ -99,7 +99,7 @@ Proof.
       apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
       apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
       apply wf_sto_push. assumption. eauto. eauto. assumption.
-    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
+    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
       destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
       exists s' (trm_let t' u) G' G''.
       split. apply red_let_tgt. assumption.
@@ -109,7 +109,7 @@ Proof.
       rewrite <- IH2. apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
       rewrite IH2.
       rewrite <- IH2. eauto.
-    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
+    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
       destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
       exists s' (trm_let t' u) G' G''.
       split. apply red_let_tgt. assumption.
@@ -119,7 +119,7 @@ Proof.
       rewrite <- IH2. apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
       rewrite IH2.
       rewrite <- IH2. eauto.
-    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]. inversion IH.
+    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
       destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
       exists s' (trm_let t' u) G' G''.
       split. apply red_let_tgt. assumption.
@@ -129,14 +129,13 @@ Proof.
       rewrite <- IH2. apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
       rewrite IH2.
       rewrite <- IH2. eauto.
-  - specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH].
-    + left. assumption.
-    + right. destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
-      exists s' t' G' G''.
-      split; try split; try split; try assumption.
-      apply ty_sub with (T:=T).
-      intro Contra. inversion Contra.
-      assumption.
-      rewrite IH2. apply weaken_subtyp. assumption.
-      rewrite <- IH2. eapply wf_sto_to_ok_G. eassumption.
+  - specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto.
+    right. destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
+    exists s' t' G' G''.
+    split; try split; try split; try assumption.
+    apply ty_sub with (T:=T).
+    intro Contra. inversion Contra.
+    assumption.
+    rewrite IH2. apply weaken_subtyp. assumption.
+    rewrite <- IH2. eapply wf_sto_to_ok_G. eassumption.
 Qed.

@@ -303,9 +303,9 @@ Proof.
       eapply Hty.
       eassumption.
     }
-    specialize (IHHsub2 Hgd HS S2 U2 Hmem).
+    specialize (IHHsub2 Hgd eq_refl eq_refl HS S2 U2 Hmem).
     destruct IHHsub2 as [S3 [U3 [Hmem3 [Hsub31 Hsub32]]]].
-    specialize (IHHsub1 Hgd Hty S3 U3 Hmem3).
+    specialize (IHHsub1 Hgd eq_refl eq_refl Hty S3 U3 Hmem3).
     destruct IHHsub1 as [S1 [U1 [Hmem1 [Hsub11 Hsub12]]]].
     exists S1 U1. split. apply Hmem1. split; eauto.
   - (* and11 *)
@@ -321,8 +321,8 @@ Proof.
     repeat destruct Hmem as [Hmem|Hmem].
     + inversion Hmem.
     + destruct Hmem as [T1 [T2 [Heq [Hmem | Hmem]]]]; inversions Heq.
-      * specialize (IHHsub1 Hgd Hty S2 U2 Hmem). apply IHHsub1.
-      * specialize (IHHsub2 Hgd Hty S2 U2 Hmem). apply IHHsub2.
+      * specialize (IHHsub1 Hgd eq_refl eq_refl Hty S2 U2 Hmem). apply IHHsub1.
+      * specialize (IHHsub2 Hgd eq_refl eq_refl Hty S2 U2 Hmem). apply IHHsub2.
     + destruct Hmem as [T1' [Heq _]]. inversion Heq.
     + destruct Hmem as [y [B [T' [Heq _]]]]. inversion Heq.
     + inversion Hmem.
@@ -406,7 +406,7 @@ Proof.
   - (* sub *)
     destruct (good_has_member_covariance Hgd H1 H0 Hmem) as [S' [U' [Hmem' [Hsub1' Hsub2']]]].
     inversion Hmem'; subst.
-    specialize (IHty_trm Hgd Bis S' U' Hmem' H4).
+    specialize (IHty_trm _ Hgd Bis eq_refl eq_refl eq_refl S' U' Hmem' H4).
     destruct IHty_trm as [T1 [Hmem1 [Hsub1 Hsub2]]].
     exists T1. eauto.
 Qed.

@@ -102,11 +102,11 @@ Proof.
   intros G U x Hgd Hty.
   dependent induction Hty.
   - auto.
-  - specialize (IHHty Hgd).
+  - specialize (IHHty _ Hgd eq_refl eq_refl eq_refl).
     eapply t_pt_bnd.
     apply IHHty.
     reflexivity.
-  - specialize (IHHty Hgd).
+  - specialize (IHHty _ Hgd eq_refl eq_refl eq_refl).
     inversion IHHty; subst; auto.
   - apply t_pt_and; auto.
   - eapply tight_possible_types_closure_tight; auto.
