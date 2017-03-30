@@ -3,7 +3,6 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import Inductive_opens.
 Require Import Wellformed_store.
 Require Import Has_member.
 Require Import Some_lemmas.
@@ -152,10 +151,9 @@ Proof.
   - dependent induction Hpf.
     + pose proof (precise_flow_bnd_inv H Hpf) as H1.
       unfold open_typ in x.
-      rewrite open_typ_rewrite' in x.
-      inversion x.
-      rewrite H1 in H. rewrite <- H4 in H.
-      destruct H as [ls H]. inversion H.
+      assert (U = typ_bot) as Hb. {
+        induction U; inversions x. reflexivity.
+      } subst. destruct H as [ls H]. inversion H.
     + pose proof (precise_flow_bnd_inv'' H Hpf) as H1.
       destruct H1 as [[U' [H11 H12]] | [ls H1]]; try false.
       inversion H1. inversion H3.

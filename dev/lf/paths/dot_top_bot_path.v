@@ -249,6 +249,38 @@ with fv_defs(ds: defs) : vars :=
 
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
 
+Inductive record_dec : dec -> Prop :=
+| rd_typ : forall A T, record_dec (dec_typ A T T)
+| rd_trm : forall a m T, record_dec (dec_trm a m T).
+
+Inductive record_typ : typ -> fset label -> Prop :=
+| rt_one : forall D l,
+  record_dec D ->
+  l = label_of_dec D ->
+  record_typ (typ_rcd D) \{l}
+| rt_cons: forall T ls D l,
+  record_typ T ls ->
+  record_dec D ->
+  l = label_of_dec D ->
+  l \notin ls ->
+  record_typ (typ_and T (typ_rcd D)) (union ls \{l}).
+
+Definition record_type T := exists ls, record_typ T ls.
+
+(* Definition (Good types)
+
+A type is good if it of the form
+  all(x: S)T
+  rec(x: T), where T is a record type
+ *)
+
+Inductive good_typ : typ -> Prop :=
+  | good_typ_all : forall S T, good_typ (typ_all S T) (* all(x: S)T *)
+  | good_typ_bnd : forall T,
+      (* a record type is ands of record decs *)
+      record_type T ->
+      good_typ (typ_bnd T). (* rec(x:T) *)
+
 (* ###################################################################### *)
 (** ** Operational Semantics *)
 
@@ -297,7 +329,7 @@ Inductive ty_trm : tymode -> ctx -> trm -> typ -> Prop :=
     ty_trm m1 G (trm_val (val_new T ds)) (typ_bnd T)
 | ty_fld_elim : forall G p m1 m m3 T,
     ty_trm m1 G (trm_path p) (typ_rcd (dec_trm m m3 T)) ->
-(*    (m1 = ty_precise -> m3 = path_strong) -> *)
+    (m1 = ty_precise -> good_typ T) ->
     ty_trm m1 G (trm_path (p_sel p m)) T
 | ty_let : forall L G t u T U,
     ty_trm ty_general G t T ->
@@ -421,7 +453,7 @@ Inductive ty_trm_t : tymode -> ctx -> trm -> typ -> Prop :=
     ty_trm_t m1 G (trm_val (val_new T ds)) (typ_bnd T)
 | ty_fld_elim_t : forall G p m1 m m3 T,
     ty_trm_t m1 G (trm_path p) (typ_rcd (dec_trm m m3 T)) ->
-(*     (m1 = ty_precise -> m3 = path_strong) -> *)
+     (m1 = ty_precise -> good_typ T) ->
     ty_trm_t m1 G (trm_path (p_sel p m)) T
 | ty_let_t : forall L G t u T U,
     ty_trm_t ty_general G t T ->
@@ -1182,7 +1214,7 @@ Proof.
     } 
     apply H; eauto.
   - (* ty_fld_elim *)
-    simpl. eapply ty_fld_elim. apply H; eauto. 
+    simpl. eapply ty_fld_elim. apply H; eauto. intro Contra. inversion Contra.
   - (* ty_let *)
     simpl.
     apply_fresh ty_let as z; eauto.
@@ -1483,6 +1515,8 @@ Proof.
     rewrite subst_open_commute_typ in H. rewrite subst_open_commute_defs in H.
     unfold rename_var in H. unfold subst_fvar in H. assert (Hzx: z <> x) by auto. 
     case_if. apply* H.
+  - (* ty_fld_elim *)
+    apply ty_fld_elim with (m3:=m3). admit.  intro Contra. inversion Contra.
   - (* ty_let *)
     apply_fresh ty_let as z; auto. assert (Lz: z \notin L) by auto. specialize (H0 z Lz). 
     rewrite subst_open_commute_trm in H0. 
@@ -1654,26 +1688,6 @@ Proof.
   }
   inversion Contra.
 Qed.
-
-Inductive record_dec : dec -> Prop :=
-| rd_typ : forall A T, record_dec (dec_typ A T T)
-| rd_trm : forall a m T, record_dec (dec_trm a m T)
-.
-
-Inductive record_typ : typ -> fset label -> Prop :=
-| rt_one : forall D l,
-  record_dec D ->
-  l = label_of_dec D ->
-  record_typ (typ_rcd D) \{l}
-| rt_cons: forall T ls D l,
-  record_typ T ls ->
-  record_dec D ->
-  l = label_of_dec D ->
-  l \notin ls ->
-  record_typ (typ_and T (typ_rcd D)) (union ls \{l})
-.
-
-Definition record_type T := exists ls, record_typ T ls.
 
 Lemma open_dec_preserves_label: forall D x i,
   label_of_dec D = label_of_dec (open_rec_dec i x D).
@@ -2702,20 +2716,6 @@ Qed.
 (** ** Good types *)
 (* Ifaz's and Paul's good-types definitions adjusted to paths *)
 
-(* Definition (Good types)
-
-A type is good if it of the form
-  all(x: S)T
-  rec(x: T), where T is a record type
- *)
-
-Inductive good_typ : typ -> Prop :=
-  | good_typ_all : forall S T, good_typ (typ_all S T) (* all(x: S)T *)
-  | good_typ_bnd : forall T,
-      (* a record type is ands of record decs *)
-      record_type T ->
-      good_typ (typ_bnd T). (* rec(x:T) *)
-
 (* Definition (Good context)
 
 A context is good if it is of the form
@@ -3505,104 +3505,35 @@ Inductive tight_pt : ctx -> path -> typ -> Prop :=
 
 Hint Constructors tight_pt.
 
-Lemma tpt_to_precise_dec: forall G s p a U m,
-  wf_sto G  s ->
-  tight_pt G p (typ_rcd (dec_trm a m U)) ->
+Inductive bindsp : path -> typ -> ctx -> Prop :=
+| binds_v : forall x T G,
+  binds x T G ->
+  bindsp (p_var (avar_f x)) T G
+| binds_p : forall p T G a m,
+  ty_trm ty_precise G (trm_path p) (typ_rcd (dec_trm a m T)) ->
+  good_typ T ->
+  bindsp (p_sel p a) T G.
+
+Lemma ctx_path_typing : forall G p T,
   norm_t G p ->
-  exists V, ty_trm ty_precise G (trm_path p) (typ_rcd (dec_trm a m V)) /\
-            subtyp_t ty_general G V U.
-Proof.
-  introv Hwf Ht Hn. dependent induction Ht.
-  - exists U. split*.
-  - assert (typ_rcd (dec_trm a path_general T) = typ_rcd (dec_trm a path_general T)) as Hobv 
-      by reflexivity.
-    specialize (IHHt a T path_general Hwf Hobv Hn). destruct IHHt as [V [Hpr Hsub]].
-    exists V. split*.
-  - admit.
-Qed.
+  good G ->
+  bindsp p T G ->
+  good_typ T.
+Proof. Admitted.
 
-(*
-Scheme tsn_ty_trm_mut_t  := Induction for ty_trm_t    Sort Prop
-with   tsn_subtyp_t      := Induction for subtyp_t    Sort Prop
-with   tsn_norm_t        := Induction for norm_t      Sort Prop.
-Combined Scheme tsn_mutind_t from tsn_ty_trm_mut_t, tsn_subtyp_t, tsn_norm_t.
+Lemma precise_path_typing : forall G p a m T,
+  norm_t G p ->
+  good G ->
+  ty_trm ty_precise G (trm_path p) (typ_rcd (dec_trm a m T)) ->
+  good_typ T.
+Proof. Admitted.
 
-Lemma tight_to_general:
-  (forall m1 G t T,
-     ty_trm_t m1 G t T ->
-     m1 = ty_general ->
-     ty_trm ty_general G t T) /\
-  (forall m1 G S U,
-     subtyp_t m1 G S U ->
-     m1 = ty_general ->
-     subtyp ty_general G S U) /\
-  (forall G p,
-     norm_t G p ->
-     norm G p).
-Proof.
-  apply tsn_mutind_t; intros; subst; eauto.
-  - eapply subtyp_sel2. apply* precise_to_general. assumption.
-  - eapply subtyp_sel1. apply* precise_to_general. assumption.
-  - apply* norm_var.
-  - apply* norm_path.
-Qed.
-
-Lemma avar_b_typing_false: forall G s n T,
-  wf_sto G s ->
-  ty_trm ty_precise G (trm_path (p_var (avar_b n))) T ->
-  False.
-Proof.
-  introv Hwf Ht. dependent induction Ht; eauto.
-Qed.
-
-Lemma tight_to_general_typing: forall G t T,
-  ty_trm_t ty_general G t T ->
-  ty_trm ty_general G t T.
-Proof.
-  intros. apply* tight_to_general. 
-Qed.
-
-Lemma good_precise_sel_inv_p : forall G s p q A,
-    wf_sto G s ->
-    ty_trm ty_precise G (trm_path p) (typ_path q A) ->
-    False.
-Proof.
-  introv Hwf Hpt. gen q A. induction p; intros; lets Hgd: (wf_good Hwf); eauto.
-  - destruct a. false* avar_b_typing_false. 
-    pose proof (typing_implies_bound Hpt) as [T Bis].
-    pose proof (good_binds Hgd Bis) as Hgt.
-    pose proof (precise_flow_lemma Bis Hpt) as Hpf.
-    induction Hgt.
-    * apply (precise_flow_all_inv) in Hpf.
-      inversion Hpf.
-    * pose proof (precise_flow_bnd_inv'' H Hpf) as [[U [Contra H1]] | [ls Contra]]; inversion Contra.
-  - inversions Hpt.
-    * 
-Qed.*)
-
-Lemma tpt_sub_closure: forall G s p T U,
-  wf_sto G s ->
+Lemma tpt_path_typing : forall G p T,
+  norm_t G p ->
+  good G ->
   tight_pt G p T ->
-  norm_t G p ->
-  subtyp_t ty_general G T U ->
-  tight_pt G p U.
-Proof.
-  introv Hwf Htpt Hn Hsub. dependent induction Hsub; eauto.
-  - admit.
-  - inversions Htpt; eauto.
-  - inversions Htpt; eauto.
-  - admit.
-Qed.
-
-Lemma tpt_typ_closure: forall G s p T,
-  wf_sto G s ->
-  norm_t G p ->
-  ty_trm_t ty_general G (trm_path p) T ->
-  tight_pt G p T.
-Proof.
-  introv Hwf Hn Ht.
-  dependent induction Ht; eauto.
-  - inversions Hn. specialize (IHHt Hwf H3). 
+  good_typ T.
+Proof. Admitted.
 
 Lemma t_pt_lemma: 
   (forall m1 G t T, ty_trm_t m1 G t T -> forall s p,
@@ -3625,17 +3556,19 @@ Proof.
     destruct p0; inversions H2. assert (ty_general = ty_general) as Hg by reflexivity.
     assert (trm_path p0 = trm_path p0) as Hp0 by reflexivity.
     inversions H3.
-    specialize (H s p0 H0 Hg Hp0 H6).
-    lets Htp: (tpt_to_precise_dec H0 H H6).
-    destruct Htp as [V [Hpr Hsub]]. 
+    specialize (H s p0 H0 Hg Hp0 H6). lets HG: (wf_good H0).
+    inversions H.
+    * lets Hptp: (precise_path_typing H6 HG H1). apply* tpt_precise.
+    * lets Htg: (tpt_path_typing H6 HG H7). inversion Htg.
+    * lets Htg: (tpt_path_typing H6 HG H4). inversion Htg.
   - (* ty_rec_intro *)
     destruct p; inversions H2. eapply tpt_rec. apply* H. reflexivity.
   - (* ty_rec_elim *)
     inversions H2. assert (tight_pt G p0 (typ_bnd T)) as Ht. apply* H.
     inversions Ht. apply ty_rec_elim in H1. auto. rewrite <- open_var_path_typ_eq. assumption.
-    apply* tpt_path.
   - (* subtyp_bot *)
-    admit.
+    lets Hg: (wf_good H).
+    lets Htpt: (tpt_path_typing H0 Hg H1). inversion Htpt.
   - (* subtyp_and11 *)
     inversions H1; eauto.
   - (* subtyp_and12 *)
