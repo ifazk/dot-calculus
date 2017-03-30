@@ -228,7 +228,7 @@ Inductive ty_trm : tymode -> submode -> ctx -> trm -> typ -> Prop :=
     ty_trm ty_general m2 G (trm_app (avar_f x) (avar_f z)) (open_typ z T)
 | ty_new_intro : forall L m1 m2 G T ds,
     (forall x, x \notin L ->
-      ty_defs (G & (x ~ open_typ x (typ_bnd T))) (open_defs x ds) (open_typ x T)) ->
+      ty_defs (G & (x ~ open_typ x T)) (open_defs x ds) (open_typ x T)) ->
     ty_trm m1 m2 G (trm_val (val_new T ds)) (typ_bnd T)
 | ty_new_elim : forall m2 G x m T,
     ty_trm ty_general m2 G (trm_var (avar_f x)) (typ_rcd (dec_trm m T)) ->
@@ -441,7 +441,7 @@ Proof.
     apply* H.
   + intros. subst.
     apply_fresh ty_new_intro as z; assert (zL: z \notin L) by auto.
-    - specialize (H z zL G1 G2 (G3 & z ~ open_typ z (typ_bnd T))).
+    - specialize (H z zL G1 G2 (G3 & z ~ open_typ z T)).
       repeat rewrite concat_assoc in H.
       apply* H.
   + intros. subst.
@@ -633,7 +633,7 @@ Proof.
     apply_fresh ty_new_intro as y; eauto;
     assert (y \notin L) as FrL by eauto.
     specialize (H y FrL).
-    specialize (H G1 (G2 & y ~ open_typ y (typ_bnd T)) x S).
+    specialize (H G1 (G2 & y ~ open_typ y T) x S).
     eapply H; eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. reflexivity.
@@ -1062,12 +1062,9 @@ Proof.
     }
     rewrite <- A at 2. rewrite <- A at 3. rewrite <- A at 4.
     rewrite <- subst_open_commute_typ. rewrite <- subst_open_commute_defs.
-    assert (z \notin L) by admit.
-    specialize (H z H0 G1 (G2 & z ~ open_typ z (typ_bnd T)) x). 
-    assert (subst_ctx x y G2 & z ~ open_typ (subst_fvar x y z) (typ_bnd (subst_typ x y T)) =
-            subst_ctx x y (G2 & z ~ open_typ z (typ_bnd T))) as B. {
-            unfold subst_ctx. rewrite map_concat. rewrite map_single. 
-            admit. }
+    assert (subst_ctx x y G2 & z ~ subst_typ x y (open_typ z T) = subst_ctx x y (G2 & z ~ open_typ z T)) as B. {
+      unfold subst_ctx. rewrite map_concat. rewrite map_single. reflexivity.
+    }
     rewrite <- concat_assoc. rewrite B.
     apply H; eauto.
     rewrite concat_assoc. reflexivity.
@@ -1876,53 +1873,6 @@ Qed.
 
 (* ###################################################################### *)
 (** ** Narrowing *)
-
-(*
-Lemma narrowing: 
-  (forall m1 m2 G' t S,
-    ty_trm m1 m2 G' t S ->
-    forall G x T T',
-      G' = G & x ~ T ->
-      ok (G & x ~ T') ->
-      m1 = ty_general ->
-      m2 = sub_general ->
-      subtyp m1 m2 G T' T ->
-      ty_trm m1 m2 (G & x ~ T') t S) /\
-  (forall G' d D, 
-    ty_def G' d D ->
-    forall G x T T',
-    G' = G & x ~ T ->
-    ok (G & x ~ T') ->
-    subtyp ty_general sub_general G T' T ->
-    ty_def (G & x ~ T') d D) /\
-  (forall G' ds S,
-    ty_defs G' ds S ->
-    forall G x T T',
-    G' = G & x ~ T ->
-    ok (G & x ~ T') ->
-    subtyp ty_general sub_general G T' T ->
-    ty_defs (G & x ~ T') ds S) /\
-  (forall m1 m2 G' S U,
-    subtyp m1 m2 G' S U ->
-    forall G x T T',
-    G' = G & x ~ T ->
-    ok (G & x ~ T') ->
-    subtyp m1 m2 G T' T ->
-    subtyp m1 m2 (G & x ~ T') S U).
-Proof.
-  apply rules_mutind; intros; subst; eauto.
-  - destruct (classicT (x = x0)) as [Eq | Ne].
-    * subst x0. apply binds_push_eq_inv in b. subst T0.
-      apply ty_sub with (T:= T'). intro H. inversion H.
-      auto. eapply weaken_subtyp. assumption. assumption.
-    * apply binds_push_neq_inv in b. eapply weaken_ty_trm.
-      constructor. assumption. assumption. assumption.
-  - apply_fresh ty_all_intro as y.
-    assert (y \notin L) as Hy by auto.
-    specialize (t0 y Hy).
-    specialize (H y Hy).
-Admitted.
-*)
 
 Definition subenv(G1 G2: ctx) :=
   forall x T2, binds x T2 G2 ->

@@ -1,6 +1,7 @@
 COQC=coqc
 
-FILES=Dot_proofs_safety.v
+#FILES=Dot_proofs_simplified_possible_types.v
+FILES=Dot_proofs_precise_flow.v Dot_proofs_good_types.v Dot_proofs_simplified_possible_types.v
 
 DEFS= Dot_definitions.v
 DEFSOBJECTS=$(DEFS:.v=.vo)
@@ -65,3 +66,24 @@ Dot_proofs_safety.vo: Dot_definitions.vo \
                       Dot_proofs_narrowing.vo \
                       Dot_proofs_possible_types.vo \
                       Dot_proofs_misc.vo
+Dot_open_ind.vo: Dot_definitions.vo
+Dot_proofs_precise_flow.vo: Dot_definitions.vo Dot_open_ind.vo Dot_proofs_wellformed_store.vo Dot_proofs_some_lemmas.vo
+Dot_proofs_good_types.vo: Dot_definitions.vo \
+                          Dot_open_ind.vo \
+                          Dot_proofs_wellformed_store.vo \
+                          Dot_proofs_has_member.vo \
+                          Dot_proofs_some_lemmas.vo \
+                          Dot_proofs_precise_flow.vo \
+                          Dot_proofs_tight_bound_completeness.vo
+Dot_proofs_simplified_possible_types.vo: Dot_definitions.vo \
+                                         Dot_open_ind.vo \
+                                         Dot_proofs_weakening.vo \
+                                         Dot_proofs_wellformed_store.vo \
+                                         Dot_proofs_substitution.vo \
+                                         Dot_proofs_some_lemmas.vo \
+                                         Dot_proofs_narrowing.vo \
+                                         Dot_proofs_has_member.vo \
+                                         Dot_proofs_tight_bound_completeness.vo \
+                                         Dot_proofs_misc_inversions.vo \
+                                         Dot_proofs_precise_flow.vo \
+                                         Dot_proofs_good_types.vo
