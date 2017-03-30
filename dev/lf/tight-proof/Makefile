@@ -14,7 +14,6 @@ PROOFS= \
       Narrowing.v \
       Has_member.v \
       Tight_bound_completeness.v \
-      Misc_inversions.v \
       Misc.v \
       Precise_flow.v \
       Inductive_opens.v \
@@ -55,7 +54,6 @@ Some_lemmas.vo: Weakening.vo Wellformed_store.vo
 Narrowing.vo: Weakening.vo
 Has_member.vo: Some_lemmas.vo
 Tight_bound_completeness.vo: Some_lemmas.vo Has_member.vo
-Misc_inversions.vo: Some_lemmas.vo
 Safety.vo: Definitions.vo \
            Weakening.vo \
            Wellformed_store.vo \
