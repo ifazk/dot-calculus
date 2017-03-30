@@ -7,7 +7,8 @@ Require Import Weakening.
 Require Import Wellformed_store.
 Require Import Substitution.
 Require Import Narrowing.
-Require Import Canonical_forms.
+Require Import Canonical_forms1.
+Require Import Canonical_forms2.
 Require Import Misc.
 
 (* ###################################################################### *)

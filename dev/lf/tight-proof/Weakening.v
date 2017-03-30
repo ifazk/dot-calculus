@@ -25,7 +25,7 @@ Lemma weaken_rules:
     ok (G1 & G2 & G3) ->
     subtyp m1 m2 (G1 & G2 & G3) T U).
 Proof.
-  apply rules_mutind; try solve [eauto].
+  apply rules_mutind; try solve [eauto 4].
   + intros. subst.
     eapply ty_var. eapply binds_weaken; eauto.
   + intros. subst.
@@ -47,8 +47,7 @@ Proof.
     apply* H0.
   + intros. subst.
     apply_fresh subtyp_all as z.
-    eauto.
-    eauto.
+    auto.
     assert (zL: z \notin L) by auto.
     specialize (H0 z zL G1 G2 (G3 & z ~ S2)).
     repeat rewrite concat_assoc in H0.

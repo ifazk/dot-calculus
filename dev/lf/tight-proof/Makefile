@@ -1,6 +1,6 @@
 COQC=coqc
 
-FILES=General_to_tight.v Safety.v
+FILES=Safety.v
 
 DEFS= Definitions.v
 DEFSOBJECTS=$(DEFS:.v=.vo)
@@ -20,7 +20,8 @@ PROOFS= \
       Inductive_opens.v \
       Good_types.v \
       General_to_tight.v \
-      Canonical_forms.v
+      Canonical_forms1.v \
+      Canonical_forms2.v
 PROOFOBJECTS=$(PROOFS:.v=.vo)
 
 
@@ -61,7 +62,8 @@ Safety.vo: Definitions.vo \
            Substitution.vo \
            Narrowing.vo \
            Misc.vo \
-           Canonical_forms.vo
+           Canonical_forms1.vo \
+           Canonical_forms2.vo
 Inductive_opens.vo: Definitions.vo
 Precise_flow.vo: Definitions.vo Inductive_opens.vo Wellformed_store.vo Some_lemmas.vo
 Good_types.vo: Definitions.vo \
@@ -71,18 +73,6 @@ Good_types.vo: Definitions.vo \
                Some_lemmas.vo \
                Precise_flow.vo \
                Tight_bound_completeness.vo
-Simplified_possible_types.vo: Definitions.vo \
-                              Inductive_opens.vo \
-                              Weakening.vo \
-                              Wellformed_store.vo \
-                              Substitution.vo \
-                              Some_lemmas.vo \
-                              Narrowing.vo \
-                              Has_member.vo \
-                              Tight_bound_completeness.vo \
-                              Misc_inversions.vo \
-                              Precise_flow.vo \
-                              Good_types.vo
 Tight_possible_types.vo: Precise_flow.vo \
                          Good_types.vo
 General_to_tight.vo: Wellformed_store.vo \
@@ -90,3 +80,21 @@ General_to_tight.vo: Wellformed_store.vo \
                      Good_types.vo \
                      Some_lemmas.vo \
                      Tight_possible_types.vo
+Canonical_forms1.vo: Definitions.vo \
+                     Wellformed_store.vo \
+                     Some_lemmas.vo \
+                     Narrowing.vo \
+                     Tight_possible_types.vo \
+                     Good_types.vo \
+                     General_to_tight.vo \
+                     Extra_rec.vo
+Canonical_forms2.vo: Definitions.vo \
+                     Weakening.vo \
+                     Wellformed_store.vo \
+                     Substitution.vo \
+                     Some_lemmas.vo \
+                     Has_member.vo \
+                     Tight_bound_completeness.vo \
+                     Precise_flow.vo \
+                     Good_types.vo \
+                     General_to_tight.vo
