@@ -89,8 +89,7 @@ Lemma spt_implies_bound :
 Proof.
   intros G x T H.
   induction H; try assumption.
-  dependent induction H; try assumption.
-  exists T. assumption.
+  dependent induction H; eauto.
 Qed.
 
 Lemma open_typ_bnd:
@@ -128,8 +127,7 @@ Proof.
     false. apply (good_ty_precise_bot Hgd H).
   - (* Refl *) assumption.
   - (* Trans *)
-    apply IHHsub2; try assumption.
-    apply IHHsub1; try assumption.
+    auto.
   - (* And left inv *) dependent induction HT0; auto.
     apply ty_precise_var_and_inv1 in H.
     auto.
@@ -170,8 +168,8 @@ Lemma s_possible_types_completeness_tight: forall G x T,
   s_possible_types G x T.
 Proof.
   introv Hgd Htyp.
-  dependent induction Htyp; auto; specialize (IHHtyp Hgd).
-  - eapply s_pt_bnd; eauto.
+  dependent induction Htyp; auto; specialize (IHHtyp _ Hgd eq_refl eq_refl eq_refl).
+  - eauto.
   - dependent induction IHHtyp.
     + auto.
     + pose proof (precise_flow_lemma'' H) as [ T' [H1 H2]].
@@ -215,7 +213,7 @@ Lemma s_possible_types_all_inv : forall G x S T,
 Proof.
   introv Hgd Hspt.
   dependent induction Hspt.
-  - auto.
+  - eauto.
   - pose proof (typing_implies_bound H) as [T1 H1].
     pose proof (good_binds Hgd H1) as H2.
     pose proof (precise_flow_lemma H1 H) as H3.
@@ -350,20 +348,14 @@ Proof.
     rewrite (binds_func H Bis).
     constructor; auto.
   - (* Hty : G |- x : T0^x *)
-    pose proof (IHHty Hgc Bis) as H.
-    apply (s_pt_bnd T0 H).
-    reflexivity.
+    pose proof (IHHty _ Hgc Bis) as H.
+    eapply s_pt_bnd; auto.
   - (* Hty : G |- x : rec(y:T0) *)
-    pose proof (IHHty Hgc Bis) as H1.
-    inversions H1.
-    + auto.
-    + auto.
+    pose proof (IHHty _ Hgc Bis eq_refl eq_refl eq_refl) as H1.
+    inversions H1; auto.
   - (* Hty : G |- x : T0, G |- x : U *)
-    specialize (IHHty1 Hgc Bis).
-    specialize (IHHty2 Hgc Bis).
     auto.
   - (* Hty : G |- x : T0, G |- T0 <: U *)
-    specialize (IHHty Hgc Bis).
     apply (good_general_to_tight_subtyping Hgc) in H0.
-    apply (s_possible_types_closure_tight Hgc IHHty H0).
+    eapply (s_possible_types_closure_tight); auto.
 Qed.

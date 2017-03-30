@@ -1,7 +1,6 @@
 COQC=coqc
 
-#FILES=Dot_proofs_simplified_possible_types.v
-FILES=Dot_proofs_precise_flow.v Dot_proofs_good_types.v Dot_proofs_simplified_possible_types.v
+FILES=Dot_proofs_simplified_possible_types.v
 
 DEFS= Dot_definitions.v
 DEFSOBJECTS=$(DEFS:.v=.vo)

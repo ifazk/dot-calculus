@@ -56,9 +56,10 @@ Proof.
     dependent induction H0.
     + apply IHsubtyp2; auto.
       * apply ty_sub with S; auto.
-      * intros. rewrite <- H0.
-        inversion H2.
-        rewrite <- H4.
+      * intros.
+        rewrite <- H3.
+        inversion H4.
+        rewrite <- H6.
         apply IHsubtyp1; auto.
     + econstructor; eauto.
     + apply pf_and2 with T0; auto.
@@ -138,9 +139,9 @@ Proof.
   introv Hpf.
   dependent induction Hpf.
   - reflexivity.
-  - inversion IHHpf.
-  - inversion IHHpf.
-  - inversion IHHpf.
+  - specialize (IHHpf S T eq_refl). inversion IHHpf.
+  - specialize (IHHpf S T eq_refl). inversion IHHpf.
+  - specialize (IHHpf S T eq_refl). inversion IHHpf.
 Qed.
 
 Lemma precise_flow_bnd_inv'' : forall x G T,
@@ -157,14 +158,14 @@ Proof.
       * reflexivity.
       * exists \{ label_of_dec D}.
         constructor; auto.
-    + destruct (IHHpf H) as [[U' [IH1 IH2]] | [ls IH]].
+    + destruct (IHHpf D H eq_refl eq_refl) as [[U' [IH1 IH2]] | [ls IH]].
       * inversion IH1. right.
         apply open_record_type. auto.
       * inversion IH.
-    + destruct (IHHpf H) as [[U' [IH1 IH2]] | [ls IH]].
+    + destruct (IHHpf D H eq_refl eq_refl) as [[U' [IH1 IH2]] | [ls IH]].
       * inversion IH1.
       * inversion IH. right. exists ls0. auto.
-    + destruct (IHHpf H) as [[U' [IH1 IH2]] | [ls IH]].
+    + destruct (IHHpf D H eq_refl eq_refl) as [[U' [IH1 IH2]] | [ls IH]].
       * inversion IH1.
       * inversion IH. right. exists \{ l}.
         constructor; auto.
@@ -176,20 +177,18 @@ Proof.
       * remember (label_of_dec D) as l.
         exists (union ls \{l}).
         apply rt_cons; auto.
-    + specialize (IHHpf H1 H T Hrt IHHrt (eq_refl _)).
+    + specialize (IHHpf H1 D H eq_refl T Hrt IHHrt eq_refl).
       destruct IHHpf as [[U' [IH1 IH2]] | [ls' IH]].
-      * assert (H2 : U'=U).
-        { inversion IH1; auto. }
-        rewrite H2 in IH2.
-        right. apply open_record_type.
-        assumption.
+      * inversion IH1; subst U'.
+        right.
+        auto using open_record_type.
       * inversion IH.
-    + specialize (IHHpf H1 H T Hrt IHHrt (eq_refl _)).
+    + specialize (IHHpf H1 D H eq_refl T Hrt IHHrt eq_refl).
       destruct IHHpf as [[U' [IH1 IH2]] | [ls' IH]].
       * inversion IH1.
       * right. inversion IH.
         exists ls0. apply H3.
-    + specialize (IHHpf H1 H T Hrt IHHrt (eq_refl _)).
+    + specialize (IHHpf H1 D H eq_refl T Hrt IHHrt eq_refl).
       destruct IHHpf as [[U' [IH1 IH2]] | [ls' IH]].
       * inversion IH1.
       * right. inversion IH.
@@ -246,8 +245,8 @@ Proof.
   - introv Heq. inversion Heq.
   - pose proof (precise_flow_bnd_inv H Hpf) as H1.
     rewrite <- H1. introv Heq. inversion Heq.
-  - specialize (IHHpf Hrec H). false.
-  - specialize (IHHpf Hrec H). false.
+  - specialize (IHHpf D Hrec H eq_refl). false.
+  - specialize (IHHpf D Hrec H eq_refl). false.
 Qed.
 
 Lemma record_dec_precise_open : forall x G D1 D2,
@@ -313,17 +312,17 @@ Proof.
   introv Hpf.
   dependent induction Hpf.
   - left. reflexivity.
-  - destruct (IHHpf Hrt) as [IH | IH].
+  - destruct (IHHpf T Hrt eq_refl) as [IH | IH].
     + inversion IH.
       right. constructor.
     + right. apply (precise_flow_bnd_inv Hrt) in Hpf.
       rewrite Hpf. constructor.
-  - destruct (IHHpf Hrt) as [IH | IH].
+  - destruct (IHHpf T Hrt eq_refl) as [IH | IH].
     + inversion IH.
     + right. eapply record_typ_sub_and_inv1.
       * apply open_record_type. auto.
       * eauto.
-  - destruct (IHHpf Hrt) as [IH | IH].
+  - destruct (IHHpf T Hrt eq_refl) as [IH | IH].
     + inversion IH.
     + right. eapply record_typ_sub_and_inv2.
       * apply open_record_type. auto.
