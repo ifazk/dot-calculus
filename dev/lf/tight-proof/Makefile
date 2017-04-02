@@ -47,6 +47,16 @@ clean:
 all clean: $(PROOFMAKEFILE)
 %vo: $(PROOFMAKEFILE)
 
+all: $(LIBLN)
+%vo: $(LIBLN)
+
+########################
+# Library Dependencies #
+########################
+
+$(LIBLN):
+	cd $(TLCDIR) && make
+
 ###################
 # Forced Rebuilds #
 ###################
