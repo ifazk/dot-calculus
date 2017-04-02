@@ -129,6 +129,32 @@ Proof.
   - destruct H as [ls H]. inversion H.
 Qed.
 
+Lemma has_member_rcd_typ_sub2_mut:
+  (forall G x T A S U,
+    has_member G x T A S U ->
+    record_type T ->
+    T = (typ_rcd (dec_typ A S U)) \/ subtyp ty_precise sub_general G T (typ_rcd (dec_typ A S U)))  /\
+  (forall G x T A S U,
+    has_member_rules G x T A S U ->
+    record_type T ->
+    T = (typ_rcd (dec_typ A S U)) \/ subtyp ty_precise sub_general G T (typ_rcd (dec_typ A S U))).
+Proof.
+  apply has_mutind; intros.
+  - apply H; eauto.
+  - left. reflexivity.
+  - inversion H0; subst. inversion H1; subst.
+    assert (record_type T1) as Htyp1. { exists ls. assumption. }
+    specialize (H Htyp1). destruct H as [H | H].
+    + subst. right. apply subtyp_and11.
+    + right.
+      eapply subtyp_trans. eapply subtyp_and11. apply H.
+  - inversion H0; subst. inversion H1; subst. inversion h; subst. inversion H3; subst.
+    right. eapply subtyp_and12.
+  - inversion H0. inversion H1.
+  - inversion H0. inversion H1.
+  - destruct H as [ls H]. inversion H.
+Qed.
+
 Lemma has_member_tightness: forall G s x T ds A S U,
   wf_sto G s ->
   binds x (val_new T ds) s ->
