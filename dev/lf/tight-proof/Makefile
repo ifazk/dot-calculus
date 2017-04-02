@@ -1,24 +1,7 @@
-FILES=Safety.v
+FILES=dot_top_bot.v
 OBJECTS=$(FILES:.v=.vo)
 
-PROOFS= \
-    Definitions.v \
-    Wellformed_store.v \
-    Weakening.v \
-    Some_lemmas.v \
-    Precise_flow.v \
-    Has_member.v \
-    Good_types.v \
-    Tight_possible_types.v \
-    Tight_bound_completeness.v \
-    Substitution.v \
-    Narrowing.v \
-    General_to_tight.v \
-    Extra_rec.v \
-    Canonical_forms1.v \
-    Canonical_forms2.v \
-    Misc.v \
-    Safety.v
+PROOFS=$(FILES)
 PROOFOBJECTS=$(PROOFS:.v=.vo)
 
 TLCDIR=../../../ln/tlc/
