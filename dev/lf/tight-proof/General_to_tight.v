@@ -86,8 +86,8 @@ Proof.
             + eapply HTsub; auto.
             + apply subenv_last.
               * apply tight_to_general in H; auto.
-              * apply ok_push. admit. eauto.
-            + apply ok_push. admit. eauto.
+              * apply* ok_push. apply* good_ok.
+            + apply* ok_push. apply* good_ok.
           - apply Hnarrow.
         }
         apply H0.
