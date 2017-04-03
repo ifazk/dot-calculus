@@ -346,3 +346,15 @@ Proof.
   - destruct (IHty_trm _ eq_refl eq_refl eq_refl) as [T' [Hty Hsub]].
     exists T'. split; eauto.
 Qed.
+
+Lemma typing_implies_bound: forall m1 m2 G x T,
+  ty_trm m1 m2 G (trm_var (avar_f x)) T ->
+  exists S, binds x S G.
+Proof.
+  intros. remember (trm_var (avar_f x)) as t.
+  induction H;
+    try solve [inversion Heqt];
+    try solve [inversion Heqt; eapply IHty_trm; eauto];
+    try solve [inversion Heqt; eapply IHty_trm1; eauto].
+  - inversion Heqt. subst. exists T. assumption.
+Qed.
