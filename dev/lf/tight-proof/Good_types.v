@@ -36,6 +36,7 @@ Inductive good : ctx -> Prop :=
   | good_all : forall pre x T,
       good pre ->
       good_typ T ->
+      x # pre ->
       good (pre & x ~ T).
 
 Lemma wf_good : forall G s, wf_sto G s -> good G.
@@ -50,6 +51,7 @@ Proof.
         apply record_defs_typing with (G:=G & z ~ open_typ z T) (ds:= open_defs z ds); auto.
       * assert (ty_precise = ty_precise) by reflexivity. apply H4 in H5.
         destruct H5. inversion H5.
+    + assumption.
 Qed.
 
 (* Good contexts bind good:
@@ -63,8 +65,8 @@ Proof.
   introv Bi Hgood. induction Hgood.
   - false * binds_empty_inv.
   - destruct (binds_push_inv Bi).
-    + destruct H0. subst. assumption.
-    + destruct H0. apply (IHHgood H1).
+    + destruct H1. subst. assumption.
+    + destruct H1. apply (IHHgood H2).
 Qed.
 
 Lemma good_binds : forall G x T,
@@ -228,4 +230,15 @@ Proof.
   pose proof (good_precise_flow_all_inv Hgd Hpf) as H.
   rewrite <- H.
   assumption.
+Qed.
+
+Lemma good_ok : forall G,
+    good G ->
+    ok G.
+Proof.
+  intros G HG. induction G using env_ind.
+  auto.
+  inversions HG. false* empty_push_inv.
+  destruct (eq_push_inv H) as [Hx [HT HG]]. subst.
+  apply* ok_push.
 Qed.

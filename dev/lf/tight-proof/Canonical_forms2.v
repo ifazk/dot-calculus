@@ -142,8 +142,8 @@ Proof.
   pose proof (wf_good Hwf) as Hgd.
   pose proof (typing_implies_bound Hty) as [S Bi].
   pose proof (ctx_binds_to_sto_binds_typing Hwf Bi) as [v [Bis Htyv]].
-  pose proof (general_to_tight_typing Hwf Hty) as Hty'.
-  pose proof (tight_to_precise_trm_dec Hwf Hty') as [T' [Hpt Hsub]].
+  pose proof (general_to_tight_typing Hgd Hty) as Hty'.
+  pose proof (tight_to_precise_trm_dec Hgd Hty') as [T' [Hpt Hsub]].
   assert (H: exists T, record_type T /\ S = (typ_bnd T)).
   { pose proof (good_binds Hgd Bi) as Hgt.
     induction Hgt.
