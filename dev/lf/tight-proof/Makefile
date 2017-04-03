@@ -1,14 +1,31 @@
-FILES=dot_top_bot.v
+FILES=Safety.v
 OBJECTS=$(FILES:.v=.vo)
 
-PROOFS=$(FILES)
+PROOFS= \
+    Definitions.v \
+    Wellformed_store.v \
+    Weakening.v \
+    Some_lemmas.v \
+    Precise_flow.v \
+    Has_member.v \
+    Good_types.v \
+    Tight_possible_types.v \
+    Tight_bound_completeness.v \
+    Substitution.v \
+    Narrowing.v \
+    General_to_tight.v \
+    Extra_rec.v \
+    Canonical_forms1.v \
+    Canonical_forms2.v \
+    Misc.v \
+    Safety.v
 PROOFOBJECTS=$(PROOFS:.v=.vo)
 
 TLCDIR=../../../ln/tlc/
 LIBLN=$(TLCDIR)/LibLN.vo
 TLCNAME=TLC
 
-COQINCLUDE=-R $(TLCDIR) $(TLCNAME)
+COQINCLUDE=-R $(TLCDIR) $(TLCNAME) -R . \"\"
 COQMAKEFILE=$(COQBIN)coq_makefile
 
 PROOFMAKEFILE=Makefile.coq
@@ -43,6 +60,10 @@ $(LIBLN):
 ###################
 # Forced Rebuilds #
 ###################
+
+.PHONY: init
+init: $(PROOFMAKEFILE) _CoqProject
+
 $(PROOFMAKEFILE): .FORCE
 	@$(COQMAKEFILE) $(COQINCLUDE) -install none $(PROOFS) > $@
 
@@ -50,4 +71,3 @@ _CoqProject: .FORCE
 	@echo $(COQINCLUDE) > $@
 
 .FORCE:
-
