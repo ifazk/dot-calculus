@@ -7,7 +7,6 @@ Require Import Weakening.
 Require Import Wellformed_store.
 Require Import Substitution.
 Require Import Some_lemmas.
-Require Import Has_member.
 Require Import Precise_flow.
 Require Import Good_types.
 Require Import General_to_tight.

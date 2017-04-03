@@ -4,7 +4,6 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Wellformed_store.
-Require Import Has_member.
 Require Import Some_lemmas.
 Require Import Precise_flow.
 
