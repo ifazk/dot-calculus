@@ -17,6 +17,10 @@ Require Some_lemmas.
 Require Weakening.
 Require Canonical_forms1.
 
-Set DependGraph File "file_depend.dpd".
+Set DependGraph File "file_depend_wo_defs.dpd".
 
-Print FileDependGraph Canonical_forms1 Good_types Narrowing Safety Substitution Tight_possible_types Wellformed_store Canonical_forms2 General_to_tight Precise_flow Some_lemmas Weakening.
+Print FileDependGraph Canonical_forms1 Good_types Narrowing Safety Substitution Tight_possible_types Wellformed_store Canonical_forms2 General_to_tight Precise_flow (*Some_lemmas*) Weakening.
+
+Set DependGraph File "file_depend_wo_defs_slem.dpd".
+
+Print FileDependGraph Canonical_forms1 Good_types Narrowing Safety Substitution Tight_possible_types Wellformed_store Canonical_forms2 General_to_tight Precise_flow (*Some_lemmas*) Weakening.

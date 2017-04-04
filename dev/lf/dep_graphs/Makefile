@@ -1,8 +1,8 @@
 FILE=Dpdgraph.v
 
-DPDFILE=file_depend.dpd
-DOTFILE=$(DPDFILE:.dpd=.dot)
-PDFFILE=$(DPDFILE:.dpd=.pdf)
+DPDFILES=file_depend_wo_defs.dpd file_depend_wo_defs_slem.dpd
+DOTFILES=$(DPDFILES:.dpd=.dot)
+PDFFILES=$(DPDFILES:.dpd=.pdf)
 
 TOPDIR=../tight-proof/
 TOPNAME=""
@@ -19,20 +19,20 @@ COQINCLUDE=-R $(TLCDIR) $(TLCNAME) -R $(TOPDIR) $(TOPNAME)
 ##############
 
 .PHONY: dpd dot pdf
-pdf: $(PDFFILE)
+pdf: $(PDFFILES)
 
-dot: $(DOTFILE)
+dot: $(DOTFILES)
 
-dpd: $(DPDFILE)
+dpd: $(DPDFILES)
 
-$(DPDFILE): $(FILE) $(SAFETY)
+$(DPDFILES): $(FILE) $(SAFETY)
 	coqtop $(COQINCLUDE) < $(FILE)
 
-$(DOTFILE): $(DPDFILE)
-	dpd2dot -without-defs $(DPDFILE)
+%.dot: %.dpd
+	dpd2dot -without-defs $<
 
-$(PDFFILE): $(DOTFILE)
-	dot -Tpdf $(DOTFILE) > $(PDFFILE)
+%.pdf: %.dot
+	dot -Tpdf $< > $@
 
 ########################
 # Library Dependencies #
