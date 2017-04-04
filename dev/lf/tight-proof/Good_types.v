@@ -135,10 +135,10 @@ Proof.
       assert (U = typ_bot) as Hb. {
         induction U; inversions x. reflexivity.
       } subst. destruct H as [ls H]. inversion H.
-    + pose proof (precise_flow_bnd_inv'' H Hpf) as H1.
+    + pose proof (precise_flow_bnd_eq_or_record H Hpf) as H1.
       destruct H1 as [[U' [H11 H12]] | [ls H1]]; try false.
       inversion H1. inversion H3.
-    + pose proof (precise_flow_bnd_inv'' H Hpf) as H1.
+    + pose proof (precise_flow_bnd_eq_or_record H Hpf) as H1.
       destruct H1 as [[U' [H11 H12]] | [ls H1]]; try false.
       inversion H1.
 Qed.
@@ -176,7 +176,7 @@ Proof.
   induction Hgt.
   - apply (precise_flow_all_inv) in Hpf.
     inversion Hpf.
-  - pose proof (precise_flow_bnd_inv'' H Hpf) as [[U [Contra H1]] | [ls Contra]]; inversion Contra.
+  - pose proof (precise_flow_bnd_eq_or_record H Hpf) as [[U [Contra H1]] | [ls Contra]]; inversion Contra.
 Qed.
 
 Lemma good_precise_dec_implies_record_dec : forall G x D,
@@ -215,7 +215,7 @@ Proof.
   pose proof (good_binds Hgd Bis) as Hgt.
   dependent induction Hgt.
   - symmetry. eapply precise_flow_all_inv. eassumption.
-  - pose proof (precise_flow_bnd_inv'' H Hpf) as [ [? [Contra _]] | [? Contra]]; inversion Contra.
+  - pose proof (precise_flow_bnd_eq_or_record H Hpf) as [ [? [Contra _]] | [? Contra]]; inversion Contra.
 Qed.
 
 Lemma good_precise_all_inv : forall x G S T,

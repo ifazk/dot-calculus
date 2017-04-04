@@ -118,7 +118,7 @@ Proof.
     specialize (IHHpf S T eq_refl); inversion IHHpf.
 Qed.
 
-Lemma precise_flow_bnd_inv'' : forall x G T,
+Lemma precise_flow_bnd_eq_or_record : forall x G T,
     record_type T ->
     (forall U, precise_flow x G (typ_bnd T) U ->
           (exists U', U = (typ_bnd U') /\ record_type U') \/ record_type U).
@@ -171,37 +171,26 @@ Proof.
         exists \{ l}. constructor; auto.
 Qed.
 
-Lemma precise_flow_bnd_inv' : forall x G T U,
-    record_type T ->
-    precise_flow x G (typ_bnd T) (typ_bnd U) ->
-    record_type U.
-Proof.
-  introv Hrt Hpf.
-  pose proof (precise_flow_bnd_inv'' Hrt Hpf) as Hbnd.
-  destruct Hbnd as [[U' [IH1 IH2]] | [ls contra]]; try solve [inversion contra].
-  - inversion IH1. subst; auto.
-Qed.
-
 Lemma precise_flow_bnd_inv : forall x G T U,
     record_type T ->
     precise_flow x G (typ_bnd T) (typ_bnd U) ->
     (T = U).
 Proof.
   introv Hrt Hpf.
-  pose proof (precise_flow_bnd_inv'' Hrt Hpf) as Hbnd.
   dependent induction Hpf.
   - reflexivity.
-  - pose proof (precise_flow_bnd_inv' Hrt Hpf).
+  - pose proof (precise_flow_bnd_eq_or_record Hrt Hpf) as [[U' [Heq H]] | [? Contra]]; try inversion Contra.
+    inversion Heq; subst.
     pose proof (open_record_type x0 H) as H1.
     rewrite x in H1.
     destruct H1 as [ls H1].
     inversion H1.
-  - pose proof (precise_flow_bnd_inv'' Hrt Hpf) as H.
+  - pose proof (precise_flow_bnd_eq_or_record Hrt Hpf) as H.
     destruct H as [[U' [H1 H2]] | [ls H]].
     + inversion H1.
     + inversion H.
       inversion H2.
-  - pose proof (precise_flow_bnd_inv'' Hrt Hpf) as H.
+  - pose proof (precise_flow_bnd_eq_or_record Hrt Hpf) as H.
     destruct H as [[U' [H1 H2]] | [ls H]].
     + inversion H1.
     + inversion H.
@@ -213,7 +202,7 @@ Lemma record_precise_dec_implies_record_dec : forall x G T D,
     record_dec D.
 Proof.
   introv Hrt Hpf.
-  pose proof (precise_flow_bnd_inv'' Hrt Hpf) as [[U [Contra H1]] | [ls H1]].
+  pose proof (precise_flow_bnd_eq_or_record Hrt Hpf) as [[U [Contra H1]] | [ls H1]].
   - inversion Contra.
   - inversion H1. assumption.
 Qed.

@@ -57,8 +57,7 @@ Proof.
     assumption. apply subtyp_refl.
     eauto. eauto. eauto. eauto.
   - (* Fld-E *) right.
-    lets C: (canonical_forms_2 Hwf H).
-    destruct C as [S [ds [t [Bis [Tyds [Has Ty]]]]]].
+    pose proof (canonical_forms_2 Hwf H) as [S [ds [t [Bis [Has Ty]]]]].
     exists s t G (@empty typ).
     split.
     apply red_sel with (T:=S) (ds:=ds); try assumption.

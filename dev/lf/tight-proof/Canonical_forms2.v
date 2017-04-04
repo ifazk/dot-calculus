@@ -65,7 +65,7 @@ Lemma record_has_ty_defs: forall G T ds D,
 Proof.
   introv Hdefs Hhas. induction Hdefs.
   - inversion Hhas; subst. exists d. split.
-    unfold defs_has. simpl. rewrite If_l. reflexivity. reflexivity.
+    unfold defs_has. simpl. rewrite If_l; reflexivity.
     assumption.
   - inversion Hhas; subst.
     + exists d. split.
@@ -93,8 +93,7 @@ Proof.
   rewrite <- subst_intro_typ with (x:=y).
   eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
   eauto. eauto. eauto.
-  assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
-  specialize (H Heqm1). destruct H as [? Contra]. inversion Contra.
+  specialize (H eq_refl). destruct H as [? Contra]. inversion Contra.
 Qed.
 
 Lemma corresponding_types_ty_trms: forall G s ds x S,
@@ -135,7 +134,7 @@ Qed.
 Lemma canonical_forms_2: forall G s x a T,
   wf_sto G s ->
   ty_trm ty_general sub_general G (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
-  (exists S ds t, binds x (val_new S ds) s /\ ty_defs G (open_defs x ds) (open_typ x S) /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm ty_general sub_general G t T).
+  (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm ty_general sub_general G t T).
 Proof.
   introv Hwf Hty.
   pose proof (wf_good Hwf) as Hgd.
@@ -160,7 +159,6 @@ Proof.
   pose proof (new_ty_defs Hwf Bis) as Htd.
   pose proof (corresponding_types_ty_trms Hwf Bi Bis Hpt) as [t [H1 H2]].
   exists t. split; auto.
-  split; auto.
   split; auto.
   apply tight_to_general in Hsub; auto.
   eapply ty_sub; eauto.
