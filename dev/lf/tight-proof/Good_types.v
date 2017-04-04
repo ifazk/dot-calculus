@@ -136,22 +136,10 @@ Proof.
         induction U; inversions x. reflexivity.
       } subst. destruct H as [ls H]. inversion H.
     + pose proof (precise_flow_bnd_eq_or_record H Hpf) as H1.
-      destruct H1 as [[U' [H11 H12]] | [ls H1]]; try false.
+      destruct H1 as [[? [Contra ?]] | [ls H1]]; try false.
       inversion H1. inversion H3.
     + pose proof (precise_flow_bnd_eq_or_record H Hpf) as H1.
-      destruct H1 as [[U' [H11 H12]] | [ls H1]]; try false.
-      inversion H1.
-Qed.
-
-Lemma good_ty_precise_bot' : forall T G x,
-    good G ->
-    binds x T G ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) typ_bot ->
-    False.
-Proof.
-  intros.
-  pose proof (precise_flow_lemma H0 H1) as H2.
-  eapply good_precise_bot; eauto.
+      destruct H1 as [[? [Contra ?]] | [? Contra]]; inversion Contra.
 Qed.
 
 Lemma good_ty_precise_bot : forall G x,
@@ -159,9 +147,10 @@ Lemma good_ty_precise_bot : forall G x,
     ty_trm ty_precise sub_general G (trm_var (avar_f x)) typ_bot ->
     False.
 Proof.
-  intros.
-  pose proof (typing_implies_bound H0) as [T HT].
-  apply (good_ty_precise_bot' H HT H0).
+  intros G x Hgd Hpt.
+  pose proof (typing_implies_bound Hpt) as [T Bi].
+  pose proof (precise_flow_lemma Bi Hpt) as Hpf.
+  eapply good_precise_bot; eassumption.
 Qed.
 
 Lemma good_precise_sel_inv : forall G x y A,
