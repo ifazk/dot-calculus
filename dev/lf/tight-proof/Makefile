@@ -50,6 +50,13 @@ all clean: $(PROOFMAKEFILE)
 all: $(LIBLN)
 %vo: $(LIBLN)
 
+##############
+# Main Rules #
+##############
+
+.PHONY: ide
+ide: _CoqProject
+
 ########################
 # Library Dependencies #
 ########################
