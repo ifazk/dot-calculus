@@ -60,12 +60,10 @@ Proof.
     pose proof (canonical_forms_2 Hwf H) as [S [ds [t [Bis [Has Ty]]]]].
     exists s t G (@empty typ).
     split.
-    apply red_sel with (T:=S) (ds:=ds); try assumption.
-    split.
-    rewrite concat_empty_r. reflexivity.
-    split.
-    assumption.
-    assumption.
+    + apply red_sel with (T:=S) (ds:=ds); assumption.
+    + split.
+      * rewrite concat_empty_r. reflexivity.
+      * split; assumption.
   - (* Let *) right.
     destruct t.
     + (* var *)

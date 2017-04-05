@@ -42,15 +42,13 @@ Lemma wf_good : forall G s, wf_sto G s -> good G.
 Proof.
   intros. induction H.
   - apply good_empty.
-  - apply good_all.
-    + assumption.
-    + dependent induction H2.
-      * apply good_typ_all.
-      * apply good_typ_bnd. pick_fresh z. apply open_record_type_rev with (x:=z); auto.
-        apply record_defs_typing with (G:=G & z ~ open_typ z T) (ds:= open_defs z ds); auto.
-      * assert (ty_precise = ty_precise) by reflexivity. apply H4 in H5.
-        destruct H5. inversion H5.
-    + assumption.
+  - apply good_all; auto.
+    dependent induction H2.
+    + apply good_typ_all.
+    + apply good_typ_bnd.
+      pick_fresh z. apply open_record_type_rev with (x:=z); auto.
+      apply record_defs_typing with (G:=G & z ~ open_typ z T) (ds:= open_defs z ds). auto.
+    + pose proof (H4 eq_refl) as [? Contra]. inversion Contra.
 Qed.
 
 (* Good contexts bind good:
