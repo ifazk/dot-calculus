@@ -11,17 +11,6 @@ Require Import Precise_flow.
 Require Import Good_types.
 Require Import General_to_tight.
 
-Inductive record_has: typ -> dec -> Prop :=
-| rh_one : forall D,
-  record_has (typ_rcd D) D
-| rh_andl : forall T D,
-  record_has (typ_and T (typ_rcd D)) D
-| rh_and : forall T D D',
-  record_has T D' ->
-  record_has (typ_and T D) D'.
-
-Hint Constructors record_has.
-
 Lemma defs_has_hasnt_neq: forall ds d1 d2,
   defs_has ds d1 ->
   defs_hasnt ds (label_of_def d2) ->
@@ -37,27 +26,6 @@ Proof.
     + apply IHds; eauto.
 Qed.
 
-Lemma record_sub_record_has:
-  forall U D,
-    record_sub U (typ_rcd D) ->
-    record_has U D.
-Proof.
-  intros U D Hrs.
-  dependent induction Hrs; auto.
-Qed.
-
-Lemma precise_flow_record_has: forall S G x D,
-    record_type S ->
-    precise_flow x G (typ_bnd S) (typ_rcd D) ->
-    record_has (open_typ x S) D.
-Proof.
-  introv Hrec Hpf.
-  pose proof (precise_flow_record_sub Hrec Hpf) as [Contra | H].
-  - inversion Contra.
-  - apply record_sub_record_has.
-    auto.
-Qed.
-
 Lemma record_has_ty_defs: forall G T ds D,
   ty_defs G ds T ->
   record_has T D ->
@@ -65,17 +33,17 @@ Lemma record_has_ty_defs: forall G T ds D,
 Proof.
   introv Hdefs Hhas. induction Hdefs.
   - inversion Hhas; subst. exists d. split.
-    unfold defs_has. simpl. rewrite If_l; reflexivity.
-    assumption.
+    + unfold defs_has. simpl. rewrite If_l; reflexivity.
+    + assumption.
   - inversion Hhas; subst.
     + exists d. split.
-      unfold defs_has. simpl. rewrite If_l. reflexivity. reflexivity.
-      assumption.
+      * unfold defs_has. simpl. rewrite If_l; reflexivity.
+      * assumption.
     + specialize (IHHdefs H4). destruct IHHdefs as [d' [IH1 IH2]].
       exists d'. split.
-      unfold defs_has. simpl. rewrite If_r. apply IH1.
-      apply not_eq_sym. eapply defs_has_hasnt_neq; eauto.
-      assumption.
+      * unfold defs_has. simpl. rewrite If_r. apply IH1.
+        apply not_eq_sym. eapply defs_has_hasnt_neq; eauto.
+      * assumption.
 Qed.
 
 Lemma new_ty_defs: forall G s x T ds,

@@ -242,48 +242,45 @@ Proof.
   exists ls. apply A1.
 Qed.
 
-Inductive record_sub : typ -> typ -> Prop :=
-| rs_refl: forall T,
-  record_sub T T
-| rs_dropl: forall T T' D,
-  record_sub T T' ->
-  record_sub (typ_and T (typ_rcd D)) (typ_rcd D)
-| rs_drop: forall T T' D,
-  record_sub T T' ->
-  record_sub (typ_and T (typ_rcd D)) T'
-| rs_pick: forall T T' D,
-  record_sub T T' ->
-  record_sub (typ_and T (typ_rcd D)) (typ_and T' (typ_rcd D))
-.
+Inductive record_has: typ -> dec -> Prop :=
+| rh_one : forall D,
+  record_has (typ_rcd D) D
+| rh_andl : forall T D,
+  record_has (typ_and T (typ_rcd D)) D
+| rh_and : forall T D D',
+  record_has T D' ->
+  record_has (typ_and T D) D'.
 
-Lemma record_typ_sub_label_in: forall T D ls,
+Hint Constructors record_has.
+
+Lemma record_typ_has_label_in: forall T D ls,
   record_typ T ls ->
-  record_sub T (typ_rcd D) ->
+  record_has T D ->
   label_of_dec D \in ls.
 Proof.
-  introv Htyp Hsub. generalize dependent D. induction Htyp; intros.
-  - inversion Hsub. subst. apply in_singleton_self.
-  - inversion Hsub; subst.
+  introv Htyp Has. generalize dependent D. induction Htyp; intros.
+  - inversion Has. subst. apply in_singleton_self.
+  - inversion Has; subst.
     + rewrite in_union. right. apply in_singleton_self.
     + rewrite in_union. left. apply IHHtyp. assumption.
 Qed.
 
 Lemma unique_rcd_typ: forall T A T1 T2,
   record_type T ->
-  record_sub T (typ_rcd (dec_typ A T1 T1)) ->
-  record_sub T (typ_rcd (dec_typ A T2 T2)) ->
+  record_has T (dec_typ A T1 T1) ->
+  record_has T (dec_typ A T2 T2) ->
   T1 = T2.
 Proof.
-  introv Htype Hsub1 Hsub2.
+  introv Htype Has1 Has2.
   generalize dependent T2. generalize dependent T1. generalize dependent A.
-  destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Hsub1; inversion Hsub2; subst.
+  destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Has1; inversion Has2; subst.
+  - inversion H3. subst. reflexivity.
   - inversion H5. subst. reflexivity.
-  - inversion H9. subst. reflexivity.
-  - apply record_typ_sub_label_in with (D:=dec_typ A T2 T2) in Htyp.
+  - apply record_typ_has_label_in with (D:=dec_typ A T2 T2) in Htyp.
     simpl in Htyp. simpl in H1. unfold "\notin" in H1. unfold not in H1.
     specialize (H1 Htyp). inversion H1.
     assumption.
-  - apply record_typ_sub_label_in with (D:=dec_typ A T1 T1) in Htyp.
+  - apply record_typ_has_label_in with (D:=dec_typ A T1 T1) in Htyp.
     simpl in Htyp. simpl in H1. unfold "\notin" in H1. unfold not in H1.
     specialize (H1 Htyp). inversion H1.
     assumption.

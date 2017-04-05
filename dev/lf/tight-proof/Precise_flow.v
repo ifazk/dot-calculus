@@ -196,6 +196,18 @@ Proof.
     + inversion H.
 Qed.
 
+Lemma precise_flow_and_inv : forall x G T T1 T2,
+    record_type T ->
+    precise_flow x G (typ_bnd T) (typ_and T1 T2) ->
+    exists D, T2 = typ_rcd D.
+Proof.
+  introv Hrt Hpf.
+  pose proof (precise_flow_bnd_eq_or_record Hrt Hpf) as [[? [Contra _]] | [ls H]];
+  try inversion Contra.
+  inversion H.
+  exists D; auto.
+Qed.
+
 Lemma record_precise_dec_implies_record_dec : forall x G T D,
     record_type T ->
     precise_flow x G (typ_bnd T) (typ_rcd D) ->
@@ -207,44 +219,11 @@ Proof.
   - inversion H1. assumption.
 Qed.
 
-Lemma record_typ_sub_and_inv1 : forall T,
-    record_type T ->
-    (forall U1 U2, record_sub T (typ_and U1 U2) ->
-           record_sub T U1).
-Proof.
-  intros T [ls Hrt].
-  induction Hrt.
-  - intros U1 U2 Hrsub.
-    inversion Hrsub.
-  - intros U1 U2 Hrsub.
-    inversion Hrsub.
-    + constructor. constructor.
-    + apply IHHrt in H5.
-      apply rs_drop. auto.
-    + apply rs_drop. auto.
-Qed.
-
-Lemma record_typ_sub_and_inv2 : forall T,
-    record_type T ->
-    (forall U1 U2, record_sub T (typ_and U1 U2) ->
-           record_sub T U2).
-Proof.
-  intros T [ls Hrt].
-  induction Hrt.
-  - intros U1 U2 Hrsub.
-    inversion Hrsub.
-  - intros U1 U2 Hrsub.
-    inversion Hrsub.
-    + econstructor. constructor.
-    + apply IHHrt in H5.
-      apply rs_drop. auto.
-    + eapply rs_dropl. eauto.
-Qed.
-
 Lemma precise_flow_record_sub : forall x G T,
     record_type T ->
     (forall T', precise_flow x G (typ_bnd T) T' ->
-           (T' = typ_bnd T) \/ record_sub (open_typ x T) T').
+           (T' = typ_bnd T) \/
+           forall D, record_has T' D -> record_has (open_typ x T) D).
 Proof.
   introv Hrt.
   introv Hpf.
@@ -252,19 +231,32 @@ Proof.
   - left. reflexivity.
   - destruct (IHHpf T Hrt) as [IH | IH]; auto.
     + inversion IH.
-      right. constructor.
+      right. auto.
     + right. apply (precise_flow_bnd_inv Hrt) in Hpf.
-      rewrite Hpf. constructor.
-  - destruct (IHHpf T Hrt) as [IH | IH]; auto.
+      rewrite Hpf. auto.
+  - destruct (IHHpf T Hrt eq_refl) as [IH | IH].
     + inversion IH.
-    + right. eapply record_typ_sub_and_inv1.
-      * apply open_record_type. auto.
-      * eauto.
-  - destruct (IHHpf T Hrt) as [IH | IH]; auto.
+    + right. auto.
+  - destruct (IHHpf T Hrt eq_refl) as [IH | IH].
     + inversion IH.
-    + right. eapply record_typ_sub_and_inv2.
-      * apply open_record_type. auto.
-      * eauto.
+    + right.
+      pose proof (precise_flow_and_inv Hrt Hpf) as [D' H].
+      subst U2. intros D Hrh.
+      inversion Hrh; subst.
+      apply IH.
+      auto.
+Qed.
+
+Lemma precise_flow_record_has: forall S G x D,
+    record_type S ->
+    precise_flow x G (typ_bnd S) (typ_rcd D) ->
+    record_has (open_typ x S) D.
+Proof.
+  introv Hrec Hpf.
+  pose proof (precise_flow_record_sub Hrec Hpf) as [Contra | H].
+  - inversion Contra.
+  - apply H.
+    auto.
 Qed.
 
 Lemma record_unique_tight_bounds : forall G x T A,
@@ -275,10 +267,8 @@ Lemma record_unique_tight_bounds : forall G x T A,
         T1 = T2).
 Proof.
   introv Hrt Hpf1 Hpf2.
-  pose proof (precise_flow_record_sub Hrt Hpf1) as [H1 | H1].
-  inversion H1.
-  pose proof (precise_flow_record_sub Hrt Hpf2) as [H2 | H2].
-  inversion H2.
+  pose proof (precise_flow_record_has Hrt Hpf1) as H1.
+  pose proof (precise_flow_record_has Hrt Hpf2) as H2.
   apply open_record_type with (x:=x) in Hrt.
-  eapply (unique_rcd_typ Hrt); eauto.
+  eapply unique_rcd_typ; eauto.
 Qed.
