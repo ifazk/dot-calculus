@@ -3,7 +3,6 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import Wellformed_store.
 Require Import Narrowing.
 Require Import Good_types.
 Require Import Some_lemmas.
