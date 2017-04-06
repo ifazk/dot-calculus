@@ -73,30 +73,6 @@ Proof.
   apply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
 Qed.
 
-Lemma ty_defs_has: forall G ds T d,
-  ty_defs G ds T ->
-  defs_has ds d ->
-  record_type T ->
-  exists D, ty_def G d D /\ record_sub T (typ_rcd D).
-Proof.
-  introv Hdefs Hhas Htype. generalize dependent d. generalize dependent ds.
-  inversion Htype; subst. induction H; intros.
-  - exists D. split. inversion Hdefs; subst. inversion Hhas; subst.
-    case_if. inversions H1. assumption. apply rs_refl.
-  - inversion Hdefs; subst.
-    unfold defs_has in Hhas. unfold get_def in Hhas.
-    case_if.
-    + inversions Hhas.
-      exists D. split. inversions Hdefs; subst. assumption.
-      eapply rs_dropl. eapply rs_refl.
-    + assert (exists D0, ty_def G d D0 /\ record_sub T (typ_rcd D0)) as A. {
-        eapply IHrecord_typ; eauto.
-        exists ls. eassumption.
-      }
-      destruct A as [D0 [A1 A2]].
-      exists D0. split. apply A1. apply rs_drop. apply A2.
-Qed.
-
 Lemma new_ty_defs: forall G s x T ds,
   wf_sto G s ->
   binds x (val_new T ds) s ->

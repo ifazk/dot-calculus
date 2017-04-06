@@ -572,13 +572,6 @@ Proof.
   apply ts_mutind; intros; subst; eauto.
 Qed.
 
-Lemma precise_to_general_typing: forall G t T,
-  ty_trm ty_precise sub_general G t T ->
-  ty_trm ty_general sub_general G t T.
-Proof.
-  intros. apply* precise_to_general.
-Qed.
-
 Lemma tight_to_general:
   (forall m1 m2 G t T,
      ty_trm m1 m2 G t T ->
@@ -596,40 +589,11 @@ Proof.
   - apply precise_to_general in t; eauto.
 Qed.
 
-Lemma tight_to_general_typing: forall G t T,
-  ty_trm ty_general sub_tight G t T ->
-  ty_trm ty_general sub_general G t T.
-Proof.
-  intros. apply* tight_to_general.
-Qed.
-
 Lemma tight_to_general_subtyping: forall G S U,
   subtyp ty_general sub_tight G S U ->
   subtyp ty_general sub_general G S U.
 Proof.
   intros. apply* tight_to_general.
-Qed.
-
-Lemma precise_to_tight:
-  (forall m1 m2 G t T,
-     ty_trm m1 m2 G t T ->
-     m1 = ty_precise ->
-     m2 = sub_general ->
-     ty_trm ty_general sub_tight G t T) /\
-  (forall m1 m2 G S U,
-     subtyp m1 m2 G S U ->
-     m1 = ty_precise ->
-     m2 = sub_general ->
-     subtyp ty_general sub_tight G S U).
-Proof.
-  apply ts_mutind; intros; subst; eauto; inversion H0.
-Qed.
-
-Lemma precise_to_tight_typing: forall G t T,
-  ty_trm ty_precise sub_general G t T ->
-  ty_trm ty_general sub_tight G t T.
-Proof.
-  intros. apply* precise_to_tight.
 Qed.
 
 Lemma sto_binds_to_ctx_binds: forall G s x v,
@@ -643,19 +607,6 @@ Proof.
   exists T.
   eapply binds_middle_eq. apply wf_sto_to_ok_G in Hwf'.
   apply ok_middle_inv in Hwf'. destruct Hwf'. assumption.
-  assumption.
-Qed.
-
-Lemma ctx_binds_to_sto_binds: forall G s x T,
-  wf_sto G s -> binds x T G -> exists v, binds x v s.
-Proof.
-  introv Hwf Bi.
-  remember Hwf as Hwf'. clear HeqHwf'.
-  apply ctx_binds_to_sto_binds_raw with (x:=x) (T:=T) in Hwf.
-  destruct Hwf as [G1 [G2 [v [EqG [Bis Hty]]]]].
-  subst.
-  exists v.
-  assumption.
   assumption.
 Qed.
 
