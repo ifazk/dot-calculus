@@ -148,6 +148,14 @@ Proof.
   apply (good_ty_precise_bot' H HT H0).
 Qed.
 
+Lemma good_ty_precise_bot_v : forall G v,
+    good G ->
+    ty_trm ty_precise sub_general G (trm_val v) typ_bot ->
+    False.
+Proof.
+  introv Hg Ht. inversions Ht. false* H.
+Qed.
+
 Lemma good_precise_sel_inv : forall G x y A,
     good G ->
     ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_sel y A) ->

@@ -135,3 +135,11 @@ Lemma general_to_tight_typing: forall G t T,
 Proof.
   intros. apply* general_to_tight.
 Qed.
+
+Lemma general_to_tight_subtyping: forall G T U,
+    good G ->
+    subtyp ty_general sub_general G T U ->
+    subtyp ty_general sub_tight G T U.
+Proof.
+  intros. apply* general_to_tight.
+Qed.

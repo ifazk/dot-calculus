@@ -26,6 +26,8 @@ Proof.
   pose proof (tight_to_precise_typ_all Hgd Hti) as [S' [T' [Hpt [Hsub [HSsub [L' HTsub]]]]]].
   pose proof (good_precise_all_inv Hgd Hpt) as Bi.
   pose proof (corresponding_types Hwf Bi) as [[T2 [U2 [t [Hb [Hl HS]]]]] | [? [? [? [? HS]]]]];
+
+
   inversion HS.
   subst T2 U2; clear HS.
   inversion Hl; subst.
