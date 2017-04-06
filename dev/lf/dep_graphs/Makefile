@@ -27,6 +27,9 @@ dpd:: $(DPDFILES)
 $(DPDFILES): $(FILE) $(SAFETY)
 	coqtop $(COQINCLUDE) < $(FILE)
 
+$(SAFETY): $(TOPDIR)*.v
+	cd $(TOPDIR) && make
+
 %.dot: %.dpd
 	dpd2dot -without-defs $<
 
@@ -36,9 +39,6 @@ $(DPDFILES): $(FILE) $(SAFETY)
 ########################
 # Library Dependencies #
 ########################
-
-$(SAFETY):
-	cd $(TOPDIR) && make
 
 $(LIBLN):
 	cd $(TLCDIR) && make
@@ -76,6 +76,9 @@ $(ORIGDPDFILES): TOPDIR=$(ORIGTOPDIR)
 $(ORIGDPDFILES): SAFETY=$(ORIGSAFETY)
 $(ORIGDPDFILES): $(ORIGFILE) $(ORIGSAFETY)
 	coqtop $(COQINCLUDE) < $(ORIGFILE)
+
+$(ORIGSAFETY): $(ORIGTOPDIR)*.v
+	cd $(ORIGTOPDIR) && make
 
 pdf:: $(ORIGPDFFILES)
 dot:: $(ORIGDOTFILES)
