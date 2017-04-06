@@ -4,23 +4,51 @@ Require LibLN.
 Require Coq.Program.Equality.
 
 Require Definitions.
-Require Good_types.
-Require Narrowing.
-Require Safety.
-Require Substitution.
-Require Tight_possible_types.
-Require Wellformed_store.
-Require Canonical_forms2.
-Require General_to_tight.
-Require Precise_flow.
-Require Some_lemmas.
 Require Weakening.
+Require Wellformed_store.
+Require Some_lemmas.
+Require Precise_flow.
+Require Good_types.
+Require Tight_possible_types.
+Require Substitution.
+Require Narrowing.
+Require General_to_tight.
 Require Canonical_forms1.
+Require Canonical_forms2.
+Require Safety.
 
-Set DependGraph File "file_depend_wo_defs.dpd".
+Set DependGraph File "tight_wo_defs.dpd".
 
-Print FileDependGraph Canonical_forms1 Good_types Narrowing Safety Substitution Tight_possible_types Wellformed_store Canonical_forms2 General_to_tight Precise_flow Some_lemmas Weakening.
+Print FileDependGraph
+(*Definitions*)
+Weakening
+Wellformed_store
+Some_lemmas
+Precise_flow
+Good_types
+Tight_possible_types
+Substitution
+Narrowing
+General_to_tight
+Canonical_forms1
+Canonical_forms2
+Safety
+.
 
-Set DependGraph File "file_depend_wo_defs_slem.dpd".
+Set DependGraph File "tight_wo_defs_slem.dpd".
 
-Print FileDependGraph Canonical_forms1 Good_types Narrowing Safety Substitution Tight_possible_types Wellformed_store Canonical_forms2 General_to_tight Precise_flow (*Some_lemmas*) Weakening.
+Print FileDependGraph
+(*Definitions*)
+Weakening
+Wellformed_store
+(*Some_lemmas*)
+Precise_flow
+Good_types
+Tight_possible_types
+Substitution
+Narrowing
+General_to_tight
+Canonical_forms1
+Canonical_forms2
+Safety
+.
