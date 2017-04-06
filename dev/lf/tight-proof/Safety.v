@@ -91,7 +91,7 @@ Proof.
       exists (s & x ~ v) (open_trm x u) (G & (x ~ T')) (x ~ T').
       split.
       apply red_let. eauto.
-      split. reflexivity. split.
+      split. reflexivity. split. Check narrow_typing.
       apply narrow_typing with (G:=G & x ~ T).
       assumption.
       apply subenv_last. assumption.

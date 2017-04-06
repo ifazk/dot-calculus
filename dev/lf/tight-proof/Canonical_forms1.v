@@ -16,12 +16,12 @@ If G ~ s and G |- x: all(x: T)U then s(x) = lambda(x: T')t where G |- T <: T' an
  *)
 Lemma canonical_forms_1: forall G s x T U,
   wf_sto G s ->
+  good G ->
   ty_trm ty_general sub_general G (trm_var (avar_f x)) (typ_all T U) ->
   (exists L T' t, binds x (val_lambda T' t) s /\ subtyp ty_general sub_general G T T' /\
   (forall y, y \notin L -> ty_trm ty_general sub_general (G & y ~ T) (open_trm y t) (open_typ y U))).
 Proof.
-  introv Hwf Hty.
-  pose proof (wf_good Hwf) as Hgd.
+  introv Hwf Hgd Hty.
   pose proof (general_to_tight_typing Hgd Hty) as Hti.
   pose proof (tight_to_precise_typ_all Hgd Hti) as [S' [T' [Hpt [Hsub [HSsub [L' HTsub]]]]]].
   pose proof (good_precise_all_inv Hgd Hpt) as Bi.

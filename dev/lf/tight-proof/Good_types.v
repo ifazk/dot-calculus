@@ -3,7 +3,6 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import Wellformed_store.
 Require Import Some_lemmas.
 Require Import Precise_flow.
 
@@ -37,21 +36,6 @@ Inductive good : ctx -> Prop :=
       good_typ T ->
       x # pre ->
       good (pre & x ~ T).
-
-Lemma wf_good : forall G s, wf_sto G s -> good G.
-Proof.
-  intros. induction H.
-  - apply good_empty.
-  - apply good_all.
-    + assumption.
-    + dependent induction H2.
-      * apply good_typ_all.
-      * apply good_typ_bnd. pick_fresh z. apply open_record_type_rev with (x:=z); auto.
-        apply record_defs_typing with (G:=G & z ~ open_typ z T) (ds:= open_defs z ds); auto.
-      * assert (ty_precise = ty_precise) by reflexivity. apply H4 in H5.
-        destruct H5. inversion H5.
-    + assumption.
-Qed.
 
 (* Good contexts bind good:
 If G |- x : T and G is a good context then T is a good type. *)
