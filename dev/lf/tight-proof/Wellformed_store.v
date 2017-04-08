@@ -8,6 +8,7 @@ Require Import Some_lemmas.
 Require Import Good_types.
 Require Import General_to_tight.
 Require Import Tight_possible_types_val.
+Require Import Narrowing.
 
 (* ###################################################################### *)
 (** ** Well-formed store *)
@@ -58,18 +59,25 @@ Qed.
 
 Lemma tpt_to_precise_lambda: forall G v S T,
     tight_pt_v G v (typ_all S T) ->
-    exists S' T',
+    good G ->
+    exists L S' T',
       ty_trm ty_precise sub_general G (trm_val v) (typ_all S' T') /\
       subtyp ty_general sub_general G S S' /\
-      subtyp ty_general sub_general G T' T.
+      (forall y, y \notin L ->
+                 subtyp ty_general sub_general (G & y ~ S) (open_typ y T') (open_typ y T)).
 Proof.
-  introv Ht. dependent induction Ht.
-  - exists S T. split*.
-  - destruct (IHHt S0 T0 eq_refl) as [S1 [T1 [Hp [Hss Hst]]]].
-    exists S1 T1. split. assumption. split. apply subtyp_trans with (T:=S0).
-    apply* tight_to_general. assumption. apply subtyp_trans with (T:=T0).
-    assumption. pick_fresh y. assert (y \notin L) as Hy by auto. specialize (H0 y Hy).
-    admit.
+  introv Ht Hg. dependent induction Ht.
+  - exists (dom G) S T. split*.
+  - destruct (IHHt S0 T0 eq_refl Hg) as [L' [S1 [T1 [Hp [Hss Hst]]]]].
+    exists (L \u L' \u dom G) S1 T1. split. assumption. split. apply subtyp_trans with (T:=S0).
+    apply* tight_to_general. assumption. intros.
+    assert (ok (G & y ~ S)) as Hok. {
+      apply* ok_push. apply* good_ok.
+    }
+    apply subtyp_trans with (T:=open_typ y T0).
+    eapply narrow_subtyping. apply* Hst. apply subenv_last. apply* tight_to_general.
+    assumption. assumption.
+    apply* H0.
 Qed.
 
 Lemma precise_forall_inv : forall G v S T,
@@ -92,11 +100,12 @@ Lemma corresponding_types: forall G s x T,
   wf_sto G s ->
   good G ->
   binds x T G ->
-  ((exists S U S' U' t, binds x (val_lambda S t) s /\
+  ((exists L S U S' U' t, binds x (val_lambda S t) s /\
                   ty_trm ty_precise sub_general G (trm_val (val_lambda S t)) (typ_all S U) /\
                   T = typ_all S' U' /\
                   subtyp ty_general sub_general G S' S /\
-                  subtyp ty_general sub_general G U U') \/
+                  (forall y, y \notin L ->
+                  subtyp ty_general sub_general (G & y ~ S') (open_typ y U) (open_typ y U'))) \/
    (exists S ds, binds x (val_new S ds) s /\
                  ty_trm ty_precise sub_general G (trm_val (val_new S ds)) (typ_bnd S) /\
                  T = typ_bnd S)).
@@ -108,7 +117,7 @@ Proof.
     }
     unfolds binds. rewrite get_push in *. case_if.
     + inversions Bi. inversion H2; subst.
-      * left. exists T0 U T0 U t.
+      * left. exists (L \u dom G) T0 U T0 U t.
         split*. split*.
         apply* weaken_ty_trm.
       * right. exists T0. exists ds. split*. split*.
@@ -119,19 +128,26 @@ Proof.
           inversions Hgd. false* empty_push_inv. destruct (eq_push_inv H6) as [Hx [Hv HG]]. subst*.
         }
         inversions HgT.
-        apply tpt_to_precise_lambda in Hpt. destruct Hpt as [S' [T' [Hss [Hs1 Hs2]]]].
-        destruct (precise_forall_inv Hss) as [t Heq]. subst. left. exists S' T' S T1 t.
+        apply tpt_to_precise_lambda in Hpt. destruct Hpt as [L [S' [T' [Hss [Hs1 Hs2]]]]].
+        destruct (precise_forall_inv Hss) as [t Heq]. subst. left.
+        exists (L \u dom G \u \{ x0}) S' T' S T1 t.
         split. apply* f_equal. split. apply* weaken_ty_trm. split. reflexivity.
-        split; apply* weaken_subtyp.
+        split. apply* weaken_subtyp. intros y Hy.
+        apply (proj44 weaken_rules) with (G:=G & y ~ S). apply* Hs2. reflexivity.
+        apply ok_push. apply* good_ok. simpl_dom. rewrite notin_union. split*.
+        assumption.
         apply tpt_to_precise_rec in Hpt.
         destruct (precise_bnd_inv Hpt) as [ds Heq]. subst. right. exists T1 ds.
         split. reflexivity. split. apply* weaken_ty_trm. reflexivity.
         assumption.
-    + simpl in Bi. specialize (IHwf_sto Hg Bi).
-      destruct IHwf_sto as [[S [U [S' [U' [t [Hv [Ht [Heq [Hs1 Hs2]]]]]]]]] |
+    + specialize (IHwf_sto Hg Bi).
+      destruct IHwf_sto as [[L [S [U [S' [U' [t [Hv [Ht [Heq [Hs1 Hs2]]]]]]]]]] |
                             [S [ds [Hv [Ht He]]]]].
-      * left. exists S U S' U' t. split. assumption. split. apply* weaken_ty_trm.
-        split. assumption. split; apply* weaken_subtyp.
+      * left. exists (L \u dom G \u \{x0}) S U S' U' t. split. assumption. split.
+        apply* weaken_ty_trm.
+        split. assumption. split. apply* weaken_subtyp.
+        intros y Hy. apply (proj44 (weaken_rules)) with (G:=G & y ~ S'). apply* Hs2.
+        reflexivity. apply ok_push. apply* good_ok. auto.
       * right. exists S ds. split. assumption. split. apply* weaken_ty_trm. assumption.
 Qed.
 

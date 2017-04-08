@@ -77,7 +77,7 @@ Proof.
       apply not_eq_sym. eapply defs_has_hasnt_neq; eauto.
       assumption.
 Qed.
-
+(*
 Lemma new_ty_defs: forall G s x T ds,
   wf_sto G s ->
   binds x (val_new T ds) s ->
@@ -95,7 +95,8 @@ Proof.
   eauto. eauto. eauto.
   specialize (H eq_refl). destruct H as [? Contra]. inversion Contra.
 Qed.
-
+ *)
+(*
 Lemma corresponding_types_ty_trms: forall G s ds x S,
   wf_sto G s ->
   binds x (typ_bnd S) G ->
@@ -115,7 +116,8 @@ Proof.
   inversion Htd; subst.
   exists t. auto.
 Qed.
-
+ *)
+(*
 Lemma ctx_binds_to_sto_binds_typing: forall G s x T,
   wf_sto G s ->
   binds x T G ->
@@ -130,7 +132,8 @@ Proof.
   rewrite concat_assoc.
   eapply wf_sto_to_ok_G; eauto.
 Qed.
-
+*)
+(*
 Lemma canonical_forms_2: forall G s x a T,
   wf_sto G s ->
   ty_trm ty_general sub_general G (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
@@ -164,3 +167,4 @@ Proof.
   eapply ty_sub; eauto.
   intros Contra; inversion Contra.
 Qed.
+*)
