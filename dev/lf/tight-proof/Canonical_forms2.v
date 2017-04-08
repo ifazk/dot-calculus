@@ -117,6 +117,7 @@ Proof.
   exists t. auto.
 Qed.
  *)
+
 (*
 Lemma ctx_binds_to_sto_binds_typing: forall G s x T,
   wf_sto G s ->
@@ -133,20 +134,29 @@ Proof.
   eapply wf_sto_to_ok_G; eauto.
 Qed.
 *)
-(*
+
 Lemma canonical_forms_2: forall G s x a T,
+  good G ->
   wf_sto G s ->
   ty_trm ty_general sub_general G (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
   (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm ty_general sub_general G t T).
 Proof.
-  introv Hwf Hty.
-  pose proof (wf_good Hwf) as Hgd.
+  introv Hg Hwf Hty.
   pose proof (typing_implies_bound Hty) as [S Bi].
-  pose proof (ctx_binds_to_sto_binds_typing Hwf Bi) as [v [Bis Htyv]].
-  pose proof (general_to_tight_typing Hgd Hty) as Hty'.
-  pose proof (tight_to_precise_trm_dec Hgd Hty') as [T' [Hpt Hsub]].
+
+
+
+  pose proof (general_to_tight_typing Hg Hty) as Hti.
+  pose proof (tight_to_precise_trm_dec Hg Hti) as [T' [Hx Hs]].
+  pose proof (corresponding_types Hwf Hg Bi)
+    as [[L [U [V [S1 [V1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [U [ds [Hb [Ht Heq]]]]].
+
+
+  (*pose proof (ctx_binds_to_sto_binds_typing Hwf Bi) as [v [Bis Htyv]].*)
+  pose proof (general_to_tight_typing Hg Hty) as Hty'.
+  pose proof (tight_to_precise_trm_dec Hg Hty') as [W [Hpt Hsub]].
   assert (H: exists T, record_type T /\ S = (typ_bnd T)).
-  { pose proof (good_binds Hgd Bi) as Hgt.
+  { pose proof (good_binds Hg Bi) as Hgt.
     induction Hgt.
     - pose proof (precise_flow_lemma Bi Hpt) as H.
       apply (precise_flow_all_inv) in H.
@@ -154,10 +164,14 @@ Proof.
     - exists T0. auto.
   }
   destruct H as [T0 [Hrt Hsubst]]; subst S; rename T0 into S.
-  pose proof (corresponding_types Hwf Bi) as [[? [? [? [? [_ HS]]]]] | [T2 [ds [Hb [Hn HS]]]]];
-  inversion HS.
-  subst T2; clear HS.
-  exists S ds.
+  (*pose proof (corresponding_types Hwf Bi) as [[? [? [? [? [_ HS]]]]] | [T2 [ds [Hb [Hn HS]]]]];*)
+  inversion Hsubst. subst.
+  exists U ds.
+
+
+
+
+
   apply (binds_func Bis) in Hb. subst v.
   pose proof (new_ty_defs Hwf Bis) as Htd.
   pose proof (corresponding_types_ty_trms Hwf Bi Bis Hpt) as [t [H1 H2]].

@@ -32,22 +32,18 @@ Qed.*)
 
 Hint Resolve wf_sto_to_ok_G.
 
-(*
 Lemma ctx_binds_to_sto_binds_raw: forall s G x T,
   wf_sto G s ->
   binds x T G ->
-  exists G1 G2 v, G = G1 & (x ~ T) & G2 /\ binds x v s /\ ty_trm ty_precise sub_general G1 (trm_val v) T.
+  exists v, binds x v s /\ ty_trm ty_general sub_general G (trm_val v) T.
 Proof.
   introv Wf Bi. gen x T Bi. induction Wf; intros.
   + false* binds_empty_inv.
   + unfolds binds. rewrite get_push in *. case_if.
-    - inversions Bi. exists G (@empty typ) v.
-      rewrite concat_empty_r.
-
-
-    - specialize (IHWf _ _ Bi). destruct IHWf as [G1 [G2 [ds' [Eq [Bi' Tyds]]]]].
-      subst. exists G1 (G2 & x ~ T) ds'. rewrite concat_assoc. auto.
-Qed.*)
+    - inversions Bi. exists v. split. reflexivity. apply* weaken_ty_trm.
+    - specialize (IHWf _ _ Bi). destruct IHWf as [v' [Hg Ht]].
+      subst. exists v'. split. assumption. apply* weaken_ty_trm.
+Qed.
 
 Lemma tpt_to_precise_rec: forall G v T,
     tight_pt_v G v (typ_bnd T) ->
@@ -164,7 +160,6 @@ Proof.
     apply* binds_push_neq.
 Qed.
 
-(*
 Lemma wf_sto_val_new_in_G: forall G s x T ds,
   wf_sto G s ->
   good G ->
@@ -198,25 +193,24 @@ Proof.
     subst. destruct T0; intro; inversions HT.
     * clear Ht HG. dependent induction Hs. auto.
       specialize
-*)
 
-(*
+
 Lemma val_new_typing: forall G s x T ds,
   wf_sto G s ->
+  good G ->
   binds x (val_new T ds) s ->
   ty_trm ty_precise sub_general G (trm_val (val_new T ds)) (typ_bnd T).
 Proof.
-  introv Hwf Bis.
+  introv Hwf Hg Bis.
   assert (exists T, binds x T G) as Bi. {
     eapply sto_binds_to_ctx_binds; eauto.
   }
   destruct Bi as [T0 Bi].
-  destruct (corresponding_types Hwf Bi).
-  - destruct H as [S [U [t [Bis' [Ht EqT]]]]].
+  destruct (corresponding_types Hwf Hg Bi).
+  - destruct H as [L [S [U [S' [U' [t [Bis' [Ht EqT]]]]]]]].
     false.
   - destruct H as [T' [ds' [Bis' [Ht EqT]]]]. subst.
     unfold binds in Bis. unfold binds in Bis'. rewrite Bis' in Bis.
     inversion Bis. subst.
     assumption.
 Qed.
-*)

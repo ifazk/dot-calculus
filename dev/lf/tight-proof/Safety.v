@@ -42,6 +42,24 @@ Lemma safety: forall G s t T,
 Proof.
   introv Hwf Hg H. dependent induction H; try solve [left; eauto].
   - (* All-E *) right.
+    lets C: (canonical_forms_1 Hwf Hg H).
+    destruct C as [L [T' [t [Bis [Hsub Hty]]]]].
+    exists s (open_trm z t) G (@empty typ).
+    split.
+    apply red_app with (T:=T'). assumption.
+    split.
+    rewrite concat_empty_r. reflexivity.
+    split.
+    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
+    rewrite subst_intro_typ with (x:=y). rewrite subst_intro_trm with (x:=y).
+    eapply subst_ty_trm. eapply Hty.
+    apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto.
+    rewrite subst_fresh_typ.
+    apply ty_sub with (T:=S).
+    intro Contra. inversion Contra.
+    assumption. apply subtyp_refl.
+    eauto. eauto. eauto. eauto.
+  - (* All-E *) right.
     lets Ht: (general_to_tight_typing Hg H).
     destruct (tight_to_precise_typ_all Hg Ht) as [S' [T' [Hpt [Hsub [HSsub [L HTsub]]]]]].
     lets Bi: (good_precise_all_inv Hg Hpt).
