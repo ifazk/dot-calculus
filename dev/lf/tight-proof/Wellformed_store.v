@@ -32,19 +32,6 @@ Qed.*)
 
 Hint Resolve wf_sto_to_ok_G.
 
-Lemma ctx_binds_to_sto_binds_raw: forall s G x T,
-  wf_sto G s ->
-  binds x T G ->
-  exists v, binds x v s /\ ty_trm ty_general sub_general G (trm_val v) T.
-Proof.
-  introv Wf Bi. gen x T Bi. induction Wf; intros.
-  + false* binds_empty_inv.
-  + unfolds binds. rewrite get_push in *. case_if.
-    - inversions Bi. exists v. split. reflexivity. apply* weaken_ty_trm.
-    - specialize (IHWf _ _ Bi). destruct IHWf as [v' [Hg Ht]].
-      subst. exists v'. split. assumption. apply* weaken_ty_trm.
-Qed.
-
 Lemma tpt_to_precise_rec: forall G v T,
     tight_pt_v G v (typ_bnd T) ->
     ty_trm ty_precise sub_general G (trm_val v) (typ_bnd T).
