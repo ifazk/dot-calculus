@@ -38,8 +38,7 @@ Lemma subenv_last: forall G x S U,
 Proof.
   intros. unfold subenv. intros y T Bi.
   apply binds_push_inv in Bi. destruct Bi as [Bi | Bi].
-  - destruct Bi. subst. right. exists S. split; eauto.
-    apply weaken_subtyp; eauto.
+  - destruct Bi. subst. right. exists S. split; eauto using weaken_subtyp.
   - destruct Bi. left. eauto.
 Qed.
 
@@ -65,7 +64,7 @@ Lemma narrow_rules:
     subenv G' G ->
     subtyp m1 m2 G' S U).
 Proof.
-  apply rules_mutind; intros; eauto.
+  apply rules_mutind; intros; eauto 4.
   - (* ty_var *)
     subst. unfold subenv in H2. specialize (H2 x T b).
     destruct H2.
@@ -74,22 +73,22 @@ Proof.
       eapply ty_sub; eauto.
   - (* ty_all_intro *)
     subst.
-    apply_fresh ty_all_intro as y; eauto.
-    eapply H; eauto. apply subenv_push; eauto.
+    apply_fresh ty_all_intro as y; eauto using subenv_push.
   - (* ty_new_intro *)
     subst.
-    apply_fresh ty_new_intro as y; eauto.
-    apply H; eauto. apply subenv_push; eauto.
+    apply_fresh ty_new_intro as y; eauto using subenv_push.
   - (* ty_let *)
     subst.
-    apply_fresh ty_let as y; eauto.
-    apply H0 with (x:=y); eauto. apply subenv_push; eauto.
+    apply_fresh ty_let as y; eauto using subenv_push.
   - inversion H1 (* sub_tight *).
   - inversion H1 (* sub_tight *).
   - (* subtyp_all *)
     subst.
-    apply_fresh subtyp_all as y; eauto.
-    apply H0; eauto. apply subenv_push; eauto.
+    apply_fresh subtyp_all as y.
+    + eauto.
+    + assert (H5: ok (G' & y ~ S2)) by auto.
+      pose proof (subenv_push H4 H5).
+      eauto.
 Qed.
 
 Lemma narrow_typing: forall G G' t T,
