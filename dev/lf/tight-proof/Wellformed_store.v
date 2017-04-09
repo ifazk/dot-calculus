@@ -92,6 +92,23 @@ Proof.
   introv Ht. inversions Ht. exists* ds. false* H.
 Qed.
 
+Lemma precise_obj_typ : forall G T ds U,
+    ty_trm ty_precise sub_general G (trm_val (val_new T ds)) U ->
+    U = typ_bnd T.
+Proof.
+  introv Hp. dependent induction Hp; auto.
+  false* H.
+Qed.
+
+Lemma tpt_obj_all : forall G S ds T U,
+    tight_pt_v G (val_new S ds) (typ_all T U) ->
+    False.
+Proof.
+  introv Ht. dependent induction Ht.
+  apply precise_obj_typ in H. inversion H.
+  apply* IHHt.
+Qed.
+
 Lemma corresponding_types: forall G s x T,
   wf_sto G s ->
   good G ->
@@ -171,7 +188,7 @@ Proof.
     eapply sto_binds_to_ctx_binds; eauto.
   }
   destruct Bi as [S Bi].
-  dependent induction Hwf.
+  induction Hwf.
   false* binds_empty_inv.
   assert (good G /\ good_typ T0) as HG. {
     inversions Hg. false* empty_push_inv. destruct (eq_push_inv H2) as [Hg [Hx Ht]].
@@ -179,21 +196,18 @@ Proof.
   }
   destruct HG as [HG HT].
   destruct (binds_push_inv Bis) as [[Hx Hv] | [Hn Hb]]; subst.
-  - apply binds_push_eq_inv in Bi. subst.
-    clear IHHwf Hg Bis H H0 Hwf. gen x0.
-    apply val_typing in H1. destruct H1 as [U [Ht Hs]].
-    assert (U = typ_bnd T) as Hbnd. {
-      dependent induction Ht; auto.
-      assert (subtyp ty_general sub_general G T1 T0) as Hsub. {
-        apply subtyp_trans with (T:=U). apply* precise_to_general_subtyping. assumption.
-      }
-      specialize (IHHt T ds eq_refl eq_refl eq_refl Hsub HG). subst.
-      destruct U; specialize (H eq_refl); destruct H; inversion H.
+  - assert (T0 = typ_bnd T) as Heq. {
+      apply binds_push_eq_inv in Bi. subst.
+      clear IHHwf Hg Bis H H0 Hwf.
+      apply general_to_tight_typing in H1; auto.
+      apply tight_possible_types_lemma_v in H1; auto.
+      inversions H1; try solve [inversion HT].
+      * apply* precise_obj_typ.
+      * false* tpt_obj_all.
     }
-    subst. destruct T0; intro; inversions HT.
-    * clear Ht HG. dependent induction Hs. auto.
-      specialize
-
+    subst*.
+  - apply binds_push_neq_inv in Bi; auto.
+Qed.
 
 Lemma val_new_typing: forall G s x T ds,
   wf_sto G s ->

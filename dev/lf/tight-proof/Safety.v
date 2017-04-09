@@ -59,84 +59,14 @@ Proof.
     intro Contra. inversion Contra.
     assumption. apply subtyp_refl.
     eauto. eauto. eauto. eauto.
-  - (* All-E *) right.
-    lets Ht: (general_to_tight_typing Hg H).
-    destruct (tight_to_precise_typ_all Hg Ht) as [S' [T' [Hpt [Hsub [HSsub [L HTsub]]]]]].
-    lets Bi: (good_precise_all_inv Hg Hpt).
-    destruct (corresponding_types Hwf Hg Bi)
-      as [[L' [S0 [V [S1 [V1 [t [Hb [Ht' [Heq [Hs1 Hs2]]]]]]]]]] | [S0 [ds [Hb [Ht' Heq]]]]].
-    + inversions Heq.
-      inversions Ht'.
-(*      exists s (open_trm z t) G (@empty typ). split.
-      apply* red_app. split. rewrite* concat_empty_r. split.
-      inversions Ht'.*)
-      * pick_fresh z'. assert (z' \notin L0) as Hz' by auto.
-        specialize (H5 z' Hz').
-        assert (ty_trm ty_general sub_general (G & z' ~ S1) (open_trm z' t) (open_typ z' V))
-          as Htn. {
-          apply narrow_typing with (G:=G & z' ~ S0). assumption. apply* subenv_last.
-          apply* ok_push.
-        }
-        assert (ty_trm ty_general sub_general (G & z' ~ S) (open_trm z' t) (open_typ z' V))
-          as Htn'. {
-          apply narrow_typing with (G:=G & z' ~ S1). assumption. apply subenv_last.
-          apply* tight_to_general. apply* ok_push. apply* ok_push.
-        }
-        exists s (open_trm z t) (G & z' ~ S) (z' ~ S). split.
-        apply* red_app. split. reflexivity. split.
-        assert (subtyp ty_general sub_general (G & z' ~ S) (open_typ z' V) (open_typ z' T))
-          as Hs. {
-          apply subtyp_trans with (T:=open_typ z' V1).
-          apply narrow_subtyping with (G:=G & z' ~ S1). apply* Hs2. apply subenv_last.
-          apply* tight_to_general. apply* ok_push. apply* ok_push.
-          apply* HTsub.
-        }
-        assert (ty_trm ty_general sub_general (G & z' ~ S) (open_trm z' t) (open_typ z' T))
-          as Htz. {
-          apply ty_sub with (T:=open_typ z' V). intro Contra. inversion Contra.
-          assumption. assumption.
-        }
-        rewrite subst_intro_trm with (x:=z'). rewrite subst_intro_typ with (x:=z').
-        eapply subst_ty_trm. apply weaken_ty_trm. assumption.
-
-
-  subst. inversion Heq; subst. inversions Ht.
-  - exists (L \u L' \u L0) S t.
-    split; auto.
-    pose proof (tight_possible_types_lemma Hgd Hti) as Htp.
-    inversion Htp; subst.
-
-
-    lets C: (canonical_forms_1). Hwf Hg H).
-
-    letc C: (corresponding_types).
-    lets C: (canonical_forms_1 Hwf H).
-    destruct C as [L [T' [t [Bis [Hsub Hty]]]]].
-    exists s (open_trm z t) G (@empty typ).
-    split.
-    apply red_app with (T:=T'). assumption.
-    split.
-    rewrite concat_empty_r. reflexivity.
-    split.
-    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
-    rewrite subst_intro_typ with (x:=y). rewrite subst_intro_trm with (x:=y).
-    eapply subst_ty_trm. eapply Hty.
-    apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto.
-    rewrite subst_fresh_typ.
-    apply ty_sub with (T:=S).
-    intro Contra. inversion Contra.
-    assumption. apply subtyp_refl.
-    eauto. eauto. eauto. eauto.
   - (* Fld-E *) right.
-    pose proof (canonical_forms_2 Hwf H) as [S [ds [t [Bis [Has Ty]]]]].
+    pose proof (canonical_forms_2 Hg Hwf H) as [S [ds [t [Bis [Has Ty]]]]].
     exists s t G (@empty typ).
     split.
-    apply red_sel with (T:=S) (ds:=ds); try assumption.
-    split.
-    rewrite concat_empty_r. reflexivity.
-    split.
-    assumption.
-    assumption.
+    + apply red_sel with (T:=S) (ds:=ds); assumption.
+    + split.
+      * rewrite concat_empty_r. reflexivity.
+      * split; assumption.
   - (* Let *) right.
     destruct t.
     + (* var *)
@@ -159,16 +89,10 @@ Proof.
     + lets Hv: (val_typing H).
       destruct Hv as [T' [Htyp Hsub]].
       pick_fresh x. assert (x \notin L) as FrL by auto. specialize (H0 x FrL).
-      exists (s & x ~ v) (open_trm x u) (G & (x ~ T')) (x ~ T').
+      exists (s & x ~ v) (open_trm x u) (G & x ~ T) (x ~ T).
       split.
       apply red_let. eauto.
-      split. reflexivity. split. Check narrow_typing.
-      apply narrow_typing with (G:=G & x ~ T).
-      assumption.
-      apply subenv_last. assumption.
-      apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
-      apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
-      apply wf_sto_push. assumption. eauto. eauto. assumption.
+      split. reflexivity. split. assumption. apply* wf_sto_push.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
       destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
       exists s' (trm_let t' u) G' G''.
