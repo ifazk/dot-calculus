@@ -302,7 +302,14 @@ Proof.
   apply ts_mutind; intros; subst; eauto.
 Qed.
 
-Lemma tight_to_general:
+Lemma precise_to_general_subtyping: forall G T U,
+    subtyp ty_precise sub_general G T U ->
+    subtyp ty_general sub_general G T U.
+Proof.
+  introv Ht. apply* precise_to_general.
+Qed.
+
+  Lemma tight_to_general:
   (forall m1 m2 G t T,
      ty_trm m1 m2 G t T ->
      m1 = ty_general ->

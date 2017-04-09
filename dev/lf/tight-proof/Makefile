@@ -10,6 +10,7 @@ PROOFS= \
     Has_member.v \
     Good_types.v \
     Tight_possible_types.v \
+    Tight_possible_types_val.v \
     Tight_bound_completeness.v \
     Substitution.v \
     Narrowing.v \

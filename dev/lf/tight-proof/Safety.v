@@ -10,6 +10,8 @@ Require Import Narrowing.
 Require Import Some_lemmas.
 Require Import Canonical_forms1.
 Require Import Canonical_forms2.
+Require Import Good_types.
+Require Import General_to_tight.
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -33,13 +35,14 @@ The proof is by a induction on typing derivations of G |- t: T.
 *)
 
 Lemma safety: forall G s t T,
-  wf_sto G s ->
-  ty_trm ty_general sub_general G t T ->
-  (normal_form t \/ (exists s' t' G' G'', red t s t' s' /\ G' = G & G'' /\ ty_trm ty_general sub_general G' t' T /\ wf_sto G' s')).
+    wf_sto G s ->
+    good G ->
+    ty_trm ty_general sub_general G t T ->
+    (normal_form t \/ (exists s' t' G' G'', red t s t' s' /\ G' = G & G'' /\ ty_trm ty_general sub_general G' t' T /\ wf_sto G' s')).
 Proof.
-  introv Hwf H. dependent induction H; try solve [left; eauto].
+  introv Hwf Hg H. dependent induction H; try solve [left; eauto].
   - (* All-E *) right.
-    lets C: (canonical_forms_1 Hwf H).
+    lets C: (canonical_forms_1 Hwf Hg H).
     destruct C as [L [T' [t [Bis [Hsub Hty]]]]].
     exists s (open_trm z t) G (@empty typ).
     split.
@@ -57,7 +60,7 @@ Proof.
     assumption. apply subtyp_refl.
     eauto. eauto. eauto. eauto.
   - (* Fld-E *) right.
-    pose proof (canonical_forms_2 Hwf H) as [S [ds [t [Bis [Has Ty]]]]].
+    pose proof (canonical_forms_2 Hg Hwf H) as [S [ds [t [Bis [Has Ty]]]]].
     exists s t G (@empty typ).
     split.
     + apply red_sel with (T:=S) (ds:=ds); assumption.
@@ -86,16 +89,10 @@ Proof.
     + lets Hv: (val_typing H).
       destruct Hv as [T' [Htyp Hsub]].
       pick_fresh x. assert (x \notin L) as FrL by auto. specialize (H0 x FrL).
-      exists (s & x ~ v) (open_trm x u) (G & (x ~ T')) (x ~ T').
+      exists (s & x ~ v) (open_trm x u) (G & x ~ T) (x ~ T).
       split.
       apply red_let. eauto.
-      split. reflexivity. split.
-      apply narrow_typing with (G:=G & x ~ T).
-      assumption.
-      apply subenv_last. assumption.
-      apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
-      apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto.
-      apply wf_sto_push. assumption. eauto. eauto. assumption.
+      split. reflexivity. split. assumption. apply* wf_sto_push.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
       destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
       exists s' (trm_let t' u) G' G''.

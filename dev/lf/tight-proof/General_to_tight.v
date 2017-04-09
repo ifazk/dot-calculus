@@ -3,7 +3,6 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import Wellformed_store.
 Require Import Narrowing.
 Require Import Good_types.
 Require Import Some_lemmas.
@@ -132,6 +131,14 @@ Lemma general_to_tight_typing: forall G t T,
   good G ->
   ty_trm ty_general sub_general G t T ->
   ty_trm ty_general sub_tight G t T.
+Proof.
+  intros. apply* general_to_tight.
+Qed.
+
+Lemma general_to_tight_subtyping: forall G T U,
+    good G ->
+    subtyp ty_general sub_general G T U ->
+    subtyp ty_general sub_tight G T U.
 Proof.
   intros. apply* general_to_tight.
 Qed.
