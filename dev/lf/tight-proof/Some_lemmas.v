@@ -7,30 +7,10 @@ Require Import Weakening.
 
 (* ###################################################################### *)
 (* ###################################################################### *)
-(** * Proofs *)
-
-(* ###################################################################### *)
 (** ** Some Lemmas *)
 
-Inductive record_dec : dec -> Prop :=
-| rd_typ : forall A T, record_dec (dec_typ A T T)
-| rd_trm : forall a T, record_dec (dec_trm a T)
-.
-
-Inductive record_typ : typ -> fset label -> Prop :=
-| rt_one : forall D l,
-  record_dec D ->
-  l = label_of_dec D ->
-  record_typ (typ_rcd D) \{l}
-| rt_cons: forall T ls D l,
-  record_typ T ls ->
-  record_dec D ->
-  l = label_of_dec D ->
-  l \notin ls ->
-  record_typ (typ_and T (typ_rcd D)) (union ls \{l})
-.
-
-Definition record_type T := exists ls, record_typ T ls.
+(* ###################################################################### *)
+(** *** Lemmas about Record types *)
 
 Lemma open_dec_preserves_label: forall D x i,
   label_of_dec D = label_of_dec (open_rec_dec i x D).
@@ -65,16 +45,8 @@ Proof.
   eassumption.
 Qed.
 
-Inductive record_has: typ -> dec -> Prop :=
-| rh_one : forall D,
-  record_has (typ_rcd D) D
-| rh_andl : forall T D,
-  record_has (typ_and T (typ_rcd D)) D
-| rh_and : forall T D D',
-  record_has T D' ->
-  record_has (typ_and T D) D'.
-
-Hint Constructors record_has.
+(* ###################################################################### *)
+(** *** Lemmas about Record has *)
 
 Lemma record_typ_has_label_in: forall T D ls,
   record_typ T ls ->
@@ -110,6 +82,9 @@ Proof.
   - eapply IHHtyp; eassumption.
 Qed.
 
+(* ###################################################################### *)
+(** *** Lemmas to upcast to general typing *)
+
 Lemma precise_to_general:
   (forall m1 m2 G t T,
      ty_trm m1 m2 G t T ->
@@ -143,7 +118,7 @@ Proof.
 Qed.
 
 (* ###################################################################### *)
-(** * Misc *)
+(** *** Misc Lemmas *)
 
 Lemma var_typing_implies_avar_f: forall G a T,
   ty_trm ty_general sub_general G (trm_var a) T ->
