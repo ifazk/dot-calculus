@@ -85,7 +85,7 @@ Lemma tight_subtyping_sel: forall G x A S U,
      subtyp ty_general sub_tight G S (typ_sel (avar_f x) A)).
 Proof.
   introv HG Hty.
-  lets H: (tight_to_precise_typ_dec HG Hty). destruct H as [T [Ht [Hs1 Hs2]]].
+  pose proof (tight_to_precise_typ_dec HG Hty) as [T [Ht [Hs1 Hs2]]].
   split.
   - apply subtyp_sel1_tight in Ht. apply subtyp_trans with (T:=T); auto.
   - apply subtyp_sel2_tight in Ht. apply subtyp_trans with (T:=T); auto.
@@ -108,7 +108,7 @@ Lemma general_to_tight: forall G0,
      subtyp ty_general sub_tight G S U).
 Proof.
   intros G0 HG.
-  apply ts_mutind; intros; subst; eauto; apply* tight_subtyping_sel.
+  apply ts_mutind; intros; subst; try solve [eapply tight_subtyping_sel; auto]; eauto.
 Qed.
 
 Lemma general_to_tight_typing: forall G t T,

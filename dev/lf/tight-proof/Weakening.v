@@ -25,33 +25,29 @@ Lemma weaken_rules:
     ok (G1 & G2 & G3) ->
     subtyp m1 m2 (G1 & G2 & G3) T U).
 Proof.
-  apply rules_mutind; try solve [eauto 4].
-  + intros. subst.
-    eapply ty_var. eapply binds_weaken; eauto.
-  + intros. subst.
-    apply_fresh ty_all_intro as z. eauto.
+  apply rules_mutind; eauto 4; intros; subst.
+  + eapply ty_var. eapply binds_weaken; eauto.
+  + apply_fresh ty_all_intro as z.
     assert (zL: z \notin L) by auto.
     specialize (H z zL G1 G2 (G3 & z ~ T)).
     repeat rewrite concat_assoc in H.
     apply* H.
-  + intros. subst.
-    apply_fresh ty_new_intro as z; assert (zL: z \notin L) by auto.
-    - specialize (H z zL G1 G2 (G3 & z ~ open_typ z T)).
-      repeat rewrite concat_assoc in H.
-      apply* H.
-  + intros. subst.
-    apply_fresh ty_let as z. eauto.
-    assert (zL: z \notin L) by auto.
-    specialize (H0 z zL G1 G2 (G3 & z ~ T)).
-    repeat rewrite concat_assoc in H0.
-    apply* H0.
-  + intros. subst.
-    apply_fresh subtyp_all as z.
-    auto.
-    assert (zL: z \notin L) by auto.
-    specialize (H0 z zL G1 G2 (G3 & z ~ S2)).
-    repeat rewrite concat_assoc in H0.
-    apply* H0.
+  + apply_fresh ty_new_intro as z; assert (zL: z \notin L) by auto.
+    specialize (H z zL G1 G2 (G3 & z ~ open_typ z T)).
+    repeat rewrite concat_assoc in H.
+    apply* H.
+  + apply_fresh ty_let as z.
+    - auto.
+    - assert (zL: z \notin L) by auto.
+      specialize (H0 z zL G1 G2 (G3 & z ~ T)).
+      repeat rewrite concat_assoc in H0.
+      apply* H0.
+  + apply_fresh subtyp_all as z.
+    - auto.
+    - assert (zL: z \notin L) by auto.
+      specialize (H0 z zL G1 G2 (G3 & z ~ S2)).
+      repeat rewrite concat_assoc in H0.
+      apply* H0.
 Qed.
 
 Lemma weaken_ty_trm:  forall m1 m2 G1 G2 t T,

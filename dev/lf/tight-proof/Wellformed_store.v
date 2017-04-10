@@ -17,19 +17,6 @@ Lemma wf_sto_to_ok_G: forall s G,
   wf_sto G s -> ok G.
 Proof. intros. induction H; jauto. Qed.
 
-(*Lemma wf_good : forall G s, wf_sto G s -> good G.
-Proof.
-  intros. induction H.
-  - apply good_empty.
-  - apply good_all; auto.
-    dependent induction H2.
-    + apply good_typ_all.
-    + apply good_typ_bnd.
-      pick_fresh z. apply open_record_type_rev with (x:=z); auto.
-      apply record_defs_typing with (G:=G & z ~ open_typ z T) (ds:= open_defs z ds). auto.
-    + pose proof (H4 eq_refl) as [? Contra]. inversion Contra.
-Qed.*)
-
 Hint Resolve wf_sto_to_ok_G.
 
 Lemma tpt_to_precise_rec: forall G v T,
@@ -68,7 +55,7 @@ Lemma precise_forall_inv : forall G v S T,
     exists t,
       v = val_lambda S t.
 Proof.
-  introv Ht. inversions  Ht. exists* t. false* H.
+  introv Ht. inversions Ht. exists* t. false* H.
 Qed.
 
 Lemma precise_bnd_inv : forall G v S,
@@ -207,11 +194,10 @@ Proof.
     eapply sto_binds_to_ctx_binds; eauto.
   }
   destruct Bi as [T0 Bi].
-  destruct (corresponding_types Hwf Hg Bi).
-  - destruct H as [L [S [U [S' [U' [t [Bis' [Ht EqT]]]]]]]].
+  destruct (corresponding_types Hwf Hg Bi) as [H | H].
+  - destruct H as [_ [S [_ [_ [_ [t [Contra _]]]]]]].
     false.
   - destruct H as [T' [ds' [Bis' [Ht EqT]]]]. subst.
-    unfold binds in Bis. unfold binds in Bis'. rewrite Bis' in Bis.
-    inversion Bis. subst.
+    pose proof (binds_func Bis Bis') as Heq; inversions Heq.
     assumption.
 Qed.

@@ -55,14 +55,16 @@ Proof.
   introv Hwf Hg Bis.
   lets Htyv: (val_new_typing Hwf Hg Bis).
   inversion Htyv; subst.
-  pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
-  rewrite subst_intro_defs with (x:=y). rewrite subst_intro_typ with (x:=y).
-  eapply subst_ty_defs. eapply H3.
-  apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto.
-  rewrite <- subst_intro_typ with (x:=y).
-  eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
-  eauto. eauto. eauto.
-  specialize (H eq_refl). destruct H as [? Contra]. inversion Contra.
+  - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
+    rewrite subst_intro_defs with (x:=y) by auto.
+    rewrite subst_intro_typ with (x:=y) by auto.
+    eapply subst_ty_defs.
+    + apply H3.
+    + eauto.
+    + auto.
+    + rewrite <- subst_intro_typ with (x:=y) by auto.
+      eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
+  - specialize (H eq_refl). destruct H as [? Contra]. inversion Contra.
 Qed.
 
 Lemma corresponding_types_ty_trms: forall G s ds x S,
@@ -97,22 +99,23 @@ Proof.
   pose proof (tight_to_precise_trm_dec Hg Hty') as [T' [Hx Hs]].
   pose proof (corresponding_types Hwf Hg Bi)
     as [[L [U [V [S1 [V1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [U [ds [Hb [Ht Heq]]]]].
-  pose proof (tight_to_precise_trm_dec Hg Hty') as [W [Hpt Hsub]].
-  assert (H: exists T, record_type T /\ S = (typ_bnd T)).
-  { pose proof (good_binds Hg Bi) as Hgt.
-    induction Hgt.
-    - pose proof (precise_flow_lemma Bi Hpt) as H.
-      apply (precise_flow_all_inv) in H.
-      inversion H.
-    - exists T0. auto.
-  }
-  destruct H as [T0 [Hrt Hsubst]]; subst S; rename T0 into S.
-  inversion Hsubst. subst.
-  exists U ds.
-  pose proof (new_ty_defs Hwf Hg Hb) as Htd.
-  pose proof (corresponding_types_ty_trms Hwf Hg Bi Hb Hx) as [t [H1 H2]].
-  exists t. split; auto.
-  split; auto.
-  apply tight_to_general in Hs; auto.
-  apply ty_sub with (T:=T'); auto. intro Contra. inversion Contra.
+  + assert (H: exists T, record_type T /\ S = (typ_bnd T)).
+    { pose proof (good_binds Hg Bi) as Hgt.
+      induction Hgt.
+      - pose proof (precise_flow_lemma Bi Hx) as H.
+        apply (precise_flow_all_inv) in H.
+        inversion H.
+      - exists T0. auto.
+    }
+    destruct H as [T0 [Hrt Hsubst]]; subst S; rename T0 into S.
+    inversion Hsubst.
+  + subst.
+    exists U ds.
+    pose proof (new_ty_defs Hwf Hg Hb) as Htd.
+    pose proof (corresponding_types_ty_trms Hwf Hg Bi Hb Hx) as [t [H1 H2]].
+    exists t.
+    split; auto.
+    split; auto.
+    apply tight_to_general in Hs; auto.
+    apply ty_sub with (T:=T'); auto. intro Contra. inversion Contra.
 Qed.
