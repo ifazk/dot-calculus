@@ -87,8 +87,7 @@ Proof.
     apply_fresh subtyp_all as y.
     + eauto.
     + assert (H5: ok (G' & y ~ S2)) by auto.
-      pose proof (subenv_push H4 H5).
-      eauto.
+      eauto using subenv_push.
 Qed.
 
 Lemma narrow_typing: forall G G' t T,

@@ -25,7 +25,7 @@ Lemma canonical_forms_1: forall G s x T U,
 Proof.
   introv Hwf Hgd Hty.
   pose proof (general_to_tight_typing Hgd Hty) as Hti.
-  pose proof (tight_to_precise_typ_all Hgd Hti) as [S' [T' [Hpt [Hsub [HSsub [L' HTsub]]]]]].
+  pose proof (tight_to_precise_typ_all Hgd Hti) as [S' [T' [L' [Hpt [HSsub HTsub]]]]].
   pose proof (good_precise_all_inv Hgd Hpt) as Bi.
   pose proof (corresponding_types Hwf Hgd Bi)
     as [[L [S [V [S1 [V1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [S [ds [Hb [Ht Heq]]]]].

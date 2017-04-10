@@ -49,48 +49,32 @@ Qed.
 Lemma tight_to_precise_typ_all: forall G x S T,
   good G ->
   ty_trm ty_general sub_tight G (trm_var (avar_f x)) (typ_all S T) ->
-  exists S' T',
+  exists S' T' L,
     ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_all S' T') /\
-    subtyp ty_general sub_tight G (typ_all S' T') (typ_all S T) /\
     subtyp ty_general sub_tight G S S' /\
-    (exists L,
-        (forall y,
-            y \notin L ->
-            subtyp ty_general sub_general (G & y ~ S) (open_typ y T') (open_typ y T)))
+    (forall y,
+        y \notin L ->
+            subtyp ty_general sub_general (G & y ~ S) (open_typ y T') (open_typ y T))
     .
 Proof.
   introv HG Ht.
   lets Htp: (tight_possible_types_lemma HG Ht). clear Ht.
   dependent induction Htp.
-  - exists S T. split; auto.
-    split; auto.
-    split; auto.
-    exists (dom G).
-    auto.
+  - exists S T (dom G); auto.
   - specialize (IHHtp _ _ HG eq_refl).
-    destruct IHHtp as [S' [T' [Hpt [Hsub1 [HSsub [L' HTsub]]]]]].
-    exists S' T'.
+    destruct IHHtp as [S' [T' [L' [Hpt [HSsub HTsub]]]]].
+    exists S' T' (dom G \u L \u L').
     split; auto.
     assert (Hsub2 : subtyp ty_general sub_tight G (typ_all S0 T0) (typ_all S T)).
     { apply subtyp_all with (L:=L); assumption. }
     split.
     + eapply subtyp_trans; eauto.
-    + split.
-      * eapply subtyp_trans; eauto.
-      * exists (dom G \u L \u L').
-        intros y Fr.
-        eapply subtyp_trans.
-        { assert (Hnarrow: subtyp ty_general sub_general (G & y ~ S) (open_typ y T') (open_typ y T0)).
-          - eapply narrow_subtyping.
-            + eapply HTsub; auto.
-            + apply subenv_last.
-              * apply tight_to_general in H; auto.
-              * apply* ok_push. apply* good_ok.
-            + apply* ok_push. apply* good_ok.
-          - apply Hnarrow.
-        }
-        apply H0.
-        auto.
+    + intros y Fr.
+      assert (Hok: ok (G & y ~ S)) by auto using ok_push, good_ok.
+      apply tight_to_general in H; auto.
+      assert (Hnarrow: subtyp ty_general sub_general (G & y ~ S) (open_typ y T') (open_typ y T0)).
+      { eapply narrow_subtyping; auto using subenv_last. }
+      eauto.
 Qed.
 
 (* Lemma 2 *)
