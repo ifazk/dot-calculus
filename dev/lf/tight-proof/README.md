@@ -16,24 +16,16 @@
 
     good ∀(x: S)T
 
-    good μ(x: T)
-
-    good {A: T..T}
-
-    good {a: T}
-
-    good T   good U
-    ---------------
-       good T & U
-
-    Γ ⊢! T <: U   good T
-    --------------------
-          good U
+        record T
+    ----------------
+      good μ(x: T)
 
 ## Good Environments
 
     good {}
 
-    good Γ  good T
+        x # Γ
+        good Γ
+        good T
     --------------
     good (Γ, x: T)
