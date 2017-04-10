@@ -113,17 +113,8 @@ Proof.
   induction Hgtyp.
   - apply precise_flow_all_inv in Hpf.
     inversion Hpf.
-  - dependent induction Hpf.
-    + pose proof (precise_flow_bnd_inv H Hpf) as H1.
-      unfold open_typ in x.
-      assert (U = typ_bot) as Hb. {
-        induction U; inversions x. reflexivity.
-      } subst. destruct H as [ls H]. inversion H.
-    + pose proof (precise_flow_bnd_eq_or_record H Hpf) as H1.
-      destruct H1 as [[? [Contra ?]] | [ls H1]]; try false.
-      inversion H1. inversion H3.
-    + pose proof (precise_flow_bnd_eq_or_record H Hpf) as H1.
-      destruct H1 as [[? [Contra ?]] | [? Contra]]; inversion Contra.
+  - pose proof (precise_flow_bnd_eq_or_record H Hpf) as [[U [Contra _]] | [? Contra]];
+      inversion Contra.
 Qed.
 
 Lemma good_ty_precise_bot : forall G x,

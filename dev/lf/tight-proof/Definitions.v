@@ -169,8 +169,6 @@ Inductive record_has: typ -> dec -> Prop :=
   record_has T D' ->
   record_has (typ_and T D) D'.
 
-Hint Constructors record_has.
-
 (* ###################################################################### *)
 (** ** Free variables *)
 
@@ -426,6 +424,8 @@ Hint Constructors
   subtyp.
 
 Hint Constructors wf_sto.
+
+Hint Constructors record_has.
 
 Lemma fresh_push_eq_inv: forall A x a (E: env A),
   x # (E & x ~ a) -> False.
