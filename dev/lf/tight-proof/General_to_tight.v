@@ -4,7 +4,7 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Narrowing.
-Require Import Good_types.
+Require Import Inert_types.
 Require Import Some_lemmas.
 Require Import Tight_possible_types.
 
@@ -13,7 +13,7 @@ Require Import Tight_possible_types.
 
 (* Lemma 1 *)
 Lemma tight_to_precise_typ_dec: forall G x A S U,
-  good G ->
+  inert G ->
   ty_trm ty_general sub_tight G (trm_var (avar_f x)) (typ_rcd (dec_typ A S U)) ->
   exists T,
     ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A T T)) /\
@@ -23,7 +23,7 @@ Proof.
   introv HG Ht.
   lets Htp: (tight_possible_types_lemma HG Ht). clear Ht.
   dependent induction Htp.
-  - lets Hp: (good_precise_dec_typ_inv HG H). subst.
+  - lets Hp: (inert_precise_dec_typ_inv HG H). subst.
     exists U. split*.
   - specialize (IHHtp A T U0 HG eq_refl).
     destruct IHHtp as [V [Hx [Hs1 Hs2]]].
@@ -31,7 +31,7 @@ Proof.
 Qed.
 
 Lemma tight_to_precise_trm_dec: forall G x a T,
-  good G ->
+  inert G ->
   ty_trm ty_general sub_tight G (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
   exists T',
     ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_trm a T')) /\
@@ -47,7 +47,7 @@ Proof.
 Qed.
 
 Lemma tight_to_precise_typ_all: forall G x S T,
-  good G ->
+  inert G ->
   ty_trm ty_general sub_tight G (trm_var (avar_f x)) (typ_all S T) ->
   exists S' T' L,
     ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_all S' T') /\
@@ -70,7 +70,7 @@ Proof.
     split.
     + eapply subtyp_trans; eauto.
     + intros y Fr.
-      assert (Hok: ok (G & y ~ S)) by auto using ok_push, good_ok.
+      assert (Hok: ok (G & y ~ S)) by auto using ok_push, inert_ok.
       apply tight_to_general in H; auto.
       assert (Hnarrow: subtyp ty_general sub_general (G & y ~ S) (open_typ y T') (open_typ y T0)).
       { eapply narrow_subtyping; auto using subenv_last. }
@@ -79,7 +79,7 @@ Qed.
 
 (* Lemma 2 *)
 Lemma tight_subtyping_sel: forall G x A S U,
-    good G ->
+    inert G ->
     ty_trm ty_general sub_tight G (trm_var (avar_f x)) (typ_rcd (dec_typ A S U)) ->
     (subtyp ty_general sub_tight G (typ_sel (avar_f x) A) U /\
      subtyp ty_general sub_tight G S (typ_sel (avar_f x) A)).
@@ -93,7 +93,7 @@ Qed.
 
 (* Theorem 1 *)
 Lemma general_to_tight: forall G0,
-  good G0 ->
+  inert G0 ->
   (forall m1 m2 G t T,
      ty_trm m1 m2 G t T ->
      G = G0 ->
@@ -112,7 +112,7 @@ Proof.
 Qed.
 
 Lemma general_to_tight_typing: forall G t T,
-  good G ->
+  inert G ->
   ty_trm ty_general sub_general G t T ->
   ty_trm ty_general sub_tight G t T.
 Proof.

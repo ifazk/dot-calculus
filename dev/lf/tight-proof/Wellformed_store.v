@@ -5,7 +5,7 @@ Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Weakening.
 Require Import Some_lemmas.
-Require Import Good_types.
+Require Import Inert_types.
 Require Import General_to_tight.
 Require Import Tight_possible_types_val.
 Require Import Narrowing.
@@ -29,7 +29,7 @@ Qed.
 
 Lemma tpt_to_precise_lambda: forall G v S T,
     tight_pt_v G v (typ_all S T) ->
-    good G ->
+    inert G ->
     exists L S' T',
       ty_trm ty_precise sub_general G (trm_val v) (typ_all S' T') /\
       subtyp ty_general sub_general G S S' /\
@@ -42,7 +42,7 @@ Proof.
     exists (L \u L' \u dom G) S1 T1. split. assumption. split. apply subtyp_trans with (T:=S0).
     apply* tight_to_general. assumption. intros.
     assert (ok (G & y ~ S)) as Hok. {
-      apply* ok_push. apply* good_ok.
+      apply* ok_push. apply* inert_ok.
     }
     apply subtyp_trans with (T:=open_typ y T0).
     eapply narrow_subtyping. apply* Hst. apply subenv_last. apply* tight_to_general.
@@ -84,7 +84,7 @@ Qed.
 
 Lemma corresponding_types: forall G s x T,
   wf_sto G s ->
-  good G ->
+  inert G ->
   binds x T G ->
   ((exists L S U S' U' t, binds x (val_lambda S t) s /\
                   ty_trm ty_precise sub_general G (trm_val (val_lambda S t)) (typ_all S U) /\
@@ -98,7 +98,7 @@ Lemma corresponding_types: forall G s x T,
 Proof.
   introv H Hgd Bi. induction H.
   - false* binds_empty_inv.
-  - assert (good G) as Hg. {
+  - assert (inert G) as Hg. {
       inversions Hgd. false* empty_push_inv. destruct (eq_push_inv H3) as [Hx [Hv HG]]. subst*.
     }
     unfolds binds. rewrite get_push in *. case_if.
@@ -110,7 +110,7 @@ Proof.
         apply* weaken_ty_trm.
       * apply general_to_tight_typing in H2.
         lets Hpt: (tight_possible_types_lemma_v Hg H2).
-        assert (good_typ T) as HgT. {
+        assert (inert_typ T) as HgT. {
           inversions Hgd. false* empty_push_inv. destruct (eq_push_inv H5) as [Hx [Hv HG]]. subst*.
         }
         inversions HgT.
@@ -120,7 +120,7 @@ Proof.
         split. apply* f_equal. split. apply* weaken_ty_trm. split. reflexivity.
         split. apply* weaken_subtyp. intros y Hy.
         apply (proj44 weaken_rules) with (G:=G & y ~ S). apply* Hs2. reflexivity.
-        apply ok_push. apply* good_ok. simpl_dom. rewrite notin_union. split*.
+        apply ok_push. apply* inert_ok. simpl_dom. rewrite notin_union. split*.
         assumption.
         apply tpt_to_precise_rec in Hpt.
         destruct (precise_bnd_inv Hpt) as [ds Heq]. subst. right. exists T1 ds.
@@ -133,7 +133,7 @@ Proof.
         apply* weaken_ty_trm.
         split. assumption. split. apply* weaken_subtyp.
         intros y Hy. apply (proj44 (weaken_rules)) with (G:=G & y ~ S'). apply* Hs2.
-        reflexivity. apply ok_push. apply* good_ok. auto.
+        reflexivity. apply ok_push. apply* inert_ok. auto.
       * right. exists S ds. split. assumption. split. apply* weaken_ty_trm. assumption.
 Qed.
 
@@ -152,7 +152,7 @@ Qed.
 
 Lemma wf_sto_val_new_in_G: forall G s x T ds,
   wf_sto G s ->
-  good G ->
+  inert G ->
   binds x (val_new T ds) s ->
   binds x (typ_bnd T) G.
 Proof.
@@ -163,7 +163,7 @@ Proof.
   destruct Bi as [S Bi].
   induction Hwf.
   false* binds_empty_inv.
-  assert (good G /\ good_typ T0) as HG. {
+  assert (inert G /\ inert_typ T0) as HG. {
     inversions Hg. false* empty_push_inv. destruct (eq_push_inv H2) as [Hg [Hx Ht]].
     subst. auto.
   }
@@ -184,7 +184,7 @@ Qed.
 
 Lemma val_new_typing: forall G s x T ds,
   wf_sto G s ->
-  good G ->
+  inert G ->
   binds x (val_new T ds) s ->
   ty_trm ty_precise sub_general G (trm_val (val_new T ds)) (typ_bnd T).
 Proof.

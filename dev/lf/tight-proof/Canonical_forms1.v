@@ -7,7 +7,7 @@ Require Import Wellformed_store.
 Require Import Some_lemmas.
 Require Import Narrowing.
 Require Import Tight_possible_types.
-Require Import Good_types.
+Require Import Inert_types.
 Require Import General_to_tight.
 Require Import Substitution.
 
@@ -18,7 +18,7 @@ If G ~ s and G |- x: all(x: T)U then s(x) = lambda(x: T')t where G |- T <: T' an
 
 Lemma canonical_forms_1: forall G s x T U,
   wf_sto G s ->
-  good G ->
+  inert G ->
   ty_trm ty_general sub_general G (trm_var (avar_f x)) (typ_all T U) ->
   (exists L T' t, binds x (val_lambda T' t) s /\ subtyp ty_general sub_general G T T' /\
   (forall y, y \notin L -> ty_trm ty_general sub_general (G & y ~ T) (open_trm y t) (open_typ y U))).
@@ -26,7 +26,7 @@ Proof.
   introv Hwf Hgd Hty.
   pose proof (general_to_tight_typing Hgd Hty) as Hti.
   pose proof (tight_to_precise_typ_all Hgd Hti) as [S' [T' [L' [Hpt [HSsub HTsub]]]]].
-  pose proof (good_precise_all_inv Hgd Hpt) as Bi.
+  pose proof (inert_precise_all_inv Hgd Hpt) as Bi.
   pose proof (corresponding_types Hwf Hgd Bi)
     as [[L [S [V [S1 [V1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [S [ds [Hb [Ht Heq]]]]].
   subst. inversion Heq; subst. inversions Ht.
@@ -35,8 +35,8 @@ Proof.
     pose proof (tight_possible_types_lemma Hgd Hti) as Htp.
     assert (forall y W, y # G -> ok (G & y ~ W)) as Hok by (intros; apply* ok_push).
     inversion Htp; subst.
-    + apply (good_precise_all_inv Hgd) in Hpt.
-      apply (good_precise_all_inv Hgd) in H.
+    + apply (inert_precise_all_inv Hgd) in Hpt.
+      apply (inert_precise_all_inv Hgd) in H.
       pose proof (binds_func Hpt H) as H4.
       inversion H4; subst T U; clear H4.
       split. auto. intros y Hy.

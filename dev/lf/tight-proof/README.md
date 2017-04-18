@@ -8,24 +8,24 @@
 
 ## New Possible Types Lemma
 
-    Γ good   Γ(x) = T   Γ ⊢ x: U
-    ----------------------------
+    Γ inert   Γ(x) = T   Γ ⊢ x: U
+    -----------------------------
             U ∈ PT(Γ,x,T)
 
-## Good Types
+## Inert Types
 
-    good ∀(x: S)T
+    inert ∀(x: S)T
 
         record T
     ----------------
-      good μ(x: T)
+      inert μ(x: T)
 
-## Good Environments
+## Inert Environments
 
-    good {}
+    inert {}
 
         x # Γ
-        good Γ
-        good T
-    --------------
-    good (Γ, x: T)
+        inert Γ
+        inert T
+    ---------------
+    inert (Γ, x: T)

@@ -8,7 +8,7 @@ PROOFS= \
     Some_lemmas.v \
     Precise_flow.v \
     Has_member.v \
-    Good_types.v \
+    Inert_types.v \
     Tight_possible_types.v \
     Tight_possible_types_val.v \
     Tight_bound_completeness.v \

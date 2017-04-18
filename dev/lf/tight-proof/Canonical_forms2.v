@@ -8,7 +8,7 @@ Require Import Wellformed_store.
 Require Import Substitution.
 Require Import Some_lemmas.
 Require Import Precise_flow.
-Require Import Good_types.
+Require Import Inert_types.
 Require Import General_to_tight.
 
 Lemma defs_has_hasnt_neq: forall ds d1 d2,
@@ -48,7 +48,7 @@ Qed.
 
 Lemma new_ty_defs: forall G s x T ds,
   wf_sto G s ->
-  good G ->
+  inert G ->
   binds x (val_new T ds) s ->
   ty_defs G (open_defs x ds) (open_typ x T).
 Proof.
@@ -68,7 +68,7 @@ Qed.
 
 Lemma corresponding_types_ty_trms: forall G s ds x S,
   wf_sto G s ->
-  good G ->
+  inert G ->
   binds x (typ_bnd S) G ->
   binds x (val_new S ds) s ->
   (forall a T',
@@ -79,7 +79,7 @@ Proof.
   introv Hwf Hg Bi Bis Hty.
   pose proof (new_ty_defs Hwf Hg Bis) as Htds.
   pose proof (precise_flow_lemma Bi Hty) as Hpf.
-  pose proof (good_typ_bnd_record Hg Bi) as Hrec.
+  pose proof (inert_typ_bnd_record Hg Bi) as Hrec.
   pose proof (precise_flow_record_has Hrec Hpf) as Hrh.
   pose proof (record_has_ty_defs Htds Hrh) as [d [Hds Htd]].
   inversion Htd; subst.
@@ -87,7 +87,7 @@ Proof.
 Qed.
 
 Lemma canonical_forms_2: forall G s x a T,
-  good G ->
+  inert G ->
   wf_sto G s ->
   ty_trm ty_general sub_general G (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
   (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm ty_general sub_general G t T).
@@ -99,7 +99,7 @@ Proof.
   pose proof (corresponding_types Hwf Hg Bi)
     as [[L [U [V [S1 [V1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [U [ds [Hb [Ht Heq]]]]].
   + assert (H: exists T, record_type T /\ S = (typ_bnd T)).
-    { pose proof (good_binds Hg Bi) as Hgt.
+    { pose proof (inert_binds Hg Bi) as Hgt.
       induction Hgt.
       - pose proof (precise_flow_lemma Bi Hx) as H.
         apply (precise_flow_all_inv) in H.

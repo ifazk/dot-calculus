@@ -10,7 +10,7 @@ Require Import Narrowing.
 Require Import Some_lemmas.
 Require Import Canonical_forms1.
 Require Import Canonical_forms2.
-Require Import Good_types.
+Require Import Inert_types.
 Require Import General_to_tight.
 
 (* ###################################################################### *)
@@ -36,7 +36,7 @@ The proof is by a induction on typing derivations of G |- t: T.
 
 Lemma safety: forall G s t T,
     wf_sto G s ->
-    good G ->
+    inert G ->
     ty_trm ty_general sub_general G t T ->
     (normal_form t \/ (exists s' t' G' G'', red t s t' s' /\ G' = G & G'' /\ ty_trm ty_general sub_general G' t' T /\ wf_sto G' s')).
 Proof.

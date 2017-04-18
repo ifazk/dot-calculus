@@ -4,7 +4,7 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Precise_flow.
-Require Import Good_types.
+Require Import Inert_types.
 
 (* ###################################################################### *)
 (** ** Tight Possible types for values *)
@@ -50,7 +50,7 @@ Inductive tight_pt_v : ctx -> val -> typ -> Prop :=
 Hint Constructors tight_pt_v.
 
 Lemma tight_possible_types_closure_tight_v: forall G v T U,
-  good G ->
+  inert G ->
   tight_pt_v G v T ->
   subtyp ty_general sub_tight G T U ->
   tight_pt_v G v U.
@@ -63,11 +63,11 @@ Proof.
   - inversions HT. inversions H.
   - inversions HT. inversions H.
   - inversions HT. inversions H0.
-    lets Hb: (good_unique_tight_bounds Hgd H H5). subst*.
+    lets Hb: (inert_unique_tight_bounds Hgd H H5). subst*.
 Qed.
 
 Lemma tight_possible_types_lemma_v : forall G v T,
-    good G ->
+    inert G ->
     ty_trm ty_general sub_tight G (trm_val v) T ->
     tight_pt_v G v T.
 Proof.
