@@ -64,7 +64,6 @@ Proof.
     + auto.
     + rewrite <- subst_intro_typ with (x:=y) by auto.
       eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
-  - specialize (H eq_refl). destruct H as [? Contra]. inversion Contra.
 Qed.
 
 Lemma corresponding_types_ty_trms: forall G s ds x S,
@@ -117,5 +116,5 @@ Proof.
     split; auto.
     split; auto.
     apply tight_to_general in Hs; auto.
-    apply ty_sub with (T:=T'); auto. intro Contra. inversion Contra.
+    apply ty_sub with (T:=T'); auto.
 Qed.

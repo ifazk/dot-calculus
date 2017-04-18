@@ -342,7 +342,10 @@ Proof.
     apply ty_and_intro; eauto.
   - (* ty_sub *)
     eapply ty_sub; eauto.
-    intro Contra. inversion Contra.
+  - (* ty_and1 *)
+    simpl. eapply ty_and1; eauto.
+  - (* ty_and2 *)
+    simpl. eapply ty_and2; eauto.
   - (* ty_def_typ *)
     simpl. apply ty_def_typ; eauto.
   - (* ty_def_trm *)

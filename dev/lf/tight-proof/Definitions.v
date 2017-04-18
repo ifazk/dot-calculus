@@ -280,11 +280,16 @@ Inductive ty_trm : tymode -> submode -> ctx -> trm -> typ -> Prop :=
     ty_trm ty_general m2 G (trm_var (avar_f x)) T ->
     ty_trm ty_general m2 G (trm_var (avar_f x)) U ->
     ty_trm ty_general m2 G (trm_var (avar_f x)) (typ_and T U)
-| ty_sub : forall m1 m2 G t T U,
-    (m1 = ty_precise -> exists x, t = trm_var (avar_f x)) ->
-    ty_trm m1 m2 G t T ->
-    subtyp m1 m2 G T U ->
-    ty_trm m1 m2 G t U
+| ty_sub : forall m2 G t T U,
+    ty_trm ty_general m2 G t T ->
+    subtyp ty_general m2 G T U ->
+    ty_trm ty_general m2 G t U
+| ty_and1 : forall m2 G x T U,
+    ty_trm ty_precise m2 G (trm_var (avar_f x)) (typ_and T U) ->
+    ty_trm ty_precise m2 G (trm_var (avar_f x)) T
+| ty_and2 : forall m2 G x T U,
+    ty_trm ty_precise m2 G (trm_var (avar_f x)) (typ_and T U) ->
+    ty_trm ty_precise m2 G (trm_var (avar_f x)) U
 with ty_def : ctx -> def -> dec -> Prop :=
 | ty_def_typ : forall G A T,
     ty_def G (def_typ A T) (dec_typ A T T)
@@ -308,14 +313,14 @@ with subtyp : tymode -> submode -> ctx -> typ -> typ -> Prop :=
     subtyp ty_general m2 G typ_bot T
 | subtyp_refl: forall m2 G T,
     subtyp ty_general m2 G T T
-| subtyp_trans: forall m1 m2 G S T U,
-    subtyp m1 m2 G S T ->
-    subtyp m1 m2 G T U ->
-    subtyp m1 m2 G S U
-| subtyp_and11: forall m1 m2 G T U,
-    subtyp m1 m2 G (typ_and T U) T
-| subtyp_and12: forall m1 m2 G T U,
-    subtyp m1 m2 G (typ_and T U) U
+| subtyp_trans: forall m2 G S T U,
+    subtyp ty_general m2 G S T ->
+    subtyp ty_general m2 G T U ->
+    subtyp ty_general m2 G S U
+| subtyp_and11: forall m2 G T U,
+    subtyp ty_general m2 G (typ_and T U) T
+| subtyp_and12: forall m2 G T U,
+    subtyp ty_general m2 G (typ_and T U) U
 | subtyp_and2: forall m2 G S T U,
     subtyp ty_general m2 G S T ->
     subtyp ty_general m2 G S U ->
@@ -353,6 +358,7 @@ Inductive wf_sto: ctx -> sto -> Prop :=
     x # s ->
     ty_trm ty_general sub_general G (trm_val v) T ->
     wf_sto (G & x ~ T) (s & x ~ v).
+
 
 (* ###################################################################### *)
 (* ###################################################################### *)

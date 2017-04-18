@@ -56,7 +56,6 @@ Proof.
     apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto.
     rewrite subst_fresh_typ.
     apply ty_sub with (T:=S).
-    intro Contra. inversion Contra.
     assumption. apply subtyp_refl.
     eauto. eauto. eauto. eauto.
   - (* Fld-E *) right.
@@ -128,7 +127,6 @@ Proof.
     exists s' t' G' G''.
     split; try split; try split; try assumption.
     apply ty_sub with (T:=T).
-    intro Contra. inversion Contra.
     assumption.
     rewrite IH2. apply weaken_subtyp. assumption.
     rewrite <- IH2. eapply wf_sto_to_ok_G. eassumption.

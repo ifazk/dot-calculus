@@ -49,18 +49,8 @@ Proof.
   - assert (H : precise_flow x G T (typ_bnd T0)).
     { apply IHHtyp; auto. }
     auto.
-  - rename H into H1.
-    assert (H : precise_flow x G T T0).
-    { apply IHHtyp; auto. }
-    dependent induction H0.
-    + apply IHsubtyp2; auto.
-      * apply ty_sub with S; auto.
-      * intros. rewrite <- H3.
-        inversion H4.
-        rewrite <- H6.
-        apply IHsubtyp1; auto.
-    + eauto.
-    + apply pf_and2 with T0; auto.
+  - eapply pf_and1; auto.
+  - eapply pf_and2; auto.
 Qed.
 
 Lemma precise_flow_lemma' : forall U G x,

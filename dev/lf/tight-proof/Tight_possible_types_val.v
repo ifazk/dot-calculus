@@ -57,12 +57,12 @@ Lemma tight_possible_types_closure_tight_v: forall G v T U,
 Proof.
   introv Hgd HT Hsub.
   dependent induction Hsub; eauto.
-  - inversions HT. false* good_ty_precise_bot_v.
-  - inversions HT. inversions H. false* H0. assumption.
-  - inversions HT. inversions H. false* H0. assumption.
-  - inversions HT. inversions H. false* H0.
-  - inversions HT. inversions H. false* H0.
-  - inversions HT. inversions H0. false* H1.
+  - inversions HT. inversion H.
+  - inversions HT. inversion H. assumption.
+  - inversions HT. inversions H. assumption.
+  - inversions HT. inversions H.
+  - inversions HT. inversions H.
+  - inversions HT. inversions H0.
     lets Hb: (good_unique_tight_bounds Hgd H H5). subst*.
 Qed.
 

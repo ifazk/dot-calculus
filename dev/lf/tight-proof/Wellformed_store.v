@@ -55,7 +55,7 @@ Lemma precise_forall_inv : forall G v S T,
     exists t,
       v = val_lambda S t.
 Proof.
-  introv Ht. inversions Ht. exists* t. false* H.
+  introv Ht. inversions Ht. exists* t.
 Qed.
 
 Lemma precise_bnd_inv : forall G v S,
@@ -63,7 +63,7 @@ Lemma precise_bnd_inv : forall G v S,
     exists ds,
       v = val_new S ds.
 Proof.
-  introv Ht. inversions Ht. exists* ds. false* H.
+  introv Ht. inversions Ht. exists* ds.
 Qed.
 
 Lemma precise_obj_typ : forall G T ds U,
@@ -71,7 +71,6 @@ Lemma precise_obj_typ : forall G T ds U,
     U = typ_bnd T.
 Proof.
   introv Hp. dependent induction Hp; auto.
-  false* H.
 Qed.
 
 Lemma tpt_obj_all : forall G S ds T U,
@@ -112,7 +111,7 @@ Proof.
       * apply general_to_tight_typing in H2.
         lets Hpt: (tight_possible_types_lemma_v Hg H2).
         assert (good_typ T) as HgT. {
-          inversions Hgd. false* empty_push_inv. destruct (eq_push_inv H6) as [Hx [Hv HG]]. subst*.
+          inversions Hgd. false* empty_push_inv. destruct (eq_push_inv H5) as [Hx [Hv HG]]. subst*.
         }
         inversions HgT.
         apply tpt_to_precise_lambda in Hpt. destruct Hpt as [L [S' [T' [Hss [Hs1 Hs2]]]]].

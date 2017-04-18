@@ -42,18 +42,17 @@ Proof.
       split. auto. intros y Hy.
       assert (y \notin L0) as Hy0 by auto. assert (y \notin L) as HyL by auto.
       specialize (H3 y Hy0). apply narrow_typing with (G':=G & y ~ S1) in H3.
-      apply ty_sub with (T:=open_typ y V). intro Contra. inversion Contra.
+      apply ty_sub with (T:=open_typ y V).
       assumption. apply* Hs2. apply* subenv_last. apply* Hok.
     + apply tight_to_general in HSsub; auto.
       assert (subtyp ty_general sub_general G T S) as HTS by (apply* subtyp_trans).
       split; auto. intros y Hy. assert (y \notin L0) as Hy0 by auto.
       specialize (H3 y Hy0).
       apply narrow_typing with (G':=G & y ~ T) in H3. apply ty_sub with (T:=open_typ y V).
-      intro Contra. inversion Contra. assumption. apply subtyp_trans with (T:=open_typ y V1).
+      assumption. apply subtyp_trans with (T:=open_typ y V1).
       assert (y \notin L) as HL by auto.
       specialize (Hs2 y HL). apply narrow_subtyping with (G':=G & y ~ T) in Hs2.
       assumption. apply* subenv_last. apply* Hok.
       apply* HTsub. apply* subenv_last. apply* Hok.
-  - pose proof (H (eq_refl _)) as [? Contra]; inversion Contra.
   - inversion Heq.
 Qed.
