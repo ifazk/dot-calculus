@@ -413,7 +413,7 @@ Inductive wf_stack: ctx -> sigma -> stack -> Prop :=
     wf_stack G S sta ->
     x # G ->
     x # sta ->
-    ty_trm ty_precise sub_general G S (trm_val v) T ->
+    ty_trm ty_general sub_general G S (trm_val v) T ->
     wf_stack (G & x ~ T) S (sta & x ~ v)
 | wf_store_push: forall G S l T sta,
     wf_stack G S sta ->

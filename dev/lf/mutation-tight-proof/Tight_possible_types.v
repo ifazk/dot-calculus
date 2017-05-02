@@ -24,59 +24,65 @@ If S1 in SS and S2 in SS then (S1 & S2) in SS.
 If S in SS and G |-! y: {A: S..S} then y.A in SS.
  *)
 
-Inductive tight_pt : ctx -> var -> typ -> Prop :=
+Inductive tight_pt : ctx -> sigma -> var -> typ -> Prop :=
   (* Precise typing *)
-| t_pt_precise : forall G x T,
-  ty_trm ty_precise sub_general G (trm_var (avar_f x)) T ->
-  tight_pt G x T
+| t_pt_precise : forall G S x T,
+  ty_trm ty_precise sub_general G S (trm_var (avar_f x)) T ->
+  tight_pt G S x T
   (* Term member subtyping *)
-| t_pt_dec_trm : forall G x a T T',
-  tight_pt G x (typ_rcd (dec_trm a T)) ->
-  subtyp ty_general sub_tight G T T' ->
-  tight_pt G x (typ_rcd (dec_trm a T'))
+| t_pt_dec_trm : forall G S x a T T',
+  tight_pt G S x (typ_rcd (dec_trm a T)) ->
+  subtyp ty_general sub_tight G S T T' ->
+  tight_pt G S x (typ_rcd (dec_trm a T'))
   (* Type member subtyping *)
-| t_pt_dec_typ : forall G x A T T' U' U,
-  tight_pt G x (typ_rcd (dec_typ A T U)) ->
-  subtyp ty_general sub_tight G T' T ->
-  subtyp ty_general sub_tight G U U' ->
-  tight_pt G x (typ_rcd (dec_typ A T' U'))
+| t_pt_dec_typ : forall G S x A T T' U' U,
+  tight_pt G S x (typ_rcd (dec_typ A T U)) ->
+  subtyp ty_general sub_tight G S T' T ->
+  subtyp ty_general sub_tight G S U U' ->
+  tight_pt G S x (typ_rcd (dec_typ A T' U'))
   (* Recursive Types *)
-| t_pt_bnd : forall G x S S',
-  tight_pt G x S ->
-  S = open_typ x S' ->
-  tight_pt G x (typ_bnd S')
+| t_pt_bnd : forall G x S T T',
+  tight_pt G S x T ->
+  T = open_typ x T' ->
+  tight_pt G S x (typ_bnd T')
   (* Forall *)
-| t_pt_all : forall L G x S T S' T',
-  tight_pt G x (typ_all S T) ->
-  subtyp ty_general sub_tight G S' S ->
+| t_pt_all : forall L G S x V T V' T',
+  tight_pt G S x (typ_all V T) ->
+  subtyp ty_general sub_tight G S V' V ->
   (forall y, y \notin L ->
-   subtyp ty_general sub_general (G & y ~ S') (open_typ y T) (open_typ y T')) ->
-  tight_pt G x (typ_all S' T')
+   subtyp ty_general sub_general (G & y ~ V') S (open_typ y T) (open_typ y T')) ->
+  tight_pt G S x (typ_all V' T')
   (* And *)
-| t_pt_and : forall G x S1 S2,
-  tight_pt G x S1 ->
-  tight_pt G x S2 ->
-  tight_pt G x (typ_and S1 S2)
+| t_pt_and : forall G S x S1 S2,
+  tight_pt G S x S1 ->
+  tight_pt G S x S2 ->
+  tight_pt G S x (typ_and S1 S2)
   (* Tight Selection *)
-| t_pt_sel : forall G x y A S,
-  tight_pt G x S ->
-  ty_trm ty_precise sub_general G (trm_var y) (typ_rcd (dec_typ A S S)) ->
-  tight_pt G x (typ_sel y A)
+| t_pt_sel : forall G S x y A T,
+  tight_pt G S x T ->
+  ty_trm ty_precise sub_general G S (trm_var y) (typ_rcd (dec_typ A T T)) ->
+  tight_pt G S x (typ_sel y A)
+  (* Loc *)
+| t_pt_loc : forall G S x T U,
+  tight_pt G S x (typ_ref T) ->
+  subtyp ty_general sub_tight G S T U ->
+  subtyp ty_general sub_tight G S U T ->  
+  tight_pt G S x (typ_ref U)
   (* Top *)
-| t_pt_top : forall G x T,
-  tight_pt G x T ->
-  tight_pt G x typ_top
+| t_pt_top : forall G S x T,
+  tight_pt G S x T ->
+  tight_pt G S x typ_top
 .
 
 Hint Constructors tight_pt.
 
-Lemma tight_possible_types_closure_tight: forall G x T U,
+Lemma tight_possible_types_closure_tight: forall G S x T U,
   inert G ->
-  tight_pt G x T ->
-  subtyp ty_general sub_tight G T U ->
-  tight_pt G x U.
+  tight_pt G S x T ->
+  subtyp ty_general sub_tight G S T U ->
+  tight_pt G S x U.
 Proof.
-  intros G x T U Hgd HT Hsub.
+  intros G S x T U Hgd HT Hsub.
   dependent induction Hsub; eauto.
   - inversion HT.
     destruct (inert_ty_precise_bot Hgd H).
@@ -89,17 +95,17 @@ Proof.
       auto.
     + auto.
   - inversion HT.
-    + false * inert_precise_sel_inv.
-    + pose proof (inert_unique_tight_bounds Hgd H H5) as Hu. subst. assumption.
+    + false* inert_precise_sel_inv.
+    + pose proof (inert_unique_tight_bounds Hgd H H6) as Hu. subst. assumption.
 Qed.
 
 Lemma tight_possible_types_lemma :
-  forall G U x,
+  forall G S U x,
     inert G -> (* G inert *)
-    ty_trm ty_general sub_tight G (trm_var (avar_f x)) U -> (* G |-# x : U *)
-    tight_pt G x U (* U \in TPT(G,x,T) *).
+    ty_trm ty_general sub_tight G S (trm_var (avar_f x)) U -> (* G |-# x : U *)
+    tight_pt G S x U (* U \in TPT(G,x,T) *).
 Proof.
-  intros G U x Hgd Hty.
+  intros G S U x Hgd Hty.
   dependent induction Hty.
   - auto.
   - specialize (IHHty _ Hgd eq_refl eq_refl eq_refl).

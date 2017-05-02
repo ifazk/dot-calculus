@@ -21,39 +21,45 @@ If S1 in SS and S2 in SS then (S1 & S2) in SS.
 If S in SS and G |-! y: {A: S..S} then y.A in SS.
  *)
 
-Inductive tight_pt_v : ctx -> val -> typ -> Prop :=
+Inductive tight_pt_v : ctx -> sigma -> val -> typ -> Prop :=
   (* Precise typing *)
-| t_pt_precise_v : forall G v T,
-  ty_trm ty_precise sub_general G (trm_val v) T ->
-  tight_pt_v G v T
+| t_pt_precise_v : forall G S v T,
+  ty_trm ty_precise sub_general G S (trm_val v) T ->
+  tight_pt_v G S v T
   (* Forall *)
-| t_pt_all_v : forall L G v S T S' T',
-  tight_pt_v G v (typ_all S T) ->
-  subtyp ty_general sub_tight G S' S ->
+| t_pt_all_v : forall L G S v V T V' T',
+  tight_pt_v G S v (typ_all V T) ->
+  subtyp ty_general sub_tight G S V' V ->
   (forall y, y \notin L ->
-   subtyp ty_general sub_general (G & y ~ S') (open_typ y T) (open_typ y T')) ->
-  tight_pt_v G v (typ_all S' T')
+   subtyp ty_general sub_general (G & y ~ V') S (open_typ y T) (open_typ y T')) ->
+  tight_pt_v G S v (typ_all V' T')
   (* Tight Selection *)
-| t_pt_sel_v : forall G v y A S,
-  tight_pt_v G v S ->
-  ty_trm ty_precise sub_general G (trm_var y) (typ_rcd (dec_typ A S S)) ->
-  tight_pt_v G v (typ_sel y A)
-| t_pt_and_v : forall G v T U,
-  tight_pt_v G v T ->
-  tight_pt_v G v U ->
-  tight_pt_v G v (typ_and T U)
+| t_pt_sel_v : forall G S v y A V,
+  tight_pt_v G S v V ->
+  ty_trm ty_precise sub_general G S (trm_var y) (typ_rcd (dec_typ A V V)) ->
+  tight_pt_v G S v (typ_sel y A)
+| t_pt_and_v : forall G S v T U,
+  tight_pt_v G S v T ->
+  tight_pt_v G S v U ->
+  tight_pt_v G S v (typ_and T U)
+  (* Loc *)
+| t_pt_loc : forall G S v T U,
+  tight_pt_v G S v (typ_ref T) ->
+  subtyp ty_general sub_tight G S T U ->
+  subtyp ty_general sub_tight G S U T ->  
+  tight_pt_v G S v (typ_ref U)
   (* Top *)
-| t_pt_top_v : forall G v T,
-  tight_pt_v G v T ->
-  tight_pt_v G v typ_top.
+| t_pt_top_v : forall G S v T,
+  tight_pt_v G S v T ->
+  tight_pt_v G S v typ_top.
 
 Hint Constructors tight_pt_v.
 
-Lemma tight_possible_types_closure_tight_v: forall G v T U,
+Lemma tight_possible_types_closure_tight_v: forall G S v T U,
   inert G ->
-  tight_pt_v G v T ->
-  subtyp ty_general sub_tight G T U ->
-  tight_pt_v G v U.
+  tight_pt_v G S v T ->
+  subtyp ty_general sub_tight G S T U ->
+  tight_pt_v G S v U.
 Proof.
   introv Hgd HT Hsub.
   dependent induction Hsub; eauto.
@@ -63,13 +69,13 @@ Proof.
   - inversions HT. inversions H.
   - inversions HT. inversions H.
   - inversions HT. inversions H0.
-    lets Hb: (inert_unique_tight_bounds Hgd H H5). subst*.
+    lets Hb: (inert_unique_tight_bounds Hgd H H6). subst*.
 Qed.
 
-Lemma tight_possible_types_lemma_v : forall G v T,
+Lemma tight_possible_types_lemma_v : forall G S v T,
     inert G ->
-    ty_trm ty_general sub_tight G (trm_val v) T ->
-    tight_pt_v G v T.
+    ty_trm ty_general sub_tight G S (trm_val v) T ->
+    tight_pt_v G S v T.
 Proof.
   introv Hgd Hty.
   dependent induction Hty; eauto.
