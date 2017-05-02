@@ -321,11 +321,16 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
     ty_trm ty_general m2 G S (trm_var (avar_f x)) T ->
     ty_trm ty_general m2 G S (trm_var (avar_f x)) U ->
     ty_trm ty_general m2 G S (trm_var (avar_f x)) (typ_and T U)
-| ty_sub : forall m1 m2 G S t T U,
-    (m1 = ty_precise -> exists x, t = trm_var (avar_f x)) ->
-    ty_trm m1 m2 G S t T ->
-    subtyp m1 m2 G S T U ->
-    ty_trm m1 m2 G S t U
+| ty_sub : forall m2 G S t T U,
+    ty_trm ty_general m2 G S t T ->
+    subtyp ty_general m2 G S T U ->
+    ty_trm ty_general m2 G S t U
+| ty_and1 : forall m2 G S x T U,
+    ty_trm ty_precise m2 G S (trm_var (avar_f x)) (typ_and T U) ->
+    ty_trm ty_precise m2 G S (trm_var (avar_f x)) T
+| ty_and2 : forall m2 G S x T U,
+    ty_trm ty_precise m2 G S (trm_var (avar_f x)) (typ_and T U) ->
+    ty_trm ty_precise m2 G S (trm_var (avar_f x)) U
 | ty_ref_intro : forall m1 m2 G S x T,
      ty_trm m1 m2 G S (trm_var (avar_f x)) T ->
      ty_trm m1 m2 G S (trm_ref (avar_f x) T) (typ_ref T)
@@ -336,7 +341,6 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
     ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_ref T) ->
     ty_trm m1 m2 G S (trm_var (avar_f y)) T ->
     ty_trm m1 m2 G S (trm_asg (avar_f x) (avar_f y)) T
-
 with ty_def : ctx -> sigma -> def -> dec -> Prop :=
 | ty_def_typ : forall G S A T,
     ty_def G S (def_typ A T) (dec_typ A T T)
