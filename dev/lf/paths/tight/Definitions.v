@@ -301,12 +301,12 @@ Inductive red : trm -> sto -> trm -> sto -> Prop :=
     trm_path (p_sel (p_sel q m') m) / s ⇒ trm_let (trm_path (p_sel q m')) (trm_path (p_sel (p_var (avar_b 0)) m)) / s
 | red_app : forall f a s T t,
     binds f (val_lambda T t) s ->
-    trm_app (avar_f f) (avar_f a) / s ⇒ open_trm a t / s
+    trm_app (avar_f f) (avar_f a) / s ⇒ t[a] / s
 | red_let : forall v t s x,
     x # s ->
-    trm_let (trm_val v) t / s ⇒ open_trm x t / s & x ~ v
+    trm_let (trm_val v) t / s ⇒ t[x] / s & x ~ v
 | red_let_var : forall t s x,
-    trm_let (trm_path (p_var (avar_f x))) t / s ⇒ open_trm x t / s
+    trm_let (trm_path (p_var (avar_f x))) t / s ⇒ t[x] / s
 | red_let_tgt : forall t0 t s t0' s',
     t0 / s ⇒ t0' / s' ->
     trm_let t0 t / s ⇒ trm_let t0' t / s'
@@ -334,7 +334,7 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     G ⊢ trm_app (avar_f x) (avar_f z) :: T[[z]]
 | ty_new_intro : forall L G T ds,
     (forall x, x \notin L ->
-      G ;; x ~ T[[x]] ⊢ open_defs x ds ::: T[[x]]) ->
+      G ;; x ~ T[[x]] ⊢ ds[[[x]]] ::: T[[x]]) ->
     G ⊢ trm_val (val_new T ds) :: typ_bnd T
 | ty_fld_elim : forall G p a m3 T,
     G ⊢ trm_path p :: typ_rcd (dec_trm a m3 T) ->
@@ -432,7 +432,7 @@ with subtyp : ctx -> typ -> typ -> Prop :=
 | subtyp_all: forall L G S1 T1 S2 T2,
     G ⊢ S2 <: S1 ->
     (forall x, x \notin L ->
-       G & x ~ S2 ⊢ open_typ x T1 <: open_typ x T2) ->
+       G & x ~ S2 ⊢ T1[[x]] <: T2[[x]]) ->
     G ⊢ typ_all S1 T1 <: typ_all S2 T2
 | subtyp_path: forall G a T,
     G ⊢ typ_rcd (dec_trm a path_strong T) <: typ_rcd (dec_trm a path_general T)
@@ -446,7 +446,7 @@ Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
     G ⊢! trm_path (p_var (avar_f x)) :: T
 | ty_all_intro_p : forall L G T t U,
     (forall x, x \notin L ->
-      G & x ~ T ⊢ t[x] :: open_typ x U) ->
+      G & x ~ T ⊢ t[x] :: U[[x]]) ->
     G ⊢! trm_val (val_lambda T t) :: typ_all T U
 | ty_new_intro_p : forall L G T ds,
     (forall x, x \notin L ->
