@@ -245,7 +245,9 @@ Inductive red : trm -> sto -> trm -> sto -> Prop :=
 
 Inductive tymode: Set := ty_precise | ty_general.
 Inductive submode: Set := sub_tight | sub_general.
-
+(*
+Reserved Notation "G '⊢' t '∈' T" (at level 40).
+*)
 Inductive ty_trm : tymode -> submode -> ctx -> trm -> typ -> Prop :=
 | ty_var : forall m1 m2 G x T,
     binds x T G ->
