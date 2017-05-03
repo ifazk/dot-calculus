@@ -26,10 +26,10 @@ Proof.
     + apply IHds; eauto.
 Qed.
 
-Lemma record_has_ty_defs: forall G T ds D,
-  ty_defs G ds T ->
+Lemma record_has_ty_defs: forall G S T ds D,
+  ty_defs G S ds T ->
   record_has T D ->
-  exists d, defs_has ds d /\ ty_def G d D.
+  exists d, defs_has ds d /\ ty_def G S d D.
 Proof.
   introv Hdefs Hhas. induction Hdefs.
   - inversion Hhas; subst. exists d. split.
@@ -46,35 +46,36 @@ Proof.
       * assumption.
 Qed.
 
-Lemma new_ty_defs: forall G s x T ds,
-  wf_sto G s ->
+Lemma new_ty_defs: forall G S s x T ds,
+  wf_stack G S s ->
   inert G ->
   binds x (val_new T ds) s ->
-  ty_defs G (open_defs x ds) (open_typ x T).
+  ty_defs G S (open_defs x ds) (open_typ x T).
 Proof.
   introv Hwf Hg Bis.
   lets Htyv: (val_new_typing Hwf Hg Bis).
   inversion Htyv; subst.
-  - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
+  - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H4 y FrL).
     rewrite subst_intro_defs with (x:=y) by auto.
     rewrite subst_intro_typ with (x:=y) by auto.
     eapply subst_ty_defs.
-    + apply H3.
+    + apply H4.
     + eauto.
     + auto.
+    + auto.
     + rewrite <- subst_intro_typ with (x:=y) by auto.
-      eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
+      eapply ty_rec_elim. apply ty_var. eapply wf_stack_val_new_in_G; eauto.
 Qed.
 
-Lemma corresponding_types_ty_trms: forall G s ds x S,
-  wf_sto G s ->
+Lemma corresponding_types_ty_trms: forall G S s ds x V,
+  wf_stack G S s ->
   inert G ->
-  binds x (typ_bnd S) G ->
-  binds x (val_new S ds) s ->
+  binds x (typ_bnd V) G ->
+  binds x (val_new V ds) s ->
   (forall a T',
-      ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_trm a T')) ->
+      ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_trm a T')) ->
       exists t, defs_has (open_defs x ds) (def_trm a t) /\
-           ty_trm ty_general sub_general G t T').
+           ty_trm ty_general sub_general G S t T').
 Proof.
   introv Hwf Hg Bi Bis Hty.
   pose proof (new_ty_defs Hwf Hg Bis) as Htds.
@@ -86,19 +87,19 @@ Proof.
   exists t. auto.
 Qed.
 
-Lemma canonical_forms_2: forall G s x a T,
+Lemma canonical_forms_2: forall G S s x a T,
   inert G ->
-  wf_sto G s ->
-  ty_trm ty_general sub_general G (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
-  (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm ty_general sub_general G t T).
+  wf_stack G S s ->
+  ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
+  (exists V ds t, binds x (val_new V ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm ty_general sub_general G S t T).
 Proof.
   introv Hg Hwf Hty.
-  pose proof (typing_implies_bound Hty) as [S Bi].
+  pose proof (typing_implies_bound Hty) as [V Bi].
   pose proof (general_to_tight_typing Hg Hty) as Hty'.
   pose proof (tight_to_precise_trm_dec Hg Hty') as [T' [Hx Hs]].
   pose proof (corresponding_types Hwf Hg Bi)
-    as [[L [U [V [S1 [V1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [U [ds [Hb [Ht Heq]]]]].
-  + assert (H: exists T, record_type T /\ S = (typ_bnd T)).
+    as [[[L [U [W [S1 [W1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [U [ds [Hb [Ht Heq]]]]] | [U [l [Hb [Ht Heq]]]]].
+  + assert (H: exists T, record_type T /\ V = (typ_bnd T)).
     { pose proof (inert_binds Hg Bi) as Hgt.
       induction Hgt.
       - pose proof (precise_flow_lemma Bi Hx) as H.
@@ -106,7 +107,7 @@ Proof.
         inversion H.
       - exists T0. auto.
     }
-    destruct H as [T0 [Hrt Hsubst]]; subst S; rename T0 into S.
+    destruct H as [T0 [Hrt Hsubst]]; subst V; rename T0 into V.
     inversion Hsubst.
   + subst.
     exists U ds.
@@ -117,4 +118,14 @@ Proof.
     split; auto.
     apply tight_to_general in Hs; auto.
     apply ty_sub with (T:=T'); auto.
+  + assert (H: exists T, record_type T /\ V = (typ_bnd T)).
+    { pose proof (inert_binds Hg Bi) as Hgt.
+      induction Hgt.
+      - pose proof (precise_flow_lemma Bi Hx) as H.
+        apply (precise_flow_all_inv) in H.
+        inversion H.
+      - exists T0. auto.
+    }
+    destruct H as [T0 [Hrt Hsubst]]; subst V; rename T0 into V.
+    inversion Hsubst.
 Qed.
