@@ -119,15 +119,31 @@ Proof.
     + inversions Bi. inversion H2; subst.
       * right. exists T0 l. split.
         reflexivity. 
-        split. apply weaken_ty_trm_ctx. assumption.
-        apply* inert_ok.
-        reflexivity.
+        split. apply* weaken_ty_trm_ctx. reflexivity.
       * left. left. exists (L \u dom G) T0 U T0 U t.
         split*. split*.
         apply* weaken_ty_trm_ctx.
       * left. right. exists T0 ds. 
         split. auto. split.
         apply* weaken_ty_trm_ctx. reflexivity.
+      * apply general_to_tight_typing in H2.
+        lets Hpt: (tight_possible_types_lemma_v Hg H2).
+        assert (inert_typ T) as HgT. {
+          inversions Hgd. false* empty_push_inv. destruct (eq_push_inv H5) as [Hx [Hv HG]]. subst*.
+        }
+        inversions HgT.
+        apply tpt_to_precise_lambda in Hpt. destruct Hpt as [L [V' [T' [Hss [Hs1 Hs2]]]]].
+        destruct (precise_forall_inv Hss) as [t Heq]. subst. left. left.
+        exists (L \u dom G \u \{ x0}) V' T' S0 T1 t.
+        split. apply* f_equal. split. apply* weaken_ty_trm_ctx. split. reflexivity.
+        split. apply* weaken_subtyp_ctx. intros y Hy.
+        apply (proj44 weaken_rules_ctx) with (G:=G & y ~ S0). apply* Hs2. reflexivity.
+        apply ok_push. apply* inert_ok. simpl_dom. rewrite notin_union. split*.
+        assumption.
+        apply tpt_to_precise_rec in Hpt.
+        destruct (precise_bnd_inv Hpt) as [ds Heq]. subst. left. right. exists T1 ds.
+        split. reflexivity. split. apply* weaken_ty_trm_ctx. reflexivity.
+        assumption.
     + specialize (IHwf_stack Hg Bi).
       destruct IHwf_stack as [[[L [V [U [V' [U' [t [Hv [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [V [ds [Hv [Ht He]]]]] | [V [l [Hv [Ht He]]]]].
       * left. left. exists (L \u dom G \u \{x0}) V U V' U' t. split. assumption. split.
@@ -148,11 +164,10 @@ Proof.
         apply* weaken_ty_trm_sigma. assumption.
       * right. exists V l'. split. assumption. split. apply weaken_ty_trm_sigma; auto.
         apply* ok_push. assumption.
-
 Qed.
 
-Lemma sto_binds_to_ctx_binds: forall G s x v,
-  wf_sto G s -> binds x v s -> exists S, binds x S G.
+Lemma stack_binds_to_ctx_binds: forall G S s x v,
+  wf_stack G S s -> binds x v s -> exists V, binds x V G.
 Proof.
   introv Hwf Bis.
   remember Hwf as Hwf'. clear HeqHwf'.
@@ -160,21 +175,22 @@ Proof.
   false* binds_empty_inv.
   destruct (binds_push_inv Bis) as [[Hx Hv] | [Hn Hb]]; subst.
   - exists* T.
-  - destruct (IHHwf Hb Hwf) as [S HS]. exists S.
+  - destruct (IHHwf Hb Hwf) as [V HV]. exists V.
     apply* binds_push_neq.
+  - auto.
 Qed.
 
-Lemma wf_sto_val_new_in_G: forall G s x T ds,
-  wf_sto G s ->
+Lemma wf_stack_val_new_in_G: forall G S s x T ds,
+  wf_stack G S s ->
   inert G ->
   binds x (val_new T ds) s ->
   binds x (typ_bnd T) G.
 Proof.
   introv Hwf Hg Bis.
-  assert (exists S, binds x S G) as Bi. {
-    eapply sto_binds_to_ctx_binds; eauto.
+  assert (exists V, binds x V G) as Bi. {
+    eapply stack_binds_to_ctx_binds; eauto.
   }
-  destruct Bi as [S Bi].
+  destruct Bi as [V Bi].
   induction Hwf.
   false* binds_empty_inv.
   assert (inert G /\ inert_typ T0) as HG. {
@@ -194,23 +210,26 @@ Proof.
     }
     subst*.
   - apply binds_push_neq_inv in Bi; auto.
+  - auto.
 Qed.
 
-Lemma val_new_typing: forall G s x T ds,
-  wf_sto G s ->
+Lemma val_new_typing: forall G S s x T ds,
+  wf_stack G S s ->
   inert G ->
   binds x (val_new T ds) s ->
-  ty_trm ty_precise sub_general G (trm_val (val_new T ds)) (typ_bnd T).
+  ty_trm ty_precise sub_general G S (trm_val (val_new T ds)) (typ_bnd T).
 Proof.
   introv Hwf Hg Bis.
   assert (exists T, binds x T G) as Bi. {
-    eapply sto_binds_to_ctx_binds; eauto.
+    eapply stack_binds_to_ctx_binds; eauto.
   }
   destruct Bi as [T0 Bi].
-  destruct (corresponding_types Hwf Hg Bi) as [H | H].
-  - destruct H as [_ [S [_ [_ [_ [t [Contra _]]]]]]].
+  destruct (corresponding_types Hwf Hg Bi) as [[Hnew | Hlambda] | Hloc].
+  - destruct Hnew as [_ [V [_ [_ [_ [t [Contra _]]]]]]].
     false.
-  - destruct H as [T' [ds' [Bis' [Ht EqT]]]]. subst.
+  - destruct Hlambda as [T' [ds' [Bis' [Ht EqT]]]]. subst.
     pose proof (binds_func Bis Bis') as Heq; inversions Heq.
     assumption.
+  - destruct Hloc as [V [l [Bi' [Htyp]]]].
+    false.
 Qed.
