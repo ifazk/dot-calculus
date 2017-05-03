@@ -546,11 +546,11 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
     G ⊢# T1 <: T2 ->
     G ⊢# typ_rcd (dec_typ A S1 T1) <: typ_rcd (dec_typ A S2 T2)
 | subtyp_sel2_t: forall G p A T,
-    G ⊢! (trm_path p) ∈ (typ_rcd (dec_typ A T T)) ->
+    G ⊢! trm_path p ∈ typ_rcd (dec_typ A T T) ->
     norm_t G p ->
     G ⊢# T <: typ_path p A
 | subtyp_sel1_t: forall G p A T,
-    G ⊢! (trm_path p) ∈ (typ_rcd (dec_typ A T T)) ->
+    G ⊢! trm_path p ∈ typ_rcd (dec_typ A T T) ->
     norm_t G p ->
     G ⊢# typ_path p A <: T
 | subtyp_all_t: forall L G S1 T1 S2 T2,
@@ -570,7 +570,7 @@ Inductive wf_sto: ctx -> sto -> Prop :=
     G ≈ s ->
     x # G ->
     x # s ->
-    G ⊢ (trm_val v) ∈ T ->
+    G ⊢ trm_val v ∈ T ->
     G & x ~ T ≈ s & x ~ v
 where "G '≈' s" := (wf_sto G s).
 
