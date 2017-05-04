@@ -156,9 +156,9 @@ Definition open_def  u d := open_rec_def   0 u d.
 Definition open_defs u l := open_rec_defs  0 u l.
 Definition open_path u p := open_rec_path  0 u p.
 
-Notation "t '[' x ']'" := (open_trm x t) (at level 35).
-Notation "T '[[' x ']]'" := (open_typ x T) (at level 35).
-Notation "ds '[[[' x ']]]'" := (open_defs x ds) (at level 35).
+Notation "t '|^' x" := (open_trm x t) (at level 35).
+Notation "T '||^' x" := (open_typ x T) (at level 35).
+Notation "ds '|||^' x" := (open_defs x ds) (at level 35).
 
 (** Path oopening replaces in some syntax a bound variable with dangling index (k)
    by a path p. *)
@@ -289,12 +289,11 @@ Inductive good_typ : typ -> Prop :=
 (** ** Operational Semantics *)
 
 Reserved Notation "t1 '/' st1 '⇒' t2 '/' st2" (at level 40, t2 at level 39).
-Print Grammar constr.
 
 Inductive red : trm -> sto -> trm -> sto -> Prop :=
 | red_sel : forall x m s t T ds,
     binds x (val_new T ds) s ->
-    defs_has (open_defs x ds) (def_trm m t) ->
+    defs_has (ds |||^ x) (def_trm m t) ->
     trm_path (p_sel (p_var (avar_f x)) m) / s ⇒ t / s
 | red_pvar : forall x s,
     trm_path (p_var (avar_f x)) / s ⇒ trm_path (p_var (avar_f x)) / s
@@ -302,12 +301,12 @@ Inductive red : trm -> sto -> trm -> sto -> Prop :=
     trm_path (p_sel (p_sel q m') m) / s ⇒ trm_let (trm_path (p_sel q m')) (trm_path (p_sel (p_var (avar_b 0)) m)) / s
 | red_app : forall f a s T t,
     binds f (val_lambda T t) s ->
-    trm_app (avar_f f) (avar_f a) / s ⇒ t[a] / s
+    trm_app (avar_f f) (avar_f a) / s ⇒ t |^ a / s
 | red_let : forall v t s x,
     x # s ->
-    trm_let (trm_val v) t / s ⇒ t[x] / s & x ~ v
+    trm_let (trm_val v) t / s ⇒ t |^ x / s & x ~ v
 | red_let_var : forall t s x,
-    trm_let (trm_path (p_var (avar_f x))) t / s ⇒ t[x] / s
+    trm_let (trm_path (p_var (avar_f x))) t / s ⇒ t |^ x / s
 | red_let_tgt : forall t0 t s t0' s',
     t0 / s ⇒ t0' / s' ->
     trm_let t0 t / s ⇒ trm_let t0' t / s'
@@ -327,15 +326,15 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     G |- trm_path (p_var (avar_f x)) :: T
 | ty_all_intro : forall L G T t U,
     (forall x, x \notin L ->
-      G & x ~ T |- t[x] :: U[[x]]) ->
+      G & x ~ T |- t |^ x :: U ||^ x) ->
     G |- trm_val (val_lambda T t) :: typ_all T U
 | ty_all_elim : forall G x z S T,
     G |- trm_path (p_var (avar_f x)) :: typ_all S T ->
     G |- trm_path (p_var (avar_f z)) :: S ->
-    G |- trm_app (avar_f x) (avar_f z) :: T[[z]]
+    G |- trm_app (avar_f x) (avar_f z) :: T ||^ z
 | ty_new_intro : forall L G T ds,
     (forall x, x \notin L ->
-      G && x ~ T[[x]] |- ds[[[x]]] ::: T[[x]]) ->
+      G && x ~ T ||^ x |- ds |||^ x ::: T ||^ x) ->
     G |- trm_val (val_new T ds) :: typ_bnd T
 | ty_fld_elim : forall G p a m3 T,
     G |- trm_path p :: typ_rcd (dec_trm a m3 T) ->
@@ -343,10 +342,10 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
 | ty_let : forall L G t u T U,
     G |- t :: T ->
     (forall x, x \notin L ->
-      G & x ~ T |- u[x] :: U) ->
+      G & x ~ T |- u |^ x :: U) ->
     G |- trm_let t u :: U
 | ty_rec_intro : forall G x T,
-    G |- trm_path (p_var (avar_f x)) :: T[[x]] ->
+    G |- trm_path (p_var (avar_f x)) :: T ||^ x ->
     G |- trm_path (p_var (avar_f x)) :: typ_bnd T
 | ty_rec_elim : forall G p T,
     G |- trm_path p :: typ_bnd T ->
@@ -433,7 +432,7 @@ with subtyp : ctx -> typ -> typ -> Prop :=
 | subtyp_all: forall L G S1 T1 S2 T2,
     G |- S2 <: S1 ->
     (forall x, x \notin L ->
-       G & x ~ S2 |- T1[[x]] <: T2[[x]]) ->
+       G & x ~ S2 |- T1 ||^ x <: T2 ||^ x) ->
     G |- typ_all S1 T1 <: typ_all S2 T2
 | subtyp_path: forall G a T,
     G |- typ_rcd (dec_trm a path_strong T) <: typ_rcd (dec_trm a path_general T)
@@ -447,11 +446,11 @@ Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
     G |-! trm_path (p_var (avar_f x)) :: T
 | ty_all_intro_p : forall L G T t U,
     (forall x, x \notin L ->
-      G & x ~ T |- t[x] :: U[[x]]) ->
+      G & x ~ T |- t |^ x :: U ||^ x) ->
     G |-! trm_val (val_lambda T t) :: typ_all T U
 | ty_new_intro_p : forall L G T ds,
     (forall x, x \notin L ->
-      G && x ~ T[[x]] |- ds[[[x]]] ::: T[[x]]) ->
+      G && x ~ T ||^ x |- ds |||^ x ::: T ||^ x) ->
     G |-! trm_val (val_new T ds) :: typ_bnd T
 | ty_rec_elim_p : forall G p T,
     G |-! trm_path p :: typ_bnd T ->
@@ -479,15 +478,15 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     G |-# trm_path (p_var (avar_f x)) :: T
 | ty_all_intro_t : forall L G T t U,
     (forall x, x \notin L ->
-      G & x ~ T |- t[x] :: U[[x]]) ->
+      G & x ~ T |- t |^ x :: U ||^ x) ->
     G |-# trm_val (val_lambda T t) :: typ_all T U
 | ty_all_elim_t : forall G x z S T,
     G |-# trm_path (p_var (avar_f x)) :: typ_all S T ->
     G |-# trm_path (p_var (avar_f z)) :: S ->
-    G |-# trm_app (avar_f x) (avar_f z) :: T[[z]]
+    G |-# trm_app (avar_f x) (avar_f z) :: T ||^ z
 | ty_new_intro_t : forall L G T ds,
     (forall x, x \notin L ->
-      G && x ~ T[[x]] |- ds[[[x]]] ::: T[[x]]) ->
+      G && x ~ T ||^ x |- ds |||^ x ::: T ||^ x) ->
     G |-# trm_val (val_new T ds) :: typ_bnd T
 | ty_fld_elim_t : forall G p m m3 T,
     G |-# trm_path p :: typ_rcd (dec_trm m m3 T) ->
@@ -495,10 +494,10 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
 | ty_let_t : forall L G t u T U,
     G |-# t :: T ->
     (forall x, x \notin L ->
-      G & x ~ T |- u[x] :: U[[x]]) ->
+      G & x ~ T |- u |^ x :: U) ->
     G |-# trm_let t u :: U
 | ty_rec_intro_t : forall G x T,
-    G |-# trm_path (p_var (avar_f x)) :: T[[x]] ->
+    G |-# trm_path (p_var (avar_f x)) :: T ||^ x ->
     G |-# trm_path (p_var (avar_f x)) :: typ_bnd T
 | ty_rec_elim_t : forall G p T,
     G |-# trm_path p :: typ_bnd T ->
@@ -559,27 +558,28 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
 | subtyp_all_t: forall L G S1 T1 S2 T2,
     G |-# S2 <: S1 ->
     (forall x, x \notin L ->
-       G & x ~ S2 |- T1[[x]] <: T2[[x]]) ->
+       G & x ~ S2 |- T1 ||^ x <: T2 ||^ x) ->
     G |-# typ_all S1 T1 <: typ_all S2 T2
 | subtyp_path_t: forall G a T,
     G |-# typ_rcd (dec_trm a path_strong T) <: typ_rcd (dec_trm a path_general T)
 where "G '|-#' T '<:' U" := (subtyp_t G T U).
 
-Reserved Notation "G '≈' s" (at level 40).
+Reserved Notation "G '~~' s" (at level 40).
 
 Inductive wf_sto: ctx -> sto -> Prop :=
-| wf_sto_empty: empty ≈ empty
+| wf_sto_empty: empty ~~ empty
 | wf_sto_push: forall G s x T v,
-    G ≈ s ->
+    G ~~ s ->
     x # G ->
     x # s ->
     G |- trm_val v :: T ->
-    G & x ~ T ≈ s & x ~ v
-where "G '≈' s" := (wf_sto G s).
+    G & x ~ T ~~ s & x ~ v
+where "G '~~' s" := (wf_sto G s).
 
 (* ###################################################################### *)
 (* ###################################################################### *)
 (** * Infrastructure *)
+
 
 (* ###################################################################### *)
 (** ** Induction principles *)
@@ -643,10 +643,10 @@ Ltac gather_vars :=
 Ltac pick_fresh x :=
   let L := gather_vars in (pick_fresh_gen L x).
 
-Ltac in_empty_contradiction :=
+(*Ltac in_empty_contradiction :=
   solve [match goal with
   | H: _ \in \{} |- _ => rewrite in_empty in H; exfalso; exact H
-  end].
+end].
 
 Ltac eq_specialize :=
   repeat match goal with
@@ -657,7 +657,7 @@ Ltac eq_specialize :=
   | H: forall _ _ _ _, _ = _ -> _ |- _ => specialize (H _ _ _ _ eq_refl)
   end.
 
-Ltac crush := eq_specialize; eauto.
+Ltac crush := eq_specialize; eauto.*)
 
 Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
   apply_fresh_base T gather_vars x.
