@@ -38,8 +38,8 @@ Hint Constructors precise_flow.
 
 Lemma precise_flow_lemma : forall T U G x,
     binds x T G ->
-    ty_trm ty_precise G (trm_path (p_var (avar_f x))) U ->
-      precise_flow x G T U.
+    G |-! trm_path (p_var (avar_f x)) :: U ->
+    precise_flow x G T U.
 Proof.
   introv Bis Htyp.
   dependent induction Htyp.
@@ -53,7 +53,7 @@ Proof.
 Qed.
 
 Lemma precise_flow_lemma' : forall U G x,
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) U ->
+    G |-! trm_var (avar_f x) :: U ->
     exists T, precise_flow x G T U.
 Proof.
   introv H.
@@ -70,7 +70,7 @@ Qed.
 
 Lemma precise_flow_lemma_rev : forall T U G x,
     precise_flow x G T U ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) U.
+    G |-! trm_var (avar_f x) U.
 Proof.
   introv H.
   pose proof (precise_flow_implies_bound H) as H1.
@@ -78,8 +78,8 @@ Proof.
 Qed.
 
 Lemma ty_precise_var_and_inv1 : forall x G T U,
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_and T U) ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) T.
+    G |-! trm_var (avar_f x) :: typ_and T U ->
+    G |-! trm_var (avar_f x) :: T.
 Proof.
   introv H.
   destruct (precise_flow_lemma' H) as [T' Hpf].
@@ -88,8 +88,8 @@ Proof.
 Qed.
 
 Lemma ty_precise_var_and_inv2 : forall x G T U,
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_and T U) ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) U.
+    G |-! trm_var (avar_f x) :: typ_and T U ->
+    G |-! trm_var (avar_f x) :: U.
 Proof.
   introv H.
   destruct (precise_flow_lemma' H) as [T' Hpf].
@@ -162,7 +162,7 @@ Qed.
 Lemma precise_flow_bnd_inv : forall x G T U,
     record_type T ->
     precise_flow x G (typ_bnd T) (typ_bnd U) ->
-    (T = U).
+    T = U.
 Proof.
   introv Hrt Hpf.
   dependent induction Hpf.
