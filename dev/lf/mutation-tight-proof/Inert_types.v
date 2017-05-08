@@ -194,6 +194,33 @@ Proof.
   assumption.
 Qed.
 
+Lemma inert_precise_flow_ref_inv : forall x G T U,
+    inert G ->
+    precise_flow x G U (typ_ref T) ->
+    U = (typ_ref T).
+Proof.
+  introv Hg Hpf.
+  pose proof (precise_flow_implies_bound Hpf) as Bis.
+  pose proof (inert_binds Hg Bis) as Hgt.
+  dependent induction Hgt.
+  - symmetry. eapply precise_flow_all_inv. eassumption.
+  - pose proof (precise_flow_bnd_eq_or_record H Hpf) as [ [? [Contra _]] | [? Contra]]; inversion Contra.
+Qed.
+  
+
+Lemma inert_precise_ref_inv : forall x G S T,
+    inert G -> 
+    ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_ref T) ->
+    binds x (typ_ref T) G.
+Proof.
+  introv Hgd Htyp.
+  pose proof (typing_implies_bound Htyp) as [V Bi].
+  pose proof (precise_flow_lemma Bi Htyp) as Hpf.
+  pose proof (inert_precise_flow_ref_inv Hgd Hpf) as H.
+  rewrite <- H.
+  assumption.
+Qed.
+
 Lemma inert_ok : forall G,
     inert G ->
     ok G.

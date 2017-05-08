@@ -25,9 +25,19 @@ Lemma wf_stack_to_ok_S: forall s G S,
   wf_stack G S s -> ok S.
 Proof. intros. induction H; jauto. Qed.
 
-(* TODO: add others from original proof? *)
+Lemma wt_store_to_ok_S: forall s G S,
+  wt_store G S s -> ok S.
+Proof.
+  introv Wt. induction Wt; auto.
+Qed.
 
-Hint Resolve wf_stack_to_ok_s wf_stack_to_ok_G wf_stack_to_ok_S.
+Lemma wt_store_to_ok_G: forall s G S,
+  wt_store G S s -> ok G.
+Proof.
+  introv Wt. induction Wt; auto.
+Qed.
+
+Hint Resolve wf_stack_to_ok_s wf_stack_to_ok_G wf_stack_to_ok_S wt_store_to_ok_S wt_store_to_ok_G.
 
 Lemma tpt_to_precise_rec: forall G S v T,
     tight_pt_v G S v (typ_bnd T) ->
@@ -92,7 +102,6 @@ Proof.
   apply* IHHt.
 Qed.
 
-(* TODO: clean up? *) 
 Lemma corresponding_types: forall G S s x T,
   wf_stack G S s ->
   inert G ->
