@@ -26,10 +26,10 @@ Proof.
     + apply IHds; eauto.
 Qed.
 
-Lemma record_has_ty_defs: forall G T ds D,
-  ty_defs G ds T ->
+Lemma record_has_ty_defs: forall G z U T ds D,
+  G && z ~ U |- ds ::: T ->
   record_has T D ->
-  exists d, defs_has ds d /\ ty_def G d D.
+  exists d, defs_has ds d /\ G && z ~ U |- d :: D.
 Proof.
   introv Hdefs Hhas. induction Hdefs.
   - inversion Hhas; subst. exists d. split.
@@ -47,34 +47,46 @@ Proof.
 Qed.
 
 Lemma new_ty_defs: forall G s x T ds,
-  wf_sto G s ->
-  inert G ->
+  G ~~ s ->
   binds x (val_new T ds) s ->
-  ty_defs G (open_defs x ds) (open_typ x T).
+  exists G' G'',
+    G = G' & x ~ (typ_bnd T) & G'' /\
+    G' && x ~~ (T ||^ x) |- ds |||^ x :: T ||^ x.
 Proof.
-  introv Hwf Hg Bis.
-  lets Htyv: (val_new_typing Hwf Hg Bis).
-  inversion Htyv; subst.
-  - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
-    rewrite subst_intro_defs with (x:=y) by auto.
-    rewrite subst_intro_typ with (x:=y) by auto.
-    eapply subst_ty_defs.
-    + apply H3.
-    + eauto.
-    + auto.
-    + rewrite <- subst_intro_typ with (x:=y) by auto.
-      eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
+  introv Hwf Bis.
+  assert (exists s' s'', s = s' & x ~ (val_new T ds) & s'') as Hs by (apply* (binds_destruct Bis)).
+  destruct Hs as [s' [s'' Hs]].
+  lets Bis': (binds_push_eq x (val_new T ds) s').
+  destruct (sto_binds_to_ctx_binds_raw Hwf Bis) as [G' [G'' [T0 [HG _]]]].
+  exists G' G''.
+
+  assert (T0 = typ_bnd T) as Ht. {
+    lets Hb: (wf_sto_val_new_in_G Hwf Bis).
+    apply wf_sto_to_ok_G in Hwf. rewrite HG in Hwf.
+    assert (x # G'') as Hx by (apply* ok_middle_inv_r).
+    assert (binds x T0 (G' & x ~ T0 & G'')) as Hxt by (apply* binds_middle_eq).
+    rewrite <- HG in Hxt. apply (binds_func Hxt Hb).
+  }
+  subst T0. split. assumption.
+  lets Hwf': (wf_sto_sub Hwf HG Hs).
+  lets Hn: (wf_sto_new_typing Hwf').
+  inversion Hn; subst.
+  - pick_fresh y. lets Hok': (wf_sto_to_ok_G Hwf').
+    rewrite subst_intro_typ with (x:=y). rewrite subst_intro_defs with (x:=y).
+    apply* renaming_def. auto. auto.
+  - assert (ty_precise = ty_precise) as Heqm1 by reflexivity.
+    specialize (H Heqm1). destruct H as [? Contra]. inversion Contra.
 Qed.
 
 Lemma corresponding_types_ty_trms: forall G s ds x S,
-  wf_sto G s ->
+  G ~~ s ->
   inert G ->
   binds x (typ_bnd S) G ->
   binds x (val_new S ds) s ->
   (forall a T',
-      ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_trm a T')) ->
-      exists t, defs_has (open_defs x ds) (def_trm a t) /\
-           ty_trm ty_general sub_general G t T').
+      G |-! trm_path (p_var (avar_f x)) :: typ_rcd (dec_trm a T') ->
+      exists t, defs_has (ds |||^ x) (def_trm a t) /\
+           G |- t :: T'.
 Proof.
   introv Hwf Hg Bi Bis Hty.
   pose proof (new_ty_defs Hwf Hg Bis) as Htds.
@@ -88,9 +100,9 @@ Qed.
 
 Lemma canonical_forms_2: forall G s x a T,
   inert G ->
-  wf_sto G s ->
-  ty_trm ty_general sub_general G (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
-  (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm ty_general sub_general G t T).
+  G ~~ s ->
+  G |- trm_path (p_var (avar_f x)) :: typ_rcd (dec_trm a T) ->
+  exists S ds t, binds x (val_new S ds) s /\ defs_has (ds |||^ x) (def_trm a t) /\ G |- t :: T.
 Proof.
   introv Hg Hwf Hty.
   pose proof (typing_implies_bound Hty) as [S Bi].

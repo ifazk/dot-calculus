@@ -12,7 +12,7 @@ Definition subenv(G1 G2: ctx) :=
   forall x T2, binds x T2 G2 ->
     binds x T2 G1 \/
     exists T1,
-      binds x T1 G1 /\ subtyp ty_general sub_general G1 T1 T2.
+      binds x T1 G1 /\ G1 |- T1 <: T2.
 
 Lemma subenv_push: forall G G' x T,
   subenv G' G ->
@@ -32,7 +32,7 @@ Proof.
 Qed.
 
 Lemma subenv_last: forall G x S U,
-  subtyp ty_general sub_general G S U ->
+  G |- S <: U ->
   ok (G & x ~ S) ->
   subenv (G & x ~ S) (G & x ~ U).
 Proof.
@@ -43,65 +43,73 @@ Proof.
 Qed.
 
 Lemma narrow_rules:
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G',
-    m1 = ty_general ->
-    m2 = sub_general ->
+  (forall G t T, G |- t :: T -> forall G',
     ok G' ->
     subenv G' G ->
-    ty_trm m1 m2 G' t T)
-/\ (forall G d D, ty_def G d D -> forall G',
+    G' |- t :: T)
+/\ (forall G z U d D, G && z ~ U |- d :: D -> forall G',
+    ok (G' & z ~ U) ->
+    subenv G' G ->
+    G' && z ~ U |- d :: D)
+/\ (forall G z U ds T, G && z ~ U |- ds ::: T -> forall G',
+    ok (G' & z ~ U) ->
+    subenv G' G ->
+    G' && z ~ U |- ds ::: T)
+/\ (forall G p, norm G p -> forall G',
     ok G' ->
     subenv G' G ->
-    ty_def G' d D)
-/\ (forall G ds T, ty_defs G ds T -> forall G',
+    norm G' p)
+/\ (forall G S U, G |- S <: U -> forall G',
     ok G' ->
     subenv G' G ->
-    ty_defs G' ds T)
-/\ (forall m1 m2 G S U, subtyp m1 m2 G S U -> forall G',
-    m1 = ty_general ->
-    m2 = sub_general ->
-    ok G' ->
-    subenv G' G ->
-    subtyp m1 m2 G' S U).
+    G' |- S <: U).
 Proof.
   apply rules_mutind; intros; eauto 4.
   - (* ty_var *)
-    subst. unfold subenv in H2. specialize (H2 x T b).
-    destruct H2.
+    subst. unfold subenv in H0. specialize (H0 x T b).
+    destruct H0.
     + eauto.
-    + destruct H as [T' [Bi Hsub]].
+    + destruct H0 as [T' [Bi Hsub]].
       eapply ty_sub; eauto.
   - (* ty_all_intro *)
     subst.
     apply_fresh ty_all_intro as y; eauto using subenv_push.
   - (* ty_new_intro *)
     subst.
-    apply_fresh ty_new_intro as y; eauto using subenv_push.
+    apply_fresh ty_new_intro as z. apply H; auto.
   - (* ty_let *)
     subst.
     apply_fresh ty_let as y; eauto using subenv_push.
-  - inversion H1 (* sub_tight *).
-  - inversion H1 (* sub_tight *).
+ - (* ty_def_path *)
+    constructor. apply H; auto. apply subenv_push. assumption. assumption.
+  - (* ty_def_val *)
+    constructor. apply H; auto. apply subenv_push. assumption. assumption.
+  - (* norm_var *)
+    unfold subenv in H0. destruct (H0 x T b) as [Hb | [T1 [Hb Hs]]].
+    econstructor. eassumption.
+    econstructor. eassumption.
+  - (* norm_path *)
+    econstructor; eauto.
   - (* subtyp_all *)
     subst.
-    apply_fresh subtyp_all as y.
-    + eauto.
-    + assert (H5: ok (G' & y ~ S2)) by auto.
-      eauto using subenv_push.
+    apply_fresh subtyp_all as y; eauto.
+apply H0; eauto. apply subenv_push; eauto.
 Qed.
 
 Lemma narrow_typing: forall G G' t T,
-  ty_trm ty_general sub_general G t T ->
-  subenv G' G -> ok G' ->
-  ty_trm ty_general sub_general G' t T.
+  G |- t :: T ->
+  subenv G' G ->
+  ok G' ->
+  G' |- t :: T.
 Proof.
   intros. apply* narrow_rules.
 Qed.
 
 Lemma narrow_subtyping: forall G G' S U,
-  subtyp ty_general sub_general G S U ->
-  subenv G' G -> ok G' ->
-  subtyp ty_general sub_general G' S U.
+  G |- S <: U ->
+  subenv G' G ->
+  ok G' ->
+  G' |- S <: U.
 Proof.
   intros. apply* narrow_rules.
 Qed.
