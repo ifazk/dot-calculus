@@ -26,25 +26,22 @@ Inductive normal_form: trm -> Prop :=
 
 Hint Constructors normal_form.
 
-(*
-Let G |- t: T and G ~ s. Then either
-
-- t is a normal form, or
-- there exists a store s', term t' such that s | t -> s' | t', and for any such s', t' there exists an environment G'' such that, letting G' = G, G'' one has G' |- t': T and G' ~ s'.
-The proof is by a induction on typing derivations of G |- t: T.
-*)
-
 Lemma safety: forall G s t T,
-    wf_sto G s ->
+    G ~~ s ->
     inert G ->
-    ty_trm ty_general sub_general G t T ->
-    (normal_form t \/ (exists s' t' G' G'', red t s t' s' /\ G' = G & G'' /\ ty_trm ty_general sub_general G' t' T /\ wf_sto G' s')).
+    G |- t :: T ->
+        (normal_form t \/
+         (exists s' t' G' G'',
+             t / s => t' / s'
+           /\ G' = G & G''
+           /\ G' |- t' :: T
+           /\ G' ~~ s')).
 Proof.
   introv Hwf Hg H. dependent induction H; try solve [left; eauto].
   - (* All-E *) right.
     lets C: (canonical_forms_1 Hwf Hg H).
     destruct C as [L [T' [t [Bis [Hsub Hty]]]]].
-    exists s (open_trm z t) G (@empty typ).
+    exists s (t |^ z) G (@empty typ).
     split.
     apply red_app with (T:=T'). assumption.
     split.
@@ -73,7 +70,7 @@ Proof.
         eapply var_typing_implies_avar_f. eassumption.
       }
       destruct A as [x A]. subst a.
-      exists s (open_trm x u) G (@empty typ).
+      exists s (u |^ x) G (@empty typ).
       split.
       apply red_let_var.
       split.
@@ -88,7 +85,7 @@ Proof.
     + lets Hv: (val_typing H).
       destruct Hv as [T' [Htyp Hsub]].
       pick_fresh x. assert (x \notin L) as FrL by auto. specialize (H0 x FrL).
-      exists (s & x ~ v) (open_trm x u) (G & x ~ T) (x ~ T).
+      exists (s & x ~ v) (u |^ x) (G & x ~ T) (x ~ T).
       split.
       apply red_let. eauto.
       split. reflexivity. split. assumption. apply* wf_sto_push.

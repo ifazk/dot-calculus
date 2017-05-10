@@ -25,7 +25,7 @@ Proof.
 Qed.
 
 Lemma open_record_typ: forall T x ls,
-  record_typ T ls -> record_typ (open_typ x T) ls.
+  record_typ T ls -> record_typ (T ||^ x) ls.
 Proof.
   intros. induction H.
   - unfold open_typ. simpl.
@@ -39,7 +39,7 @@ Proof.
 Qed.
 
 Lemma open_record_type: forall T x,
-  record_type T -> record_type (open_typ x T).
+  record_type T -> record_type (T ||^ x).
 Proof.
   intros. destruct H as [ls H]. exists ls. eapply open_record_typ.
   eassumption.
@@ -145,4 +145,46 @@ Proof.
     try solve [inversion Heqt; eapply IHty_trm; eauto];
     try solve [inversion Heqt; eapply IHty_trm1; eauto].
   - inversion Heqt. subst. exists T. assumption.
+Qed.
+
+Lemma typing_implies_bound_p: forall G x T,
+  G |-! trm_path (p_var (avar_f x)) :: T ->
+  exists S, binds x S G.
+Proof.
+  intros. eapply typing_implies_bound. apply* precise_to_general.
+Qed.
+
+Lemma open_var_eq_p_typ_dec_path: forall x,
+    (forall T : typ, forall n : nat,
+          open_rec_typ n x T = open_rec_typ_p n (p_var (avar_f x)) T) /\
+    (forall D : dec, forall n : nat,
+          open_rec_dec n x D = open_rec_dec_p n (p_var (avar_f x)) D) /\
+    (forall P : path, forall n : nat,
+          open_rec_path n x P = open_rec_path_p n (p_var (avar_f x)) P).
+Proof.
+  intros. apply typ_mutind; unfold open_typ, open_typ_p; simpl; intros; auto.
+  - (* typ_rcd *)
+    f_equal*.
+  - (* typ_and *)
+    rewrite H. rewrite* H0.
+  - (* typ_path *)
+    rewrite* H.
+  - (* typ_bnd *)
+    f_equal*.
+  - (* typ_all *)
+    rewrite H. rewrite* H0.
+  - (* dec_typ *)
+    rewrite H. rewrite* H0.
+  - (* dec_trm *)
+    rewrite* H.
+  - (* p_var *)
+    unfold open_rec_avar, open_rec_avar_p. destruct a; simpl. case_if*. f_equal*.
+  - (* p_sel *)
+    rewrite* H.
+Qed.
+
+Lemma open_var_path_typ_eq: forall x T,
+  T ||^ x = open_typ_p (p_var (avar_f x)) T.
+Proof.
+  intros. apply open_var_eq_p_typ_dec_path.
 Qed.

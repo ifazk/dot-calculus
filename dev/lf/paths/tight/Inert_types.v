@@ -85,14 +85,14 @@ Proof.
 Qed.
 
 Lemma inert_unique_tight_bounds: forall G x T1 T2 A,
-  inert G ->
-  ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A T1 T1)) ->
-  ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A T2 T2)) ->
-  T1 = T2.
+    inert G ->
+    G |-! trm_path (p_var (avar_f x)) :: typ_rcd (dec_typ A T1 T1) ->
+    G |-! trm_path (p_var (avar_f x)) :: typ_rcd (dec_typ A T2 T2) ->
+    T1 = T2.
 Proof.
   introv Hgd Hty1 Hty2.
   assert (exists T, binds x T G) as Bi. {
-    eapply typing_implies_bound. eassumption.
+    eapply typing_implies_bound. apply* precise_to_general.
   }
   destruct Bi as [T Bi].
   pose proof (inert_binds Hgd Bi) as Hgt.
@@ -118,22 +118,22 @@ Qed.
 
 Lemma inert_ty_precise_bot : forall G x,
     inert G ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) typ_bot ->
+    G |-! trm_path (p_var (avar_f x)) :: typ_bot ->
     False.
 Proof.
   intros G x Hgd Hpt.
-  pose proof (typing_implies_bound Hpt) as [T Bi].
+  pose proof (typing_implies_bound_p Hpt) as [T Bi].
   pose proof (precise_flow_lemma Bi Hpt) as Hpf.
   eapply inert_precise_bot; eassumption.
 Qed.
 
 Lemma inert_precise_sel_inv : forall G x y A,
     inert G ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_sel y A) ->
+    G |-! trm_path (p_var (avar_f x)) :: typ_path (p_var (avar_f y)) A ->
     False.
 Proof.
   introv Hgd Hpt.
-  pose proof (typing_implies_bound Hpt) as [T Bis].
+  pose proof (typing_implies_bound_p Hpt) as [T Bis].
   pose proof (inert_binds Hgd Bis) as Hgt.
   pose proof (precise_flow_lemma Bis Hpt) as Hpf.
   induction Hgt.
@@ -144,11 +144,11 @@ Qed.
 
 Lemma inert_precise_dec_implies_record_dec : forall G x D,
     inert G ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd D) ->
+    G |-! trm_path (p_var (avar_f x)) :: typ_rcd D ->
     record_dec D.
 Proof.
   introv Hgd Hpt.
-  pose proof (typing_implies_bound Hpt) as [T' Bis].
+  pose proof (typing_implies_bound_p Hpt) as [T' Bis].
   pose proof (inert_binds Hgd Bis) as Hgt.
   pose proof (precise_flow_lemma Bis Hpt) as Hpf.
   induction Hgt.
@@ -159,7 +159,7 @@ Qed.
 
 Lemma inert_precise_dec_typ_inv : forall G x A S U,
     inert G ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A S U)) ->
+    G |-! trm_path (p_var (avar_f x)) :: typ_rcd (dec_typ A S U) ->
     S = U.
 Proof.
   introv Hgd Hpt.
@@ -183,11 +183,11 @@ Qed.
 
 Lemma inert_precise_all_inv : forall x G S T,
     inert G ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_all S T) ->
+    G |-! trm_path (p_var (avar_f x)) :: typ_all S T ->
     binds x (typ_all S T) G.
 Proof.
   introv Hgd Htyp.
-  pose proof (typing_implies_bound Htyp) as [U Bi].
+  pose proof (typing_implies_bound_p Htyp) as [U Bi].
   pose proof (precise_flow_lemma Bi Htyp) as Hpf.
   pose proof (inert_precise_flow_all_inv Hgd Hpf) as H.
   rewrite <- H.

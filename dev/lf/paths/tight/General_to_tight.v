@@ -14,11 +14,11 @@ Require Import Tight_possible_types.
 (* Lemma 1 *)
 Lemma tight_to_precise_typ_dec: forall G x A S U,
   inert G ->
-  ty_trm ty_general sub_tight G (trm_var (avar_f x)) (typ_rcd (dec_typ A S U)) ->
+  G |-# trm_path (p_var (avar_f x)) :: typ_rcd (dec_typ A S U) ->
   exists T,
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A T T)) /\
-    subtyp ty_general sub_tight G T U /\
-    subtyp ty_general sub_tight G S T.
+    G |-! trm_path (p_var (avar_f x)) :: typ_rcd (dec_typ A T T) /\
+    G |-# T <: U /\
+    G |-# S <: T.
 Proof.
   introv HG Ht.
   lets Htp: (tight_possible_types_lemma HG Ht). clear Ht.
@@ -30,12 +30,12 @@ Proof.
     exists V. split*.
 Qed.
 
-Lemma tight_to_precise_trm_dec: forall G x a T,
+Lemma tight_to_precise_trm_dec: forall G x a m T,
   inert G ->
-  ty_trm ty_general sub_tight G (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
+  G |-# trm_path (p_var (avar_f x)) :: typ_rcd (dec_trm a m T) ->
   exists T',
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_trm a T')) /\
-    subtyp ty_general sub_tight G T' T.
+    G |-! trm_path (p_var (avar_f x)) :: typ_rcd (dec_trm a m T') /\
+    G |-# T' <: T.
 Proof.
   introv Hgd Ht.
   lets Htp: (tight_possible_types_lemma Hgd Ht). clear Ht.
@@ -48,14 +48,13 @@ Qed.
 
 Lemma tight_to_precise_typ_all: forall G x S T,
   inert G ->
-  ty_trm ty_general sub_tight G (trm_var (avar_f x)) (typ_all S T) ->
+  G |-# trm_path (p_var (avar_f x)) :: typ_all S T ->
   exists S' T' L,
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_all S' T') /\
-    subtyp ty_general sub_tight G S S' /\
+    G |-! trm_path (p_var (avar_f x)) :: typ_all S' T' /\
+    G |-# S <: S' /\
     (forall y,
         y \notin L ->
-            subtyp ty_general sub_general (G & y ~ S) (open_typ y T') (open_typ y T))
-    .
+            G & y ~ S |- T' ||^ y <: T ||^ y).
 Proof.
   introv HG Ht.
   lets Htp: (tight_possible_types_lemma HG Ht). clear Ht.
@@ -65,14 +64,14 @@ Proof.
     destruct IHHtp as [S' [T' [L' [Hpt [HSsub HTsub]]]]].
     exists S' T' (dom G \u L \u L').
     split; auto.
-    assert (Hsub2 : subtyp ty_general sub_tight G (typ_all S0 T0) (typ_all S T)).
+    assert (Hsub2 : G |-# typ_all S0 T0 <: typ_all S T).
     { apply subtyp_all with (L:=L); assumption. }
     split.
     + eapply subtyp_trans; eauto.
     + intros y Fr.
       assert (Hok: ok (G & y ~ S)) by auto using ok_push, inert_ok.
       apply tight_to_general in H; auto.
-      assert (Hnarrow: subtyp ty_general sub_general (G & y ~ S) (open_typ y T') (open_typ y T0)).
+      assert (Hnarrow: G & y ~ S |- T' ||^ y <: T0 ||^ y).
       { eapply narrow_subtyping; auto using subenv_last. }
       eauto.
 Qed.
@@ -80,32 +79,28 @@ Qed.
 (* Lemma 2 *)
 Lemma tight_subtyping_sel: forall G x A S U,
     inert G ->
-    ty_trm ty_general sub_tight G (trm_var (avar_f x)) (typ_rcd (dec_typ A S U)) ->
-    (subtyp ty_general sub_tight G (typ_sel (avar_f x) A) U /\
-     subtyp ty_general sub_tight G S (typ_sel (avar_f x) A)).
+    G |-# trm_path (p_var (avar_f x)) :: typ_rcd (dec_typ A S U) ->
+    G |-# typ_path (p_var (avar_f x)) A <: U /\
+    G |-# S <: typ_path (p_var (avar_f x)) A.
 Proof.
   introv HG Hty.
   pose proof (tight_to_precise_typ_dec HG Hty) as [T [Ht [Hs1 Hs2]]].
   split.
-  - apply subtyp_sel1_tight in Ht. apply subtyp_trans with (T:=T); auto.
-  - apply subtyp_sel2_tight in Ht. apply subtyp_trans with (T:=T); auto.
+  - apply subtyp_sel1_t in Ht. apply subtyp_trans_t with (T:=T); auto.
+  - apply subtyp_sel2_t in Ht. apply subtyp_trans with (T:=T); auto.
 Qed.
 
 (* Theorem 1 *)
 Lemma general_to_tight: forall G0,
   inert G0 ->
-  (forall m1 m2 G t T,
-     ty_trm m1 m2 G t T ->
+  (forall G t T,
+     G |- t :: T ->
      G = G0 ->
-     m1 = ty_general ->
-     m2 = sub_general ->
-     ty_trm ty_general sub_tight G t T) /\
-  (forall m1 m2 G S U,
-     subtyp m1 m2 G S U ->
+     G |-# t :: T) /\
+  (forall G S U,
+     G |- S <: U ->
      G = G0 ->
-     m1 = ty_general ->
-     m2 = sub_general ->
-     subtyp ty_general sub_tight G S U).
+     G |-# S <: U).
 Proof.
   intros G0 HG.
   apply ts_mutind; intros; subst; try solve [eapply tight_subtyping_sel; auto]; eauto.
@@ -113,8 +108,8 @@ Qed.
 
 Lemma general_to_tight_typing: forall G t T,
   inert G ->
-  ty_trm ty_general sub_general G t T ->
-  ty_trm ty_general sub_tight G t T.
+  G |- t :: T ->
+  G |-# t :: T.
 Proof.
   intros. apply* general_to_tight.
 Qed.

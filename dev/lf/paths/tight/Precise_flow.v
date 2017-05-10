@@ -26,7 +26,7 @@ Inductive precise_flow : var -> ctx -> typ -> typ -> Prop :=
       precise_flow x G T T
   | pf_open : forall x G T U,
       precise_flow x G T (typ_bnd U) ->
-      precise_flow x G T (open_typ x U)
+      precise_flow x G T (U ||^ x)
   | pf_and1 : forall x G T U1 U2,
       precise_flow x G T (typ_and U1 U2) ->
       precise_flow x G T U1
@@ -45,19 +45,18 @@ Proof.
   dependent induction Htyp.
   - rewrite (binds_func H Bis).
     constructor. assumption.
-  - assert (H : precise_flow x G T (typ_bnd T0)).
-    { apply IHHtyp; auto. }
-    auto.
+  - assert (H : precise_flow x G T (typ_bnd T0)) by (apply* IHHtyp).
+    rewrite <- open_var_path_typ_eq. auto.
   - eapply pf_and1; auto.
   - eapply pf_and2; auto.
 Qed.
 
 Lemma precise_flow_lemma' : forall U G x,
-    G |-! trm_var (avar_f x) :: U ->
+    G |-! trm_path (p_var (avar_f x)) :: U ->
     exists T, precise_flow x G T U.
 Proof.
   introv H.
-  pose proof (typing_implies_bound H) as [T H1].
+  pose proof (typing_implies_bound_p H) as [T H1].
   exists T. apply precise_flow_lemma; auto.
 Qed.
 
@@ -70,16 +69,17 @@ Qed.
 
 Lemma precise_flow_lemma_rev : forall T U G x,
     precise_flow x G T U ->
-    G |-! trm_var (avar_f x) U.
+    G |-! trm_path (p_var (avar_f x)) :: U.
 Proof.
   introv H.
   pose proof (precise_flow_implies_bound H) as H1.
   induction H; eauto.
+  rewrite open_var_path_typ_eq. auto.
 Qed.
 
 Lemma ty_precise_var_and_inv1 : forall x G T U,
-    G |-! trm_var (avar_f x) :: typ_and T U ->
-    G |-! trm_var (avar_f x) :: T.
+    G |-! trm_path (p_var (avar_f x)) :: typ_and T U ->
+    G |-! trm_path (p_var (avar_f x)) :: T.
 Proof.
   introv H.
   destruct (precise_flow_lemma' H) as [T' Hpf].
@@ -88,8 +88,8 @@ Proof.
 Qed.
 
 Lemma ty_precise_var_and_inv2 : forall x G T U,
-    G |-! trm_var (avar_f x) :: typ_and T U ->
-    G |-! trm_var (avar_f x) :: U.
+    G |-! trm_path (p_var (avar_f x)) :: typ_and T U ->
+    G |-! trm_path (p_var (avar_f x)) :: U.
 Proof.
   introv H.
   destruct (precise_flow_lemma' H) as [T' Hpf].
@@ -211,7 +211,7 @@ Lemma precise_flow_record_sub : forall x G T,
     record_type T ->
     (forall T', precise_flow x G (typ_bnd T) T' ->
            (T' = typ_bnd T) \/
-           forall D, record_has T' D -> record_has (open_typ x T) D).
+           forall D, record_has T' D -> record_has (T ||^ x) D).
 Proof.
   introv Hrt.
   introv Hpf.
@@ -238,7 +238,7 @@ Qed.
 Lemma precise_flow_record_has: forall S G x D,
     record_type S ->
     precise_flow x G (typ_bnd S) (typ_rcd D) ->
-    record_has (open_typ x S) D.
+    record_has (S ||^ x) D.
 Proof.
   introv Hrec Hpf.
   pose proof (precise_flow_record_sub Hrec Hpf) as [Contra | H].
