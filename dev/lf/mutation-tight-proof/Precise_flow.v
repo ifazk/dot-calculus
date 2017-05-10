@@ -109,6 +109,15 @@ Proof.
     specialize (IHHpf S T eq_refl); inversion IHHpf.
 Qed.
 
+Lemma precise_flow_ref_inv : forall x G T U,
+    precise_flow x G (typ_ref T) U ->
+    U = (typ_ref T).
+Proof.
+  introv Hpf.
+  dependent induction Hpf; auto;
+    specialize (IHHpf T eq_refl); inversion IHHpf.
+Qed.
+
 Lemma precise_flow_bnd_eq_or_record : forall x G T,
     record_type T ->
     (forall U, precise_flow x G (typ_bnd T) U ->

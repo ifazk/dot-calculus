@@ -25,7 +25,7 @@ Proof.
   dependent induction Htp.
   - lets Hp: (inert_precise_dec_typ_inv HG H). subst.
     exists U. split*.
-  - specialize (IHHtp A T U0 HG eq_refl).
+  - specialize (IHHtp A T U0 HG eq_refl). 
     destruct IHHtp as [W [Hx [Hs1 Hs2]]].
     exists W. split*.
 Qed.
@@ -75,6 +75,22 @@ Proof.
       assert (Hnarrow: subtyp ty_general sub_general (G & y ~ V) S (open_typ y T') (open_typ y T0)).
       { eapply narrow_subtyping; auto using subenv_last. }
       eauto.
+Qed.
+
+Lemma tight_to_precise_typ_ref: forall G S x T,
+  inert G ->
+  ty_trm ty_general sub_tight G S (trm_var (avar_f x)) (typ_ref T) ->
+  exists T',
+    ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_ref T') /\
+    subtyp ty_general sub_tight G S T' T /\
+    subtyp ty_general sub_tight G S T T'.
+Proof.
+  introv Hg Ht.
+  lets Htp: (tight_possible_types_lemma Hg Ht). clear Ht.
+  dependent induction Htp.
+  - exists T. split*.
+  - specialize (IHHtp T0 Hg eq_refl). 
+    destruct IHHtp as [U [Hx Hs]]. exists U. split*.
 Qed.
 
 (* Lemma 2 *)

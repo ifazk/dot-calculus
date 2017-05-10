@@ -213,7 +213,7 @@ Proof.
     exists sta (sto[l:=x]) (trm_val (val_loc l)) G (@empty typ). exists (S & l ~ T) (l ~ T).
     split. apply* red_ref_var.
     assert (l # S) as HS by auto.
-    admit. (* apply (wt_notin_dom HWt HS). *)
+    apply (wt_notin_dom Hwt HS).
     split. rewrite concat_empty_r. reflexivity.
     split. reflexivity.
     split. constructor. auto.
@@ -231,41 +231,22 @@ Proof.
     split. assumption. split. assumption. assumption.
   - (* asg *)
     right.
-    lets C: (canonical_forms_3 Hg Hwf Hwt H).
-    destruct C as [l [y' [BiLoc [Hty [BiSto Htyy']]]]].
+    pose proof (canonical_forms_3 Hg Hwf Hwt H) as [l [y' [BiLoc [Hty [BiSto Htyy']]]]].
     exists sta (sto[l := y]) (trm_var (avar_f y)) G (@empty typ). exists S (@empty typ).
     split.
-    apply red_asgn with (l:=l).
-    assumption.
-    lets Hbd: (LibMap.binds_def sto l y'). unfold bindsM in BiSto. rewrite Hbd in BiSto.
-    destruct BiSto as [His Hsto]. assumption.
-    split. rewrite concat_empty_r. reflexivity.
-    split. rewrite concat_empty_r. reflexivity.
-    split. assumption.
-    split. assumption.
-    destruct (precise_ref_subtyping BiLoc H Hty HWf HWt) as [U [HU [Hs1 Hs2]]].
-    clear Hs1 Hs2 IHty_trm1 IHty_trm2.
-    apply wt_store_update with (T:=U); try assumption.
-    apply (ref_binds_typ HU).
-    lets Hp: (possible_types_lemma HWf BiLoc H).
-    lets Hb: (ref_binds_typ HU).
-    dependent induction Hp.
-    * apply ref_binds_typ in H1. lets Hbf: (binds_func H1 Hb). subst. assumption.
-    *  assert (subtyp ty_general sub_general G S (typ_ref T) (typ_ref T0)) as Hst. apply subtyp_ref; assumption.
-      assert (ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_ref T0)) as HxT0. {
-        apply ty_sub with (T:=typ_ref T); try assumption. intro Hgp. inversion Hgp.
-      }
-      assert (ty_trm ty_general sub_general G S (trm_var (avar_f y)) T0) as HyT0. {
-        apply ty_sub with (T:=T); try assumption. intro Hgp. inversion Hgp.
-      }
-      assert (ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T0)) as HlT0. {
-        apply ty_sub with (T:=typ_ref T); try assumption. intro Hgp. inversion Hgp.
-      }
-      assert (ty_trm ty_general sub_general G S (trm_var (avar_f y')) T0) as Hy'T0. {
-        apply ty_sub with (T:=T); try assumption. intro Hgp. inversion Hgp.
-      }
-      assert (J0: val_loc l = val_loc l) by reflexivity.
-      subst.
-      assert (J1: typ_ref T0 = typ_ref T0) by reflexivity.
-      specialize (IHHp HWf HWt T0 HxT0 HyT0 l BiLoc HlT0 BiSto Hy'T0 HU J0 J1 Hb). assumption.
+    + apply red_asgn with (l:=l).
+      * assumption.
+      * lets Hbd: (LibMap.binds_def sto l y'). unfold bindsM in BiSto. rewrite Hbd in BiSto.
+        destruct BiSto as [His Hsto]. assumption.
+    + repeat split.
+      * rewrite concat_empty_r. reflexivity.
+      * rewrite concat_empty_r. reflexivity.
+      * assumption.
+      * assumption.
+      * pose proof (general_to_tight Hg) as [A _].
+        pose proof (A ty_general sub_general G S (trm_var (avar_f x)) (typ_ref T) H eq_refl eq_refl eq_refl).
+        pose proof (A ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) Hty eq_refl eq_refl eq_refl).
+        destruct (precise_ref_subtyping Hg BiLoc H1 H2 Hwf Hwt) as [U [HU [Hs1 Hs2]]].
+        apply wt_store_update with (T:=U); try assumption.
+        apply (ref_binds_typ HU). apply ty_sub with (T:=T); assumption.
 Qed.

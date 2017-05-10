@@ -20,8 +20,10 @@ Lemma canonical_forms_1: forall G S s x T U,
   wf_stack G S s ->
   inert G ->
   ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_all T U) ->
-  (exists L T' t, binds x (val_lambda T' t) s /\ subtyp ty_general sub_general G S T T' /\
-  (forall y, y \notin L -> ty_trm ty_general sub_general (G & y ~ T) S (open_trm y t) (open_typ y U))).
+  (exists L T' t, 
+      binds x (val_lambda T' t) s /\ 
+      subtyp ty_general sub_general G S T T' /\
+      (forall y, y \notin L -> ty_trm ty_general sub_general (G & y ~ T) S (open_trm y t) (open_typ y U))).
 Proof.
   introv Hwf Hgd Hty.
   pose proof (general_to_tight_typing Hgd Hty) as Hti.

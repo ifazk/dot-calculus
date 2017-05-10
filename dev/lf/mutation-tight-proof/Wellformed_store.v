@@ -1,6 +1,6 @@
 Set Implicit Arguments.
 
-Require Import LibLN.
+Require Import LibMap LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Weakening.
@@ -25,9 +25,88 @@ Lemma wf_stack_to_ok_S: forall s G S,
   wf_stack G S s -> ok S.
 Proof. intros. induction H; jauto. Qed.
 
-(* TODO: add others from original proof? *)
+Lemma wt_store_to_ok_S: forall s G S,
+  wt_store G S s -> ok S.
+Proof.
+  introv Wt. induction Wt; auto.
+Qed.
 
-Hint Resolve wf_stack_to_ok_s wf_stack_to_ok_G wf_stack_to_ok_S.
+Lemma wt_store_to_ok_G: forall s G S,
+  wt_store G S s -> ok G.
+Proof.
+  introv Wt. induction Wt; auto.
+Qed.
+
+Hint Resolve wf_stack_to_ok_s wf_stack_to_ok_G wf_stack_to_ok_S wt_store_to_ok_S wt_store_to_ok_G.
+
+Lemma wt_in_dom: forall G S sto l,
+  wt_store G S sto ->
+  l \in dom S ->
+  index sto l.
+Proof.
+  introv Wt. gen l. induction Wt; intros.
+  - rewrite dom_empty in H. rewrite in_empty in H. false.
+  - lets Hind: (IHWt l0 H1).
+    lets Hinh: (prove_Inhab x).
+    pose proof (classicT (l = l0)) as [H' | H']; unfolds store, addr.
+    * pose proof (indom_update sto l l0 x). 
+      rewrite index_def. rewrite H2. left. rewrite H'. reflexivity. 
+    * pose proof (indom_update sto l l0 x). 
+      rewrite index_def. rewrite H2. right. assumption. 
+  - lets Hinh: (prove_Inhab x).
+    pose proof (classicT (l = l0)) as [H' | H']; unfolds store, addr.
+    * rewrite index_def. rewrite indom_update. left. rewrite H'. reflexivity. assumption.
+    * rewrite index_def. rewrite indom_update. right.
+      assert (l0 \in dom S). {
+        simpl_dom. rewrite in_union in H1. destruct H1.
+        + rewrite in_singleton in H1. subst. false H'. reflexivity.
+        + assumption.
+      }
+      lets Hin: (IHWt l0 H2). assumption. assumption.
+  - apply IHWt in H0. assumption.
+Qed.
+
+Lemma wt_notin_dom: forall G S sto l,
+  wt_store G S sto ->
+  l # S ->
+  l \notindom sto.
+Proof.
+  introv Wt. gen l. induction Wt; intros.
+  - unfold store. rewrite LibMap.dom_empty. auto.
+  - assert (l <> l0). {
+      lets Hdec: (classicT (l = l0)). destruct Hdec.
+      * subst. false (binds_fresh_inv H H1).
+      * assumption.
+    }
+    assert (LibBag.dom sto[l := x] = LibBag.dom sto). {
+      apply dom_update_index.
+      * apply (prove_Inhab x).
+      * apply binds_get in H. apply get_some_inv in H.
+        lets Hind: (wt_in_dom Wt H). assumption.
+    }
+    unfolds addr. rewrite H3.
+    apply IHWt in H1. assumption.
+  - assert (l <> l0). {
+      lets Hdec: (classicT (l = l0)). destruct Hdec.
+      * subst. rew_env_defs. simpl in H1. apply notin_union in H1. destruct H1.
+        false (notin_same H1).
+      * assumption.
+    }
+    unfold LibBag.notin. unfold not. intro His_in.
+    assert (l0 \indom sto[l := x]) as Hindom by assumption. clear His_in.
+    destruct (indom_update_inv Hindom) as [Hl | Hl].
+    * subst. false H2. reflexivity.
+    * subst.
+      assert (l0 # S) as Hl0. {
+        unfolds in H1.
+        intro. apply H1. simpl_dom.
+        assert (l0 \notin \{l } \u (dom S)) as Hdom by auto.
+        apply notin_union in Hdom. destruct Hdom.
+        rewrite in_union. right. assumption.
+      }
+    specialize (IHWt l0 Hl0).  apply IHWt in Hl. false.
+    - apply IHWt in H0. assumption.
+Qed.
 
 Lemma tpt_to_precise_rec: forall G S v T,
     tight_pt_v G S v (typ_bnd T) ->
@@ -92,7 +171,6 @@ Proof.
   apply* IHHt.
 Qed.
 
-(* TODO: clean up? *) 
 Lemma corresponding_types: forall G S s x T,
   wf_stack G S s ->
   inert G ->
@@ -211,6 +289,35 @@ Proof.
     subst*.
   - apply binds_push_neq_inv in Bi; auto.
   - auto.
+Qed.
+
+Lemma precise_ref_subtyping: forall G S sta sto x l T,
+    inert G -> 
+    binds x (val_loc l) sta ->
+    ty_trm ty_general sub_tight G S (trm_var (avar_f x)) (typ_ref T) ->
+    ty_trm ty_general sub_tight G S (trm_val (val_loc l)) (typ_ref T) ->
+    wf_stack G S sta ->
+    wt_store G S sto ->
+    exists U,
+      (ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref U) /\
+       subtyp ty_general sub_general G S T U /\
+       subtyp ty_general sub_general G S U T).
+Proof.
+  introv Hg Bi Htx Htl Wf Wt.
+  pose proof (tight_possible_types_lemma_v Hg Htl).
+  dependent induction H.
+  - exists T. split*. 
+  - pose proof (subtyp_ref H1 H0) as Hs.
+    pose proof (ty_sub Htx Hs) as Htx'.
+    pose proof (ty_sub Htl Hs) as Htl'.
+    specialize (IHtight_pt_v l T0 Hg Bi Htx' Htl' Wf Wt eq_refl eq_refl) as [U [Hx [Hs1 Hs2]]].
+    pose proof (typing_implies_bound_loc Htl) as [U' Bi'].
+    exists U. repeat split.
+    + assumption. 
+    + apply subtyp_trans with (T:=T0); auto.
+      apply (proj22 tight_to_general) with (m1:=ty_general) (m2:=sub_tight); auto.
+    + apply subtyp_trans with (T:=T0); auto.
+      apply (proj22 tight_to_general) with (m1:=ty_general) (m2:=sub_tight); auto.
 Qed.
 
 Lemma val_new_typing: forall G S s x T ds,
