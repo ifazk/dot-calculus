@@ -176,17 +176,17 @@ Lemma corresponding_types: forall G S s x T,
   inert G ->
   binds x T G ->
   ((exists L V U V' U' t, binds x (val_lambda V t) s /\
-                  ty_trm ty_precise sub_general G S (trm_val (val_lambda V t)) (typ_all V U) /\
-                  T = typ_all V' U' /\
-                  subtyp ty_general sub_general G S V' V /\
-                  (forall y, y \notin L ->
-                  subtyp ty_general sub_general (G & y ~ V') S (open_typ y U) (open_typ y U'))) \/
+                     ty_trm ty_precise sub_general G S (trm_val (val_lambda V t)) (typ_all V U) /\
+                     T = typ_all V' U' /\
+                     subtyp ty_general sub_general G S V' V /\
+                     (forall y, y \notin L ->
+                           subtyp ty_general sub_general (G & y ~ V') S (open_typ y U) (open_typ y U'))) \/
    (exists V ds, binds x (val_new V ds) s /\
-                 ty_trm ty_precise sub_general G S (trm_val (val_new V ds)) (typ_bnd V) /\
-                 T = typ_bnd V)) \/
+            ty_trm ty_precise sub_general G S (trm_val (val_new V ds)) (typ_bnd V) /\
+            T = typ_bnd V) \/
    (exists V l, binds x (val_loc l) s /\
-                 ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref V) /\
-                 T = typ_ref V).
+           ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref V) /\
+           T = typ_ref V)).
 Proof.
   introv H Hgd Bi. induction H.
   - false* binds_empty_inv.
@@ -195,13 +195,13 @@ Proof.
     }
     unfolds binds. rewrite get_push in *. case_if.
     + inversions Bi. inversion H2; subst.
-      * right. exists T0 l. split.
+      * right. right. exists T0 l. split.
         reflexivity. 
         split. apply* weaken_ty_trm_ctx. reflexivity.
-      * left. left. exists (L \u dom G) T0 U T0 U t.
+      * left. exists (L \u dom G) T0 U T0 U t.
         split*. split*.
         apply* weaken_ty_trm_ctx.
-      * left. right. exists T0 ds. 
+      * right. left. exists T0 ds. 
         split. auto. split.
         apply* weaken_ty_trm_ctx. reflexivity.
       * apply general_to_tight_typing in H2.
@@ -211,7 +211,7 @@ Proof.
         }
         inversions HgT.
         apply tpt_to_precise_lambda in Hpt. destruct Hpt as [L [V' [T' [Hss [Hs1 Hs2]]]]].
-        destruct (precise_forall_inv Hss) as [t Heq]. subst. left. left.
+        destruct (precise_forall_inv Hss) as [t Heq]. subst. left. 
         exists (L \u dom G \u \{ x0}) V' T' S0 T1 t.
         split. apply* f_equal. split. apply* weaken_ty_trm_ctx. split. reflexivity.
         split. apply* weaken_subtyp_ctx. intros y Hy.
@@ -219,28 +219,28 @@ Proof.
         apply ok_push. apply* inert_ok. simpl_dom. rewrite notin_union. split*.
         assumption.
         apply tpt_to_precise_rec in Hpt.
-        destruct (precise_bnd_inv Hpt) as [ds Heq]. subst. left. right. exists T1 ds.
+        destruct (precise_bnd_inv Hpt) as [ds Heq]. subst. right. left. exists T1 ds.
         split. reflexivity. split. apply* weaken_ty_trm_ctx. reflexivity.
         assumption.
     + specialize (IHwf_stack Hg Bi).
-      destruct IHwf_stack as [[[L [V [U [V' [U' [t [Hv [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [V [ds [Hv [Ht He]]]]] | [V [l [Hv [Ht He]]]]].
-      * left. left. exists (L \u dom G \u \{x0}) V U V' U' t. split. assumption. split.
+      destruct IHwf_stack as [[L [V [U [V' [U' [t [Hv [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [[V [ds [Hv [Ht He]]]] | [V [l [Hv [Ht He]]]]]].
+      * left. exists (L \u dom G \u \{x0}) V U V' U' t. split. assumption. split.
         apply* weaken_ty_trm_ctx.
         split. assumption. split. apply* weaken_subtyp_ctx.
         intros y Hy. apply (proj44 (weaken_rules_ctx)) with (G:=G & y ~ V'). apply* Hs2.
         reflexivity. apply ok_push. apply* inert_ok. auto.
-      * left. right. exists V ds. split. assumption. split. 
+      * right. left. exists V ds. split. assumption. split. 
         apply* weaken_ty_trm_ctx. assumption.
-      * right. exists V l. split. assumption. split. apply weaken_ty_trm_ctx; auto. 
+      * right. right. exists V l. split. assumption. split. apply weaken_ty_trm_ctx; auto. 
         apply* inert_ok. assumption.
   - specialize (IHwf_stack Hgd Bi).
-      destruct IHwf_stack as [[[L [V [U [V' [U' [t [Hv [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [V [ds [Hv [Ht He]]]]] | [V [l' [Hv [Ht He]]]]].
-      * left. left. exists (L \u dom G \u \{x}) V U V' U' t. split. assumption. split.
+      destruct IHwf_stack as [[L [V [U [V' [U' [t [Hv [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [[V [ds [Hv [Ht He]]]] | [V [l' [Hv [Ht He]]]]]].      
+      * left. exists (L \u dom G \u \{x}) V U V' U' t. split. assumption. split.
         apply* weaken_ty_trm_sigma. split. assumption. split. apply* weaken_subtyp_sigma.
         intros y Hy. apply* weaken_subtyp_sigma.
-      * left. right. exists V ds. split. assumption. split. 
+      * right. left. exists V ds. split. assumption. split. 
         apply* weaken_ty_trm_sigma. assumption.
-      * right. exists V l'. split. assumption. split. apply weaken_ty_trm_sigma; auto.
+      * right. right. exists V l'. split. assumption. split. apply weaken_ty_trm_sigma; auto.
         apply* ok_push. assumption.
 Qed.
 
@@ -331,7 +331,7 @@ Proof.
     eapply stack_binds_to_ctx_binds; eauto.
   }
   destruct Bi as [T0 Bi].
-  destruct (corresponding_types Hwf Hg Bi) as [[Hnew | Hlambda] | Hloc].
+  destruct (corresponding_types Hwf Hg Bi) as [Hnew | [Hlambda | Hloc]].
   - destruct Hnew as [_ [V [_ [_ [_ [t [Contra _]]]]]]].
     false.
   - destruct Hlambda as [T' [ds' [Bis' [Ht EqT]]]]. subst.

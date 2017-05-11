@@ -98,7 +98,7 @@ Proof.
   pose proof (general_to_tight_typing Hg Hty) as Hty'.
   pose proof (tight_to_precise_trm_dec Hg Hty') as [T' [Hx Hs]].
   pose proof (corresponding_types Hwf Hg Bi)
-    as [[[L [U [W [S1 [W1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [U [ds [Hb [Ht Heq]]]]] | [U [l [Hb [Ht Heq]]]]].
+    as [[L [U [W [S1 [W1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [[U [ds [Hb [Ht Heq]]]] | [U [l [Hb [Ht Heq]]]]]].
   + assert (H: exists T, record_type T /\ V = (typ_bnd T)).
     { pose proof (inert_binds Hg Bi) as Hgt.
       induction Hgt.

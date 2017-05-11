@@ -23,7 +23,7 @@ PROOFS= \
     Safety.v
 PROOFOBJECTS=$(PROOFS:.v=.vo)
 
-TLCDIR=../../../ln/tlc/
+TLCDIR=../../../../ln/tlc/
 LIBLN=$(TLCDIR)/LibLN.vo
 TLCNAME=TLC
 
