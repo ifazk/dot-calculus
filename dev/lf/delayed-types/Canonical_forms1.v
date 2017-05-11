@@ -30,7 +30,7 @@ Proof.
   pose proof (tight_to_precise_typ_all Hgd Hti) as [T' [U' [L' [Hpt [HSsub HTsub]]]]].
   pose proof (inert_precise_all_inv Hgd Hpt) as Bi.
   pose proof (corresponding_types Hwf Hgd Bi)
-    as [[L [V [W [V1 [W1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [[V [ds [Hb [Ht Heq]]]] | [V [l [Hb [Ht Heq]]]]]].
+    as [[L [V [W [V1 [W1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [[V [ds [Hb [Ht Heq]]]] | [[V [l [Hb [Ht Heq]]]] | [V [Hb [Ht Heq]]]]]].
   subst. inversion Heq; subst. inversions Ht.
   - exists (L \u L' \u L0 \u dom G) V t.
     split; auto.
@@ -56,6 +56,7 @@ Proof.
       specialize (Hs2 y HL). apply narrow_subtyping with (G':=G & y ~ T) in Hs2.
       assumption. apply* subenv_last. apply* Hok.
       apply* HTsub. apply* subenv_last. apply* Hok.
+  - inversion Heq.
   - inversion Heq.
   - inversion Heq.
 Qed.

@@ -43,11 +43,15 @@ Inductive tight_pt_v : ctx -> sigma -> val -> typ -> Prop :=
   tight_pt_v G S v U ->
   tight_pt_v G S v (typ_and T U)
   (* Loc *)
-| t_pt_loc : forall G S v T U,
+| t_pt_loc_v : forall G S v T U,
   tight_pt_v G S v (typ_ref T) ->
   subtyp ty_general sub_tight G S T U ->
   subtyp ty_general sub_tight G S U T ->  
   tight_pt_v G S v (typ_ref U)
+  (* Nullable ref *)
+| t_pt_nref_v : forall G S x T,
+  tight_pt_v G S x (typ_ref T) ->
+  tight_pt_v G S x (typ_nref T)
   (* Top *)
 | t_pt_top_v : forall G S v T,
   tight_pt_v G S v T ->

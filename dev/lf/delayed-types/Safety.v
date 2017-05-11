@@ -209,17 +209,15 @@ Proof.
     rewrite <- IH2. eapply wf_stack_to_ok_G. eassumption.
     rewrite <- IH3. eapply wf_stack_to_ok_S. eassumption.
   - (* ref *)
-    right. pick_fresh l.
-    exists sta (sto[l:=x]) (trm_val (val_loc l)) G (@empty typ). exists (S & l ~ T) (l ~ T).
-    split. apply* red_ref_var.
-    assert (l # S) as HS by auto.
-    apply (wt_notin_dom Hwt HS).
+    right. 
+    exists sta sto (trm_val (val_null)) G (@empty typ). exists S (@empty typ).
+    split. apply* red_ref.
     split. rewrite concat_empty_r. reflexivity.
-    split. reflexivity.
+    split. rewrite concat_empty_r. reflexivity.
     split. constructor. auto.
-    split. constructor. assumption. auto.
-    apply wt_store_new. assumption. auto.
-    assumption. 
+    (* split. constructor. assumption. auto. *)
+    (* apply wt_store_new. assumption. auto. *)
+    (* assumption.  *)
   - (* deref *)
     right.
     lets C: (canonical_forms_3 Hg Hwf Hwt H).
@@ -229,7 +227,7 @@ Proof.
     split. rewrite concat_empty_r. reflexivity.
     split. rewrite concat_empty_r. reflexivity.
     split. assumption. split. assumption. assumption.
-  - (* asg *)
+  - (* asg_ref *)
     right.
     pose proof (canonical_forms_3 Hg Hwf Hwt H) as [l [y' [BiLoc [Hty [BiSto Htyy']]]]].
     exists sta (sto[l := y]) (trm_var (avar_f x)) G (@empty typ). exists S (@empty typ).
@@ -249,4 +247,27 @@ Proof.
         destruct (precise_ref_subtyping Hg BiLoc H1 H2 Hwf Hwt) as [U [HU [Hs1 Hs2]]].
         apply wt_store_update with (T:=U); try assumption.
         apply (ref_binds_typ HU). apply ty_sub with (T:=T); assumption.
+  - (* asgn_nref *)
+    right.
+    exists sta sto (trm_var (avar_f x)) G (@empty typ). exists S (@empty typ).
+    (* pose proof (canonical_forms_3 Hg Hwf Hwt H) as [l [y' [BiLoc [Hty [BiSto Htyy']]]]]. *)
+    exists sta (sto[l := y]) (trm_var (avar_f x)) G (@empty typ). exists S (@empty typ).
+    split.
+    + apply red_asgn with (l:=l).
+      * assumption.
+      * lets Hbd: (LibMap.binds_def sto l y'). unfold bindsM in BiSto. rewrite Hbd in BiSto.
+        destruct BiSto as [His Hsto]. assumption.
+    + repeat split.
+      * rewrite concat_empty_r. reflexivity.
+      * rewrite concat_empty_r. reflexivity.
+      * assumption.
+      * assumption.
+      * pose proof (general_to_tight Hg) as [A _].
+        pose proof (A ty_general sub_general G S (trm_var (avar_f x)) (typ_ref T) H eq_refl eq_refl eq_refl).
+        pose proof (A ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) Hty eq_refl eq_refl eq_refl).
+        destruct (precise_ref_subtyping Hg BiLoc H1 H2 Hwf Hwt) as [U [HU [Hs1 Hs2]]].
+        apply wt_store_update with (T:=U); try assumption.
+        apply (ref_binds_typ HU). apply ty_sub with (T:=T); assumption.
+    right. exists sta sto (trm_var (avar_f x)) G (@empty typ). exists S (@empty typ).
+    split. apply* red_asgn.
 Qed.
