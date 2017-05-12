@@ -42,6 +42,7 @@ Fixpoint subst_trm (z: var) (u: var) (t: trm) : trm :=
   | trm_ref T        => trm_ref (subst_typ z u T)
   | trm_deref x      => trm_deref (subst_avar z u x)
   | trm_asg x y      => trm_asg (subst_avar z u x) (subst_avar z u y)
+  | trm_ifnull x y   => trm_ifnull (subst_avar z u x) (subst_avar z u y)
   end
 with subst_val (z: var) (u: var) (v: val) : val :=
   match v with
@@ -368,10 +369,12 @@ Proof.
     simpl. apply ty_ref_intro with (x:=(If x = x0 then y else x)). apply H; auto.
   - (* ty_ref_elim *)
     apply ty_ref_elim; eauto.
-  - (* ty_asgn_ref *)
-    apply ty_asgn_ref; eauto.
+  (* - (* ty_asgn_ref *) *)
+  (*   apply ty_asgn_ref; eauto. *)
   - (* ty_asgn_nref *)
     apply ty_asgn_nref; eauto.
+  - (* ty_ifnull *)
+    simpl. apply ty_ifnull; eauto. 
   - (* ty_null *)
     constructor.
   - (* ty_def_typ *)

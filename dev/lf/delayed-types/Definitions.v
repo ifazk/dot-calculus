@@ -43,9 +43,10 @@ Inductive trm : Set :=
   | trm_sel  : avar -> trm_label -> trm
   | trm_app  : avar -> avar -> trm
   | trm_let  : trm -> trm -> trm (* let x = t in u *)
-  | trm_ref  : typ -> trm (* ref x T *)
+  | trm_ref  : typ -> trm (* ref T *)
   | trm_deref  : avar -> trm (* !x *)
   | trm_asg  : avar -> avar -> trm (* x := y *)
+  | trm_ifnull  : avar -> avar -> trm (* ifnull(x) x := y else x *)
 with val : Set :=
   | val_new  : typ -> defs -> val
   | val_lambda : typ -> trm -> val
@@ -136,6 +137,7 @@ Fixpoint open_rec_trm (k: nat) (u: var) (t: trm): trm :=
   | trm_ref T      => trm_ref (open_rec_typ k u T)
   | trm_deref a    => trm_deref (open_rec_avar k u a)
   | trm_asg l r    => trm_asg (open_rec_avar k u l) (open_rec_avar k u r)
+  | trm_ifnull x y => trm_ifnull (open_rec_avar k u x) (open_rec_avar k u y)
   end
 with open_rec_val (k: nat) (u: var) (v: val): val :=
   match v with
@@ -224,7 +226,7 @@ with fv_dec (D: dec) : vars :=
 
 Fixpoint fv_trm (t: trm) : vars :=
   match t with
-  | trm_var a       => (fv_avar a)
+  | trm_var a        => (fv_avar a)
   | trm_val v        => (fv_val v)
   | trm_sel x m      => (fv_avar x)
   | trm_app f a      => (fv_avar f) \u (fv_avar a)
@@ -232,6 +234,7 @@ Fixpoint fv_trm (t: trm) : vars :=
   | trm_ref T        => (fv_typ T)
   | trm_deref a      => (fv_avar a)
   | trm_asg l r      => (fv_avar l) \u (fv_avar r)
+  | trm_ifnull x y   => (fv_avar x) \u (fv_avar y)
   end
 with fv_val (v: val) : vars :=
   match v with
@@ -274,10 +277,20 @@ Inductive red : trm -> stack -> store -> trm -> stack -> store -> Prop :=
     red (trm_let t0 t) sta sto (trm_let t0' t) sta' sto'
 | red_ref : forall sta sto T,
     red (trm_ref T) sta sto (trm_val (val_null)) sta sto
-| red_asgn : forall x y l sta sto,
+| red_asgn_null : forall x y l sta sto,
+    binds x val_null sta ->
+    l \notindom sto ->
+    red (trm_asg (avar_f x) (avar_f y)) sta sto (trm_val val_null) sta sto[l := y]
+| red_asgn_nonnull : forall x y l sta sto,
     binds x (val_loc l) sta ->
     l \indom sto -> (* TODO is this redundant? *)
     red (trm_asg (avar_f x) (avar_f y)) sta sto (trm_var (avar_f x)) sta sto[l := y]
+| red_ifnull_null : forall x y sta (sto: store),
+    binds x val_null sta ->
+    red (trm_ifnull (avar_f x) (avar_f y)) sta sto (trm_asg (avar_f x) (avar_f y)) sta sto
+| red_ifnull_nonnull : forall x y (l: addr) sta (sto: store),
+    binds x (val_loc l) sta ->
+    red (trm_ifnull (avar_f x) (avar_f y)) sta sto (trm_var (avar_f x)) sta sto
 | red_deref : forall x y (l: addr) sta (sto: store),
     binds x (val_loc l) sta ->
     bindsM l y sto ->
@@ -342,14 +355,18 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
 | ty_ref_elim : forall m1 m2 G S x T,
     ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_ref T) ->
     ty_trm m1 m2 G S (trm_deref (avar_f x)) T
-| ty_asgn_ref : forall m1 m2 G S x y T,
-    ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_ref T) ->
-    ty_trm m1 m2 G S (trm_var (avar_f y)) T ->
-    ty_trm m1 m2 G S (trm_asg (avar_f x) (avar_f y)) (typ_ref T)
+(* | ty_asgn_ref : forall m1 m2 G S x y T, (* not necessary? *) *)
+(*     ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_ref T) -> *)
+(*     ty_trm m1 m2 G S (trm_var (avar_f y)) T -> *)
+(*     ty_trm m1 m2 G S (trm_asg (avar_f x) (avar_f y)) (typ_ref T) *)
 | ty_asgn_nref : forall m1 m2 G S x y T,
     ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_nref T) ->
     ty_trm m1 m2 G S (trm_var (avar_f y)) T ->
     ty_trm m1 m2 G S (trm_asg (avar_f x) (avar_f y)) (typ_ref T)
+| ty_ifnull: forall m1 m2 G S x y T,
+    ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_nref T) ->
+    ty_trm m1 m2 G S (trm_var (avar_f y)) T ->
+    ty_trm m1 m2 G S (trm_ifnull (avar_f x) (avar_f y)) (typ_ref T)
 | ty_null : forall m1 m2 G S T,
     ty_trm m1 m2 G S (trm_val val_null) (typ_nref T)
 with ty_def : ctx -> sigma -> def -> dec -> Prop :=
