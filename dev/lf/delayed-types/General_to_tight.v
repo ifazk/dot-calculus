@@ -93,6 +93,23 @@ Proof.
     destruct IHHtp as [U [Hx Hs]]. exists U. split*.
 Qed.
 
+Lemma tight_to_precise_typ_nref: forall G S x T,
+  inert G ->
+  ty_trm ty_general sub_tight G S (trm_var (avar_f x)) (typ_nref T) ->
+  exists T',
+    ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_nref T') /\
+    subtyp ty_general sub_tight G S T' T /\
+    subtyp ty_general sub_tight G S T T'.
+Proof.
+  introv Hg Ht.
+  lets Htp: (tight_possible_types_lemma Hg Ht). clear Ht.
+  dependent induction Htp.
+  - exists T. split*.
+  - specialize (IHHtp T0 Hg eq_refl). 
+    destruct IHHtp as [U [Hx Hs]]. exists U. split*.
+  - admit.
+Qed.
+
 (* Lemma 2 *)
 Lemma tight_subtyping_sel: forall G S x A V U,
     inert G ->

@@ -433,7 +433,11 @@ with subtyp : tymode -> submode -> ctx -> sigma -> typ -> typ -> Prop :=
     subtyp ty_general m2 G S T U ->
     subtyp ty_general m2 G S U T ->
     subtyp ty_general m2 G S (typ_ref T) (typ_ref U)
-| subtyp_nref: forall m1 m2 G S T, (* todo precise? *)
+| subtyp_nref: forall m2 G S T U,
+    subtyp ty_general m2 G S T U ->
+    subtyp ty_general m2 G S U T ->
+    subtyp ty_general m2 G S (typ_nref T) (typ_nref U)
+| subtyp_ref_nref: forall m1 m2 G S T, (* todo precise? *)
     subtyp m1 m2 G S (typ_ref T) (typ_nref T).
 
 (* well-formed stack *)

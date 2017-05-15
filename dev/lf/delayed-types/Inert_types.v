@@ -20,7 +20,8 @@ Inductive inert_typ : typ -> Prop :=
   | inert_typ_all : forall S T, inert_typ (typ_all S T) (* all(x: S)T *)
   | inert_typ_bnd : forall T,
       record_type T ->
-      inert_typ (typ_bnd T). (* rec(x:T) *)
+      inert_typ (typ_bnd T) (* rec(x:T) *)
+  | inert_typ_ref : forall T, inert_typ (typ_ref T).
 
 (* Definition (Inert context)
 
@@ -82,6 +83,8 @@ Proof.
   - apply precise_flow_all_inv in Hpf1.
     inversion Hpf1.
   - apply (record_unique_tight_bounds H Hpf1 Hpf2).
+  - apply precise_flow_ref_inv in Hpf1.
+    inversion Hpf1.
 Qed.
 
 Lemma inert_unique_tight_bounds: forall G S x T1 T2 A,
@@ -114,6 +117,8 @@ Proof.
     inversion Hpf.
   - pose proof (precise_flow_bnd_eq_or_record H Hpf) as [[U [Contra _]] | [? Contra]];
       inversion Contra.
+  - apply precise_flow_ref_inv in Hpf.
+    inversion Hpf.
 Qed.
 
 Lemma inert_ty_precise_bot : forall G S x,
@@ -140,6 +145,8 @@ Proof.
   - apply (precise_flow_all_inv) in Hpf.
     inversion Hpf.
   - pose proof (precise_flow_bnd_eq_or_record H Hpf) as [[U [Contra H1]] | [ls Contra]]; inversion Contra.
+  - apply precise_flow_ref_inv in Hpf.
+    inversion Hpf.
 Qed.
 
 Lemma inert_precise_dec_implies_record_dec : forall G S x D,
@@ -155,6 +162,8 @@ Proof.
   - apply (precise_flow_all_inv) in Hpf.
     inversion Hpf.
   - apply (record_precise_dec_implies_record_dec H Hpf).
+  - apply precise_flow_ref_inv in Hpf.
+    inversion Hpf.
 Qed.
 
 Lemma inert_precise_dec_typ_inv : forall G S x A T U,
@@ -179,6 +188,7 @@ Proof.
   dependent induction Hgt.
   - symmetry. eapply precise_flow_all_inv. eassumption.
   - pose proof (precise_flow_bnd_eq_or_record H Hpf) as [ [? [Contra _]] | [? Contra]]; inversion Contra.
+  - symmetry. eapply precise_flow_ref_inv. eassumption.
 Qed.
 
 Lemma inert_precise_all_inv : forall x G S T U,
@@ -205,6 +215,7 @@ Proof.
   dependent induction Hgt.
   - symmetry. eapply precise_flow_all_inv. eassumption.
   - pose proof (precise_flow_bnd_eq_or_record H Hpf) as [ [? [Contra _]] | [? Contra]]; inversion Contra.
+  - symmetry. eapply precise_flow_ref_inv. eassumption.
 Qed.
   
 

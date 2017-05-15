@@ -431,8 +431,10 @@ Proof.
     rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm_ctx. assumption.
     apply ok_push. apply ok_concat_map. auto. unfold subst_env. auto.
   - (* subtyp_ref *) 
-    apply subtyp_ref; auto.
+    apply* subtyp_ref.
   - (* subtyp_nref *)
+    apply* subtyp_nref. 
+  - (* subtyp_ref_nref *)
     constructor.
 Qed.
 
