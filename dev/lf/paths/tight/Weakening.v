@@ -50,9 +50,7 @@ Proof.
     rewrite <- concat_assoc. apply H; rewrite concat_assoc. reflexivity. assumption.
   + intros. subst.
     eapply norm_var. eapply binds_weaken; eassumption.
-  + intros. subst.
-    eapply norm_path. eapply H; eauto.
-    eapply H0; auto.
+  + intros. subst. apply* norm_path.
   + intros. subst.
     apply_fresh subtyp_all as z.
     auto.
