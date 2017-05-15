@@ -25,7 +25,6 @@ Inductive precise_flow : var -> ctx -> typ -> typ -> Prop :=
   | pf_bind : forall x G T,
       binds x T G ->
       precise_flow x G T T
-  (* TODO: changes for references? *)
   | pf_open : forall x G T U,
       precise_flow x G T (typ_bnd U) ->
       precise_flow x G T (open_typ x U)

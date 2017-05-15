@@ -26,7 +26,8 @@ Inductive avar : Set :=
 Inductive typ : Set :=
   | typ_top  : typ
   | typ_bot  : typ
-  | typ_ref  : typ -> typ (* Ref T *)
+  | typ_ref  : typ -> typ (* Ref! T *)
+  | typ_nref : typ -> typ (* Ref? T *)
   | typ_rcd  : dec -> typ (* { D } *)
   | typ_and  : typ -> typ -> typ
   | typ_sel  : avar -> typ_label -> typ (* x.L *)
@@ -42,13 +43,15 @@ Inductive trm : Set :=
   | trm_sel  : avar -> trm_label -> trm
   | trm_app  : avar -> avar -> trm
   | trm_let  : trm -> trm -> trm (* let x = t in u *)
-  | trm_ref  : avar -> typ -> trm (* ref x T *)
+  | trm_ref  : typ -> trm (* ref T *)
   | trm_deref  : avar -> trm (* !x *)
   | trm_asg  : avar -> avar -> trm (* x := y *)
+  | trm_ifnull  : avar -> avar -> trm (* ifnull(x) x := y else x *)
 with val : Set :=
   | val_new  : typ -> defs -> val
   | val_lambda : typ -> trm -> val
   | val_loc : addr -> val
+  | val_null : val
 with def : Set :=
   | def_typ  : typ_label -> typ -> def
   | def_trm  : trm_label -> trm -> def
@@ -111,6 +114,7 @@ Fixpoint open_rec_typ (k: nat) (u: var) (T: typ): typ :=
   | typ_top        => typ_top
   | typ_bot        => typ_bot
   | typ_ref T      => typ_ref (open_rec_typ k u T)
+  | typ_nref T     => typ_nref (open_rec_typ k u T)
   | typ_rcd D      => typ_rcd (open_rec_dec k u D)
   | typ_and T1 T2  => typ_and (open_rec_typ k u T1) (open_rec_typ k u T2)
   | typ_sel x L    => typ_sel (open_rec_avar k u x) L
@@ -130,15 +134,17 @@ Fixpoint open_rec_trm (k: nat) (u: var) (t: trm): trm :=
   | trm_sel v m    => trm_sel (open_rec_avar k u v) m
   | trm_app f a    => trm_app (open_rec_avar k u f) (open_rec_avar k u a)
   | trm_let t1 t2  => trm_let (open_rec_trm k u t1) (open_rec_trm (S k) u t2)
-  | trm_ref a t    => trm_ref (open_rec_avar k u a) (open_rec_typ k u t)
+  | trm_ref T      => trm_ref (open_rec_typ k u T)
   | trm_deref a    => trm_deref (open_rec_avar k u a)
   | trm_asg l r    => trm_asg (open_rec_avar k u l) (open_rec_avar k u r)
+  | trm_ifnull x y => trm_ifnull (open_rec_avar k u x) (open_rec_avar k u y)
   end
 with open_rec_val (k: nat) (u: var) (v: val): val :=
   match v with
   | val_new T ds   => val_new (open_rec_typ (S k) u T) (open_rec_defs (S k) u ds)
   | val_lambda T e => val_lambda (open_rec_typ k u T) (open_rec_trm (S k) u e)
   | val_loc n      => val_loc n
+  | val_null       => val_null
   end
 with open_rec_def (k: nat) (u: var) (d: def): def :=
   match d with
@@ -205,6 +211,7 @@ Fixpoint fv_typ (T: typ) : vars :=
   | typ_top        => \{}
   | typ_bot        => \{}
   | typ_ref T      => (fv_typ T)
+  | typ_nref T     => (fv_typ T)
   | typ_rcd D      => (fv_dec D)
   | typ_and T U    => (fv_typ T) \u (fv_typ U)
   | typ_sel x L    => (fv_avar x)
@@ -219,20 +226,22 @@ with fv_dec (D: dec) : vars :=
 
 Fixpoint fv_trm (t: trm) : vars :=
   match t with
-  | trm_var a       => (fv_avar a)
+  | trm_var a        => (fv_avar a)
   | trm_val v        => (fv_val v)
   | trm_sel x m      => (fv_avar x)
   | trm_app f a      => (fv_avar f) \u (fv_avar a)
   | trm_let t1 t2    => (fv_trm t1) \u (fv_trm t2)
-  | trm_ref a t      => (fv_avar a) \u (fv_typ t)
+  | trm_ref T        => (fv_typ T)
   | trm_deref a      => (fv_avar a)
   | trm_asg l r      => (fv_avar l) \u (fv_avar r)
+  | trm_ifnull x y   => (fv_avar x) \u (fv_avar y)
   end
 with fv_val (v: val) : vars :=
   match v with
   | val_new T ds    => (fv_typ T) \u (fv_defs ds)
   | val_lambda T e  => (fv_typ T) \u (fv_trm e)
   | val_loc n       => \{}
+  | val_null        => \{}
   end
 with fv_def (d: def) : vars :=
   match d with
@@ -266,13 +275,22 @@ Inductive red : trm -> stack -> store -> trm -> stack -> store -> Prop :=
 | red_let_tgt : forall t0 t sta sto t0' sta' sto',
     red t0 sta sto t0' sta' sto' ->
     red (trm_let t0 t) sta sto (trm_let t0' t) sta' sto'
-| red_ref_var : forall x sta sto l T,
+| red_ref : forall sta sto T,
+    red (trm_ref T) sta sto (trm_val (val_null)) sta sto
+| red_asgn_null : forall x y l sta sto,
+    binds x val_null sta ->
     l \notindom sto ->
-    red (trm_ref (avar_f x) T) sta sto (trm_val (val_loc l)) sta sto[l :=  x]
-| red_asgn : forall x y l sta sto,
+    red (trm_asg (avar_f x) (avar_f y)) sta sto (trm_val val_null) sta sto[l := y]
+| red_asgn_nonnull : forall x y l sta sto,
     binds x (val_loc l) sta ->
     l \indom sto -> (* TODO is this redundant? *)
     red (trm_asg (avar_f x) (avar_f y)) sta sto (trm_var (avar_f x)) sta sto[l := y]
+| red_ifnull_null : forall x y sta (sto: store),
+    binds x val_null sta ->
+    red (trm_ifnull (avar_f x) (avar_f y)) sta sto (trm_asg (avar_f x) (avar_f y)) sta sto
+| red_ifnull_nonnull : forall x y (l: addr) sta (sto: store),
+    binds x (val_loc l) sta ->
+    red (trm_ifnull (avar_f x) (avar_f y)) sta sto (trm_var (avar_f x)) sta sto
 | red_deref : forall x y (l: addr) sta (sto: store),
     binds x (val_loc l) sta ->
     bindsM l y sto ->
@@ -333,14 +351,24 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
     ty_trm ty_precise m2 G S (trm_var (avar_f x)) U
 | ty_ref_intro : forall m1 m2 G S x T,
      ty_trm m1 m2 G S (trm_var (avar_f x)) T ->
-     ty_trm m1 m2 G S (trm_ref (avar_f x) T) (typ_ref T)
+     ty_trm m1 m2 G S (trm_ref T) (typ_nref T)
 | ty_ref_elim : forall m1 m2 G S x T,
     ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_ref T) ->
     ty_trm m1 m2 G S (trm_deref (avar_f x)) T
-| ty_asgn : forall m1 m2 G S x y T,
-    ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_ref T) ->
+(* | ty_asgn_ref : forall m1 m2 G S x y T, (* not necessary? *) *)
+(*     ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_ref T) -> *)
+(*     ty_trm m1 m2 G S (trm_var (avar_f y)) T -> *)
+(*     ty_trm m1 m2 G S (trm_asg (avar_f x) (avar_f y)) (typ_ref T) *)
+| ty_asgn_nref : forall m1 m2 G S x y T,
+    ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_nref T) ->
     ty_trm m1 m2 G S (trm_var (avar_f y)) T ->
     ty_trm m1 m2 G S (trm_asg (avar_f x) (avar_f y)) (typ_ref T)
+| ty_ifnull: forall m1 m2 G S x y T,
+    ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_nref T) ->
+    ty_trm m1 m2 G S (trm_var (avar_f y)) T ->
+    ty_trm m1 m2 G S (trm_ifnull (avar_f x) (avar_f y)) (typ_ref T)
+| ty_null : forall m1 m2 G S T,
+    ty_trm m1 m2 G S (trm_val val_null) (typ_nref T)
 with ty_def : ctx -> sigma -> def -> dec -> Prop :=
 | ty_def_typ : forall G S A T,
     ty_def G S (def_typ A T) (dec_typ A T T)
@@ -404,7 +432,13 @@ with subtyp : tymode -> submode -> ctx -> sigma -> typ -> typ -> Prop :=
 | subtyp_ref: forall m2 G S T U,
     subtyp ty_general m2 G S T U ->
     subtyp ty_general m2 G S U T ->
-    subtyp ty_general m2 G S (typ_ref T) (typ_ref U).
+    subtyp ty_general m2 G S (typ_ref T) (typ_ref U)
+| subtyp_nref: forall m2 G S T U,
+    subtyp ty_general m2 G S T U ->
+    subtyp ty_general m2 G S U T ->
+    subtyp ty_general m2 G S (typ_nref T) (typ_nref U)
+| subtyp_ref_nref: forall m1 m2 G S T, (* todo precise? *)
+    subtyp m1 m2 G S (typ_ref T) (typ_nref T).
 
 (* well-formed stack *)
 Inductive wf_stack: ctx -> sigma -> stack -> Prop :=
