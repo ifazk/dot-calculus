@@ -323,7 +323,7 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
     ty_trm ty_general m2 G S (trm_var (avar_f x)) (typ_and T U)
 | ty_sub : forall m2 G S t T U,
     ty_trm ty_general m2 G S t T ->
-    subtyp ty_general m2 G S T U ->
+    subtyp m2 G S T U ->
     ty_trm ty_general m2 G S t U
 | ty_and1 : forall m2 G S x T U,
     ty_trm ty_precise m2 G S (trm_var (avar_f x)) (typ_and T U) ->
@@ -357,54 +357,54 @@ with ty_defs : ctx -> sigma -> defs -> typ -> Prop :=
     defs_hasnt ds (label_of_def d) ->
     ty_defs G S (defs_cons ds d) (typ_and T (typ_rcd D))
 
-with subtyp : tymode -> submode -> ctx -> sigma -> typ -> typ -> Prop :=
+with subtyp : submode -> ctx -> sigma -> typ -> typ -> Prop :=
 (* sigma is not needed for subtyping but for induction *)
 | subtyp_top: forall m2 G S T,
-    subtyp ty_general m2 G S T typ_top
+    subtyp m2 G S T typ_top
 | subtyp_bot: forall m2 G S T,
-    subtyp ty_general m2 G S typ_bot T
+    subtyp m2 G S typ_bot T
 | subtyp_refl: forall m2 G S T,
-    subtyp ty_general m2 G S T T
-| subtyp_trans: forall m1 m2 G S V T U,
-    subtyp m1 m2 G S V T ->
-    subtyp m1 m2 G S T U ->
-    subtyp m1 m2 G S V U
-| subtyp_and11: forall m1 m2 G S T U,
-    subtyp m1 m2 G S (typ_and T U) T
-| subtyp_and12: forall m1 m2 G S T U,
-    subtyp m1 m2 G S (typ_and T U) U
+    subtyp m2 G S T T
+| subtyp_trans: forall m2 G S V T U,
+    subtyp m2 G S V T ->
+    subtyp m2 G S T U ->
+    subtyp m2 G S V U
+| subtyp_and11: forall m2 G S T U,
+    subtyp m2 G S (typ_and T U) T
+| subtyp_and12: forall m2 G S T U,
+    subtyp m2 G S (typ_and T U) U
 | subtyp_and2: forall m2 G S V T U,
-    subtyp ty_general m2 G S V T ->
-    subtyp ty_general m2 G S V U ->
-    subtyp ty_general m2 G S V (typ_and T U)
+    subtyp m2 G S V T ->
+    subtyp m2 G S V U ->
+    subtyp m2 G S V (typ_and T U)
 | subtyp_fld: forall m2 G S a T U,
-    subtyp ty_general m2 G S T U ->
-    subtyp ty_general m2 G S (typ_rcd (dec_trm a T)) (typ_rcd (dec_trm a U))
+    subtyp m2 G S T U ->
+    subtyp m2 G S (typ_rcd (dec_trm a T)) (typ_rcd (dec_trm a U))
 | subtyp_typ: forall m2 G S A S1 T1 S2 T2,
-    subtyp ty_general m2 G S S2 S1 ->
-    subtyp ty_general m2 G S T1 T2 ->
-    subtyp ty_general m2 G S (typ_rcd (dec_typ A S1 T1)) (typ_rcd (dec_typ A S2 T2))
+    subtyp m2 G S S2 S1 ->
+    subtyp m2 G S T1 T2 ->
+    subtyp m2 G S (typ_rcd (dec_typ A S1 T1)) (typ_rcd (dec_typ A S2 T2))
 | subtyp_sel2: forall G S x A V T,
     ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A V T)) ->
-    subtyp ty_general sub_general G S V (typ_sel (avar_f x) A)
+    subtyp sub_general G S V (typ_sel (avar_f x) A)
 | subtyp_sel1: forall G S x A V T,
     ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A V T)) ->
-    subtyp ty_general sub_general G S (typ_sel (avar_f x) A) T
+    subtyp sub_general G S (typ_sel (avar_f x) A) T
 | subtyp_sel2_tight: forall G S x A T,
     ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A T T)) ->
-    subtyp ty_general sub_tight G S T (typ_sel (avar_f x) A)
+    subtyp sub_tight G S T (typ_sel (avar_f x) A)
 | subtyp_sel1_tight: forall G S x A T,
     ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_typ A T T)) ->
-    subtyp ty_general sub_tight G S (typ_sel (avar_f x) A) T
+    subtyp sub_tight G S (typ_sel (avar_f x) A) T
 | subtyp_all: forall L m2 G S S1 T1 S2 T2,
-    subtyp ty_general m2 G S S2 S1 ->
+    subtyp m2 G S S2 S1 ->
     (forall x, x \notin L ->
-       subtyp ty_general sub_general (G & x ~ S2) S (open_typ x T1) (open_typ x T2)) ->
-    subtyp ty_general m2 G S (typ_all S1 T1) (typ_all S2 T2)
+       subtyp sub_general (G & x ~ S2) S (open_typ x T1) (open_typ x T2)) ->
+    subtyp m2 G S (typ_all S1 T1) (typ_all S2 T2)
 | subtyp_ref: forall m2 G S T U,
-    subtyp ty_general m2 G S T U ->
-    subtyp ty_general m2 G S U T ->
-    subtyp ty_general m2 G S (typ_ref T) (typ_ref U).
+    subtyp m2 G S T U ->
+    subtyp m2 G S U T ->
+    subtyp m2 G S (typ_ref T) (typ_ref U).
 
 (* well-formed stack *)
 Inductive wf_stack: ctx -> sigma -> stack -> Prop :=
@@ -461,13 +461,13 @@ with   ty_defs_mut   := Induction for ty_defs   Sort Prop.
 Combined Scheme ty_mutind from ty_trm_mut, ty_def_mut, ty_defs_mut.
 
 Scheme ts_ty_trm_mut := Induction for ty_trm    Sort Prop
-with   ts_subtyp     := Induction for subtyp    Sort Prop.
+with   ts_subtyp    := Induction for subtyp   Sort Prop.
 Combined Scheme ts_mutind from ts_ty_trm_mut, ts_subtyp.
 
 Scheme rules_trm_mut    := Induction for ty_trm    Sort Prop
 with   rules_def_mut    := Induction for ty_def    Sort Prop
 with   rules_defs_mut   := Induction for ty_defs   Sort Prop
-with   rules_subtyp     := Induction for subtyp    Sort Prop.
+with   rules_subtyp    := Induction for subtyp   Sort Prop.
 Combined Scheme rules_mutind from rules_trm_mut, rules_def_mut, rules_defs_mut, rules_subtyp.
 
 (* ###################################################################### *)

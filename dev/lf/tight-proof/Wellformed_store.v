@@ -32,9 +32,9 @@ Lemma tpt_to_precise_lambda: forall G v S T,
     inert G ->
     exists L S' T',
       ty_trm ty_precise sub_general G (trm_val v) (typ_all S' T') /\
-      subtyp ty_general sub_general G S S' /\
+      subtyp sub_general G S S' /\
       (forall y, y \notin L ->
-                 subtyp ty_general sub_general (G & y ~ S) (open_typ y T') (open_typ y T)).
+                 subtyp sub_general (G & y ~ S) (open_typ y T') (open_typ y T)).
 Proof.
   introv Ht Hg. dependent induction Ht.
   - exists (dom G) S T. split*.
@@ -89,9 +89,9 @@ Lemma corresponding_types: forall G s x T,
   ((exists L S U S' U' t, binds x (val_lambda S t) s /\
                   ty_trm ty_precise sub_general G (trm_val (val_lambda S t)) (typ_all S U) /\
                   T = typ_all S' U' /\
-                  subtyp ty_general sub_general G S' S /\
+                  subtyp sub_general G S' S /\
                   (forall y, y \notin L ->
-                  subtyp ty_general sub_general (G & y ~ S') (open_typ y U) (open_typ y U'))) \/
+                  subtyp sub_general (G & y ~ S') (open_typ y U) (open_typ y U'))) \/
    (exists S ds, binds x (val_new S ds) s /\
                  ty_trm ty_precise sub_general G (trm_val (val_new S ds)) (typ_bnd S) /\
                  T = typ_bnd S)).

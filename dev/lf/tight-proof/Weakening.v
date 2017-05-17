@@ -20,10 +20,10 @@ Lemma weaken_rules:
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
     ty_defs (G1 & G2 & G3) ds T) /\
-  (forall m1 m2 G T U, subtyp m1 m2 G T U -> forall G1 G2 G3,
+  (forall  m2 G T U, subtyp m2 G T U -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    subtyp m1 m2 (G1 & G2 & G3) T U).
+    subtyp m2 (G1 & G2 & G3) T U).
 Proof.
   apply rules_mutind; eauto 4; intros; subst.
   + eapply ty_var. eapply binds_weaken; eauto.
@@ -64,10 +64,10 @@ Proof.
   rewrite <- EqG. assumption.
 Qed.
 
-Lemma weaken_subtyp: forall m1 m2 G1 G2 S U,
-  subtyp m1 m2 G1 S U ->
+Lemma weaken_subtyp: forall m2 G1 G2 S U,
+  subtyp m2 G1 S U ->
   ok (G1 & G2) ->
-  subtyp m1 m2 (G1 & G2) S U.
+  subtyp m2 (G1 & G2) S U.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {

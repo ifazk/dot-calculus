@@ -32,13 +32,13 @@ Inductive tight_pt : ctx -> var -> typ -> Prop :=
   (* Term member subtyping *)
 | t_pt_dec_trm : forall G x a T T',
   tight_pt G x (typ_rcd (dec_trm a T)) ->
-  subtyp ty_general sub_tight G T T' ->
+  subtyp sub_tight G T T' ->
   tight_pt G x (typ_rcd (dec_trm a T'))
   (* Type member subtyping *)
 | t_pt_dec_typ : forall G x A T T' U' U,
   tight_pt G x (typ_rcd (dec_typ A T U)) ->
-  subtyp ty_general sub_tight G T' T ->
-  subtyp ty_general sub_tight G U U' ->
+  subtyp sub_tight G T' T ->
+  subtyp sub_tight G U U' ->
   tight_pt G x (typ_rcd (dec_typ A T' U'))
   (* Recursive Types *)
 | t_pt_bnd : forall G x S S',
@@ -48,9 +48,9 @@ Inductive tight_pt : ctx -> var -> typ -> Prop :=
   (* Forall *)
 | t_pt_all : forall L G x S T S' T',
   tight_pt G x (typ_all S T) ->
-  subtyp ty_general sub_tight G S' S ->
+  subtyp sub_tight G S' S ->
   (forall y, y \notin L ->
-   subtyp ty_general sub_general (G & y ~ S') (open_typ y T) (open_typ y T')) ->
+   subtyp sub_general (G & y ~ S') (open_typ y T) (open_typ y T')) ->
   tight_pt G x (typ_all S' T')
   (* And *)
 | t_pt_and : forall G x S1 S2,
@@ -73,7 +73,7 @@ Hint Constructors tight_pt.
 Lemma tight_possible_types_closure_tight: forall G x T U,
   inert G ->
   tight_pt G x T ->
-  subtyp ty_general sub_tight G T U ->
+  subtyp sub_tight G T U ->
   tight_pt G x U.
 Proof.
   intros G x T U Hgd HT Hsub.
