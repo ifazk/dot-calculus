@@ -141,8 +141,8 @@ Qed.*)
 
 Lemma unique_rcd_trm: forall T a m1 m2 U1 U2,
     record_type T ->
-    record_has T (dec_trm a m1 U1) ->
-    record_has T (dec_trm a m2 U2) ->
+    record_has T {{ a [m1] U1 }} ->
+    record_has T {{ a [m2] U2 }} ->
     m1 = m2 /\ U1 = U2.
 Proof. Admitted.
 

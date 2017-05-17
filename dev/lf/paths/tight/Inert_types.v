@@ -24,7 +24,7 @@ Inductive precise_flow : path -> ctx -> typ -> typ -> Prop :=
       binds x T G ->
       precise_flow (p_var (avar_f x)) G T T
   | pf_fld : forall G p m a T U,
-      precise_flow p G T (typ_rcd (dec_trm a m U)) ->
+      precise_flow p G T (typ_rcd {{ a [m] U }}) ->
       inert_typ U ->
       precise_flow (p_sel p a) G U U
   | pf_rec : forall p G T U,
@@ -338,25 +338,25 @@ Qed.
 
 Lemma pf_rcd_unique: forall G p T a m1 m2 U1 U2,
     inert G ->
-    precise_flow p G T (typ_rcd (dec_trm a m1 U1)) ->
-    precise_flow p G T (typ_rcd (dec_trm a m2 U2)) ->
+    precise_flow p G T (typ_rcd {{ a [m1] U1 }}) ->
+    precise_flow p G T (typ_rcd {{ a [m2] U2 }}) ->
     m1 = m2 /\ U1 = U2.
 Proof.
   introv Hi Pf1 Pf2. dependent induction Pf1.
   - apply (binds_inert H) in Hi. inversion Hi.
   - inversion H.
-  - assert (record_type (typ_rcd (dec_trm a m2 U2))) as Hrt. {
+  - assert (record_type (typ_rcd {{ a [m2] U2 }})) as Hrt. {
       eexists. apply* rt_one. constructor.
     }
     destruct (pf_inert_rcd_U Hi Pf2 Hrt) as [S Heq]. subst.
     destruct U; inversions x. destruct d; inversions H0.
     apply (pf_inert_bnd_U Hi) in Pf1. inversions Pf1.
     lets Hr: (precise_flow_record_has Hi Pf2). inversion* Hr.
-  - assert (record_type (typ_rcd (dec_trm a m2 U2))) as Hrt. {
+  - assert (record_type (typ_rcd {{ a [m2] U2 }})) as Hrt. {
       eexists. apply* rt_one. constructor.
     }
     destruct (pf_inert_rcd_U Hi Pf2 Hrt) as [S Heq]. subst.
-    assert (record_has (typ_and (typ_rcd (dec_trm a m1 U1)) U0) (dec_trm a m1 U1)) as H
+    assert (record_has (typ_and (typ_rcd {{ a [m1] U1 }}) U0) {{ a [m1] U1 }}) as H
         by (apply* rh_andl).
     lets Hr1: (pf_record_sub Hi Pf1 H).
     lets Hr2: (precise_flow_record_has Hi Pf2).
@@ -364,11 +364,11 @@ Proof.
       apply open_record_type_p. apply pf_inert_T in Pf1. inversion* Pf1. assumption.
     }
     apply* unique_rcd_trm.
-  - assert (record_type (typ_rcd (dec_trm a m2 U2))) as Hrt. {
+  - assert (record_type (typ_rcd {{ a [m2] U2 }})) as Hrt. {
       eexists. apply* rt_one. constructor.
     }
     destruct (pf_inert_rcd_U Hi Pf2 Hrt) as [S Heq]. subst.
-    assert (record_has (typ_and U3 (typ_rcd (dec_trm a m1 U1))) (dec_trm a m1 U1)) as H
+    assert (record_has (typ_and U3 (typ_rcd {{ a [m1] U1 }})) {{ a [m1] U1 }}) as H
         by (apply* rh_andr).
     lets Hr1: (pf_record_sub Hi Pf1 H).
     lets Hr2: (precise_flow_record_has Hi Pf2).
@@ -387,7 +387,7 @@ Proof.
   introv Hi Pf1. gen T2 U2. induction Pf1; intros; try solve [apply* IHPf1]; auto.
   - apply pf_binds in H0. apply (binds_func H H0).
   - dependent induction H0; eauto.
-    specialize (IHPf1 Hi T0 (typ_rcd (dec_trm a m0 U0)) H0).
+    specialize (IHPf1 Hi T0 (typ_rcd {{ a [m0] U0 }}) H0).
     subst. lets Hu: (pf_rcd_unique Hi Pf1 H0). apply* Hu.
 Qed.
 

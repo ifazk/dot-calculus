@@ -32,13 +32,13 @@ Inductive tight_pt : ctx -> path -> typ -> Prop :=
     G |-## p :: T
   (* General term member subtyping *)
 | t_pt_dec_trm : forall G p a T T',
-    G |-## p :: typ_rcd (dec_trm a general T) ->
+    G |-## p :: typ_rcd {{ a [general] T }} ->
     G |-# T <: T' ->
-    G |-## p :: typ_rcd (dec_trm a general T')
+    G |-## p :: typ_rcd {{ a [general] T' }}
   (* Strong term member subtyping *)
 | t_pt_dec_trm_strong : forall G p a T,
-    G |-## p :: typ_rcd (dec_trm a strong T) ->
-    G |-## p :: typ_rcd (dec_trm a general T)
+    G |-## p :: typ_rcd {{ a [strong] T }} ->
+    G |-## p :: typ_rcd {{ a [general] T }}
   (* Type member subtyping *)
 | t_pt_dec_typ : forall G p A T T' U' U,
     G |-## p :: typ_rcd (dec_typ A T U) ->

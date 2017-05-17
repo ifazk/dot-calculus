@@ -32,9 +32,9 @@ Qed.
 
 Lemma tight_to_precise_trm_dec: forall G x a m T,
   inert G ->
-  G |-# trm_path (p_var (avar_f x)) :: typ_rcd (dec_trm a m T) ->
+  G |-# trm_path (p_var (avar_f x)) :: typ_rcd {{ a [m] T }} ->
   exists T',
-    G |-! trm_path (p_var (avar_f x)) :: typ_rcd (dec_trm a m T') /\
+    G |-! trm_path (p_var (avar_f x)) :: typ_rcd {{ a [m] T' }} /\
     G |-# T' <: T.
 Proof.
   introv Hgd Ht.
