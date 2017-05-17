@@ -243,11 +243,27 @@ Inductive red : trm -> sto -> trm -> sto -> Prop :=
 (* ###################################################################### *)
 (** ** Typing *)
 
+(* todo: get rid of tymode and submode entirely by defining separate typing relations for
+   ty_trm (general typing), ty_trm_t (tight typing), and ty_trm_p (precise typing).
+   The best way to do this is to define them in the order
+   1) ty_trm
+   2) ty_trm_p
+   3) ty_trm_t
+   so that they can depend on each other without needing mutual recursion.
+   If the proof somewhere is defined for both general and tight, or both general and precise,
+   we could do the following:
+   - start by proving everything only for the most general typing
+   - if the prove somewhere depends on having a lemma for tight/precise typing, but we proved it only for general
+     typing, then you could
+     * modify the statement of the lemma to apply for tight/precise typing; the proof should be easy to change
+     * add a short lemma that proves the same for general typing
+     * the proof of that lemma should work by invoking the original tight version of the lemma, plus
+       tight-to-general. *)
 Inductive tymode: Set := ty_precise | ty_general.
 Inductive submode: Set := sub_tight | sub_general.
-(*
-Reserved Notation "G '⊢' t '∈' T" (at level 40).
-*)
+
+Reserved Notation "G '|-' t '::' T" (at level 40, t at level 59).
+
 Inductive ty_trm : tymode -> submode -> ctx -> trm -> typ -> Prop :=
 | ty_var : forall m1 m2 G x T,
     binds x T G ->
@@ -292,6 +308,7 @@ Inductive ty_trm : tymode -> submode -> ctx -> trm -> typ -> Prop :=
 | ty_and2 : forall m2 G x T U,
     ty_trm ty_precise m2 G (trm_var (avar_f x)) (typ_and T U) ->
     ty_trm ty_precise m2 G (trm_var (avar_f x)) U
+
 with ty_def : ctx -> def -> dec -> Prop :=
 | ty_def_typ : forall G A T,
     ty_def G (def_typ A T) (dec_typ A T T)
@@ -361,7 +378,6 @@ Inductive wf_sto: ctx -> sto -> Prop :=
     ty_trm ty_general sub_general G (trm_val v) T ->
     wf_sto (G & x ~ T) (s & x ~ v).
 
-
 (* ###################################################################### *)
 (* ###################################################################### *)
 (** * Infrastructure *)
@@ -427,6 +443,7 @@ Ltac crush := eq_specialize; eauto.
 Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
   apply_fresh_base T gather_vars x.
 
+(* todo: add constructor hints for the new typing relations *)
 Hint Constructors
   ty_trm ty_def ty_defs
   subtyp.

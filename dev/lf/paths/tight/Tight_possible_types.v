@@ -4,6 +4,7 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Inert_types.
+Require Import Some_lemmas.
 
 (* ###################################################################### *)
 (** ** Tight Possible types *)
@@ -32,13 +33,13 @@ Inductive tight_pt : ctx -> path -> typ -> Prop :=
     G |-## p :: T
   (* General term member subtyping *)
 | t_pt_dec_trm : forall G p a T T',
-    G |-## p :: typ_rcd {{ a [general] T }} ->
+    G |-## p :: typ_rcd {{ a [gen] T }} ->
     G |-# T <: T' ->
-    G |-## p :: typ_rcd {{ a [general] T' }}
+    G |-## p :: typ_rcd {{ a [gen] T' }}
   (* Strong term member subtyping *)
 | t_pt_dec_trm_strong : forall G p a T,
     G |-## p :: typ_rcd {{ a [strong] T }} ->
-    G |-## p :: typ_rcd {{ a [general] T }}
+    G |-## p :: typ_rcd {{ a [gen] T }}
   (* Type member subtyping *)
 | t_pt_dec_typ : forall G p A T T' U' U,
     G |-## p :: typ_rcd (dec_typ A T U) ->
@@ -91,13 +92,29 @@ Proof.
     + pose proof (inert_unique_tight_bounds Hi H H6). subst. assumption.
 Qed.
 
+Lemma term_path_norm_false : forall G x a T,
+    G |-## p_var (avar_f x) :: typ_rcd {{a [gen] T}} ->
+    norm_t G (p_sel (p_var (avar_f x)) a) ->
+    False.
+Proof. Admitted.
+
 Lemma tight_possible_types_lemma : forall G U p,
     inert G ->
     G |-# trm_path p :: U ->
+    norm_t G p ->
     G |-## p :: U.
 Proof.
-  introv Hi Hty.
+  introv Hi Hty Hn.
   dependent induction Hty; auto.
+  - (* ty_fld_elim_var_t *)
+    assert (norm_t G (p_var (avar_f x))) as Hnx. {
+      apply tight_to_general in Hty.
+      destruct (typing_implies_bound Hty) as [U Hb]. apply* norm_var_t.
+    }
+    inversions Hn.
+    specialize (IHHty (p_var (avar_f x )) Hi eq_refl Hnx).
+
+
   - specialize (IHHty p0  Hi eq_refl). inversions IHHty.
     * apply ty_fld_elim_p in H. auto.
 

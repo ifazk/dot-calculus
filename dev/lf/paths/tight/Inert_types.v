@@ -23,8 +23,9 @@ Inductive precise_flow : path -> ctx -> typ -> typ -> Prop :=
   | pf_bind : forall x G T,
       binds x T G ->
       precise_flow (p_var (avar_f x)) G T T
-  | pf_fld : forall G p m a T U,
-      precise_flow p G T (typ_rcd {{ a [m] U }}) ->
+  | pf_fld : forall G p a T U,
+      precise_flow p G T (typ_rcd {{ a [strong] U }}) ->
+      norm G p ->
       inert_typ U ->
       precise_flow (p_sel p a) G U U
   | pf_rec : forall p G T U,
@@ -67,7 +68,7 @@ Lemma precise_flow_lemma_rev_T : forall T U G p,
     G |-! trm_path p :: T.
 Proof.
   introv H. induction H; eauto.
-  apply pf_fld in H. apply* precise_flow_lemma_rev. assumption.
+  apply pf_fld in H. apply* precise_flow_lemma_rev. assumption. assumption.
 Qed.
 
 (* ###################################################################### *)
@@ -187,12 +188,12 @@ Proof.
   introv Hi Pf Hr.
   lets HT: (pf_inert_T Hi Pf). inversions HT; dependent induction Pf; auto.
   - inversion Hr. inversion H0.
-  - inversion Hr. inversion H0.
+  - inversion Hr. inversion H1.
   - apply (pf_inert_lambda_T Hi) in Pf. inversion Pf.
   - apply (pf_inert_lambda_T Hi) in Pf. inversion Pf.
   - apply pf_inert_lambda_T in Pf. inversion Pf. assumption.
   - inversion Hr. inversion H1.
-  - inversion Hr. inversion H1.
+  - inversion Hr. inversion H2.
   - apply (pf_inert_bnd_U Hi) in Pf. exists* U.
   - apply* IHPf. destruct (pf_inert_or_rcd Hi Pf) as [H1 | H1]. inversion H1. assumption.
   - apply* IHPf. destruct (pf_inert_or_rcd Hi Pf) as [H1 | H1]. inversion H1. assumption.
@@ -344,7 +345,7 @@ Lemma pf_rcd_unique: forall G p T a m1 m2 U1 U2,
 Proof.
   introv Hi Pf1 Pf2. dependent induction Pf1.
   - apply (binds_inert H) in Hi. inversion Hi.
-  - inversion H.
+  - inversion H0.
   - assert (record_type (typ_rcd {{ a [m2] U2 }})) as Hrt. {
       eexists. apply* rt_one. constructor.
     }
@@ -386,9 +387,9 @@ Lemma p_bound_unique: forall G p T1 T2 U1 U2,
 Proof.
   introv Hi Pf1. gen T2 U2. induction Pf1; intros; try solve [apply* IHPf1]; auto.
   - apply pf_binds in H0. apply (binds_func H H0).
-  - dependent induction H0; eauto.
-    specialize (IHPf1 Hi T0 (typ_rcd {{ a [m0] U0 }}) H0).
-    subst. lets Hu: (pf_rcd_unique Hi Pf1 H0). apply* Hu.
+  - dependent induction H1; eauto.
+    specialize (IHPf1 Hi T0 (typ_rcd {{a [strong] U0}}) H1). subst.
+    lets Hu: (pf_rcd_unique Hi Pf1 H1). apply* Hu.
 Qed.
 
 Lemma inert_unique_tight_bounds : forall G p T1 T2 A,
