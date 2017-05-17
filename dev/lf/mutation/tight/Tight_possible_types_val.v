@@ -29,9 +29,9 @@ Inductive tight_pt_v : ctx -> sigma -> val -> typ -> Prop :=
   (* Forall *)
 | t_pt_all_v : forall L G S v V T V' T',
   tight_pt_v G S v (typ_all V T) ->
-  subtyp ty_general sub_tight G S V' V ->
+  subtyp sub_tight G S V' V ->
   (forall y, y \notin L ->
-   subtyp ty_general sub_general (G & y ~ V') S (open_typ y T) (open_typ y T')) ->
+   subtyp sub_general (G & y ~ V') S (open_typ y T) (open_typ y T')) ->
   tight_pt_v G S v (typ_all V' T')
   (* Tight Selection *)
 | t_pt_sel_v : forall G S v y A V,
@@ -45,8 +45,8 @@ Inductive tight_pt_v : ctx -> sigma -> val -> typ -> Prop :=
   (* Loc *)
 | t_pt_loc_v : forall G S v T U,
   tight_pt_v G S v (typ_ref T) ->
-  subtyp ty_general sub_tight G S T U ->
-  subtyp ty_general sub_tight G S U T ->  
+  subtyp sub_tight G S T U ->
+  subtyp sub_tight G S U T ->  
   tight_pt_v G S v (typ_ref U)
   (* Top *)
 | t_pt_top_v : forall G S v T,
@@ -58,7 +58,7 @@ Hint Constructors tight_pt_v.
 Lemma tight_possible_types_closure_tight_v: forall G S v T U,
   inert G ->
   tight_pt_v G S v T ->
-  subtyp ty_general sub_tight G S T U ->
+  subtyp sub_tight G S T U ->
   tight_pt_v G S v U.
 Proof.
   introv Hgd HT Hsub.

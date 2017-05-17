@@ -12,7 +12,7 @@ Definition subenv(G1 G2: ctx) :=
   forall x T2, binds x T2 G2 ->
     binds x T2 G1 \/
     exists T1,
-      binds x T1 G1 /\ subtyp ty_general sub_general G1 T1 T2.
+      binds x T1 G1 /\ subtyp sub_general G1 T1 T2.
 
 Lemma subenv_push: forall G G' x T,
   subenv G' G ->
@@ -32,7 +32,7 @@ Proof.
 Qed.
 
 Lemma subenv_last: forall G x S U,
-  subtyp ty_general sub_general G S U ->
+  subtyp sub_general G S U ->
   ok (G & x ~ S) ->
   subenv (G & x ~ S) (G & x ~ U).
 Proof.
@@ -57,12 +57,11 @@ Lemma narrow_rules:
     ok G' ->
     subenv G' G ->
     ty_defs G' ds T)
-/\ (forall m1 m2 G S U, subtyp m1 m2 G S U -> forall G',
-    m1 = ty_general ->
+/\ (forall m2 G S U, subtyp m2 G S U -> forall G',
     m2 = sub_general ->
     ok G' ->
     subenv G' G ->
-    subtyp m1 m2 G' S U).
+    subtyp m2 G' S U).
 Proof.
   apply rules_mutind; intros; eauto 4.
   - (* ty_var *)
@@ -80,8 +79,8 @@ Proof.
   - (* ty_let *)
     subst.
     apply_fresh ty_let as y; eauto using subenv_push.
-  - inversion H1 (* sub_tight *).
-  - inversion H1 (* sub_tight *).
+  - inversion H0 (* sub_tight *).
+  - inversion H0 (* sub_tight *).
   - (* subtyp_all *)
     subst.
     apply_fresh subtyp_all as y.
@@ -99,9 +98,9 @@ Proof.
 Qed.
 
 Lemma narrow_subtyping: forall G G' S U,
-  subtyp ty_general sub_general G S U ->
+  subtyp sub_general G S U ->
   subenv G' G -> ok G' ->
-  subtyp ty_general sub_general G' S U.
+  subtyp sub_general G' S U.
 Proof.
   intros. apply* narrow_rules.
 Qed.

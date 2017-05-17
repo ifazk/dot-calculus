@@ -121,9 +121,9 @@ Lemma tpt_to_precise_lambda: forall G S v V T,
     inert G ->
     exists L V' T',
       ty_trm ty_precise sub_general G S (trm_val v) (typ_all V' T') /\
-      subtyp ty_general sub_general G S V V' /\
+      subtyp sub_general G S V V' /\
       (forall y, y \notin L ->
-                 subtyp ty_general sub_general (G & y ~ V) S (open_typ y T') (open_typ y T)).
+                 subtyp sub_general (G & y ~ V) S (open_typ y T') (open_typ y T)).
 Proof.
   introv Ht Hg. dependent induction Ht.
   - exists (dom G) V T. split*.
@@ -143,17 +143,17 @@ Lemma tpt_to_precise_loc: forall G S v T,
     tight_pt_v G S v (typ_ref T) ->
     exists T', 
       ty_trm ty_precise sub_general G S (trm_val v) (typ_ref T') /\
-      subtyp ty_general sub_general G S T' T /\
-      subtyp ty_general sub_general G S T T'.
+      subtyp sub_general G S T' T /\
+      subtyp sub_general G S T T'.
 Proof.
   introv Ht. dependent induction Ht.
   - exists* T. 
   - destruct (IHHt T0 eq_refl) as [T' [Hty [Hs1 Hs2]]]. exists T'. repeat split. 
     + assumption.
     + apply subtyp_trans with (T:=T0); auto.
-      apply ((proj22 tight_to_general) ty_general sub_tight); auto.
+      apply ((proj22 tight_to_general) sub_tight); auto.
     + apply subtyp_trans with (T:=T0); auto.
-      apply ((proj22 tight_to_general) ty_general sub_tight); auto.
+      apply ((proj22 tight_to_general) sub_tight); auto.
 Qed.
 
 Lemma precise_forall_inv : forall G S v V T,
@@ -220,17 +220,17 @@ Lemma corresponding_types: forall G S s x T,
   ((exists L V U V' U' t, binds x (val_lambda V t) s /\
                      ty_trm ty_precise sub_general G S (trm_val (val_lambda V t)) (typ_all V U) /\
                      T = typ_all V' U' /\
-                     subtyp ty_general sub_general G S V' V /\
+                     subtyp sub_general G S V' V /\
                      (forall y, y \notin L ->
-                           subtyp ty_general sub_general (G & y ~ V') S (open_typ y U) (open_typ y U'))) \/
+                           subtyp sub_general (G & y ~ V') S (open_typ y U) (open_typ y U'))) \/
    (exists V ds, binds x (val_new V ds) s /\
             ty_trm ty_precise sub_general G S (trm_val (val_new V ds)) (typ_bnd V) /\
             T = typ_bnd V) \/
    (exists V V' l, binds x (val_loc l) s /\
            ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref V) /\
            T = typ_ref V' /\
-           subtyp ty_general sub_general G S V V' /\
-           subtyp ty_general sub_general G S V' V)).
+           subtyp sub_general G S V V' /\
+           subtyp sub_general G S V' V)).
 Proof.
   introv H Hgd Bi. induction H.
   - false* binds_empty_inv.
@@ -354,8 +354,8 @@ Lemma precise_ref_subtyping: forall G S sta sto x l T,
     wt_store G S sto ->
     exists U,
       (ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref U) /\
-       subtyp ty_general sub_general G S T U /\
-       subtyp ty_general sub_general G S U T).
+       subtyp sub_general G S T U /\
+       subtyp sub_general G S U T).
 Proof.
   introv Hg Bi Htx Htl Wf Wt.
   pose proof (tight_possible_types_lemma_v Hg Htl).
@@ -369,9 +369,9 @@ Proof.
     exists U. repeat split.
     + assumption. 
     + apply subtyp_trans with (T:=T0); auto.
-      apply (proj22 tight_to_general) with (m1:=ty_general) (m2:=sub_tight); auto.
+      apply ((proj22 tight_to_general) sub_tight); auto.
     + apply subtyp_trans with (T:=T0); auto.
-      apply (proj22 tight_to_general) with (m1:=ty_general) (m2:=sub_tight); auto.
+      apply ((proj22 tight_to_general) sub_tight); auto.
 Qed.
 
 Lemma val_new_typing: forall G S s x T ds,

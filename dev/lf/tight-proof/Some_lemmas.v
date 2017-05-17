@@ -85,19 +85,13 @@ Qed.
 (* ###################################################################### *)
 (** *** Lemmas to upcast to general typing *)
 
-Lemma precise_to_general:
-  (forall m1 m2 G t T,
-     ty_trm m1 m2 G t T ->
-     m1 = ty_precise ->
-     m2 = sub_general ->
-     ty_trm ty_general sub_general G t T) /\
-  (forall m1 m2 G S U,
-     subtyp m1 m2 G S U ->
-     m1 = ty_precise ->
-     m2 = sub_general ->
-     subtyp ty_general sub_general G S U).
+Lemma precise_to_general: forall m1 m2 G t T,
+    ty_trm m1 m2 G t T ->
+    m1 = ty_precise ->
+    m2 = sub_general ->
+    ty_trm ty_general sub_general G t T.
 Proof.
-  apply ts_mutind; intros; subst; eauto.
+  intros. induction H; intros; subst; eauto.
 Qed.
 
 Lemma tight_to_general:
@@ -106,11 +100,10 @@ Lemma tight_to_general:
      m1 = ty_general ->
      m2 = sub_tight ->
      ty_trm ty_general sub_general G t T) /\
-  (forall m1 m2 G S U,
-     subtyp m1 m2 G S U ->
-     m1 = ty_general ->
+  (forall m2 G S U,
+     subtyp m2 G S U ->
      m2 = sub_tight ->
-     subtyp ty_general sub_general G S U).
+     subtyp sub_general G S U).
 Proof.
   apply ts_mutind; intros; subst; eauto.
   - apply precise_to_general in t; eauto.
@@ -131,7 +124,7 @@ Qed.
 Lemma val_typing: forall G v T,
   ty_trm ty_general sub_general G (trm_val v) T ->
   exists T', ty_trm ty_precise sub_general G (trm_val v) T' /\
-             subtyp ty_general sub_general G T' T.
+             subtyp sub_general G T' T.
 Proof.
   intros G v T H. dependent induction H.
   - exists (typ_all T U). split.

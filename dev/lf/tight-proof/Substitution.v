@@ -239,14 +239,13 @@ Lemma subst_rules: forall y S,
     x \notin fv_ctx_types G1 ->
     ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_var (avar_f y)) (subst_typ x y S) ->
     ty_defs (G1 & (subst_ctx x y G2)) (subst_defs x y ds) (subst_typ x y T)) /\
-  (forall m1 m2 G T U, subtyp m1 m2 G T U -> forall G1 G2 x,
+  (forall m2 G T U, subtyp m2 G T U -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
     ty_trm ty_general sub_general (G1 & (subst_ctx x y G2)) (trm_var (avar_f y)) (subst_typ x y S) ->
-    m1 = ty_general ->
     m2 = sub_general ->
-    subtyp m1 m2 (G1 & (subst_ctx x y G2)) (subst_typ x y T) (subst_typ x y U)).
+    subtyp m2 (G1 & (subst_ctx x y G2)) (subst_typ x y T) (subst_typ x y U)).
 Proof.
   intros y S. apply rules_mutind; intros; subst.
   - (* ty_var *)
@@ -380,8 +379,8 @@ Proof.
   - (* subtyp_sel1 *)
     eapply subtyp_sel1.
     apply H; auto.
-  - (* subtyp_sel2_tight *) inversion H5.
-  - (* subtyp_sel1_tight *) inversion H5.
+  - (* subtyp_sel2_tight *) inversion H4.
+  - (* subtyp_sel1_tight *) inversion H4.
   - (* subtyp_all *)
     simpl. apply_fresh subtyp_all as z; auto.
     assert (z \notin L) as FrL by auto.

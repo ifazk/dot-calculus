@@ -22,7 +22,7 @@ Lemma canonical_forms_1: forall G S s x T U,
   ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_all T U) ->
   (exists L T' t, 
       binds x (val_lambda T' t) s /\ 
-      subtyp ty_general sub_general G S T T' /\
+      subtyp sub_general G S T T' /\
       (forall y, y \notin L -> ty_trm ty_general sub_general (G & y ~ T) S (open_trm y t) (open_typ y U))).
 Proof.
   introv Hwf Hgd Hty.
@@ -47,7 +47,7 @@ Proof.
       apply ty_sub with (T:=open_typ y W).
       assumption. apply* Hs2. apply* subenv_last. apply* Hok.
     + apply tight_to_general in HSsub; auto.
-      assert (subtyp ty_general sub_general G S T V) as HTV by (apply* subtyp_trans).
+      assert (subtyp sub_general G S T V) as HTV by (apply* subtyp_trans).
       split; auto. intros y Hy. assert (y \notin L0) as Hy0 by auto.
       specialize (H4 y Hy0).
       apply narrow_typing with (G':=G & y ~ T) in H4. apply ty_sub with (T:=open_typ y W).

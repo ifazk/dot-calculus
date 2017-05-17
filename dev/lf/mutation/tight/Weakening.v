@@ -20,10 +20,10 @@ Lemma weaken_rules_ctx:
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
     ty_defs (G1 & G2 & G3) S ds T) /\
-  (forall m1 m2 G S T U, subtyp m1 m2 G S T U -> forall G1 G2 G3,
+  (forall m2 G S T U, subtyp m2 G S T U -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    subtyp m1 m2 (G1 & G2 & G3) S T U).
+    subtyp m2 (G1 & G2 & G3) S T U).
 Proof.
   apply rules_mutind; try solve [eauto].
   + intros. subst.
@@ -69,10 +69,10 @@ Lemma weaken_rules_sigma:
     S = S1 & S3 ->
     ok (S1 & S2 & S3) ->
     ty_defs G (S1 & S2 & S3) ds T) /\
-  (forall m1 m2 G S T U, subtyp m1 m2 G S T U -> forall S1 S2 S3,
+  (forall m2 G S T U, subtyp m2 G S T U -> forall S1 S2 S3,
     S = S1 & S3 ->
     ok (S1 & S2 & S3) ->
-    subtyp m1 m2 G (S1 & S2 & S3) T U).
+    subtyp m2 G (S1 & S2 & S3) T U).
 Proof.
   apply rules_mutind; try solve [eauto].
   intros. subst.
@@ -107,10 +107,10 @@ Proof.
   rewrite <- EqS. assumption.
 Qed.
 
-Lemma weaken_subtyp_ctx: forall m1 m2 G1 G2 S T U,
-  subtyp m1 m2 G1 S T U ->
+Lemma weaken_subtyp_ctx: forall m2 G1 G2 S T U,
+  subtyp m2 G1 S T U ->
   ok (G1 & G2) ->
-  subtyp m1 m2 (G1 & G2) S T U.
+  subtyp m2 (G1 & G2) S T U.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {
@@ -121,10 +121,10 @@ Proof.
   rewrite <- EqG. assumption.
 Qed.
 
-Lemma weaken_subtyp_sigma: forall m1 m2 G S1 S2 T U,
-  subtyp m1 m2 G S1 T U ->
+Lemma weaken_subtyp_sigma: forall m2 G S1 S2 T U,
+  subtyp m2 G S1 T U ->
   ok (S1 & S2) ->
-  subtyp m1 m2 G (S1 & S2) T U.
+  subtyp m2 G (S1 & S2) T U.
 Proof.
   intros.
     assert (S1 & S2 = S1 & S2 & empty) as EqG. {
