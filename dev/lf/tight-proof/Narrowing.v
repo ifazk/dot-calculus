@@ -12,7 +12,7 @@ Definition subenv(G1 G2: ctx) :=
   forall x T2, binds x T2 G2 ->
     binds x T2 G1 \/
     exists T1,
-      binds x T1 G1 /\ subtyp sub_general G1 T1 T2.
+      binds x T1 G1 /\ subtyp G1 T1 T2.
 
 Lemma subenv_push: forall G G' x T,
   subenv G' G ->
@@ -32,7 +32,7 @@ Proof.
 Qed.
 
 Lemma subenv_last: forall G x S U,
-  subtyp sub_general G S U ->
+  subtyp G S U ->
   ok (G & x ~ S) ->
   subenv (G & x ~ S) (G & x ~ U).
 Proof.
@@ -43,12 +43,10 @@ Proof.
 Qed.
 
 Lemma narrow_rules:
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G',
-    m1 = ty_general ->
-    m2 = sub_general ->
+  (forall G t T, ty_trm G t T -> forall G',
     ok G' ->
     subenv G' G ->
-    ty_trm m1 m2 G' t T)
+    ty_trm G' t T)
 /\ (forall G d D, ty_def G d D -> forall G',
     ok G' ->
     subenv G' G ->
@@ -57,18 +55,17 @@ Lemma narrow_rules:
     ok G' ->
     subenv G' G ->
     ty_defs G' ds T)
-/\ (forall m2 G S U, subtyp m2 G S U -> forall G',
-    m2 = sub_general ->
+/\ (forall G S U, subtyp G S U -> forall G',
     ok G' ->
     subenv G' G ->
-    subtyp m2 G' S U).
+    subtyp G' S U).
 Proof.
   apply rules_mutind; intros; eauto 4.
   - (* ty_var *)
-    subst. unfold subenv in H2. specialize (H2 x T b).
-    destruct H2.
+    subst. unfold subenv in H0. specialize (H0 x T b).
+    destruct H0.
     + eauto.
-    + destruct H as [T' [Bi Hsub]].
+    + destruct H0 as [T' [Bi Hsub]].
       eapply ty_sub; eauto.
   - (* ty_all_intro *)
     subst.
@@ -79,8 +76,6 @@ Proof.
   - (* ty_let *)
     subst.
     apply_fresh ty_let as y; eauto using subenv_push.
-  - inversion H0 (* sub_tight *).
-  - inversion H0 (* sub_tight *).
   - (* subtyp_all *)
     subst.
     apply_fresh subtyp_all as y.
@@ -90,17 +85,17 @@ Proof.
 Qed.
 
 Lemma narrow_typing: forall G G' t T,
-  ty_trm ty_general sub_general G t T ->
+  ty_trm G t T ->
   subenv G' G -> ok G' ->
-  ty_trm ty_general sub_general G' t T.
+  ty_trm G' t T.
 Proof.
   intros. apply* narrow_rules.
 Qed.
 
 Lemma narrow_subtyping: forall G G' S U,
-  subtyp sub_general G S U ->
+  subtyp G S U ->
   subenv G' G -> ok G' ->
-  subtyp sub_general G' S U.
+  subtyp G' S U.
 Proof.
   intros. apply* narrow_rules.
 Qed.

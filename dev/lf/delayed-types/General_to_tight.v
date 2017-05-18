@@ -47,15 +47,15 @@ Proof.
 Qed.
 
 Lemma tight_to_precise_typ_all: forall G S x V T,
-  inert G ->
-  ty_trm ty_general sub_tight G S (trm_var (avar_f x)) (typ_all V T) ->
-  exists V' T' L,
-    ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_all V' T') /\
-    subtyp ty_general sub_tight G S V V' /\
-    (forall y,
-        y \notin L ->
-            subtyp ty_general sub_general (G & y ~ V) S (open_typ y T') (open_typ y T))
-    .
+    inert G ->
+    ty_trm ty_general sub_tight G S (trm_var (avar_f x)) (typ_all V T) ->
+    exists V' T' L,
+      ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_all V' T') /\
+      subtyp ty_general sub_tight G S V V' /\
+      (forall y,
+          y \notin L ->
+          subtyp ty_general sub_general (G & y ~ V) S (open_typ y T') (open_typ y T))
+.
 Proof.
   introv HG Ht.
   lets Htp: (tight_possible_types_lemma HG Ht). clear Ht.
@@ -77,6 +77,20 @@ Proof.
       eauto.
 Qed.
 
+Lemma tpt_to_precise_typ_ref: forall G S x T,
+    tight_pt G S x (typ_ref T) ->
+    exists T',
+      ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_ref T') /\
+      subtyp ty_general sub_tight G S T' T /\
+      subtyp ty_general sub_tight G S T T'.
+Proof.
+  introv Htp.
+  dependent induction Htp.
+  - exists T. split*.
+  - specialize (IHHtp T0 eq_refl). 
+    destruct IHHtp as [U [Hx Hs]]. exists U. split*.
+Qed.
+
 Lemma tight_to_precise_typ_ref: forall G S x T,
   inert G ->
   ty_trm ty_general sub_tight G S (trm_var (avar_f x)) (typ_ref T) ->
@@ -87,27 +101,37 @@ Lemma tight_to_precise_typ_ref: forall G S x T,
 Proof.
   introv Hg Ht.
   lets Htp: (tight_possible_types_lemma Hg Ht). clear Ht.
-  dependent induction Htp.
-  - exists T. split*.
-  - specialize (IHHtp T0 Hg eq_refl). 
-    destruct IHHtp as [U [Hx Hs]]. exists U. split*.
+  apply* tpt_to_precise_typ_ref.
+  (* dependent induction Htp. *)
+  (* - exists T. split*. *)
+  (* - specialize (IHHtp T0 Hg eq_refl).  *)
+  (*   destruct IHHtp as [U [Hx Hs]]. exists U. split*. *)
 Qed.
 
 Lemma tight_to_precise_typ_nref: forall G S x T,
   inert G ->
   ty_trm ty_general sub_tight G S (trm_var (avar_f x)) (typ_nref T) ->
-  exists T',
-    ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_nref T') /\
-    subtyp ty_general sub_tight G S T' T /\
-    subtyp ty_general sub_tight G S T T'.
+  (exists T',
+      ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_ref T') /\
+      subtyp ty_general sub_tight G S T' T /\
+      subtyp ty_general sub_tight G S T T') \/ 
+  (exists T',
+      ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_nref T') /\
+      subtyp ty_general sub_tight G S T' T /\
+      subtyp ty_general sub_tight G S T T').
 Proof.
   introv Hg Ht.
-  lets Htp: (tight_possible_types_lemma Hg Ht). clear Ht.
+  lets Htp: (tight_possible_types_lemma Hg Ht). (* clear Ht. *) 
   dependent induction Htp.
-  - exists T. split*.
-  - specialize (IHHtp T0 Hg eq_refl). 
-    destruct IHHtp as [U [Hx Hs]]. exists U. split*.
-  - admit.
+  - right. exists T. split*.
+  - pose proof (subtyp_nref H0 H).
+    pose proof (ty_sub Ht H1).
+    subst.
+    specialize (IHHtp T0 Hg H2 eq_refl).
+    destruct IHHtp as [[U [Hx Hs]] | [U [Hx Hs]]].
+    + left. exists U. split*.
+    + right. exists U. split*.
+  - left. apply* tpt_to_precise_typ_ref. 
 Qed.
 
 (* Lemma 2 *)

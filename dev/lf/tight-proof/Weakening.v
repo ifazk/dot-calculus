@@ -8,10 +8,10 @@ Require Import Definitions.
 (** ** Weakening *)
 
 Lemma weaken_rules:
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G1 G2 G3,
+  (forall G t T, ty_trm G t T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    ty_trm m1 m2 (G1 & G2 & G3) t T) /\
+    ty_trm (G1 & G2 & G3) t T) /\
   (forall G d D, ty_def G d D -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
@@ -20,10 +20,10 @@ Lemma weaken_rules:
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
     ty_defs (G1 & G2 & G3) ds T) /\
-  (forall  m2 G T U, subtyp m2 G T U -> forall G1 G2 G3,
+  (forall G T U, subtyp G T U -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    subtyp m2 (G1 & G2 & G3) T U).
+    subtyp (G1 & G2 & G3) T U).
 Proof.
   apply rules_mutind; eauto 4; intros; subst.
   + eapply ty_var. eapply binds_weaken; eauto.
@@ -50,10 +50,10 @@ Proof.
       apply* H0.
 Qed.
 
-Lemma weaken_ty_trm:  forall m1 m2 G1 G2 t T,
-    ty_trm m1 m2 G1 t T ->
+Lemma weaken_ty_trm: forall G1 G2 t T,
+    ty_trm G1 t T ->
     ok (G1 & G2) ->
-    ty_trm m1 m2 (G1 & G2) t T.
+    ty_trm (G1 & G2) t T.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {
@@ -64,10 +64,10 @@ Proof.
   rewrite <- EqG. assumption.
 Qed.
 
-Lemma weaken_subtyp: forall m2 G1 G2 S U,
-  subtyp m2 G1 S U ->
+Lemma weaken_subtyp: forall G1 G2 S U,
+  subtyp G1 S U ->
   ok (G1 & G2) ->
-  subtyp m2 (G1 & G2) S U.
+  subtyp (G1 & G2) S U.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {

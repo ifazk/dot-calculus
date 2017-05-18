@@ -366,7 +366,7 @@ Proof.
   - (* ty_and2 *)
     simpl. eapply ty_and2; eauto.
   - (* ty_ref_intro *) 
-    simpl. apply ty_ref_intro with (x:=(If x = x0 then y else x)). apply H; auto.
+    simpl. apply ty_ref_intro. 
   - (* ty_ref_elim *)
     apply ty_ref_elim; eauto.
   (* - (* ty_asgn_ref *) *)

@@ -21,7 +21,8 @@ Inductive inert_typ : typ -> Prop :=
   | inert_typ_bnd : forall T,
       record_type T ->
       inert_typ (typ_bnd T) (* rec(x:T) *)
-  | inert_typ_ref : forall T, inert_typ (typ_ref T).
+  | inert_typ_ref : forall T, inert_typ (typ_ref T)
+  | inert_typ_nref : forall T, inert_typ (typ_nref T).
 
 (* Definition (Inert context)
 
@@ -85,6 +86,8 @@ Proof.
   - apply (record_unique_tight_bounds H Hpf1 Hpf2).
   - apply precise_flow_ref_inv in Hpf1.
     inversion Hpf1.
+  - apply precise_flow_nref_inv in Hpf1. 
+    inversion Hpf1. 
 Qed.
 
 Lemma inert_unique_tight_bounds: forall G S x T1 T2 A,
@@ -119,6 +122,8 @@ Proof.
       inversion Contra.
   - apply precise_flow_ref_inv in Hpf.
     inversion Hpf.
+  - apply precise_flow_nref_inv in Hpf.
+    inversion Hpf.
 Qed.
 
 Lemma inert_ty_precise_bot : forall G S x,
@@ -147,6 +152,8 @@ Proof.
   - pose proof (precise_flow_bnd_eq_or_record H Hpf) as [[U [Contra H1]] | [ls Contra]]; inversion Contra.
   - apply precise_flow_ref_inv in Hpf.
     inversion Hpf.
+  - apply precise_flow_nref_inv in Hpf.
+    inversion Hpf.
 Qed.
 
 Lemma inert_precise_dec_implies_record_dec : forall G S x D,
@@ -163,6 +170,8 @@ Proof.
     inversion Hpf.
   - apply (record_precise_dec_implies_record_dec H Hpf).
   - apply precise_flow_ref_inv in Hpf.
+    inversion Hpf.
+  - apply precise_flow_nref_inv in Hpf.
     inversion Hpf.
 Qed.
 
@@ -189,6 +198,7 @@ Proof.
   - symmetry. eapply precise_flow_all_inv. eassumption.
   - pose proof (precise_flow_bnd_eq_or_record H Hpf) as [ [? [Contra _]] | [? Contra]]; inversion Contra.
   - symmetry. eapply precise_flow_ref_inv. eassumption.
+  - symmetry. eapply precise_flow_nref_inv. eassumption.
 Qed.
 
 Lemma inert_precise_all_inv : forall x G S T U,
@@ -216,6 +226,7 @@ Proof.
   - symmetry. eapply precise_flow_all_inv. eassumption.
   - pose proof (precise_flow_bnd_eq_or_record H Hpf) as [ [? [Contra _]] | [? Contra]]; inversion Contra.
   - symmetry. eapply precise_flow_ref_inv. eassumption.
+  - symmetry. eapply precise_flow_nref_inv. eassumption.
 Qed.
   
 

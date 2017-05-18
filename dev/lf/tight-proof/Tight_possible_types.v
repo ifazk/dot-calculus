@@ -26,18 +26,18 @@ If S in SS and G |-! y: {A: S..S} then y.A in SS.
 Inductive tight_pt : ctx -> var -> typ -> Prop :=
   (* Precise typing *)
 | t_pt_precise : forall G x T,
-  ty_trm ty_precise sub_general G (trm_var (avar_f x)) T ->
+  ty_trm_p G (trm_var (avar_f x)) T ->
   tight_pt G x T
   (* Term member subtyping *)
 | t_pt_dec_trm : forall G x a T T',
   tight_pt G x (typ_rcd (dec_trm a T)) ->
-  subtyp sub_tight G T T' ->
+  subtyp_t G T T' ->
   tight_pt G x (typ_rcd (dec_trm a T'))
   (* Type member subtyping *)
 | t_pt_dec_typ : forall G x A T T' U' U,
   tight_pt G x (typ_rcd (dec_typ A T U)) ->
-  subtyp sub_tight G T' T ->
-  subtyp sub_tight G U U' ->
+  subtyp_t G T' T ->
+  subtyp_t G U U' ->
   tight_pt G x (typ_rcd (dec_typ A T' U'))
   (* Recursive Types *)
 | t_pt_bnd : forall G x S S',
@@ -47,9 +47,9 @@ Inductive tight_pt : ctx -> var -> typ -> Prop :=
   (* Forall *)
 | t_pt_all : forall L G x S T S' T',
   tight_pt G x (typ_all S T) ->
-  subtyp sub_tight G S' S ->
+  subtyp_t G S' S ->
   (forall y, y \notin L ->
-   subtyp sub_general (G & y ~ S') (open_typ y T) (open_typ y T')) ->
+   subtyp (G & y ~ S') (open_typ y T) (open_typ y T')) ->
   tight_pt G x (typ_all S' T')
   (* And *)
 | t_pt_and : forall G x S1 S2,
@@ -59,7 +59,7 @@ Inductive tight_pt : ctx -> var -> typ -> Prop :=
   (* Tight Selection *)
 | t_pt_sel : forall G x y A S,
   tight_pt G x S ->
-  ty_trm ty_precise sub_general G (trm_var y) (typ_rcd (dec_typ A S S)) ->
+  ty_trm_p G (trm_var y) (typ_rcd (dec_typ A S S)) ->
   tight_pt G x (typ_sel y A)
   (* Top *)
 | t_pt_top : forall G x T,
@@ -71,34 +71,34 @@ Hint Constructors tight_pt.
 Lemma tight_possible_types_closure_tight: forall G x T U,
   inert G ->
   tight_pt G x T ->
-  subtyp sub_tight G T U ->
+  subtyp_t G T U ->
   tight_pt G x U.
 Proof.
   intros G x T U Hgd HT Hsub.
   dependent induction Hsub; eauto.
   - inversion HT.
     destruct (precise_bot_false Hgd H).
-  - inversion HT; auto. apply ty_and1 in H. auto.
-  - inversion HT; auto. apply ty_and2 in H. auto.
-  - inversion HT.
-    + false* precise_psel_false.
+  - inversion HT; auto. apply ty_and1_p in H. auto.
+  - inversion HT; auto. apply ty_and2_p in H. auto.
+  - inversions HT.
+    + false* precise_psel_false. 
     + pose proof (inert_unique_tight_bounds Hgd H H5) as Hu. subst. assumption.
 Qed.
 
 Lemma tight_possible_types_lemma :
   forall G U x,
     inert G ->
-    ty_trm ty_general sub_tight G (trm_var (avar_f x)) U ->
+    ty_trm_t G (trm_var (avar_f x)) U ->
     tight_pt G x U.
 Proof.
   intros G U x Hgd Hty.
   dependent induction Hty.
   - auto.
-  - specialize (IHHty _ Hgd eq_refl eq_refl eq_refl).
+  - specialize (IHHty _ Hgd eq_refl).
     eapply t_pt_bnd.
     apply IHHty.
     reflexivity.
-  - specialize (IHHty _ Hgd eq_refl eq_refl eq_refl).
+  - specialize (IHHty _ Hgd eq_refl).
     inversion IHHty; subst; auto.
   - apply t_pt_and; auto.
   - eapply tight_possible_types_closure_tight; auto.

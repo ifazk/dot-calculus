@@ -57,6 +57,8 @@ Proof.
       assumption. apply* subenv_last. apply* Hok.
       apply* HTsub. apply* subenv_last. apply* Hok.
   - inversion Heq.
-  - inversion Heq.
+  - destruct Heq. 
+    + inversion H.
+    + inversion H.
   - inversion Heq.
 Qed.

@@ -29,10 +29,11 @@ Inductive precise_flow : var -> ctx -> typ -> typ -> Prop :=
 Hint Constructors precise_flow.
 
 Lemma precise_flow_lemma : forall U G x,
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) U ->
+    ty_trm_p G (trm_var (avar_f x)) U ->
     exists T, precise_flow x G T U.
 Proof.
-  introv H. dependent induction H; try (destruct* (IHty_trm _ eq_refl eq_refl eq_refl)); eauto.
+  introv H. dependent induction H; try (destruct* (IHty_trm _ eq_refl)); 
+              try (destruct* (IHty_trm_p _ eq_refl)); eauto.
 Qed.
 
 Lemma precise_flow_all_inv : forall p G S T U,
@@ -216,7 +217,7 @@ Qed.
 
 Lemma precise_bot_false : forall G x,
     inert G ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) typ_bot ->
+    ty_trm_p G (trm_var (avar_f x)) typ_bot ->
     False.
 Proof.
   introv Hi Hp. destruct (precise_flow_lemma Hp) as [T Pf].
@@ -236,7 +237,7 @@ Qed.
 
 Lemma precise_psel_false : forall G x y A,
     inert G ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_sel y A) ->
+    ty_trm_p G (trm_var (avar_f x)) (typ_sel y A) ->
     False.
 Proof.
   introv Hi Hp. destruct (precise_flow_lemma Hp) as [T Pf].
@@ -372,8 +373,8 @@ Qed.
 
 Lemma inert_unique_tight_bounds : forall G x T1 T2 A,
     inert G ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A T1 T1)) ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A T2 T2)) ->
+    ty_trm_p G (trm_var (avar_f x)) (typ_rcd (dec_typ A T1 T1)) ->
+    ty_trm_p G (trm_var (avar_f x)) (typ_rcd (dec_typ A T2 T2)) ->
     T1 = T2.
 Proof.
   introv Hi H1 H2.
@@ -406,7 +407,7 @@ Qed.
 
 Lemma precise_dec_typ_inv : forall G x A S U,
     inert G ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_typ A S U)) ->
+    ty_trm_p G (trm_var (avar_f x)) (typ_rcd (dec_typ A S U)) ->
     S = U.
 Proof.
   introv Hi Hpt. destruct (precise_flow_lemma Hpt) as [V Pf].
@@ -415,7 +416,7 @@ Qed.
 
 Lemma inert_precise_all_inv : forall x G S T,
     inert G ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_all S T) ->
+    ty_trm_p G (trm_var (avar_f x)) (typ_all S T) ->
     binds x (typ_all S T) G.
 Proof.
   introv Hgd Htyp.
