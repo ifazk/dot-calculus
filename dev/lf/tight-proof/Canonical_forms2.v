@@ -35,15 +35,15 @@ Proof.
     + unfold defs_has. simpl. rewrite If_l; reflexivity.
     + assumption.
   - inversion Hhas; subst.
-    + exists d. split.
-      * unfold defs_has. simpl. rewrite If_l; reflexivity.
-      * admit. (*assumption.*)
-    + admit. Admitted. (*specialize (IHHdefs H4). destruct IHHdefs as [d' [IH1 IH2]].
+    + destruct (IHHdefs H4) as [d' [H1 H2]]. 
       exists d'. split.
-      * unfold defs_has. simpl. rewrite If_r. apply IH1.
+      * unfold defs_has. simpl. rewrite If_r. apply H1.
         apply not_eq_sym. eapply defs_has_hasnt_neq; eauto.
       * assumption.
-Qed.*)
+    + exists d. split.
+      * unfold defs_has. simpl. rewrite If_l; reflexivity.
+      * inversions* H4. 
+Qed.
 
 Lemma new_ty_defs: forall G s x T ds,
   wf_sto G s ->
@@ -77,13 +77,15 @@ Lemma corresponding_types_ty_trms: forall G s ds x S,
 Proof.
   introv Hwf Hg Bi Bis Hty.
   pose proof (new_ty_defs Hwf Hg Bis) as Htds.
-  destruct (precise_flow_lemma Hty) as [U Hpf]. Admitted. (*
+  destruct (precise_flow_lemma Hty) as [U Hpf]. 
   pose proof (inert_typ_bnd_record Hg Bi) as Hrec.
+  pose proof (pf_binds Hpf). 
+  pose proof (binds_func Bi H); subst.
   pose proof (precise_flow_record_has Hg Hpf) as Hrh.
   pose proof (record_has_ty_defs Htds Hrh) as [d [Hds Htd]].
   inversion Htd; subst.
   exists t. auto.
-Qed.*)
+Qed.
 
 Lemma canonical_forms_2: forall G s x a T,
   inert G ->

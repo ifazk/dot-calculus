@@ -6,7 +6,6 @@ PROOFS= \
     Wellformed_store.v \
     Weakening.v \
     Some_lemmas.v \
-    Precise_flow.v \
     Has_member.v \
     Inert_types.v \
     Tight_possible_types.v \

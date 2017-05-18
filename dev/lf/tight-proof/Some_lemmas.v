@@ -60,7 +60,6 @@ Proof.
     + right. inversions H5. apply in_singleton_self.
 Qed.
 
-(* todo: please finish the proof *)
 Lemma unique_rcd_typ: forall T A T1 T2,
   record_type T ->
   record_has T (dec_typ A T1 T1) ->
@@ -72,23 +71,34 @@ Proof.
   destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Has1; inversion Has2; subst.
   - inversion* H3.
   - inversion* H5.
-  - apply record_typ_has_label_in with (D:=dec_typ A T2 T2) in Htyp.
-    inversions H9. unfold "\notin" in H1. unfold not in H1. false* H1.
-    Admitted. (*
   - apply record_typ_has_label_in with (D:=dec_typ A T1 T1) in Htyp.
-    simpl in Htyp. simpl in H1. unfold "\notin" in H1. unfold not in H1.
-    specialize (H1 Htyp). inversion H1.
-    assumption.
-  - eapply IHHtyp; eassumption.
-Qed.*)
+    + inversions H9. unfold "\notin" in H1. unfold not in H1. false* H1.
+    + assumption.
+  - apply record_typ_has_label_in with (D:=dec_typ A T2 T2) in Htyp.
+    + inversions H5. unfold "\notin" in H1. unfold not in H1. false* H1.
+    + assumption.
+  - inversions H5. inversions* H9.
+Qed.
 
-(* todo: please finish the proof *)
 Lemma unique_rcd_trm: forall T a U1 U2,
     record_type T ->
     record_has T (dec_trm a U1) ->
     record_has T (dec_trm a U2) ->
     U1 = U2.
-Proof. Admitted.
+Proof. 
+  introv Htype Has1 Has2.
+  generalize dependent U2. generalize dependent U1. generalize dependent a.
+  destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Has1; inversion Has2; subst.
+  - inversion* H3.
+  - inversion* H5.
+  - apply record_typ_has_label_in with (D:=dec_trm a U1) in Htyp.
+    + inversions H9. unfold "\notin" in H1. unfold not in H1. false* H1.
+    + assumption.
+  - apply record_typ_has_label_in with (D:=dec_trm a U2) in Htyp.
+    + inversions H5. unfold "\notin" in H1. unfold not in H1. false* H1.
+    + assumption.
+  - inversions H5. inversions* H9.
+Qed.
 
 (* ###################################################################### *)
 (** *** Lemmas to upcast to general typing *)
