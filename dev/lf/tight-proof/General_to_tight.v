@@ -23,7 +23,7 @@ Proof.
   introv HG Ht.
   lets Htp: (tight_possible_types_lemma HG Ht). clear Ht.
   dependent induction Htp.
-  - lets Hp: (inert_precise_dec_typ_inv HG H). subst.
+  - lets Hp: (precise_dec_typ_inv HG H). subst.
     exists U. split*.
   - specialize (IHHtp A T U0 HG eq_refl).
     destruct IHHtp as [V [Hx [Hs1 Hs2]]].

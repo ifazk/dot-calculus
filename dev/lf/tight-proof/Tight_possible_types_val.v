@@ -3,7 +3,6 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import Precise_flow.
 Require Import Inert_types.
 
 (* ###################################################################### *)

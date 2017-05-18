@@ -155,19 +155,19 @@ Inductive record_typ : typ -> fset label -> Prop :=
   record_dec D ->
   l = label_of_dec D ->
   l \notin ls ->
-  record_typ (typ_and T (typ_rcd D)) (union ls \{l})
-.
+  record_typ (typ_and T (typ_rcd D)) (union ls \{l}).
 
 Definition record_type T := exists ls, record_typ T ls.
 
 Inductive record_has: typ -> dec -> Prop :=
 | rh_one : forall D,
-  record_has (typ_rcd D) D
-| rh_andl : forall T D,
-  record_has (typ_and T (typ_rcd D)) D
-| rh_and : forall T D D',
-  record_has T D' ->
-  record_has (typ_and T D) D'.
+    record_has (typ_rcd D) D
+| rh_andl : forall T U D,
+    record_has T D ->
+    record_has (typ_and T U) D
+| rh_andr : forall T U D,
+    record_has U D ->
+    record_has (typ_and T U) D.
 
 (* ###################################################################### *)
 (** ** Free variables *)
@@ -262,7 +262,7 @@ Inductive red : trm -> sto -> trm -> sto -> Prop :=
 Inductive tymode: Set := ty_precise | ty_general.
 Inductive submode: Set := sub_tight | sub_general.
 
-Reserved Notation "G '|-' t '::' T" (at level 40, t at level 59).
+(*Reserved Notation "G '|-' t '::' T" (at level 40, t at level 59).*)
 
 Inductive ty_trm : tymode -> submode -> ctx -> trm -> typ -> Prop :=
 | ty_var : forall m1 m2 G x T,

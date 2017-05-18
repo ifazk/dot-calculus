@@ -3,7 +3,6 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import Precise_flow.
 Require Import Inert_types.
 
 (* ###################################################################### *)
@@ -65,8 +64,7 @@ Inductive tight_pt : ctx -> var -> typ -> Prop :=
   (* Top *)
 | t_pt_top : forall G x T,
   tight_pt G x T ->
-  tight_pt G x typ_top
-.
+  tight_pt G x typ_top.
 
 Hint Constructors tight_pt.
 
@@ -79,25 +77,19 @@ Proof.
   intros G x T U Hgd HT Hsub.
   dependent induction Hsub; eauto.
   - inversion HT.
-    destruct (inert_ty_precise_bot Hgd H).
+    destruct (precise_bot_false Hgd H).
+  - inversion HT; auto. apply ty_and1 in H. auto.
+  - inversion HT; auto. apply ty_and2 in H. auto.
   - inversion HT.
-    + apply ty_precise_var_and_inv1 in H.
-      auto.
-    + auto.
-  - inversion HT.
-    + apply ty_precise_var_and_inv2 in H.
-      auto.
-    + auto.
-  - inversion HT.
-    + false * inert_precise_sel_inv.
+    + false* precise_psel_false.
     + pose proof (inert_unique_tight_bounds Hgd H H5) as Hu. subst. assumption.
 Qed.
 
 Lemma tight_possible_types_lemma :
   forall G U x,
-    inert G -> (* G inert *)
-    ty_trm ty_general sub_tight G (trm_var (avar_f x)) U -> (* G |-# x : U *)
-    tight_pt G x U (* U \in TPT(G,x,T) *).
+    inert G ->
+    ty_trm ty_general sub_tight G (trm_var (avar_f x)) U ->
+    tight_pt G x U.
 Proof.
   intros G U x Hgd Hty.
   dependent induction Hty.

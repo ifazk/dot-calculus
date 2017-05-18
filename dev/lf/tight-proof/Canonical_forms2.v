@@ -7,7 +7,6 @@ Require Import Weakening.
 Require Import Wellformed_store.
 Require Import Substitution.
 Require Import Some_lemmas.
-Require Import Precise_flow.
 Require Import Inert_types.
 Require Import General_to_tight.
 
@@ -38,13 +37,13 @@ Proof.
   - inversion Hhas; subst.
     + exists d. split.
       * unfold defs_has. simpl. rewrite If_l; reflexivity.
-      * assumption.
-    + specialize (IHHdefs H4). destruct IHHdefs as [d' [IH1 IH2]].
+      * admit. (*assumption.*)
+    + admit. Admitted. (*specialize (IHHdefs H4). destruct IHHdefs as [d' [IH1 IH2]].
       exists d'. split.
       * unfold defs_has. simpl. rewrite If_r. apply IH1.
         apply not_eq_sym. eapply defs_has_hasnt_neq; eauto.
       * assumption.
-Qed.
+Qed.*)
 
 Lemma new_ty_defs: forall G s x T ds,
   wf_sto G s ->
@@ -78,13 +77,13 @@ Lemma corresponding_types_ty_trms: forall G s ds x S,
 Proof.
   introv Hwf Hg Bi Bis Hty.
   pose proof (new_ty_defs Hwf Hg Bis) as Htds.
-  pose proof (precise_flow_lemma Bi Hty) as Hpf.
+  destruct (precise_flow_lemma Hty) as [U Hpf]. Admitted. (*
   pose proof (inert_typ_bnd_record Hg Bi) as Hrec.
-  pose proof (precise_flow_record_has Hrec Hpf) as Hrh.
+  pose proof (precise_flow_record_has Hg Hpf) as Hrh.
   pose proof (record_has_ty_defs Htds Hrh) as [d [Hds Htd]].
   inversion Htd; subst.
   exists t. auto.
-Qed.
+Qed.*)
 
 Lemma canonical_forms_2: forall G s x a T,
   inert G ->
@@ -99,11 +98,11 @@ Proof.
   pose proof (corresponding_types Hwf Hg Bi)
     as [[L [U [V [S1 [V1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [U [ds [Hb [Ht Heq]]]]].
   + assert (H: exists T, record_type T /\ S = (typ_bnd T)).
-    { pose proof (inert_binds Hg Bi) as Hgt.
+    { pose proof (binds_inert Bi Hg) as Hgt.
       induction Hgt.
-      - pose proof (precise_flow_lemma Bi Hx) as H.
-        apply (precise_flow_all_inv) in H.
-        inversion H.
+      - destruct (precise_flow_lemma Hx) as [W H].
+        lets Hpb: (pf_binds H). apply (binds_func Bi) in Hpb. subst.
+        apply (precise_flow_all_inv) in H. inversion H.
       - exists T0. auto.
     }
     destruct H as [T0 [Hrt Hsubst]]; subst S; rename T0 into S.
