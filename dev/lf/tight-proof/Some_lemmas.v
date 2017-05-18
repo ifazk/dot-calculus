@@ -85,25 +85,25 @@ Qed.
 (* ###################################################################### *)
 (** *** Lemmas to upcast to general typing *)
 
-Lemma precise_to_general: forall m1 m2 G t T,
-    ty_trm m1 m2 G t T ->
+Lemma precise_to_general: forall m1 m2 G S t T,
+    ty_trm m1 m2 G S t T ->
     m1 = ty_precise ->
     m2 = sub_general ->
-    ty_trm ty_general sub_general G t T.
+    ty_trm ty_general sub_general G S t T.
 Proof.
   intros. induction H; intros; subst; eauto.
 Qed.
 
 Lemma tight_to_general:
-  (forall m1 m2 G t T,
-     ty_trm m1 m2 G t T ->
+  (forall m1 m2 G S t T,
+     ty_trm m1 m2 G S t T ->
      m1 = ty_general ->
      m2 = sub_tight ->
-     ty_trm ty_general sub_general G t T) /\
-  (forall m2 G S U,
-     subtyp m2 G S U ->
+     ty_trm ty_general sub_general G S t T) /\
+  (forall m2 G S V U,
+     subtyp m2 G S V U ->
      m2 = sub_tight ->
-     subtyp sub_general G S U).
+     subtyp sub_general G S V U).
 Proof.
   apply ts_mutind; intros; subst; eauto.
   - apply precise_to_general in t; eauto.
@@ -113,20 +113,21 @@ Qed.
 (* ###################################################################### *)
 (** *** Misc Lemmas *)
 
-Lemma var_typing_implies_avar_f: forall G a T,
-  ty_trm ty_general sub_general G (trm_var a) T ->
+Lemma var_typing_implies_avar_f: forall G S a T,
+  ty_trm ty_general sub_general G S (trm_var a) T ->
   exists x, a = avar_f x.
 Proof.
   intros. dependent induction H; try solve [eexists; reflexivity].
   apply IHty_trm; auto.
 Qed.
 
-Lemma val_typing: forall G v T,
-  ty_trm ty_general sub_general G (trm_val v) T ->
-  exists T', ty_trm ty_precise sub_general G (trm_val v) T' /\
-             subtyp sub_general G T' T.
+Lemma val_typing: forall G S v T,
+  ty_trm ty_general sub_general G S (trm_val v) T ->
+  exists T', ty_trm ty_precise sub_general G S (trm_val v) T' /\
+             subtyp sub_general G S T' T.
 Proof.
-  intros G v T H. dependent induction H.
+  intros. dependent induction H.
+  - exists (typ_ref T). auto.
   - exists (typ_all T U). split.
     apply ty_all_intro with (L:=L); eauto. apply subtyp_refl.
   - exists (typ_bnd T). split.
@@ -135,11 +136,23 @@ Proof.
     exists T'. split; eauto.
 Qed.
 
-Lemma typing_implies_bound: forall m1 m2 G x T,
-  ty_trm m1 m2 G (trm_var (avar_f x)) T ->
-  exists S, binds x S G.
+Lemma typing_implies_bound: forall m1 m2 G S x T,
+  ty_trm m1 m2 G S (trm_var (avar_f x)) T ->
+  exists T', binds x T' G.
 Proof.
   intros. remember (trm_var (avar_f x)) as t.
+  induction H;
+    try solve [inversion Heqt];
+    try solve [inversion Heqt; eapply IHty_trm; eauto];
+    try solve [inversion Heqt; eapply IHty_trm1; eauto].
+  - inversion Heqt. subst. exists T. assumption.
+Qed.
+
+Lemma typing_implies_bound_loc: forall m1 m2 G S l T,
+  ty_trm m1 m2 G S (trm_val (val_loc l)) T ->
+  exists T', binds l T' S.
+Proof.
+  intros. remember (trm_val (val_loc l)) as t.
   induction H;
     try solve [inversion Heqt];
     try solve [inversion Heqt; eapply IHty_trm; eauto];

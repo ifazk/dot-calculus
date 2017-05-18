@@ -20,6 +20,7 @@ If (U1 & U2) is in Pf(x,G,T), then U1 is in Pf(x,G,T).
 If (U1 & U2) is in Pf(x,G,T), then U2 is in Pf(x,G,T).
 
 *)
+
 Inductive precise_flow : var -> ctx -> typ -> typ -> Prop :=
   | pf_bind : forall x G T,
       binds x T G ->
@@ -37,10 +38,10 @@ Inductive precise_flow : var -> ctx -> typ -> typ -> Prop :=
 
 Hint Constructors precise_flow.
 
-Lemma precise_flow_lemma : forall T U G x,
+Lemma precise_flow_lemma : forall T U G S x,
     binds x T G ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) U ->
-      precise_flow x G T U.
+    ty_trm ty_precise sub_general G S (trm_var (avar_f x)) U ->
+    precise_flow x G T U.
 Proof.
   introv Bis Htyp.
   dependent induction Htyp.
@@ -53,13 +54,13 @@ Proof.
   - eapply pf_and2; auto.
 Qed.
 
-Lemma precise_flow_lemma' : forall U G x,
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) U ->
+Lemma precise_flow_lemma' : forall U G S x,
+    ty_trm ty_precise sub_general G S (trm_var (avar_f x)) U ->
     exists T, precise_flow x G T U.
 Proof.
   introv H.
   pose proof (typing_implies_bound H) as [T H1].
-  exists T. apply precise_flow_lemma; auto.
+  exists T. apply precise_flow_lemma with (S:=S); auto.
 Qed.
 
 Lemma precise_flow_implies_bound : forall T U G x,
@@ -69,33 +70,33 @@ Proof.
   introv H. induction H; auto.
 Qed.
 
-Lemma precise_flow_lemma_rev : forall T U G x,
+Lemma precise_flow_lemma_rev : forall T U G S x,
     precise_flow x G T U ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) U.
+    ty_trm ty_precise sub_general G S (trm_var (avar_f x)) U.
 Proof.
   introv H.
   pose proof (precise_flow_implies_bound H) as H1.
   induction H; eauto.
 Qed.
 
-Lemma ty_precise_var_and_inv1 : forall x G T U,
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_and T U) ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) T.
+Lemma ty_precise_var_and_inv1 : forall x G S T U,
+    ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_and T U) ->
+    ty_trm ty_precise sub_general G S (trm_var (avar_f x)) T.
 Proof.
   introv H.
   destruct (precise_flow_lemma' H) as [T' Hpf].
   apply pf_and1 in Hpf.
-  apply (precise_flow_lemma_rev Hpf).
+  apply (precise_flow_lemma_rev S Hpf).
 Qed.
 
-Lemma ty_precise_var_and_inv2 : forall x G T U,
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_and T U) ->
-    ty_trm ty_precise sub_general G (trm_var (avar_f x)) U.
+Lemma ty_precise_var_and_inv2 : forall x G S T U,
+    ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_and T U) ->
+    ty_trm ty_precise sub_general G S (trm_var (avar_f x)) U.
 Proof.
   introv H.
   destruct (precise_flow_lemma' H) as [T' Hpf].
   apply pf_and2 in Hpf.
-  apply (precise_flow_lemma_rev Hpf).
+  apply (precise_flow_lemma_rev S Hpf).
 Qed.
 
 Lemma precise_flow_all_inv : forall x G S T U,
@@ -105,6 +106,15 @@ Proof.
   introv Hpf.
   dependent induction Hpf; auto;
     specialize (IHHpf S T eq_refl); inversion IHHpf.
+Qed.
+
+Lemma precise_flow_ref_inv : forall x G T U,
+    precise_flow x G (typ_ref T) U ->
+    U = (typ_ref T).
+Proof.
+  introv Hpf.
+  dependent induction Hpf; auto;
+    specialize (IHHpf T eq_refl); inversion IHHpf.
 Qed.
 
 Lemma precise_flow_bnd_eq_or_record : forall x G T,

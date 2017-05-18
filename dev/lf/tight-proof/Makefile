@@ -18,6 +18,7 @@ PROOFS= \
     Extra_rec.v \
     Canonical_forms1.v \
     Canonical_forms2.v \
+    Canonical_forms3.v \
     Misc.v \
     Safety.v
 PROOFOBJECTS=$(PROOFS:.v=.vo)

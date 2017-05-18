@@ -8,16 +8,16 @@ Require Import Weakening.
 (* ###################################################################### *)
 (** ** Narrowing *)
 
-Definition subenv(G1 G2: ctx) :=
+Definition subenv(G1 G2: ctx) (S: sigma) :=
   forall x T2, binds x T2 G2 ->
     binds x T2 G1 \/
     exists T1,
-      binds x T1 G1 /\ subtyp sub_general G1 T1 T2.
+      binds x T1 G1 /\ subtyp sub_general G1 S T1 T2.
 
-Lemma subenv_push: forall G G' x T,
-  subenv G' G ->
+Lemma subenv_push: forall G G' S x T,
+  subenv G' G S ->
   ok (G' & x ~ T) ->
-  subenv (G' & x ~ T) (G & x ~ T).
+  subenv (G' & x ~ T) (G & x ~ T) S.
 Proof.
   intros.
   unfold subenv. intros xb Tb Bi. apply binds_push_inv in Bi.
@@ -28,40 +28,40 @@ Proof.
     unfold subenv in H. specialize (H xb Tb Bi2). destruct H as [Bi' | Bi'].
     * left. eauto.
     * right. destruct Bi' as [T' [Bi1' Bi2']].
-      exists T'. split. eauto. apply weaken_subtyp. assumption. eauto.
+      exists T'. split. eauto. apply weaken_subtyp_ctx. assumption. eauto.
 Qed.
 
-Lemma subenv_last: forall G x S U,
-  subtyp sub_general G S U ->
-  ok (G & x ~ S) ->
-  subenv (G & x ~ S) (G & x ~ U).
+Lemma subenv_last: forall G S x V U,
+  subtyp sub_general G S V U ->
+  ok (G & x ~ V) ->
+  subenv (G & x ~ V) (G & x ~ U) S.
 Proof.
   intros. unfold subenv. intros y T Bi.
   apply binds_push_inv in Bi. destruct Bi as [Bi | Bi].
-  - destruct Bi. subst. right. exists S. split; eauto using weaken_subtyp.
+  - destruct Bi. subst. right. exists V. split; eauto using weaken_subtyp_ctx.
   - destruct Bi. left. eauto.
 Qed.
 
 Lemma narrow_rules:
-  (forall m1 m2 G t T, ty_trm m1 m2 G t T -> forall G',
+  (forall m1 m2 G S t T, ty_trm m1 m2 G S t T -> forall G',
     m1 = ty_general ->
     m2 = sub_general ->
     ok G' ->
-    subenv G' G ->
-    ty_trm m1 m2 G' t T)
-/\ (forall G d D, ty_def G d D -> forall G',
+    subenv G' G S ->
+    ty_trm m1 m2 G' S t T)
+/\ (forall G S d D, ty_def G S d D -> forall G',
     ok G' ->
-    subenv G' G ->
-    ty_def G' d D)
-/\ (forall G ds T, ty_defs G ds T -> forall G',
+    subenv G' G S ->
+    ty_def G' S d D)
+/\ (forall G S ds T, ty_defs G S ds T -> forall G',
     ok G' ->
-    subenv G' G ->
-    ty_defs G' ds T)
-/\ (forall m2 G S U, subtyp m2 G S U -> forall G',
+    subenv G' G S ->
+    ty_defs G' S ds T)
+/\ (forall m2 G S V U, subtyp m2 G S V U -> forall G',
     m2 = sub_general ->
     ok G' ->
-    subenv G' G ->
-    subtyp m2 G' S U).
+    subenv G' G S ->
+    subtyp m2 G' S V U).
 Proof.
   apply rules_mutind; intros; eauto 4.
   - (* ty_var *)
@@ -89,18 +89,18 @@ Proof.
       eauto using subenv_push.
 Qed.
 
-Lemma narrow_typing: forall G G' t T,
-  ty_trm ty_general sub_general G t T ->
-  subenv G' G -> ok G' ->
-  ty_trm ty_general sub_general G' t T.
+Lemma narrow_typing: forall G G' S t T,
+  ty_trm ty_general sub_general G S t T ->
+  subenv G' G S -> ok G' ->
+  ty_trm ty_general sub_general G' S t T.
 Proof.
   intros. apply* narrow_rules.
 Qed.
 
-Lemma narrow_subtyping: forall G G' S U,
-  subtyp sub_general G S U ->
-  subenv G' G -> ok G' ->
-  subtyp sub_general G' S U.
+Lemma narrow_subtyping: forall G G' S V U,
+  subtyp sub_general G S V U ->
+  subenv G' G S -> ok G' ->
+  subtyp sub_general G' S V U.
 Proof.
   intros. apply* narrow_rules.
 Qed.
