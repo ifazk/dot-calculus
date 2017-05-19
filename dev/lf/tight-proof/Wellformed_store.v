@@ -105,9 +105,9 @@ Proof.
     + inversions Bi. inversion H2; subst.
       * left. exists (L \u dom G) T0 U T0 U t.
         split*. split*.
-        apply* weaken_ty_trm.
+        apply* weaken_ty_trm_p.
       * right. exists T0. exists ds. split*. split*.
-        apply* weaken_ty_trm.
+        apply* weaken_ty_trm_p.
       * apply general_to_tight_typing in H2.
         lets Hpt: (tight_possible_types_lemma_v Hg H2).
         assert (inert_typ T) as HgT. {
@@ -117,24 +117,24 @@ Proof.
         apply tpt_to_precise_lambda in Hpt. destruct Hpt as [L [S' [T' [Hss [Hs1 Hs2]]]]].
         destruct (precise_forall_inv Hss) as [t Heq]. subst. left.
         exists (L \u dom G \u \{ x0}) S' T' S T1 t.
-        split. apply* f_equal. split. apply* weaken_ty_trm. split. reflexivity.
+        split. apply* f_equal. split. apply* weaken_ty_trm_p. split. reflexivity.
         split. apply* weaken_subtyp. intros y Hy.
         apply (proj44 weaken_rules) with (G:=G & y ~ S). apply* Hs2. reflexivity.
         apply ok_push. apply* inert_ok. simpl_dom. rewrite notin_union. split*.
         assumption.
         apply tpt_to_precise_rec in Hpt.
         destruct (precise_bnd_inv Hpt) as [ds Heq]. subst. right. exists T1 ds.
-        split. reflexivity. split. apply* weaken_ty_trm. reflexivity.
+        split. reflexivity. split. apply* weaken_ty_trm_p. reflexivity.
         assumption.
     + specialize (IHwf_sto Hg Bi).
       destruct IHwf_sto as [[L [S [U [S' [U' [t [Hv [Ht [Heq [Hs1 Hs2]]]]]]]]]] |
                             [S [ds [Hv [Ht He]]]]].
       * left. exists (L \u dom G \u \{x0}) S U S' U' t. split. assumption. split.
-        apply* weaken_ty_trm.
+        apply* weaken_ty_trm_p.
         split. assumption. split. apply* weaken_subtyp.
         intros y Hy. apply (proj44 (weaken_rules)) with (G:=G & y ~ S'). apply* Hs2.
         reflexivity. apply ok_push. apply* inert_ok. auto.
-      * right. exists S ds. split. assumption. split. apply* weaken_ty_trm. assumption.
+      * right. exists S ds. split. assumption. split. apply* weaken_ty_trm_p. assumption.
 Qed.
 
 Lemma sto_binds_to_ctx_binds: forall G s x v,
@@ -186,7 +186,7 @@ Lemma val_new_typing: forall G s x T ds,
   wf_sto G s ->
   inert G ->
   binds x (val_new T ds) s ->
-  ty_trm ty_precise sub_general G (trm_val (val_new T ds)) (typ_bnd T).
+  ty_trm_p G (trm_val (val_new T ds)) (typ_bnd T).
 Proof.
   introv Hwf Hg Bis.
   assert (exists T, binds x T G) as Bi. {

@@ -19,9 +19,9 @@ If G ~ s and G |- x: all(x: T)U then s(x) = lambda(x: T')t where G |- T <: T' an
 Lemma canonical_forms_1: forall G s x T U,
   wf_sto G s ->
   inert G ->
-  ty_trm ty_general sub_general G (trm_var (avar_f x)) (typ_all T U) ->
-  (exists L T' t, binds x (val_lambda T' t) s /\ subtyp sub_general G T T' /\
-  (forall y, y \notin L -> ty_trm ty_general sub_general (G & y ~ T) (open_trm y t) (open_typ y U))).
+  ty_trm G (trm_var (avar_f x)) (typ_all T U) ->
+  (exists L T' t, binds x (val_lambda T' t) s /\ subtyp G T T' /\
+  (forall y, y \notin L -> ty_trm (G & y ~ T) (open_trm y t) (open_typ y U))).
 Proof.
   introv Hwf Hgd Hty.
   pose proof (general_to_tight_typing Hgd Hty) as Hti.
@@ -41,14 +41,14 @@ Proof.
       inversion H4; subst T U; clear H4.
       split. auto. intros y Hy.
       assert (y \notin L0) as Hy0 by auto. assert (y \notin L) as HyL by auto.
-      specialize (H3 y Hy0). apply narrow_typing with (G':=G & y ~ S1) in H3.
+      specialize (H1 y Hy0). apply narrow_typing with (G':=G & y ~ S1) in H1.
       apply ty_sub with (T:=open_typ y V).
       assumption. apply* Hs2. apply* subenv_last. apply* Hok.
     + apply tight_to_general in HSsub; auto.
-      assert (subtyp sub_general G T S) as HTS by (apply* subtyp_trans).
+      assert (subtyp G T S) as HTS by (apply* subtyp_trans).
       split; auto. intros y Hy. assert (y \notin L0) as Hy0 by auto.
-      specialize (H3 y Hy0).
-      apply narrow_typing with (G':=G & y ~ T) in H3. apply ty_sub with (T:=open_typ y V).
+      specialize (H1 y Hy0).
+      apply narrow_typing with (G':=G & y ~ T) in H1. apply ty_sub with (T:=open_typ y V).
       assumption. apply subtyp_trans with (T:=open_typ y V1).
       assert (y \notin L) as HL by auto.
       specialize (Hs2 y HL). apply narrow_subtyping with (G':=G & y ~ T) in Hs2.

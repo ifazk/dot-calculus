@@ -37,8 +37,8 @@ The proof is by a induction on typing derivations of G |- t: T.
 Lemma safety: forall G s t T,
     wf_sto G s ->
     inert G ->
-    ty_trm ty_general sub_general G t T ->
-    (normal_form t \/ (exists s' t' G' G'', red t s t' s' /\ G' = G & G'' /\ ty_trm ty_general sub_general G' t' T /\ wf_sto G' s')).
+    ty_trm G t T ->
+    (normal_form t \/ (exists s' t' G' G'', red t s t' s' /\ G' = G & G'' /\ ty_trm G' t' T /\ wf_sto G' s')).
 Proof.
   introv Hwf Hg H. dependent induction H; try solve [left; eauto].
   - (* All-E *) right.

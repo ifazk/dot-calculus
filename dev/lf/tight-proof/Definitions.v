@@ -243,23 +243,6 @@ Inductive red : trm -> sto -> trm -> sto -> Prop :=
 (* ###################################################################### *)
 (** ** Typing *)
 
-(* todo: get rid of tymode and submode entirely by defining separate typing relations for
-   ty_trm (general typing), ty_trm_t (tight typing), and ty_trm_p (precise typing).
-   The best way to do this is to define them in the order
-   1) ty_trm
-   2) ty_trm_p
-   3) ty_trm_t
-   so that they can depend on each other without needing mutual recursion.
-   If the proof somewhere is defined for both general and tight, or both general and precise,
-   we could do the following:
-   - start by proving everything only for the most general typing
-   - if the prove somewhere depends on having a lemma for tight/precise typing, but we proved it only for general
-     typing, then you could
-     * modify the statement of the lemma to apply for tight/precise typing; the proof should be easy to change
-     * add a short lemma that proves the same for general typing
-     * the proof of that lemma should work by invoking the original tight version of the lemma, plus
-       tight-to-general. *)
-
 (* Reserved Notation "G '|-' t '::' T" (at level 40, t at level 59). *)
 
 Inductive ty_trm : ctx -> trm -> typ -> Prop :=

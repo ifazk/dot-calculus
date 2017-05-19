@@ -54,11 +54,11 @@ Proof.
   introv Hwf Hg Bis.
   lets Htyv: (val_new_typing Hwf Hg Bis).
   inversion Htyv; subst.
-  - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H3 y FrL).
+  - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H1 y FrL).
     rewrite subst_intro_defs with (x:=y) by auto.
     rewrite subst_intro_typ with (x:=y) by auto.
     eapply subst_ty_defs.
-    + apply H3.
+    + apply H1.
     + eauto.
     + auto.
     + rewrite <- subst_intro_typ with (x:=y) by auto.
@@ -71,9 +71,9 @@ Lemma corresponding_types_ty_trms: forall G s ds x S,
   binds x (typ_bnd S) G ->
   binds x (val_new S ds) s ->
   (forall a T',
-      ty_trm ty_precise sub_general G (trm_var (avar_f x)) (typ_rcd (dec_trm a T')) ->
+      ty_trm_p G (trm_var (avar_f x)) (typ_rcd (dec_trm a T')) ->
       exists t, defs_has (open_defs x ds) (def_trm a t) /\
-           ty_trm ty_general sub_general G t T').
+           ty_trm G t T').
 Proof.
   introv Hwf Hg Bi Bis Hty.
   pose proof (new_ty_defs Hwf Hg Bis) as Htds.
@@ -90,8 +90,8 @@ Qed.
 Lemma canonical_forms_2: forall G s x a T,
   inert G ->
   wf_sto G s ->
-  ty_trm ty_general sub_general G (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
-  (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm ty_general sub_general G t T).
+  ty_trm G (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
+  (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm G t T).
 Proof.
   introv Hg Hwf Hty.
   pose proof (typing_implies_bound Hty) as [S Bi].
