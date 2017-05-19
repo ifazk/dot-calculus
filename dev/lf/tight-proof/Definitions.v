@@ -222,26 +222,26 @@ Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
 (* ###################################################################### *)
 (** ** Operational Semantics *)
 
-Reserved Notation "t1 '/' st1 '⇒' t2 '/' st2" (at level 40, t2 at level 39).
+Reserved Notation "t1 '/' st1 '=>' t2 '/' st2" (at level 40, t2 at level 39).
 
 (* todo: rewrite notations for red *)
 Inductive red : trm -> sto -> trm -> sto -> Prop :=
 | red_sel : forall x m s t T ds,
     binds x (val_new T ds) s ->
     defs_has (open_defs x ds) (def_trm m t) ->
-    trm_sel (avar_f x) m / s ⇒ t / s
+    trm_sel (avar_f x) m / s => t / s
 | red_app : forall f a s T t,
     binds f (val_lambda T t) s ->
-    trm_app (avar_f f) (avar_f a) / s ⇒ open_trm a t / s
+    trm_app (avar_f f) (avar_f a) / s => open_trm a t / s
 | red_let : forall v t s x,
     x # s ->
-    trm_let (trm_val v) t / s ⇒ open_trm x t / s & x ~ v
+    trm_let (trm_val v) t / s => open_trm x t / s & x ~ v
 | red_let_var : forall t s x,
-    trm_let (trm_var (avar_f x)) t / s ⇒ open_trm x t / s
+    trm_let (trm_var (avar_f x)) t / s => open_trm x t / s
 | red_let_tgt : forall t0 t s t0' s',
-    t0 / s ⇒ t0' / s' ->
-    trm_let t0 t / s ⇒ trm_let t0' t / s'
-where "t1 '/' st1 '⇒' t2 '/' st2" := (red t1 st1 t2 st2).
+    t0 / s => t0' / s' ->
+    trm_let t0 t / s => trm_let t0' t / s'
+where "t1 '/' st1 '=>' t2 '/' st2" := (red t1 st1 t2 st2).
 
 (* ###################################################################### *)
 (** ** Typing *)
