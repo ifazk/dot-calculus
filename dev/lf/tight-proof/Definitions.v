@@ -142,8 +142,7 @@ Definition open_defs u l := open_rec_defs  0 u l.
 
 Inductive record_dec : dec -> Prop :=
 | rd_typ : forall A T, record_dec (dec_typ A T T)
-| rd_trm : forall a T, record_dec (dec_trm a T)
-.
+| rd_trm : forall a T, record_dec (dec_trm a T).
 
 Inductive record_typ : typ -> fset label -> Prop :=
 | rt_one : forall D l,
@@ -223,36 +222,42 @@ Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
 (* ###################################################################### *)
 (** ** Operational Semantics *)
 
+Reserved Notation "t1 '/' st1 '⇒' t2 '/' st2" (at level 40, t2 at level 39).
+
+(* todo: rewrite notations for red *)
 Inductive red : trm -> sto -> trm -> sto -> Prop :=
 | red_sel : forall x m s t T ds,
     binds x (val_new T ds) s ->
     defs_has (open_defs x ds) (def_trm m t) ->
-    red (trm_sel (avar_f x) m) s t s
+    trm_sel (avar_f x) m / s ⇒ t / s
 | red_app : forall f a s T t,
     binds f (val_lambda T t) s ->
-    red (trm_app (avar_f f) (avar_f a)) s (open_trm a t) s
+    trm_app (avar_f f) (avar_f a) / s ⇒ open_trm a t / s
 | red_let : forall v t s x,
     x # s ->
-    red (trm_let (trm_val v) t) s (open_trm x t) (s & x ~ v)
+    trm_let (trm_val v) t / s ⇒ open_trm x t / s & x ~ v
 | red_let_var : forall t s x,
-    red (trm_let (trm_var (avar_f x)) t) s (open_trm x t) s
+    trm_let (trm_var (avar_f x)) t / s ⇒ open_trm x t / s
 | red_let_tgt : forall t0 t s t0' s',
-    red t0 s t0' s' ->
-    red (trm_let t0 t) s (trm_let t0' t) s'.
+    t0 / s ⇒ t0' / s' ->
+    trm_let t0 t / s ⇒ trm_let t0' t / s'
+where "t1 '/' st1 '⇒' t2 '/' st2" := (red t1 st1 t2 st2).
 
 (* ###################################################################### *)
 (** ** Typing *)
 
-(* Reserved Notation "G '|-' t '::' T" (at level 40, t at level 59). *)
+Class VDash (E T : Type) := vdash : ctx -> E -> T -> Prop.
+Notation "G '|-' e '::' T" := (vdash G e T) (at level 40, e at level 59).
+Reserved Notation "G '|-' T '<:' U" (at level 40, T at level 59).
 
-Inductive ty_trm : ctx -> trm -> typ -> Prop :=
+Inductive ty_trm : VDash trm typ :=
 | ty_var : forall G x T,
     binds x T G ->
-    ty_trm G (trm_var (avar_f x)) T
+    G |- trm_var (avar_f x) :: T
 | ty_all_intro : forall L G T t U,
     (forall x, x \notin L ->
-      ty_trm (G & x ~ T) (open_trm x t) (open_typ x U)) ->
-    ty_trm G (trm_val (val_lambda T t)) (typ_all T U)
+      G & x ~ T |- open_trm x t :: open_typ x U) ->
+    G |- trm_val (val_lambda T t) :: typ_all T U
 | ty_all_elim : forall G x z S T,
     ty_trm G (trm_var (avar_f x)) (typ_all S T) ->
     ty_trm G (trm_var (avar_f z)) S ->
@@ -283,16 +288,16 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     ty_trm G t T ->
     subtyp G T U ->
     ty_trm G t U
-with ty_def : ctx -> def -> dec -> Prop :=
+with ty_def : VDash def dec :=
 | ty_def_typ : forall G A T,
-    ty_def G (def_typ A T) (dec_typ A T T)
+    G |- def_typ A T :: dec_typ A T T
 | ty_def_trm : forall G a t T,
-    ty_trm G t T ->
-    ty_def G (def_trm a t) (dec_trm a T)
-with ty_defs : ctx -> defs -> typ -> Prop :=
+    G |- t :: T ->
+    G |- def_trm a t :: dec_trm a T
+with ty_defs : VDash defs typ :=
 | ty_defs_one : forall G d D,
-    ty_def G d D ->
-    ty_defs G (defs_cons defs_nil d) (typ_rcd D)
+    G |- d :: D ->
+    G |- defs_cons defs_nil d :: typ_rcd D
 | ty_defs_cons : forall G ds d T D,
     ty_defs G ds T ->
     ty_def G d D ->
@@ -301,9 +306,9 @@ with ty_defs : ctx -> defs -> typ -> Prop :=
 
 with subtyp : ctx -> typ -> typ -> Prop :=
 | subtyp_top: forall G T,
-    subtyp G T typ_top
+    G |- T <: typ_top
 | subtyp_bot: forall G T,
-    subtyp G typ_bot T
+    G |- typ_bot <: T
 | subtyp_refl: forall G T,
     subtyp G T T
 | subtyp_trans: forall G S T U,
@@ -335,12 +340,15 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     subtyp G S2 S1 ->
     (forall x, x \notin L ->
        subtyp (G & x ~ S2) (open_typ x T1) (open_typ x T2)) ->
-    subtyp G (typ_all S1 T1) (typ_all S2 T2).
+    subtyp G (typ_all S1 T1) (typ_all S2 T2)
+where "G '|-' T '<:' U" := (subtyp G T U).
+
+Reserved Notation "G '|-!' t '::' T" (at level 40, t at level 59).
 
 Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
 | ty_var_p : forall G x T,
     binds x T G ->
-    ty_trm_p G (trm_var (avar_f x)) T
+    G |-! trm_var (avar_f x) :: T
 | ty_all_intro_p : forall L G T t U,
     (forall x, x \notin L ->
       ty_trm (G & x ~ T) (open_trm x t) (open_typ x U)) ->
@@ -357,12 +365,16 @@ Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
     ty_trm_p G (trm_var (avar_f x)) T
 | ty_and2_p : forall G x T U,
     ty_trm_p G (trm_var (avar_f x)) (typ_and T U) ->
-    ty_trm_p G (trm_var (avar_f x)) U.
+    ty_trm_p G (trm_var (avar_f x)) U
+where "G '|-!' t '::' T" := (ty_trm_p G t T).
+
+Reserved Notation "G '|-#' t '::' T" (at level 40, t at level 59).
+Reserved Notation "G '|-#' T '<:' U" (at level 40, T at level 59).
 
 Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
 | ty_var_t : forall G x T,
     binds x T G ->
-    ty_trm_t G (trm_var (avar_f x)) T
+    G |-# trm_var (avar_f x) :: T
 | ty_all_intro_t : forall L G T t U,
     (forall x, x \notin L ->
       ty_trm (G & x ~ T) (open_trm x t) (open_typ x U)) ->
@@ -397,9 +409,11 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     ty_trm_t G t T ->
     subtyp_t G T U ->
     ty_trm_t G t U
+where "G '|-#' t '::' T" := (ty_trm_t G t T)
+
 with subtyp_t : ctx -> typ -> typ -> Prop :=
 | subtyp_top_t: forall G T,
-    subtyp_t G T typ_top
+    G |-# T <: typ_top
 | subtyp_bot_t: forall G T,
     subtyp_t G typ_bot T
 | subtyp_refl_t: forall G T,
@@ -433,16 +447,20 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
     subtyp_t G S2 S1 ->
     (forall x, x \notin L ->
        subtyp (G & x ~ S2) (open_typ x T1) (open_typ x T2)) ->
-    subtyp_t G (typ_all S1 T1) (typ_all S2 T2).
+    subtyp_t G (typ_all S1 T1) (typ_all S2 T2)
+where "G '|-#' T '<:' U" := (subtyp_t G T U).
+
+Reserved Notation "G '~~' s" (at level 40).
 
 Inductive wf_sto: ctx -> sto -> Prop :=
-| wf_sto_empty: wf_sto empty empty
+| wf_sto_empty: empty ~~ empty
 | wf_sto_push: forall G s x T v,
-    wf_sto G s ->
+    G ~~ s ->
     x # G ->
     x # s ->
     ty_trm G (trm_val v) T ->
-    wf_sto (G & x ~ T) (s & x ~ v).
+    G & x ~ T ~~ s & x ~ v
+where "G '~~' s" := (wf_sto G s).
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -497,7 +515,7 @@ Ltac pick_fresh x :=
 Ltac in_empty_contradiction :=
   solve [match goal with
   | H: _ \in \{} |- _ => rewrite in_empty in H; exfalso; exact H
-  end].
+  end].*)
 
 Ltac eq_specialize :=
   repeat match goal with
@@ -508,7 +526,7 @@ Ltac eq_specialize :=
   | H: forall _ _ _ _, _ = _ -> _ |- _ => specialize (H _ _ _ _ eq_refl)
   end.
 
-Ltac crush := eq_specialize; eauto.
+Ltac crush := eq_specialize; eauto.*)
 
 Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
   apply_fresh_base T gather_vars x.
