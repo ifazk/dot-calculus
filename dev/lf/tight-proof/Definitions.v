@@ -219,45 +219,85 @@ with fv_defs(ds: defs) : vars :=
 
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
 
+
+(* ###################################################################### *)
+(** ** Tactics *)
+
+Ltac gather_vars :=
+  let A := gather_vars_with (fun x : vars      => x         ) in
+  let B := gather_vars_with (fun x : var       => \{ x }    ) in
+  let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_ctx_types x)) in
+  let D := gather_vars_with (fun x : sto       => dom x     ) in
+  let E := gather_vars_with (fun x : avar      => fv_avar  x) in
+  let F := gather_vars_with (fun x : trm       => fv_trm   x) in
+  let G := gather_vars_with (fun x : val       => fv_val   x) in
+  let H := gather_vars_with (fun x : def       => fv_def   x) in
+  let I := gather_vars_with (fun x : defs      => fv_defs  x) in
+  let J := gather_vars_with (fun x : typ       => fv_typ   x) in
+  constr:(A \u B \u C \u D \u E \u F \u G \u H \u I \u J).
+
+Ltac pick_fresh x :=
+  let L := gather_vars in (pick_fresh_gen L x).
+
+Ltac in_empty_contradiction :=
+  solve [match goal with
+  | H: _ \in \{} |- _ => rewrite in_empty in H; exfalso; exact H
+  end].
+
+Ltac eq_specialize :=
+  repeat match goal with
+  | H:                 _ = _ -> _ |- _ => specialize (H         eq_refl)
+  | H: forall _      , _ = _ -> _ |- _ => specialize (H _       eq_refl)
+  | H: forall _ _    , _ = _ -> _ |- _ => specialize (H _ _     eq_refl)
+  | H: forall _ _ _  , _ = _ -> _ |- _ => specialize (H _ _ _   eq_refl)
+  | H: forall _ _ _ _, _ = _ -> _ |- _ => specialize (H _ _ _ _ eq_refl)
+  end.
+
+Ltac crush := eq_specialize; eauto.
+
+Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
+  apply_fresh_base T gather_vars x.
+
+
 (* ###################################################################### *)
 (** ** Operational Semantics *)
 
-Reserved Notation "t1 '/' st1 '⇒' t2 '/' st2" (at level 40, t2 at level 39).
+Reserved Notation "t1 '/' st1 '=>' t2 '/' st2" (at level 40, t2 at level 39).
 
-(* todo: rewrite notations for red *)
 Inductive red : trm -> sto -> trm -> sto -> Prop :=
 | red_sel : forall x m s t T ds,
     binds x (val_new T ds) s ->
     defs_has (open_defs x ds) (def_trm m t) ->
-    trm_sel (avar_f x) m / s ⇒ t / s
+    trm_sel (avar_f x) m / s => t / s
 | red_app : forall f a s T t,
     binds f (val_lambda T t) s ->
-    trm_app (avar_f f) (avar_f a) / s ⇒ open_trm a t / s
+    trm_app (avar_f f) (avar_f a) / s => open_trm a t / s
 | red_let : forall v t s x,
     x # s ->
-    trm_let (trm_val v) t / s ⇒ open_trm x t / s & x ~ v
+    trm_let (trm_val v) t / s => open_trm x t / s & x ~ v
 | red_let_var : forall t s x,
-    trm_let (trm_var (avar_f x)) t / s ⇒ open_trm x t / s
+    trm_let (trm_var (avar_f x)) t / s => open_trm x t / s
 | red_let_tgt : forall t0 t s t0' s',
-    t0 / s ⇒ t0' / s' ->
-    trm_let t0 t / s ⇒ trm_let t0' t / s'
-where "t1 '/' st1 '⇒' t2 '/' st2" := (red t1 st1 t2 st2).
+    t0 / s => t0' / s' ->
+    trm_let t0 t / s => trm_let t0' t / s'
+where "t1 '/' st1 '=>' t2 '/' st2" := (red t1 st1 t2 st2).
 
 (* ###################################################################### *)
 (** ** Typing *)
 
-Class VDash (E T : Type) := vdash : ctx -> E -> T -> Prop.
-Notation "G '|-' e '::' T" := (vdash G e T) (at level 40, e at level 59).
+Reserved Notation "G '|-' t '::' T" (at level 40, t at level 59).
 Reserved Notation "G '|-' T '<:' U" (at level 40, T at level 59).
+Reserved Notation "G '/-' d :: D" (at level 40, d at level 59).
+Reserved Notation "G '/-' ds ::: D" (at level 40, ds at level 59).
 
-Inductive ty_trm : VDash trm typ :=
+Inductive ty_trm : ctx -> trm -> typ -> Prop :=
 | ty_var : forall G x T,
     binds x T G ->
     G |- trm_var (avar_f x) :: T
 | ty_all_intro : forall L G T t U,
     (forall x, x \notin L ->
-      G & x ~ T |- open_trm x t :: open_typ x U) ->
-    G |- trm_val (val_lambda T t) :: typ_all T U
+      ty_trm (G & x ~ T) (open_trm x t) (open_typ x U)) ->
+    ty_trm G (trm_val (val_lambda T t)) (typ_all T U)
 | ty_all_elim : forall G x z S T,
     ty_trm G (trm_var (avar_f x)) (typ_all S T) ->
     ty_trm G (trm_var (avar_f z)) S ->
@@ -288,27 +328,32 @@ Inductive ty_trm : VDash trm typ :=
     ty_trm G t T ->
     subtyp G T U ->
     ty_trm G t U
-with ty_def : VDash def dec :=
+where "G '|-' t '::' T" := (ty_trm G t T)
+
+with ty_def : ctx -> def -> dec -> Prop :=
 | ty_def_typ : forall G A T,
-    G |- def_typ A T :: dec_typ A T T
+    G /- def_typ A T :: dec_typ A T T
 | ty_def_trm : forall G a t T,
     G |- t :: T ->
-    G |- def_trm a t :: dec_trm a T
-with ty_defs : VDash defs typ :=
+    G /- def_trm a t :: dec_trm a T
+where "G '/-' d '::' D" := (ty_def G d D)
+
+with ty_defs : ctx -> defs -> typ -> Prop :=
 | ty_defs_one : forall G d D,
-    G |- d :: D ->
-    G |- defs_cons defs_nil d :: typ_rcd D
+    G /- d :: D ->
+    G /- defs_cons defs_nil d ::: typ_rcd D
 | ty_defs_cons : forall G ds d T D,
-    ty_defs G ds T ->
-    ty_def G d D ->
+    G /- ds ::: T ->
+    G /- d :: D ->
     defs_hasnt ds (label_of_def d) ->
-    ty_defs G (defs_cons ds d) (typ_and T (typ_rcd D))
+    G /- defs_cons ds d ::: typ_and T (typ_rcd D)
+where "G '/-' ds ':::' T" := (ty_defs G ds T)
 
 with subtyp : ctx -> typ -> typ -> Prop :=
 | subtyp_top: forall G T,
     G |- T <: typ_top
 | subtyp_bot: forall G T,
-    G |- typ_bot <: T
+    subtyp G typ_bot T
 | subtyp_refl: forall G T,
     subtyp G T T
 | subtyp_trans: forall G S T U,
@@ -455,10 +500,10 @@ Reserved Notation "G '~~' s" (at level 40).
 Inductive wf_sto: ctx -> sto -> Prop :=
 | wf_sto_empty: empty ~~ empty
 | wf_sto_push: forall G s x T v,
-    G ~~ s ->
+    wf_sto G s ->
     x # G ->
     x # s ->
-    ty_trm G (trm_val v) T ->
+    G |- trm_val v :: T ->
     G & x ~ T ~~ s & x ~ v
 where "G '~~' s" := (wf_sto G s).
 
@@ -493,43 +538,6 @@ with   rules_defs_mut   := Induction for ty_defs   Sort Prop
 with   rules_subtyp     := Induction for subtyp    Sort Prop.
 Combined Scheme rules_mutind from rules_trm_mut, rules_def_mut, rules_defs_mut, rules_subtyp.
 
-(* ###################################################################### *)
-(** ** Tactics *)
-
-Ltac gather_vars :=
-  let A := gather_vars_with (fun x : vars      => x         ) in
-  let B := gather_vars_with (fun x : var       => \{ x }    ) in
-  let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_ctx_types x)) in
-  let D := gather_vars_with (fun x : sto       => dom x     ) in
-  let E := gather_vars_with (fun x : avar      => fv_avar  x) in
-  let F := gather_vars_with (fun x : trm       => fv_trm   x) in
-  let G := gather_vars_with (fun x : val       => fv_val   x) in
-  let H := gather_vars_with (fun x : def       => fv_def   x) in
-  let I := gather_vars_with (fun x : defs      => fv_defs  x) in
-  let J := gather_vars_with (fun x : typ       => fv_typ   x) in
-  constr:(A \u B \u C \u D \u E \u F \u G \u H \u I \u J).
-
-Ltac pick_fresh x :=
-  let L := gather_vars in (pick_fresh_gen L x).
-
-Ltac in_empty_contradiction :=
-  solve [match goal with
-  | H: _ \in \{} |- _ => rewrite in_empty in H; exfalso; exact H
-  end].*)
-
-Ltac eq_specialize :=
-  repeat match goal with
-  | H:                 _ = _ -> _ |- _ => specialize (H         eq_refl)
-  | H: forall _      , _ = _ -> _ |- _ => specialize (H _       eq_refl)
-  | H: forall _ _    , _ = _ -> _ |- _ => specialize (H _ _     eq_refl)
-  | H: forall _ _ _  , _ = _ -> _ |- _ => specialize (H _ _ _   eq_refl)
-  | H: forall _ _ _ _, _ = _ -> _ |- _ => specialize (H _ _ _ _ eq_refl)
-  end.
-
-Ltac crush := eq_specialize; eauto.*)
-
-Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
-  apply_fresh_base T gather_vars x.
 
 Hint Constructors
   ty_trm ty_def ty_defs subtyp

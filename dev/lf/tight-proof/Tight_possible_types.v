@@ -23,11 +23,13 @@ If S1 in SS and S2 in SS then (S1 & S2) in SS.
 If S in SS and G |-! y: {A: S..S} then y.A in SS.
  *)
 
+Reserved Notation "G '|-##' x '::' T" (at level 40, x at level 59).
+
 Inductive tight_pt : ctx -> var -> typ -> Prop :=
   (* Precise typing *)
 | t_pt_precise : forall G x T,
   ty_trm_p G (trm_var (avar_f x)) T ->
-  tight_pt G x T
+  G |-## x :: T
   (* Term member subtyping *)
 | t_pt_dec_trm : forall G x a T T',
   tight_pt G x (typ_rcd (dec_trm a T)) ->
@@ -64,7 +66,8 @@ Inductive tight_pt : ctx -> var -> typ -> Prop :=
   (* Top *)
 | t_pt_top : forall G x T,
   tight_pt G x T ->
-  tight_pt G x typ_top.
+  tight_pt G x typ_top
+where "G '|-##' x '::' T" := (tight_pt G x T).
 
 Hint Constructors tight_pt.
 
@@ -81,7 +84,7 @@ Proof.
   - inversion HT; auto. apply ty_and1_p in H. auto.
   - inversion HT; auto. apply ty_and2_p in H. auto.
   - inversions HT.
-    + false* precise_psel_false. 
+    + false* precise_psel_false.
     + pose proof (inert_unique_tight_bounds Hgd H H5) as Hu. subst. assumption.
 Qed.
 

@@ -20,11 +20,13 @@ If S1 in SS and S2 in SS then (S1 & S2) in SS.
 If S in SS and G |-! y: {A: S..S} then y.A in SS.
  *)
 
+Reserved Notation "G '|-##v' v '::' T" (at level 40, v at level 59).
+
 Inductive tight_pt_v : ctx -> val -> typ -> Prop :=
   (* Precise typing *)
 | t_pt_precise_v : forall G v T,
   ty_trm_p G (trm_val v) T ->
-  tight_pt_v G v T
+  G |-##v v :: T
   (* Forall *)
 | t_pt_all_v : forall L G v S T S' T',
   tight_pt_v G v (typ_all S T) ->
@@ -44,7 +46,8 @@ Inductive tight_pt_v : ctx -> val -> typ -> Prop :=
   (* Top *)
 | t_pt_top_v : forall G v T,
   tight_pt_v G v T ->
-  tight_pt_v G v typ_top.
+  tight_pt_v G v typ_top
+where "G '|-##v' v '::' T" := (tight_pt_v G v T).
 
 Hint Constructors tight_pt_v.
 
