@@ -12,7 +12,7 @@ Definition subenv(G1 G2: ctx) :=
   forall x T2, binds x T2 G2 ->
     binds x T2 G1 \/
     exists T1,
-      binds x T1 G1 /\ subtyp G1 T1 T2.
+      binds x T1 G1 /\ G1 |- T1 <: T2.
 
 Lemma subenv_push: forall G G' x T,
   subenv G' G ->
@@ -32,7 +32,7 @@ Proof.
 Qed.
 
 Lemma subenv_last: forall G x S U,
-  subtyp G S U ->
+  G |- S <: U ->
   ok (G & x ~ S) ->
   subenv (G & x ~ S) (G & x ~ U).
 Proof.
@@ -43,22 +43,22 @@ Proof.
 Qed.
 
 Lemma narrow_rules:
-  (forall G t T, ty_trm G t T -> forall G',
+  (forall G t T, G |- t :: T -> forall G',
     ok G' ->
     subenv G' G ->
-    ty_trm G' t T)
-/\ (forall G d D, ty_def G d D -> forall G',
+    G' |- t :: T)
+/\ (forall G d D, G /- d :: D -> forall G',
     ok G' ->
     subenv G' G ->
-    ty_def G' d D)
-/\ (forall G ds T, ty_defs G ds T -> forall G',
+    G' /- d :: D)
+/\ (forall G ds T, G /- ds ::: T -> forall G',
     ok G' ->
     subenv G' G ->
-    ty_defs G' ds T)
-/\ (forall G S U, subtyp G S U -> forall G',
+    G' /- ds ::: T)
+/\ (forall G S U, G |- S <: U -> forall G',
     ok G' ->
     subenv G' G ->
-    subtyp G' S U).
+    G' |- S <: U).
 Proof.
   apply rules_mutind; intros; eauto 4.
   - (* ty_var *)
@@ -85,17 +85,17 @@ Proof.
 Qed.
 
 Lemma narrow_typing: forall G G' t T,
-  ty_trm G t T ->
+  G |- t :: T ->
   subenv G' G -> ok G' ->
-  ty_trm G' t T.
+  G' |- t :: T.
 Proof.
   intros. apply* narrow_rules.
 Qed.
 
 Lemma narrow_subtyping: forall G G' S U,
-  subtyp G S U ->
+  G |- S <: U ->
   subenv G' G -> ok G' ->
-  subtyp G' S U.
+  G' |- S <: U.
 Proof.
   intros. apply* narrow_rules.
 Qed.

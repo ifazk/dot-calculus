@@ -14,11 +14,11 @@ Require Import Tight_possible_types.
 (* Lemma 1 *)
 Lemma tight_to_precise_typ_dec: forall G x A S U,
   inert G ->
-  ty_trm_t G (trm_var (avar_f x)) (typ_rcd (dec_typ A S U)) ->
+  G |-# trm_var (avar_f x) :: typ_rcd (dec_typ A S U) ->
   exists T,
-    ty_trm_p G (trm_var (avar_f x)) (typ_rcd (dec_typ A T T)) /\
-    subtyp_t G T U /\
-    subtyp_t G S T.
+    G |-! trm_var (avar_f x) :: typ_rcd (dec_typ A T T) /\
+    G |-# T <: U /\
+    G |-# S <: T.
 Proof.
   introv HG Ht.
   lets Htp: (tight_possible_types_lemma HG Ht). clear Ht.
@@ -32,10 +32,10 @@ Qed.
 
 Lemma tight_to_precise_trm_dec: forall G x a T,
   inert G ->
-  ty_trm_t G (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
+  G |-# trm_var (avar_f x) :: typ_rcd (dec_trm a T) ->
   exists T',
-    ty_trm_p G (trm_var (avar_f x)) (typ_rcd (dec_trm a T')) /\
-    subtyp_t G T' T.
+    G |-! trm_var (avar_f x) :: typ_rcd (dec_trm a T') /\
+    G |-# T' <: T.
 Proof.
   introv Hgd Ht.
   lets Htp: (tight_possible_types_lemma Hgd Ht). clear Ht.
@@ -48,13 +48,13 @@ Qed.
 
 Lemma tight_to_precise_typ_all: forall G x S T,
   inert G ->
-  ty_trm_t G (trm_var (avar_f x)) (typ_all S T) ->
+  G |-# trm_var (avar_f x) :: typ_all S T ->
   exists S' T' L,
-    ty_trm_p G (trm_var (avar_f x)) (typ_all S' T') /\
-    subtyp_t G S S' /\
+    G |-! trm_var (avar_f x) :: typ_all S' T' /\
+    G |-# S <: S' /\
     (forall y,
         y \notin L ->
-            subtyp (G & y ~ S) (open_typ y T') (open_typ y T))
+            G & y ~ S |- open_typ y T' <: open_typ y T)
     .
 Proof.
   introv HG Ht.
@@ -65,14 +65,14 @@ Proof.
     destruct IHHtp as [S' [T' [L' [Hpt [HSsub HTsub]]]]].
     exists S' T' (dom G \u L \u L').
     split; auto.
-    assert (Hsub2 : subtyp_t G (typ_all S0 T0) (typ_all S T)).
+    assert (Hsub2 : G |-# typ_all S0 T0 <: typ_all S T).
     { apply subtyp_all_t with (L:=L); assumption. }
     split.
     + eapply subtyp_trans_t; eauto.
     + intros y Fr.
       assert (Hok: ok (G & y ~ S)) by auto using ok_push, inert_ok.
       apply tight_to_general in H; auto.
-      assert (Hnarrow: subtyp (G & y ~ S) (open_typ y T') (open_typ y T0)).
+      assert (Hnarrow: G & y ~ S |- open_typ y T' <: open_typ y T0).
       { eapply narrow_subtyping; auto using subenv_last. }
       eauto.
 Qed.
@@ -80,9 +80,9 @@ Qed.
 (* Lemma 2 *)
 Lemma tight_subtyping_sel: forall G x A S U,
     inert G ->
-    ty_trm_t G (trm_var (avar_f x)) (typ_rcd (dec_typ A S U)) ->
+    G |-# trm_var (avar_f x) :: typ_rcd (dec_typ A S U) ->
     (subtyp_t G (typ_sel (avar_f x) A) U /\
-     subtyp_t G S (typ_sel (avar_f x) A)).
+     G |-# S <: typ_sel (avar_f x) A).
 Proof.
   introv HG Hty.
   pose proof (tight_to_precise_typ_dec HG Hty) as [T [Ht [Hs1 Hs2]]].
@@ -95,13 +95,13 @@ Qed.
 Lemma general_to_tight: forall G0,
   inert G0 ->
   (forall G t T,
-     ty_trm G t T ->
+     G |- t :: T ->
      G = G0 ->
-     ty_trm_t G t T) /\
+     G |-# t :: T) /\
   (forall G S U,
-     subtyp G S U ->
+     G |- S <: U ->
      G = G0 ->
-     subtyp_t G S U).
+     G |-# S <: U).
 Proof.
   intros G0 HG.
   apply ts_mutind; intros; subst; try solve [eapply tight_subtyping_sel; auto]; eauto.
@@ -109,8 +109,8 @@ Qed.
 
 Lemma general_to_tight_typing: forall G t T,
   inert G ->
-  ty_trm G t T ->
-  ty_trm_t G t T.
+  G |- t :: T ->
+  G |-# t :: T.
 Proof.
   intros. apply* general_to_tight.
 Qed.

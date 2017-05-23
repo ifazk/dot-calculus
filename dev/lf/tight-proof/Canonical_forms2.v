@@ -26,9 +26,9 @@ Proof.
 Qed.
 
 Lemma record_has_ty_defs: forall G T ds D,
-  ty_defs G ds T ->
+  G /- ds ::: T ->
   record_has T D ->
-  exists d, defs_has ds d /\ ty_def G d D.
+  exists d, defs_has ds d /\ G /- d :: D.
 Proof.
   introv Hdefs Hhas. induction Hdefs.
   - inversion Hhas; subst. exists d. split.
@@ -46,10 +46,10 @@ Proof.
 Qed.
 
 Lemma new_ty_defs: forall G s x T ds,
-  wf_sto G s ->
+  G ~~ s ->
   inert G ->
   binds x (val_new T ds) s ->
-  ty_defs G (open_defs x ds) (open_typ x T).
+  G /- open_defs x ds ::: open_typ x T.
 Proof.
   introv Hwf Hg Bis.
   lets Htyv: (val_new_typing Hwf Hg Bis).
@@ -66,14 +66,14 @@ Proof.
 Qed.
 
 Lemma corresponding_types_ty_trms: forall G s ds x S,
-  wf_sto G s ->
+  G ~~ s ->
   inert G ->
   binds x (typ_bnd S) G ->
   binds x (val_new S ds) s ->
   (forall a T',
-      ty_trm_p G (trm_var (avar_f x)) (typ_rcd (dec_trm a T')) ->
+      G |-! trm_var (avar_f x) :: typ_rcd (dec_trm a T') ->
       exists t, defs_has (open_defs x ds) (def_trm a t) /\
-           ty_trm G t T').
+           G |- t :: T').
 Proof.
   introv Hwf Hg Bi Bis Hty.
   pose proof (new_ty_defs Hwf Hg Bis) as Htds.
@@ -89,9 +89,9 @@ Qed.
 
 Lemma canonical_forms_2: forall G s x a T,
   inert G ->
-  wf_sto G s ->
-  ty_trm G (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
-  (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm G t T).
+  G ~~ s ->
+  G |- trm_var (avar_f x) :: typ_rcd (dec_trm a T) ->
+  (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ G |- t :: T).
 Proof.
   introv Hg Hwf Hty.
   pose proof (typing_implies_bound Hty) as [S Bi].

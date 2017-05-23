@@ -14,27 +14,27 @@ Require Import Narrowing.
 (** ** Well-formed store *)
 
 Lemma wf_sto_to_ok_G: forall s G,
-  wf_sto G s -> ok G.
+    G ~~ s -> ok G.
 Proof. intros. induction H; jauto. Qed.
 
 Hint Resolve wf_sto_to_ok_G.
 
 Lemma tpt_to_precise_rec: forall G v T,
-    tight_pt_v G v (typ_bnd T) ->
-    ty_trm_p G (trm_val v) (typ_bnd T).
+    G |-##v v :: typ_bnd T ->
+    G |-! trm_val v :: typ_bnd T.
 Proof.
   introv Ht.
   inversions Ht. assumption.
 Qed.
 
 Lemma tpt_to_precise_lambda: forall G v S T,
-    tight_pt_v G v (typ_all S T) ->
+    G |-##v v :: typ_all S T ->
     inert G ->
     exists L S' T',
-      ty_trm_p G (trm_val v) (typ_all S' T') /\
-      subtyp G S S' /\
+      G |-! trm_val v :: typ_all S' T' /\
+      G |- S <: S' /\
       (forall y, y \notin L ->
-                 subtyp (G & y ~ S) (open_typ y T') (open_typ y T)).
+                 G & y ~ S |- open_typ y T' <: open_typ y T).
 Proof.
   introv Ht Hg. dependent induction Ht.
   - exists (dom G) S T. split*.
@@ -51,7 +51,7 @@ Proof.
 Qed.
 
 Lemma precise_forall_inv : forall G v S T,
-    ty_trm_p G (trm_val v) (typ_all S T) ->
+    G |-! trm_val v :: typ_all S T ->
     exists t,
       v = val_lambda S t.
 Proof.
@@ -59,7 +59,7 @@ Proof.
 Qed.
 
 Lemma precise_bnd_inv : forall G v S,
-    ty_trm_p G (trm_val v) (typ_bnd S) ->
+    G |-! trm_val v :: typ_bnd S ->
     exists ds,
       v = val_new S ds.
 Proof.
@@ -67,14 +67,14 @@ Proof.
 Qed.
 
 Lemma precise_obj_typ : forall G T ds U,
-    ty_trm_p G (trm_val (val_new T ds)) U ->
+    G |-! trm_val (val_new T ds) :: U ->
     U = typ_bnd T.
 Proof.
   introv Hp. dependent induction Hp; auto.
 Qed.
 
 Lemma tpt_obj_all : forall G S ds T U,
-    tight_pt_v G (val_new S ds) (typ_all T U) ->
+    G |-##v val_new S ds :: typ_all T U ->
     False.
 Proof.
   introv Ht. dependent induction Ht.
@@ -83,18 +83,18 @@ Proof.
 Qed.
 
 Lemma corresponding_types: forall G s x T,
-  wf_sto G s ->
-  inert G ->
-  binds x T G ->
-  ((exists L S U S' U' t, binds x (val_lambda S t) s /\
-                  ty_trm_p G (trm_val (val_lambda S t)) (typ_all S U) /\
-                  T = typ_all S' U' /\
-                  subtyp G S' S /\
-                  (forall y, y \notin L ->
-                  subtyp (G & y ~ S') (open_typ y U) (open_typ y U'))) \/
-   (exists S ds, binds x (val_new S ds) s /\
-                 ty_trm_p G (trm_val (val_new S ds)) (typ_bnd S) /\
-                 T = typ_bnd S)).
+    G ~~ s ->
+    inert G ->
+    binds x T G ->
+    ((exists L S U S' U' t, binds x (val_lambda S t) s /\
+                       G |-! trm_val (val_lambda S t) :: typ_all S U /\
+                       T = typ_all S' U' /\
+                       G |- S' <: S /\
+                                 (forall y, y \notin L ->
+                                       G & y ~ S' |- open_typ y U <: open_typ y U')) \/
+     (exists S ds, binds x (val_new S ds) s /\
+              G |-! trm_val (val_new S ds) :: typ_bnd S /\
+              T = typ_bnd S)).
 Proof.
   introv H Hgd Bi. induction H.
   - false* binds_empty_inv.
@@ -138,7 +138,7 @@ Proof.
 Qed.
 
 Lemma sto_binds_to_ctx_binds: forall G s x v,
-  wf_sto G s -> binds x v s -> exists S, binds x S G.
+  G ~~ s -> binds x v s -> exists S, binds x S G.
 Proof.
   introv Hwf Bis.
   remember Hwf as Hwf'. clear HeqHwf'.
@@ -151,7 +151,7 @@ Proof.
 Qed.
 
 Lemma wf_sto_val_new_in_G: forall G s x T ds,
-  wf_sto G s ->
+  G ~~ s ->
   inert G ->
   binds x (val_new T ds) s ->
   binds x (typ_bnd T) G.
@@ -183,10 +183,10 @@ Proof.
 Qed.
 
 Lemma val_new_typing: forall G s x T ds,
-  wf_sto G s ->
+  G ~~ s ->
   inert G ->
   binds x (val_new T ds) s ->
-  ty_trm_p G (trm_val (val_new T ds)) (typ_bnd T).
+  G |-! trm_val (val_new T ds) :: typ_bnd T.
 Proof.
   introv Hwf Hg Bis.
   assert (exists T, binds x T G) as Bi. {
