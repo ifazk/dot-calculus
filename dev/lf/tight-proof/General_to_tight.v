@@ -81,7 +81,7 @@ Qed.
 Lemma tight_subtyping_sel: forall G x A S U,
     inert G ->
     G |-# trm_var (avar_f x) :: typ_rcd (dec_typ A S U) ->
-    (subtyp_t G (typ_sel (avar_f x) A) U /\
+    (G |-# typ_sel (avar_f x) A <: U /\
      G |-# S <: typ_sel (avar_f x) A).
 Proof.
   introv HG Hty.

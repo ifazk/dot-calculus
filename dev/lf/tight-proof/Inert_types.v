@@ -118,15 +118,6 @@ Proof.
     eexists. apply* rt_one.
 Qed.
 
-Lemma pf_inert_lambda_T : forall G x T U S,
-    inert G ->
-    precise_flow x G (typ_all T U) S ->
-    S = typ_all T U.
-Proof.
-  introv Hi Pf. dependent induction Pf;
-                  try (specialize (IHPf T U Hi eq_refl); inversion IHPf); auto.
-Qed.
-
 Lemma pf_inert_bnd_U: forall G x T U,
     inert G ->
     precise_flow x G T (typ_bnd U) ->
@@ -135,9 +126,9 @@ Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf). inversions HT; dependent induction Pf; auto.
   - destruct U0; inversions x.
-    apply pf_inert_lambda_T in Pf. inversion* Pf. assumption.
-  - apply pf_inert_lambda_T in Pf. inversion Pf. assumption.
-  - apply pf_inert_lambda_T in Pf. inversion Pf. assumption.
+    apply precise_flow_all_inv in Pf. inversion* Pf. 
+  - apply precise_flow_all_inv in Pf. inversion Pf. 
+  - apply precise_flow_all_inv in Pf. inversion Pf. 
   - specialize (IHPf U0 Hi T0 eq_refl eq_refl H).
     destruct (pf_inert_or_rcd Hi Pf) as [Heq | Hr].
     * inversions Heq. destruct T0; inversions x. inversion H. inversion H0.
@@ -157,9 +148,9 @@ Lemma pf_inert_rcd_U: forall G x T D,
 Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf). inversions HT; dependent induction Pf; auto.
-  - apply (pf_inert_lambda_T Hi) in Pf. inversion Pf.
-  - apply (pf_inert_lambda_T Hi) in Pf. inversion Pf.
-  - apply pf_inert_lambda_T in Pf. inversion Pf. assumption.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. inversion Pf. 
   - apply (pf_inert_bnd_U Hi) in Pf. exists* U.
   - exists* T0.
   - exists* T0.
@@ -174,9 +165,9 @@ Proof.
   introv Hi Pf Hr.
   lets HT: (pf_inert_T Hi Pf). inversions HT; dependent induction Pf; auto.
   - inversion Hr. inversion H0.
-  - apply (pf_inert_lambda_T Hi) in Pf. inversion Pf.
-  - apply (pf_inert_lambda_T Hi) in Pf. inversion Pf.
-  - apply pf_inert_lambda_T in Pf. inversion Pf. assumption.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. inversion Pf. 
   - inversion Hr. inversion H1.
   - apply (pf_inert_bnd_U Hi) in Pf. exists* U.
   - apply* IHPf. destruct (pf_inert_or_rcd Hi Pf) as [H1 | H1]. inversion H1. assumption.
@@ -200,7 +191,7 @@ Proof.
   introv Hi Pf.
   lets Hiu: (pf_inert_T Hi Pf).
   inversions Hiu.
-  - apply (pf_inert_lambda_T Hi) in Pf. inversion* Pf.
+  - apply precise_flow_all_inv in Pf. inversion* Pf.
   - destruct (pf_inert_or_rcd Hi Pf) as [H1 | H1]; inversions H1. inversion H0.
 Qed.
 
@@ -211,7 +202,7 @@ Lemma pf_bot_false : forall G x T,
 Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf). inversions HT.
-  - apply (pf_inert_lambda_T Hi) in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
   - destruct (pf_inert_or_rcd Hi Pf); inversion H0. inversion H1.
 Qed.
 
@@ -231,7 +222,7 @@ Lemma pf_psel_false : forall G T x y A,
 Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf). inversions HT.
-  - apply (pf_inert_lambda_T Hi) in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
   - destruct (pf_inert_or_rcd Hi Pf); inversion H0. inversion H1.
 Qed.
 
