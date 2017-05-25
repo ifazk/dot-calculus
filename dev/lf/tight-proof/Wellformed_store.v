@@ -68,7 +68,7 @@ Proof.
 Qed.
 
 Lemma wt_notin_dom: forall G S sto l,
-  wt_store G S sto ->
+  G, S |~ sto ->
   l # S ->
   l \notindom sto.
 Proof.
