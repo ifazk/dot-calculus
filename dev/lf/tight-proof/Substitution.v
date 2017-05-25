@@ -224,37 +224,37 @@ Qed.
 (** ** The substitution principle *)
 
 Lemma subst_rules: forall y U,
-  (forall G S t T, G, S |- t :: T -> forall G1 G2 S1 S2 x,
+  (forall G S t T, G, S |- t : T -> forall G1 G2 S1 S2 x,
     G = G1 & x ~ U & G2 ->
     ok (G1 & x ~ U & G2) ->
     x \notin fv_env_types G1 ->
     S = S1 & S2 ->
     x \notin fv_env_types S1 ->
-    G1 & (subst_env x y G2), S1 & (subst_env x y S2) |- trm_var (avar_f y) :: subst_typ x y U ->
-    G1 & (subst_env x y G2), S1 & (subst_env x y S2) |- subst_trm x y t :: subst_typ x y T) /\
-  (forall G S d D, G, S /- d :: D -> forall G1 G2 S1 S2 x,
+    G1 & (subst_env x y G2), S1 & (subst_env x y S2) |- trm_var (avar_f y) : subst_typ x y U ->
+    G1 & (subst_env x y G2), S1 & (subst_env x y S2) |- subst_trm x y t : subst_typ x y T) /\
+  (forall G S d D, G, S /- d : D -> forall G1 G2 S1 S2 x,
     G = G1 & x ~ U & G2 ->
     ok (G1 & x ~ U & G2) ->
     x \notin fv_env_types G1 ->
     S = S1 & S2 ->
     x \notin fv_env_types S1 ->
-    G1 & (subst_env x y G2), S1 & (subst_env x y S2) |- trm_var (avar_f y) :: subst_typ x y U ->
-    G1 & (subst_env x y G2), S1 & (subst_env x y S2) /- subst_def x y d :: subst_dec x y D) /\
-  (forall G S ds T, G, S /- ds ::: T -> forall G1 G2 S1 S2 x,
+    G1 & (subst_env x y G2), S1 & (subst_env x y S2) |- trm_var (avar_f y) : subst_typ x y U ->
+    G1 & (subst_env x y G2), S1 & (subst_env x y S2) /- subst_def x y d : subst_dec x y D) /\
+  (forall G S ds T, G, S /- ds :: T -> forall G1 G2 S1 S2 x,
     G = G1 & x ~ U & G2 ->
     ok (G1 & x ~ U & G2) ->
     x \notin fv_env_types G1 ->
     S = S1 & S2 ->
     x \notin fv_env_types S1 ->
-    G1 & (subst_env x y G2), S1 & (subst_env x y S2) |- trm_var (avar_f y) :: subst_typ x y U ->
-    G1 & (subst_env x y G2), S1 & (subst_env x y S2) /- subst_defs x y ds ::: subst_typ x y T) /\
+    G1 & (subst_env x y G2), S1 & (subst_env x y S2) |- trm_var (avar_f y) : subst_typ x y U ->
+    G1 & (subst_env x y G2), S1 & (subst_env x y S2) /- subst_defs x y ds :: subst_typ x y T) /\
   (forall G S T V, G, S |- T <: V -> forall G1 G2 S1 S2 x,
     G = G1 & x ~ U & G2 ->
     ok (G1 & x ~ U & G2) ->
     x \notin fv_env_types G1 ->
     S = S1 & S2 ->
     x \notin fv_env_types S1 ->
-    G1 & (subst_env x y G2), S1 & (subst_env x y S2) |- trm_var (avar_f y) :: subst_typ x y U ->
+    G1 & (subst_env x y G2), S1 & (subst_env x y S2) |- trm_var (avar_f y) : subst_typ x y U ->
     G1 & (subst_env x y G2), S1 & (subst_env x y S2) |- subst_typ x y T <: subst_typ x y V).
 Proof.
   intros y U. apply rules_mutind; intros; subst.
@@ -418,12 +418,12 @@ Proof.
 Qed.
 
 Lemma subst_ty_trm: forall y V G S x t T,
-    G & x ~ V, S |- t :: T ->
+    G & x ~ V, S |- t : T ->
     ok (G & x ~ V) ->
     x \notin fv_env_types G ->
     x \notin fv_env_types S ->
-    G, S |- trm_var (avar_f y) :: subst_typ x y V ->
-    G, S |- subst_trm x y t :: subst_typ x y T.
+    G, S |- trm_var (avar_f y) : subst_typ x y V ->
+    G, S |- subst_trm x y t : subst_typ x y T.
 Proof.
   intros.
   apply (proj51 (subst_rules y V)) with (G1:=G) (G2:=empty) (S1:=S) (S2:=empty) (x:=x) in H; try assumption.
@@ -436,12 +436,12 @@ Proof.
 Qed.
 
 Lemma subst_ty_defs: forall y V G S x ds T,
-    G & x ~ V, S /- ds ::: T ->
+    G & x ~ V, S /- ds :: T ->
     ok (G & x ~ V) ->
     x \notin fv_env_types G ->
     x \notin fv_env_types S ->
-    G, S |- trm_var (avar_f y) :: subst_typ x y V ->
-    G, S /- subst_defs x y ds ::: subst_typ x y T.
+    G, S |- trm_var (avar_f y) : subst_typ x y V ->
+    G, S /- subst_defs x y ds :: subst_typ x y T.
 Proof.
   intros.
   apply (proj53 (subst_rules y V)) with (G1:=G) (G2:=empty) (S1:=S) (S2:=empty) (x:=x) in H; try rewrite concat_empty_r; auto.

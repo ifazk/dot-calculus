@@ -110,18 +110,18 @@ Proof.
 Qed.
 
 Lemma tpt_to_precise_rec: forall G S v T,
-    G, S |-##v v :: typ_bnd T ->
-    G, S |-! trm_val v :: typ_bnd T.
+    G, S |-##v v : typ_bnd T ->
+    G, S |-! trm_val v : typ_bnd T.
 Proof.
   introv Ht.
   inversions Ht. assumption.
 Qed.
 
 Lemma tpt_to_precise_lambda: forall G S v V T,
-    G, S |-##v v :: typ_all V T ->
+    G, S |-##v v : typ_all V T ->
     inert G ->
     exists L V' T',
-      G, S |-! trm_val v :: typ_all V' T' /\
+      G, S |-! trm_val v : typ_all V' T' /\
       G, S |- V <: V' /\
       (forall y, y \notin L ->
             G & y ~ V, S |- open_typ y T' <: open_typ y T).
@@ -141,9 +141,9 @@ Proof.
 Qed.
 
 Lemma tpt_to_precise_loc: forall G S v T,
-    G, S |-##v v :: typ_ref T ->
+    G, S |-##v v : typ_ref T ->
     exists T',
-      G, S |-! trm_val v :: typ_ref T' /\
+      G, S |-! trm_val v : typ_ref T' /\
       G, S |- T' <: T /\
       G, S |- T <: T'.
 Proof.
@@ -158,7 +158,7 @@ Proof.
 Qed.
 
 Lemma precise_forall_inv : forall G S v V T,
-    G, S |-! trm_val v :: typ_all V T ->
+    G, S |-! trm_val v : typ_all V T ->
     exists t,
       v = val_lambda V t.
 Proof.
@@ -167,7 +167,7 @@ Qed.
 
 
 Lemma precise_bnd_inv : forall G S v T,
-    G, S |-! trm_val v :: typ_bnd T ->
+    G, S |-! trm_val v : typ_bnd T ->
     exists ds,
       v = val_new T ds.
 Proof.
@@ -175,7 +175,7 @@ Proof.
 Qed.
 
 Lemma precise_ref_inv : forall G S v T,
-    G, S |-! trm_val v :: typ_ref T ->
+    G, S |-! trm_val v : typ_ref T ->
     exists l,
       v = val_loc l.
 Proof.
@@ -183,14 +183,14 @@ Proof.
 Qed.
 
 Lemma precise_obj_typ : forall G S T ds U,
-    G, S |-! trm_val (val_new T ds) :: U ->
+    G, S |-! trm_val (val_new T ds) : U ->
     U = typ_bnd T.
 Proof.
   introv Hp. dependent induction Hp; auto.
 Qed.
 
 Lemma precise_loc_typ : forall G S l T,
-    G, S |-! trm_val (val_loc l) :: T ->
+    G, S |-! trm_val (val_loc l) : T ->
     exists U,
       T = typ_ref U.
 Proof.
@@ -198,7 +198,7 @@ Proof.
 Qed.
 
 Lemma tpt_obj_all : forall G S V ds T U,
-    G, S |-##v val_new V ds :: typ_all T U ->
+    G, S |-##v val_new V ds : typ_all T U ->
     False.
 Proof.
   introv Ht. dependent induction Ht.
@@ -207,7 +207,7 @@ Proof.
 Qed.
 
 Lemma tpt_obj_ref : forall G S V ds T,
-    G, S |-##v val_new V ds :: typ_ref T ->
+    G, S |-##v val_new V ds : typ_ref T ->
     False.
 Proof.
   introv Ht. dependent induction Ht.
@@ -220,16 +220,16 @@ Lemma corresponding_types: forall G S s x T,
   inert G ->
   binds x T G ->
   ((exists L V U V' U' t, binds x (val_lambda V t) s /\
-                     G, S |-! trm_val (val_lambda V t) :: typ_all V U /\
+                     G, S |-! trm_val (val_lambda V t) : typ_all V U /\
                      T = typ_all V' U' /\
                      G, S |- V' <: V /\
                                   (forall y, y \notin L ->
                                         G & y ~ V', S |- open_typ y U <: open_typ y U')) \/
    (exists V ds, binds x (val_new V ds) s /\
-            G, S |-! trm_val (val_new V ds) :: typ_bnd V /\
+            G, S |-! trm_val (val_new V ds) : typ_bnd V /\
             T = typ_bnd V) \/
    (exists V V' l, binds x (val_loc l) s /\
-              G, S |-! trm_val (val_loc l) :: typ_ref V /\
+              G, S |-! trm_val (val_loc l) : typ_ref V /\
               T = typ_ref V' /\
               G, S |- V <: V' /\
               G, S |- V' <: V)).
@@ -350,12 +350,12 @@ Qed.
 Lemma precise_ref_subtyping: forall G S sta sto x l T,
     inert G -> 
     binds x (val_loc l) sta ->
-    G, S |-# trm_var (avar_f x) :: typ_ref T ->
-    G, S |-# trm_val (val_loc l) :: typ_ref T ->
+    G, S |-# trm_var (avar_f x) : typ_ref T ->
+    G, S |-# trm_val (val_loc l) : typ_ref T ->
     G, S ~~ sta ->
     G, S |~ sto ->
     exists U,
-      (G, S |-! trm_val (val_loc l) :: typ_ref U /\
+      (G, S |-! trm_val (val_loc l) : typ_ref U /\
        G, S |- T <: U /\
        G, S |- U <: T).
 Proof.
@@ -380,7 +380,7 @@ Lemma val_new_typing: forall G S s x T ds,
   G, S ~~ s ->
   inert G ->
   binds x (val_new T ds) s ->
-  G, S |-! trm_val (val_new T ds) :: typ_bnd T.
+  G, S |-! trm_val (val_new T ds) : typ_bnd T.
 Proof.
   introv Hwf Hg Bis.
   assert (exists T, binds x T G) as Bi. {

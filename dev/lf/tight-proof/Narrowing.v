@@ -43,18 +43,18 @@ Proof.
 Qed.
 
 Lemma narrow_rules:
-  (forall G S t T, G, S |- t :: T -> forall G',
+  (forall G S t T, G, S |- t : T -> forall G',
     ok G' ->
     subenv G' G S ->
-    G', S |- t :: T)
-/\ (forall G S d D, G, S /- d :: D -> forall G',
+    G', S |- t : T)
+/\ (forall G S d D, G, S /- d : D -> forall G',
     ok G' ->
     subenv G' G S ->
-    G', S /- d :: D)
-/\ (forall G S ds T, G, S /- ds ::: T -> forall G',
+    G', S /- d : D)
+/\ (forall G S ds T, G, S /- ds :: T -> forall G',
     ok G' ->
     subenv G' G S ->
-    G', S /- ds ::: T)
+    G', S /- ds :: T)
 /\ (forall G S V U, G, S |- V <: U -> forall G',
     ok G' ->
     subenv G' G S ->
@@ -85,9 +85,9 @@ Proof.
 Qed.
 
 Lemma narrow_typing: forall G G' S t T,
-  G, S |- t :: T ->
+  G, S |- t : T ->
   subenv G' G S -> ok G' ->
-  G', S |- t :: T.
+  G', S |- t : T.
 Proof.
   intros. apply* narrow_rules.
 Qed.

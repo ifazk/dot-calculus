@@ -8,18 +8,18 @@ Require Import Definitions.
 (** ** Weakening *)
 
 Lemma weaken_rules_ctx:
-  (forall G S t T, G, S |- t :: T -> forall G1 G2 G3,
+  (forall G S t T, G, S |- t : T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3, S |- t :: T) /\
-  (forall G S d D, G, S /- d :: D -> forall G1 G2 G3,
+    G1 & G2 & G3, S |- t : T) /\
+  (forall G S d D, G, S /- d : D -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3, S /- d :: D) /\
-  (forall G S ds T, G, S /- ds ::: T -> forall G1 G2 G3,
+    G1 & G2 & G3, S /- d : D) /\
+  (forall G S ds T, G, S /- ds :: T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3, S /- ds ::: T) /\
+    G1 & G2 & G3, S /- ds :: T) /\
   (forall G S T U, G, S |- T <: U -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
@@ -56,18 +56,18 @@ Proof.
 Qed.
 
 Lemma weaken_rules_sigma:
-  (forall G S t T, G, S |- t :: T -> forall S1 S2 S3,
+  (forall G S t T, G, S |- t : T -> forall S1 S2 S3,
     S = S1 & S3 ->
     ok (S1 & S2 & S3) ->
-    G, S1 & S2 & S3 |- t :: T) /\
-  (forall G S d D, G, S /- d :: D -> forall S1 S2 S3,
+    G, S1 & S2 & S3 |- t : T) /\
+  (forall G S d D, G, S /- d : D -> forall S1 S2 S3,
     S = S1 & S3 ->
     ok (S1 & S2 & S3) ->
-    G, S1 & S2 & S3 /- d :: D) /\
-  (forall G S ds T, G, S /- ds ::: T -> forall S1 S2 S3,
+    G, S1 & S2 & S3 /- d : D) /\
+  (forall G S ds T, G, S /- ds :: T -> forall S1 S2 S3,
     S = S1 & S3 ->
     ok (S1 & S2 & S3) ->
-    G, S1 & S2 & S3 /- ds ::: T) /\
+    G, S1 & S2 & S3 /- ds :: T) /\
   (forall G S T U, G, S |- T <: U -> forall S1 S2 S3,
     S = S1 & S3 ->
     ok (S1 & S2 & S3) ->
@@ -79,9 +79,9 @@ Proof.
 Qed.
 
 Lemma weaken_ty_trm_ctx: forall G1 G2 S t T,
-    G1, S |- t :: T ->
+    G1, S |- t : T ->
     ok (G1 & G2) ->
-    G1 & G2, S |- t :: T.
+    G1 & G2, S |- t : T.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {
@@ -93,9 +93,9 @@ Proof.
 Qed.
 
 Lemma weaken_ty_trm_sigma: forall G S1 S2 t T,
-  G, S1 |- t :: T ->
+  G, S1 |- t : T ->
   ok (S1 & S2) ->
-  G, S1 & S2 |- t :: T.
+  G, S1 & S2 |- t : T.
 Proof.
   intros. assert (S1 & S2 = S1 & S2 & empty) as EqS. {
     rewrite concat_empty_r. reflexivity.
@@ -134,11 +134,11 @@ Proof.
 Qed.
 
 Lemma weaken_rules_ctx_p: forall G S t T, 
-    G, S |-! t :: T -> 
+    G, S |-! t : T -> 
        forall G1 G2 G3,
          G = G1 & G3 ->
          ok (G1 & G2 & G3) ->
-         G1 & G2 & G3, S |-! t :: T.
+         G1 & G2 & G3, S |-! t : T.
 Proof.
   intros. induction* H.
   - apply ty_var_p. apply* binds_weaken. subst*.
@@ -165,9 +165,9 @@ Proof.
 Qed.
 
 Lemma weaken_ty_trm_ctx_p: forall G1 G2 S t T,
-    G1, S |-! t :: T ->
+    G1, S |-! t : T ->
     ok (G1 & G2) ->
-    G1 & G2, S |-! t :: T.
+    G1 & G2, S |-! t : T.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {
@@ -179,11 +179,11 @@ Proof.
 Qed.
 
 Lemma weaken_rules_sigma_p: forall G S t T, 
-    G, S |-! t :: T -> 
+    G, S |-! t : T -> 
        forall S1 S2 S3,
          S = S1 & S3 ->
          ok (S1 & S2 & S3) ->
-         G, S1 & S2 & S3 |-! t :: T.
+         G, S1 & S2 & S3 |-! t : T.
 Proof.
   intros. induction H; try solve [eauto]; subst.
   - apply ty_loc_p. apply* binds_weaken.
@@ -198,9 +198,9 @@ Proof.
 Qed.
 
 Lemma weaken_ty_trm_sigma_p: forall G S1 S2 t T,
-  G, S1 |-! t :: T ->
+  G, S1 |-! t : T ->
   ok (S1 & S2) ->
-  G, S1 & S2 |-! t :: T.
+  G, S1 & S2 |-! t : T.
 Proof.
   intros. assert (S1 & S2 = S1 & S2 & empty) as EqS. {
     rewrite concat_empty_r. reflexivity.

@@ -323,82 +323,82 @@ where "t1 '/' sta1 '/' sto1 '=>' t2 '/' sta2 '/' sto2" := (red t1 sta1 sto1 t2 s
 (* ###################################################################### *)
 (** ** Typing *)
 
-Reserved Notation "G ',' S '|-' t '::' T" (at level 40, S at level 58, t at level 59).
+Reserved Notation "G ',' S '|-' t ':' T" (at level 40, S at level 58, t at level 59).
 Reserved Notation "G ',' S '|-' T '<:' U" (at level 40, S at level 58, T at level 59).
-Reserved Notation "G ',' S '/-' d '::' D" (at level 40, S at level 58, d at level 59).
-Reserved Notation "G ',' S '/-' ds ':::' D" (at level 40, S at level 58, ds at level 59).
+Reserved Notation "G ',' S '/-' d ':' D" (at level 40, S at level 58, d at level 59).
+Reserved Notation "G ',' S '/-' ds '::' D" (at level 40, S at level 58, ds at level 59).
 
 Inductive ty_trm : ctx -> sigma -> trm -> typ -> Prop :=
 | ty_var : forall G S x T,
     binds x T G ->
-    G, S |- trm_var (avar_f x) :: T
+    G, S |- trm_var (avar_f x) : T
 | ty_loc : forall G S l T,
     binds l T S ->
-    G, S |- trm_val (val_loc l) :: typ_ref T
+    G, S |- trm_val (val_loc l) : typ_ref T
 | ty_all_intro : forall L G S T t U,
     (forall x, x \notin L ->
-          G & x ~ T, S |- open_trm x t :: open_typ x U) ->
-    G, S |- trm_val (val_lambda T t) :: typ_all T U
+          G & x ~ T, S |- open_trm x t : open_typ x U) ->
+    G, S |- trm_val (val_lambda T t) : typ_all T U
 | ty_all_elim : forall G S x z V T,
-    G, S |- trm_var (avar_f x) :: typ_all V T ->
-    G, S |- trm_var (avar_f z) :: V ->
-    G, S |- trm_app (avar_f x) (avar_f z) :: open_typ z T
+    G, S |- trm_var (avar_f x) : typ_all V T ->
+    G, S |- trm_var (avar_f z) : V ->
+    G, S |- trm_app (avar_f x) (avar_f z) : open_typ z T
 | ty_new_intro : forall L G S T ds,
     (forall x, x \notin L ->
-          G & x ~ open_typ x T, S /- open_defs x ds ::: open_typ x T) ->
-    G, S |- trm_val (val_new T ds) :: typ_bnd T
+          G & x ~ open_typ x T, S /- open_defs x ds :: open_typ x T) ->
+    G, S |- trm_val (val_new T ds) : typ_bnd T
 | ty_new_elim : forall G S x m T,
-    G, S |- trm_var (avar_f x) :: typ_rcd (dec_trm m T) ->
-    G, S |- trm_sel (avar_f x) m :: T
+    G, S |- trm_var (avar_f x) : typ_rcd (dec_trm m T) ->
+    G, S |- trm_sel (avar_f x) m : T
 | ty_let : forall L G S t u T U,
-    G, S |- t :: T ->
+    G, S |- t : T ->
     (forall x, x \notin L ->
-      G & x ~ T, S |- open_trm x u :: U) ->
-    G, S |- trm_let t u :: U
+      G & x ~ T, S |- open_trm x u : U) ->
+    G, S |- trm_let t u : U
 | ty_rec_intro : forall G S x T,
-    G, S |- trm_var (avar_f x) :: open_typ x T ->
-    G, S |- trm_var (avar_f x) :: typ_bnd T
+    G, S |- trm_var (avar_f x) : open_typ x T ->
+    G, S |- trm_var (avar_f x) : typ_bnd T
 | ty_rec_elim : forall G S x T,
-    G, S |- trm_var (avar_f x) :: typ_bnd T ->
-    G, S |- trm_var (avar_f x) :: open_typ x T
+    G, S |- trm_var (avar_f x) : typ_bnd T ->
+    G, S |- trm_var (avar_f x) : open_typ x T
 | ty_and_intro : forall G S x T U,
-    G, S |- trm_var (avar_f x) :: T ->
-    G, S |- trm_var (avar_f x) :: U ->
-    G, S |- trm_var (avar_f x) :: typ_and T U
+    G, S |- trm_var (avar_f x) : T ->
+    G, S |- trm_var (avar_f x) : U ->
+    G, S |- trm_var (avar_f x) : typ_and T U
 | ty_sub : forall G S t T U,
-    G, S |- t :: T ->
+    G, S |- t : T ->
     G, S |- T <: U ->
-    G, S |- t :: U
+    G, S |- t : U
 | ty_ref_intro : forall G S x T,
-    G, S |- trm_var (avar_f x) :: T ->
-    G, S |- trm_ref (avar_f x) T :: typ_ref T
+    G, S |- trm_var (avar_f x) : T ->
+    G, S |- trm_ref (avar_f x) T : typ_ref T
 | ty_ref_elim : forall G S x T,
-    G, S |- trm_var (avar_f x) :: typ_ref T ->
-    G, S |- trm_deref (avar_f x) :: T
+    G, S |- trm_var (avar_f x) : typ_ref T ->
+    G, S |- trm_deref (avar_f x) : T
 | ty_asgn : forall G S x y T,
-    G, S |- trm_var (avar_f x) :: typ_ref T ->
-    G, S |- trm_var (avar_f y) :: T ->
-    G, S |- trm_asg (avar_f x) (avar_f y) :: T
-where "G ',' S '|-' t '::' T" := (ty_trm G S t T)
+    G, S |- trm_var (avar_f x) : typ_ref T ->
+    G, S |- trm_var (avar_f y) : T ->
+    G, S |- trm_asg (avar_f x) (avar_f y) : T
+where "G ',' S '|-' t ':' T" := (ty_trm G S t T)
 
 with ty_def : ctx -> sigma -> def -> dec -> Prop :=
 | ty_def_typ : forall G S A T,
-    G, S /- def_typ A T :: dec_typ A T T
+    G, S /- def_typ A T : dec_typ A T T
 | ty_def_trm : forall G S a t T,
-    G, S |- t :: T ->
-    G, S /- def_trm a t :: dec_trm a T
-where "G ',' S '/-' d '::' D" := (ty_def G S d D)
+    G, S |- t : T ->
+    G, S /- def_trm a t : dec_trm a T
+where "G ',' S '/-' d ':' D" := (ty_def G S d D)
 
 with ty_defs : ctx -> sigma -> defs -> typ -> Prop :=
 | ty_defs_one : forall G S d D,
-    G, S /- d :: D ->
-    G, S /- defs_cons defs_nil d ::: typ_rcd D
+    G, S /- d : D ->
+    G, S /- defs_cons defs_nil d :: typ_rcd D
 | ty_defs_cons : forall G S ds d T D,
-    G, S /- ds ::: T ->
-    G, S /- d :: D ->
+    G, S /- ds :: T ->
+    G, S /- d : D ->
     defs_hasnt ds (label_of_def d) ->
-    G, S /- defs_cons ds d ::: typ_and T (typ_rcd D)
-where "G ',' S '/-' ds ':::' T" := (ty_defs G S ds T)
+    G, S /- defs_cons ds d :: typ_and T (typ_rcd D)
+where "G ',' S '/-' ds '::' T" := (ty_defs G S ds T)
 
 with subtyp : ctx -> sigma -> typ -> typ -> Prop :=
 | subtyp_top: forall G S T,
@@ -427,10 +427,10 @@ with subtyp : ctx -> sigma -> typ -> typ -> Prop :=
     G, S |- T1 <: T2 ->
     G, S |- typ_rcd (dec_typ A S1 T1) <: typ_rcd (dec_typ A S2 T2)
 | subtyp_sel2: forall G S x A V T,
-    G, S |- trm_var (avar_f x) :: typ_rcd (dec_typ A V T) ->
+    G, S |- trm_var (avar_f x) : typ_rcd (dec_typ A V T) ->
     G, S |- V <: typ_sel (avar_f x) A
 | subtyp_sel1: forall G S x A V T,
-    G, S |- trm_var (avar_f x) :: typ_rcd (dec_typ A V T) ->
+    G, S |- trm_var (avar_f x) : typ_rcd (dec_typ A V T) ->
     G, S |- typ_sel (avar_f x) A <: T
 | subtyp_all: forall L G S S1 T1 S2 T2,
     G, S |- S2 <: S1 ->
@@ -443,99 +443,99 @@ with subtyp : ctx -> sigma -> typ -> typ -> Prop :=
     G, S |- typ_ref T <: typ_ref U
 where "G ',' S '|-' T '<:' U" := (subtyp G S T U).
 
-Reserved Notation "G ',' S '|-!' t '::' T" (at level 40, S at level 58, t at level 59).
+Reserved Notation "G ',' S '|-!' t ':' T" (at level 40, S at level 58, t at level 59).
 
 Inductive ty_trm_p : ctx -> sigma -> trm -> typ -> Prop :=
 | ty_var_p : forall G S x T,
     binds x T G ->
-    G, S |-! trm_var (avar_f x) :: T
+    G, S |-! trm_var (avar_f x) : T
 | ty_loc_p : forall G S l T,
     binds l T S ->
-    G, S |-! trm_val (val_loc l) :: typ_ref T
+    G, S |-! trm_val (val_loc l) : typ_ref T
 | ty_all_intro_p : forall L G S T t U,
     (forall x, x \notin L ->
-      G & x ~ T, S |- open_trm x t :: open_typ x U) ->
-    G, S |-! trm_val (val_lambda T t) :: typ_all T U
+      G & x ~ T, S |- open_trm x t : open_typ x U) ->
+    G, S |-! trm_val (val_lambda T t) : typ_all T U
 | ty_new_intro_p : forall L G S T ds,
     (forall x, x \notin L ->
-      G & (x ~ open_typ x T), S /- open_defs x ds ::: open_typ x T) ->
-    G, S |-! trm_val (val_new T ds) :: typ_bnd T
+      G & (x ~ open_typ x T), S /- open_defs x ds :: open_typ x T) ->
+    G, S |-! trm_val (val_new T ds) : typ_bnd T
 | ty_rec_elim_p : forall G S x T,
-    G, S |-! trm_var (avar_f x) :: typ_bnd T ->
-    G, S |-! trm_var (avar_f x) :: open_typ x T
+    G, S |-! trm_var (avar_f x) : typ_bnd T ->
+    G, S |-! trm_var (avar_f x) : open_typ x T
 | ty_and1_p : forall G S x T U,
-    G, S |-! trm_var (avar_f x) :: typ_and T U ->
-    G, S |-! trm_var (avar_f x) :: T
+    G, S |-! trm_var (avar_f x) : typ_and T U ->
+    G, S |-! trm_var (avar_f x) : T
 | ty_and2_p : forall G S x T U,
-    G, S |-! trm_var (avar_f x) :: typ_and T U ->
-    G, S |-! trm_var (avar_f x) :: U
+    G, S |-! trm_var (avar_f x) : typ_and T U ->
+    G, S |-! trm_var (avar_f x) : U
 | ty_ref_intro_p : forall G S x T,
-    G, S |-! trm_var (avar_f x) :: T ->
-    G, S |-! trm_ref (avar_f x) T :: typ_ref T
+    G, S |-! trm_var (avar_f x) : T ->
+    G, S |-! trm_ref (avar_f x) T : typ_ref T
 | ty_ref_elim_p : forall G S x T,
-    G, S |-! trm_var (avar_f x) :: typ_ref T ->
-    G, S |-! trm_deref (avar_f x) :: T
+    G, S |-! trm_var (avar_f x) : typ_ref T ->
+    G, S |-! trm_deref (avar_f x) : T
 | ty_asgn_p : forall G S x y T,
-    G, S |-! trm_var (avar_f x) :: typ_ref T ->
-    G, S |-! trm_var (avar_f y) :: T ->
-    G, S |-! trm_asg (avar_f x) (avar_f y) :: T
-where "G ',' S '|-!' t '::' T" := (ty_trm_p G S t T).
+    G, S |-! trm_var (avar_f x) : typ_ref T ->
+    G, S |-! trm_var (avar_f y) : T ->
+    G, S |-! trm_asg (avar_f x) (avar_f y) : T
+where "G ',' S '|-!' t ':' T" := (ty_trm_p G S t T).
 
-Reserved Notation "G ',' S '|-#' t '::' T" (at level 40, S at level 58, t at level 59).
+Reserved Notation "G ',' S '|-#' t ':' T" (at level 40, S at level 58, t at level 59).
 Reserved Notation "G ',' S '|-#' T '<:' U" (at level 40, S at level 58, T at level 59).
 
 Inductive ty_trm_t : ctx -> sigma -> trm -> typ -> Prop :=
 | ty_var_t : forall G S x T,
     binds x T G ->
-    G, S |-# trm_var (avar_f x) :: T
+    G, S |-# trm_var (avar_f x) : T
 | ty_loc_t : forall G S l T,
     binds l T S ->
-    G, S |-# trm_val (val_loc l) :: typ_ref T
+    G, S |-# trm_val (val_loc l) : typ_ref T
 | ty_all_intro_t : forall L G S T t U,
     (forall x, x \notin L ->
-          G & x ~ T, S |- open_trm x t :: open_typ x U) ->
-    G, S |-# trm_val (val_lambda T t) :: typ_all T U
+          G & x ~ T, S |- open_trm x t : open_typ x U) ->
+    G, S |-# trm_val (val_lambda T t) : typ_all T U
 | ty_all_elim_t : forall G S x z V T,
-    G, S |-# trm_var (avar_f x) :: typ_all V T ->
-    G, S |-# trm_var (avar_f z) :: V ->
-    G, S |-# trm_app (avar_f x) (avar_f z) :: open_typ z T
+    G, S |-# trm_var (avar_f x) : typ_all V T ->
+    G, S |-# trm_var (avar_f z) : V ->
+    G, S |-# trm_app (avar_f x) (avar_f z) : open_typ z T
 | ty_new_intro_t : forall L G S T ds,
     (forall x, x \notin L ->
-          G & (x ~ open_typ x T), S /- open_defs x ds ::: open_typ x T) ->
-    G, S |-# trm_val (val_new T ds) :: typ_bnd T
+          G & (x ~ open_typ x T), S /- open_defs x ds :: open_typ x T) ->
+    G, S |-# trm_val (val_new T ds) : typ_bnd T
 | ty_new_elim_t : forall G S x m T,
-    G, S |-# trm_var (avar_f x) :: typ_rcd (dec_trm m T) ->
-    G, S |-# trm_sel (avar_f x) m :: T
+    G, S |-# trm_var (avar_f x) : typ_rcd (dec_trm m T) ->
+    G, S |-# trm_sel (avar_f x) m : T
 | ty_let_t : forall L G S t u T U,
-    G, S |-# t :: T ->
+    G, S |-# t : T ->
     (forall x, x \notin L ->
-          G & x ~ T, S |- open_trm x u :: U) ->
-    G, S |-# trm_let t u :: U
+          G & x ~ T, S |- open_trm x u : U) ->
+    G, S |-# trm_let t u : U
 | ty_rec_intro_t : forall G S x T,
-    G, S |-# trm_var (avar_f x) :: open_typ x T ->
-    G, S |-# trm_var (avar_f x) :: typ_bnd T
+    G, S |-# trm_var (avar_f x) : open_typ x T ->
+    G, S |-# trm_var (avar_f x) : typ_bnd T
 | ty_rec_elim_t : forall G S x T,
-    G, S |-# trm_var (avar_f x) :: typ_bnd T ->
-    G, S |-# trm_var (avar_f x) :: open_typ x T
+    G, S |-# trm_var (avar_f x) : typ_bnd T ->
+    G, S |-# trm_var (avar_f x) : open_typ x T
 | ty_and_intro_t : forall G S x T U,
-    G, S |-# trm_var (avar_f x) :: T ->
-    G, S |-# trm_var (avar_f x) :: U ->
-    G, S |-# trm_var (avar_f x) :: typ_and T U
+    G, S |-# trm_var (avar_f x) : T ->
+    G, S |-# trm_var (avar_f x) : U ->
+    G, S |-# trm_var (avar_f x) : typ_and T U
 | ty_sub_t : forall G S t T U,
-    G, S |-# t :: T ->
+    G, S |-# t : T ->
     G, S |-# T <: U ->
-    G, S |-# t :: U
+    G, S |-# t : U
 | ty_ref_intro_t : forall G S x T,
-    G, S |-# trm_var (avar_f x) :: T ->
-    G, S |-# trm_ref (avar_f x) T :: typ_ref T
+    G, S |-# trm_var (avar_f x) : T ->
+    G, S |-# trm_ref (avar_f x) T : typ_ref T
 | ty_ref_elim_t : forall G S x T,
-    G, S |-# trm_var (avar_f x) :: typ_ref T ->
-    G, S |-# trm_deref (avar_f x) :: T
+    G, S |-# trm_var (avar_f x) : typ_ref T ->
+    G, S |-# trm_deref (avar_f x) : T
 | ty_asgn_t : forall G S x y T,
-    G, S |-# trm_var (avar_f x) :: typ_ref T ->
-    G, S |-# trm_var (avar_f y) :: T ->
-    G, S |-# trm_asg (avar_f x) (avar_f y) :: T
-where "G ',' S '|-#' t '::' T" := (ty_trm_t G S t T)
+    G, S |-# trm_var (avar_f x) : typ_ref T ->
+    G, S |-# trm_var (avar_f y) : T ->
+    G, S |-# trm_asg (avar_f x) (avar_f y) : T
+where "G ',' S '|-#' t ':' T" := (ty_trm_t G S t T)
 
 with subtyp_t : ctx -> sigma -> typ -> typ -> Prop :=
 | subtyp_top_t: forall G S T,
@@ -564,10 +564,10 @@ with subtyp_t : ctx -> sigma -> typ -> typ -> Prop :=
     G, S |-# T1 <: T2 ->
     G, S |-# typ_rcd (dec_typ A S1 T1) <: typ_rcd (dec_typ A S2 T2)
 | subtyp_sel2_t: forall G S x A T,
-    G, S |-! trm_var (avar_f x) :: typ_rcd (dec_typ A T T) ->
+    G, S |-! trm_var (avar_f x) : typ_rcd (dec_typ A T T) ->
     G, S |-# T <: typ_sel (avar_f x) A
 | subtyp_sel1_t: forall G S x A T,
-    G, S |-! trm_var (avar_f x) :: typ_rcd (dec_typ A T T) ->
+    G, S |-! trm_var (avar_f x) : typ_rcd (dec_typ A T T) ->
     G, S |-# typ_sel (avar_f x) A <: T
 | subtyp_all_t: forall L G S S1 T1 S2 T2,
     G, S |-# S2 <: S1 ->
@@ -590,7 +590,7 @@ Inductive wf_stack: ctx -> sigma -> stack -> Prop :=
     G, S ~~ sta ->
     x # G ->
     x # sta ->
-    G, S |- trm_val v :: T ->
+    G, S |- trm_val v : T ->
     G & x ~ T, S ~~ sta & x ~ v
 | wf_store_push: forall G S l T sta,
     G, S ~~ sta ->
@@ -606,12 +606,12 @@ Inductive wt_store: ctx -> sigma -> store -> Prop :=
 | wt_store_update: forall G S sto l x T,
     G, S |~ sto ->
     binds l T S ->
-    G, S |- trm_var (avar_f x) :: T ->
+    G, S |- trm_var (avar_f x) : T ->
     G, S |~ sto[l := x]
 | wt_store_new: forall G S sto l x T,
     G, S |~ sto ->
     l # S ->
-    G, S |- trm_var (avar_f x) :: T ->
+    G, S |- trm_var (avar_f x) : T ->
     G, S & l ~ T |~ sto[l := x]
 | wt_stack_push: forall G S x T sto,
     G, S |~ sto ->

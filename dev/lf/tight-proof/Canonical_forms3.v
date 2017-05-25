@@ -17,7 +17,7 @@ Lemma sigma_binds_to_store_binds_raw: forall sto G S l T,
     S = S1 & (l ~ T) & S2 /\
     exists x,
       bindsM l x sto /\
-      G, S |- trm_var (avar_f x) :: T.
+      G, S |- trm_var (avar_f x) : T.
 Proof.
   introv Wt. generalize l T. induction Wt; introv Bi.
   + false* binds_empty_inv.
@@ -68,7 +68,7 @@ Lemma sigma_binds_to_store_binds_typing: forall G S sto l T,
   binds l T S ->
   exists x, 
     bindsM l x sto /\
-    G, S |- trm_var (avar_f x) :: T.
+    G, S |- trm_var (avar_f x) : T.
 Proof.
   introv Hwf Bi.
   lets A: (sigma_binds_to_store_binds_raw Hwf Bi).
@@ -77,7 +77,7 @@ Proof.
 Qed.
 
 Lemma ref_binds_typ: forall G S l T,
-  G, S |-! trm_val (val_loc l) :: typ_ref T ->
+  G, S |-! trm_val (val_loc l) : typ_ref T ->
   binds l T S.
 Proof.
   introv Hty.
@@ -97,12 +97,12 @@ Lemma canonical_forms_3: forall G S sta sto x T,
   inert G ->
   G, S ~~ sta ->
   G, S |~ sto ->
-  G, S |- trm_var (avar_f x) :: typ_ref T ->
+  G, S |- trm_var (avar_f x) : typ_ref T ->
   exists l y,
     binds x (val_loc l) sta /\
-    G, S |- trm_val (val_loc l) :: typ_ref T /\
+    G, S |- trm_val (val_loc l) : typ_ref T /\
     bindsM l y sto /\
-    G, S |- trm_var (avar_f y) :: T.
+    G, S |- trm_var (avar_f y) : T.
 Proof.
   introv Hg Hwf Hwt Hty.
   pose proof (typing_implies_bound Hty) as [V Bi].

@@ -14,9 +14,9 @@ Require Import Tight_possible_types.
 (* Lemma 1 *)
 Lemma tight_to_precise_typ_dec: forall G S x A V U,
   inert G ->
-  G, S |-# trm_var (avar_f x) :: typ_rcd (dec_typ A V U) ->
+  G, S |-# trm_var (avar_f x) : typ_rcd (dec_typ A V U) ->
   exists T,
-    G, S |-! trm_var (avar_f x) :: typ_rcd (dec_typ A T T) /\
+    G, S |-! trm_var (avar_f x) : typ_rcd (dec_typ A T T) /\
     G, S |-# T <: U /\
     G, S |-# V <: T.
 Proof.
@@ -32,9 +32,9 @@ Qed.
 
 Lemma tight_to_precise_trm_dec: forall G S x a T,
   inert G ->
-  G, S |-# trm_var (avar_f x) :: typ_rcd (dec_trm a T) ->
+  G, S |-# trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
   exists T',
-    G, S |-! trm_var (avar_f x) :: typ_rcd (dec_trm a T') /\
+    G, S |-! trm_var (avar_f x) : typ_rcd (dec_trm a T') /\
     G, S |-# T' <: T.
 Proof.
   introv Hgd Ht.
@@ -48,9 +48,9 @@ Qed.
 
 Lemma tight_to_precise_typ_all: forall G S x V T,
   inert G ->
-  G, S |-# trm_var (avar_f x) :: typ_all V T ->
+  G, S |-# trm_var (avar_f x) : typ_all V T ->
   exists V' T' L,
-    G, S |-! trm_var (avar_f x) :: typ_all V' T' /\
+    G, S |-! trm_var (avar_f x) : typ_all V' T' /\
     G, S |-# V <: V' /\
     (forall y,
         y \notin L ->
@@ -78,9 +78,9 @@ Qed.
 
 Lemma tight_to_precise_typ_ref: forall G S x T,
   inert G ->
-  G, S |-# trm_var (avar_f x) :: typ_ref T ->
+  G, S |-# trm_var (avar_f x) : typ_ref T ->
   exists T',
-    G, S |-! trm_var (avar_f x) :: typ_ref T' /\
+    G, S |-! trm_var (avar_f x) : typ_ref T' /\
     G, S |-# T' <: T /\
     G, S |-# T <: T'.
 Proof.
@@ -95,7 +95,7 @@ Qed.
 (* Lemma 2 *)
 Lemma tight_subtyping_sel: forall G S x A V U,
     inert G ->
-    G, S |-# trm_var (avar_f x) :: typ_rcd (dec_typ A V U) ->
+    G, S |-# trm_var (avar_f x) : typ_rcd (dec_typ A V U) ->
        (G, S |-# typ_sel (avar_f x) A <: U /\
         G, S |-# V <: typ_sel (avar_f x) A).
 Proof.
@@ -110,9 +110,9 @@ Qed.
 Lemma general_to_tight: forall G0,
   inert G0 ->
   (forall G S t T,
-     G, S |- t :: T ->
+     G, S |- t : T ->
      G = G0 ->
-     G, S |-# t :: T) /\
+     G, S |-# t : T) /\
   (forall G S V U,
      G, S |- V <: U ->
      G = G0 ->
@@ -124,8 +124,8 @@ Qed.
 
 Lemma general_to_tight_typing: forall G S t T,
   inert G ->
-  G, S |- t :: T ->
-  G, S |-# t :: T.
+  G, S |- t : T ->
+  G, S |-# t : T.
 Proof.
   intros. apply* general_to_tight.
 Qed.

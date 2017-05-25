@@ -20,48 +20,48 @@ If S1 in SS and S2 in SS then (S1 & S2) in SS.
 If S in SS and G |-! y: {A: S..S} then y.A in SS.
  *)
 
-Reserved Notation "G ',' S '|-##v' v '::' T" (at level 40, S at level 58, v at level 59).
+Reserved Notation "G ',' S '|-##v' v ':' T" (at level 40, S at level 58, v at level 59).
 
 Inductive tight_pt_v : ctx -> sigma -> val -> typ -> Prop :=
   (* Precise typing *)
 | t_pt_precise_v : forall G S v T,
-  G, S |-! trm_val v :: T ->
-  G, S |-##v v :: T
+  G, S |-! trm_val v : T ->
+  G, S |-##v v : T
   (* Forall *)
 | t_pt_all_v : forall L G S v V T V' T',
-  G, S |-##v v :: typ_all V T ->
+  G, S |-##v v : typ_all V T ->
   G, S |-# V' <: V ->
   (forall y, y \notin L ->
         G & y ~ V', S |- open_typ y T <: open_typ y T') ->
-  G, S |-##v v :: typ_all V' T'
+  G, S |-##v v : typ_all V' T'
   (* Tight Selection *)
 | t_pt_sel_v : forall G S v y A V,
-  G, S |-##v v :: V ->
-  G, S |-! trm_var y :: typ_rcd (dec_typ A V V) ->
-  G, S |-##v v :: typ_sel y A
+  G, S |-##v v : V ->
+  G, S |-! trm_var y : typ_rcd (dec_typ A V V) ->
+  G, S |-##v v : typ_sel y A
 | t_pt_and_v : forall G S v T U,
-  G, S |-##v v :: T ->
-  G, S |-##v v :: U ->
-  G, S |-##v v :: typ_and T U
+  G, S |-##v v : T ->
+  G, S |-##v v : U ->
+  G, S |-##v v : typ_and T U
   (* Loc *)
 | t_pt_loc_v : forall G S v T U,
-  G, S |-##v v :: typ_ref T ->
+  G, S |-##v v : typ_ref T ->
   G, S |-# T <: U ->
   G, S |-# U <: T ->  
-  G, S |-##v v :: typ_ref U
+  G, S |-##v v : typ_ref U
   (* Top *)
 | t_pt_top_v : forall G S v T,
-  G, S |-##v v :: T ->
-  G, S |-##v v :: typ_top
-where "G ',' S '|-##v' v '::' T" := (tight_pt_v G S v T).
+  G, S |-##v v : T ->
+  G, S |-##v v : typ_top
+where "G ',' S '|-##v' v ':' T" := (tight_pt_v G S v T).
 
 Hint Constructors tight_pt_v.
 
 Lemma tight_possible_types_closure_tight_v: forall G S v T U,
   inert G ->
-  G, S |-##v v :: T ->
+  G, S |-##v v : T ->
   G, S |-# T <: U ->
-  G, S |-##v v :: U.
+  G, S |-##v v : U.
 Proof.
   introv Hgd HT Hsub.
   dependent induction Hsub; eauto.
@@ -76,8 +76,8 @@ Qed.
 
 Lemma tight_possible_types_lemma_v : forall G S v T,
     inert G ->
-    G, S |-# trm_val v :: T ->
-    G, S |-##v v :: T.
+    G, S |-# trm_val v : T ->
+    G, S |-##v v : T.
 Proof.
   introv Hgd Hty.
   dependent induction Hty; eauto.

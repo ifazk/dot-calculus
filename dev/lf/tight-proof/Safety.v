@@ -39,13 +39,13 @@ Lemma safety: forall G S sta sto t T,
     G, S ~~ sta ->
     G, S |~ sto ->
     inert G ->
-    G, S |- t :: T ->
+    G, S |- t : T ->
     (normal_form t \/ 
      (exists sta' sto' t' G' G'' S' S'',
          t / sta / sto => t' / sta' / sto' /\ 
          G' = G & G'' /\ 
          S' = S & S'' /\
-         G', S' |- t' :: T /\ 
+         G', S' |- t' : T /\ 
          G', S' ~~ sta' /\
          G', S' |~ sto')).
 Proof.

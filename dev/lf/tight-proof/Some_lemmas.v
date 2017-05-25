@@ -104,16 +104,16 @@ Qed.
 (** *** Lemmas to upcast to general typing *)
 
 Lemma precise_to_general: forall G S t T,
-    G, S |-! t :: T ->
-    G, S |- t :: T.
+    G, S |-! t : T ->
+    G, S |- t : T.
 Proof.
   intros. induction H; intros; subst; eauto.
 Qed.
 
 Lemma tight_to_general:
   (forall G S t T,
-     G, S |-# t :: T ->
-     G, S |- t :: T) /\
+     G, S |-# t : T ->
+     G, S |- t : T) /\
   (forall G S V U,
      G, S |-# V <: U ->
      G, S |- V <: U).
@@ -127,7 +127,7 @@ Qed.
 (** *** Misc Lemmas *)
 
 Lemma var_typing_implies_avar_f: forall G S a T,
-  G, S |- trm_var a :: T ->
+  G, S |- trm_var a : T ->
   exists x, a = avar_f x.
 Proof.
   intros. dependent induction H; try solve [eexists; reflexivity].
@@ -135,8 +135,8 @@ Proof.
 Qed.
 
 Lemma val_typing: forall G S v T,
-  G, S |- trm_val v :: T ->
-  exists T', G, S |-! trm_val v :: T' /\
+  G, S |- trm_val v : T ->
+  exists T', G, S |-! trm_val v : T' /\
              G, S |- T' <: T.
 Proof.
   intros. dependent induction H.
@@ -150,7 +150,7 @@ Proof.
 Qed.
 
 Lemma typing_implies_bound: forall G S x T,
-  G, S |- trm_var (avar_f x) :: T ->
+  G, S |- trm_var (avar_f x) : T ->
   exists T', binds x T' G.
 Proof.
   intros. remember (trm_var (avar_f x)) as t.
@@ -162,7 +162,7 @@ Proof.
 Qed.
 
 Lemma precise_typing_implies_bound: forall G S x T,
-  G, S |-! trm_var (avar_f x) :: T ->
+  G, S |-! trm_var (avar_f x) : T ->
   exists T', binds x T' G.
 Proof.
   intros.
@@ -171,7 +171,7 @@ Proof.
 Qed.
 
 Lemma typing_implies_bound_loc: forall G S l T,
-  G, S |- trm_val (val_loc l) :: T ->
+  G, S |- trm_val (val_loc l) : T ->
   exists T', binds l T' S.
 Proof.
   intros. remember (trm_val (val_loc l)) as t.
@@ -183,7 +183,7 @@ Proof.
 Qed.
 
 Lemma precise_typing_implies_bound_loc: forall G S l T,
-  G, S |-! trm_val (val_loc l) :: T ->
+  G, S |-! trm_val (val_loc l) : T ->
   exists T', binds l T' S.
 Proof.
   intros. 

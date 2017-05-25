@@ -19,11 +19,11 @@ If G ~ s and G |- x: all(x: T)U then s(x) = lambda(x: T')t where G |- T <: T' an
 Lemma canonical_forms_1: forall G S s x T U,
   G, S ~~ s ->
   inert G ->
-  G, S |- trm_var (avar_f x) :: typ_all T U ->
+  G, S |- trm_var (avar_f x) : typ_all T U ->
   (exists L T' t, 
       binds x (val_lambda T' t) s /\
       G, S |- T <: T' /\
-               (forall y, y \notin L -> G & y ~ T, S |- open_trm y t :: open_typ y U)).
+               (forall y, y \notin L -> G & y ~ T, S |- open_trm y t : open_typ y U)).
 Proof.
   introv Hwf Hgd Hty.
   pose proof (general_to_tight_typing Hgd Hty) as Hti.
