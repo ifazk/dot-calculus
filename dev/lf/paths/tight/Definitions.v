@@ -466,7 +466,7 @@ Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
     G |-! trm_path p :: open_typ_p p T
 |ty_fld_elim_p : forall G p a T,
     G |-! trm_path p :: typ_rcd {{ a [strong] T }} ->
-    norm G p ->
+    norm_p G p ->
     inert_typ T ->
     G |-! trm_path (p_sel p a) :: T
 | ty_and1_p : forall G p T U,
@@ -475,7 +475,18 @@ Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
 | ty_and2_p : forall G p T U,
     G |-! trm_path p :: typ_and T U ->
     G |-! trm_path p :: U
-where "G '|-!' t '::' T" := (ty_trm_p G t T).
+where "G '|-!' t '::' T" := (ty_trm_p G t T)
+
+with norm_p : ctx -> path -> Prop :=
+| norm_var_p : forall x T G,
+    binds x T G ->
+    norm_p G (p_var (avar_f x))
+| norm_path_p : forall p U a G,
+    G |-! trm_path p :: typ_rcd {{ a [strong] U }} ->
+    inert_typ U ->
+    norm_p G p ->
+    norm_p G (p_sel p a).
+
 
 (* tight typing relation *)
 

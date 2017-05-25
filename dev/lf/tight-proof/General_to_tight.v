@@ -96,8 +96,8 @@ Qed.
 Lemma tight_subtyping_sel: forall G S x A V U,
     inert G ->
     G, S |-# trm_var (avar_f x) :: typ_rcd (dec_typ A V U) ->
-    (G, S |-# typ_sel (avar_f x) A <: U /\
-     G, S |-# V <: typ_sel (avar_f x) A).
+       (G, S |-# typ_sel (avar_f x) A <: U /\
+        G, S |-# V <: typ_sel (avar_f x) A).
 Proof.
   introv HG Hty.
   pose proof (tight_to_precise_typ_dec HG Hty) as [T [Ht [Hs1 Hs2]]].
