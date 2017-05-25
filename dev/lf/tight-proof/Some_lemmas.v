@@ -72,10 +72,10 @@ Proof.
   - inversion* H3.
   - inversion* H5.
   - apply record_typ_has_label_in with (D:=dec_typ A T1 T1) in Htyp.
-    + inversions H9. unfold "\notin" in H1. unfold not in H1. false* H1.
+    + inversions H9. false* H1.
     + assumption.
   - apply record_typ_has_label_in with (D:=dec_typ A T2 T2) in Htyp.
-    + inversions H5. unfold "\notin" in H1. unfold not in H1. false* H1.
+    + inversions H5. false* H1.
     + assumption.
   - inversions H5. inversions* H9.
 Qed.
@@ -85,17 +85,17 @@ Lemma unique_rcd_trm: forall T a U1 U2,
     record_has T (dec_trm a U1) ->
     record_has T (dec_trm a U2) ->
     U1 = U2.
-Proof. 
+Proof.
   introv Htype Has1 Has2.
   generalize dependent U2. generalize dependent U1. generalize dependent a.
   destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Has1; inversion Has2; subst.
   - inversion* H3.
   - inversion* H5.
   - apply record_typ_has_label_in with (D:=dec_trm a U1) in Htyp.
-    + inversions H9. unfold "\notin" in H1. unfold not in H1. false* H1.
+    + inversions H9. false* H1.
     + assumption.
   - apply record_typ_has_label_in with (D:=dec_trm a U2) in Htyp.
-    + inversions H5. unfold "\notin" in H1. unfold not in H1. false* H1.
+    + inversions H5. false* H1.
     + assumption.
   - inversions H5. inversions* H9.
 Qed.
@@ -164,7 +164,7 @@ Lemma precise_typing_implies_bound: forall G x T,
   G |-! trm_var (avar_f x) :: T ->
   exists S, binds x S G.
 Proof.
-  intros. 
+  intros.
   pose proof (precise_to_general H) as H'.
   pose proof (typing_implies_bound H'). assumption.
 Qed.
