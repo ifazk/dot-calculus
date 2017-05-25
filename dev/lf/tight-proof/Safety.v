@@ -38,7 +38,7 @@ Lemma safety: forall G s t T,
     G ~~ s ->
     inert G ->
     G |- t :: T ->
-    (normal_form t \/ (exists s' t' G' G'', red t s t' s' /\ G' = G & G'' /\ G' |- t' :: T /\ G' ~~ s')).
+    (normal_form t \/ (exists s' t' G' G'', t / s => t' / s' /\ G' = G & G'' /\ G' |- t' :: T /\ G' ~~ s')).
 Proof.
   introv Hwf Hg H. dependent induction H; try solve [left; eauto].
   - (* All-E *) right.
