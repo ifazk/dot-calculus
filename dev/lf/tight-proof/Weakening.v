@@ -8,18 +8,18 @@ Require Import Definitions.
 (** ** Weakening *)
 
 Lemma weaken_rules:
-  (forall G t T, G |- t :: T -> forall G1 G2 G3,
+  (forall G t T, G |- t : T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 |- t :: T) /\
-  (forall G d D, G /- d :: D -> forall G1 G2 G3,
+    G1 & G2 & G3 |- t : T) /\
+  (forall G d D, G /- d : D -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 /- d :: D) /\
-  (forall G ds T, G /- ds ::: T -> forall G1 G2 G3,
+    G1 & G2 & G3 /- d : D) /\
+  (forall G ds T, G /- ds :: T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 /- ds ::: T) /\
+    G1 & G2 & G3 /- ds :: T) /\
   (forall G T U, G |- T <: U -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
@@ -51,9 +51,9 @@ Proof.
 Qed.
 
 Lemma weaken_ty_trm: forall G1 G2 t T,
-    G1 |- t :: T ->
+    G1 |- t : T ->
     ok (G1 & G2) ->
-    G1 & G2 |- t :: T.
+    G1 & G2 |- t : T.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {
@@ -79,11 +79,11 @@ Proof.
 Qed.
 
 Lemma weaken_rules_p: forall G t T, 
-    G |-! t :: T -> 
+    G |-! t : T -> 
     forall G1 G2 G3,
       G = G1 & G3 ->
       ok (G1 & G2 & G3) ->
-      G1 & G2 & G3 |-! t :: T.
+      G1 & G2 & G3 |-! t : T.
 Proof.
   intros. induction* H.
   - apply ty_var_p. apply* binds_weaken. subst*.
@@ -110,9 +110,9 @@ Proof.
 Qed.
 
 Lemma weaken_ty_trm_p: forall G1 G2 t T,
-    G1 |-! t :: T ->
+    G1 |-! t : T ->
     ok (G1 & G2) ->
-    G1 & G2 |-! t :: T.
+    G1 & G2 |-! t : T.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {
