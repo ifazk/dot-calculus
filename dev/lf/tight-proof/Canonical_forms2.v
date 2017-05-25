@@ -7,7 +7,6 @@ Require Import Weakening.
 Require Import Wellformed_store.
 Require Import Substitution.
 Require Import Some_lemmas.
-Require Import Precise_flow.
 Require Import Inert_types.
 Require Import General_to_tight.
 
@@ -27,39 +26,39 @@ Proof.
 Qed.
 
 Lemma record_has_ty_defs: forall G S T ds D,
-  ty_defs G S ds T ->
+  G, S /- ds ::: T ->
   record_has T D ->
-  exists d, defs_has ds d /\ ty_def G S d D.
+  exists d, defs_has ds d /\ G, S /- d :: D.
 Proof.
   introv Hdefs Hhas. induction Hdefs.
   - inversion Hhas; subst. exists d. split.
     + unfold defs_has. simpl. rewrite If_l; reflexivity.
     + assumption.
   - inversion Hhas; subst.
-    + exists d. split.
-      * unfold defs_has. simpl. rewrite If_l; reflexivity.
-      * assumption.
-    + specialize (IHHdefs H4). destruct IHHdefs as [d' [IH1 IH2]].
+    + destruct (IHHdefs H4) as [d' [H1 H2]]. 
       exists d'. split.
-      * unfold defs_has. simpl. rewrite If_r. apply IH1.
+      * unfold defs_has. simpl. rewrite If_r. apply H1.
         apply not_eq_sym. eapply defs_has_hasnt_neq; eauto.
       * assumption.
+    + exists d. split.
+      * unfold defs_has. simpl. rewrite If_l; reflexivity.
+      * inversions* H4. 
 Qed.
 
 Lemma new_ty_defs: forall G S s x T ds,
-  wf_stack G S s ->
+  G, S ~~ s ->
   inert G ->
   binds x (val_new T ds) s ->
-  ty_defs G S (open_defs x ds) (open_typ x T).
+  G, S /- open_defs x ds ::: open_typ x T.
 Proof.
   introv Hwf Hg Bis.
   lets Htyv: (val_new_typing Hwf Hg Bis).
   inversion Htyv; subst.
-  - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H4 y FrL).
+  - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H2 y FrL).
     rewrite subst_intro_defs with (x:=y) by auto.
     rewrite subst_intro_typ with (x:=y) by auto.
     eapply subst_ty_defs.
-    + apply H4.
+    + apply H2.
     + eauto.
     + auto.
     + auto.
@@ -68,20 +67,22 @@ Proof.
 Qed.
 
 Lemma corresponding_types_ty_trms: forall G S s ds x V,
-  wf_stack G S s ->
+  G, S ~~ s ->
   inert G ->
   binds x (typ_bnd V) G ->
   binds x (val_new V ds) s ->
   (forall a T',
-      ty_trm ty_precise sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_trm a T')) ->
-      exists t, defs_has (open_defs x ds) (def_trm a t) /\
-           ty_trm ty_general sub_general G S t T').
+      G, S |-! trm_var (avar_f x) :: typ_rcd (dec_trm a T') ->
+         exists t, defs_has (open_defs x ds) (def_trm a t) /\
+              G, S |- t :: T').
 Proof.
   introv Hwf Hg Bi Bis Hty.
   pose proof (new_ty_defs Hwf Hg Bis) as Htds.
-  pose proof (precise_flow_lemma Bi Hty) as Hpf.
+  destruct (precise_flow_lemma Hty) as [U Hpf]. 
   pose proof (inert_typ_bnd_record Hg Bi) as Hrec.
-  pose proof (precise_flow_record_has Hrec Hpf) as Hrh.
+  pose proof (pf_binds Hpf). 
+  pose proof (binds_func Bi H); subst.
+  pose proof (precise_flow_record_has Hg Hpf) as Hrh.
   pose proof (record_has_ty_defs Htds Hrh) as [d [Hds Htd]].
   inversion Htd; subst.
   exists t. auto.
@@ -89,9 +90,12 @@ Qed.
 
 Lemma canonical_forms_2: forall G S s x a T,
   inert G ->
-  wf_stack G S s ->
-  ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_rcd (dec_trm a T)) ->
-  (exists V ds t, binds x (val_new V ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ ty_trm ty_general sub_general G S t T).
+  G, S ~~ s ->
+  G, S |- trm_var (avar_f x) :: typ_rcd (dec_trm a T) ->
+  (exists V ds t, 
+      binds x (val_new V ds) s /\ 
+      defs_has (open_defs x ds) (def_trm a t) /\ 
+      G, S |- t :: T).
 Proof.
   introv Hg Hwf Hty.
   pose proof (typing_implies_bound Hty) as [V Bi].
@@ -100,15 +104,13 @@ Proof.
   pose proof (corresponding_types Hwf Hg Bi)
     as [[L [U [W [S1 [W1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [[U [ds [Hb [Ht Heq]]]] | [U [U' [l [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]].
   + assert (H: exists T, record_type T /\ V = (typ_bnd T)).
-    { pose proof (inert_binds Hg Bi) as Hgt.
+    { pose proof (binds_inert Bi Hg) as Hgt.
       induction Hgt.
-      - pose proof (precise_flow_lemma Bi Hx) as H.
-        apply (precise_flow_all_inv) in H.
-        inversion H.
+      - destruct (precise_flow_lemma Hx) as [W' H].
+        lets Hpb: (pf_binds H). apply (binds_func Bi) in Hpb. subst.
+        apply precise_flow_all_inv in H. inversion H.
       - exists T0. auto.
-      - pose proof (precise_flow_lemma Bi Hx) as H.
-        apply (precise_flow_ref_inv) in H.
-        inversion H.
+      - inversion Heq.
     }
     destruct H as [T0 [Hrt Hsubst]]; subst V; rename T0 into V.
     inversion Hsubst.
@@ -122,13 +124,12 @@ Proof.
     apply tight_to_general in Hs; auto.
     apply ty_sub with (T:=T'); auto.
   + assert (H: exists T, record_type T /\ V = (typ_bnd T)).
-    { pose proof (inert_binds Hg Bi) as Hgt.
+    { pose proof (binds_inert Bi Hg) as Hgt.
       induction Hgt.
-      - pose proof (precise_flow_lemma Bi Hx) as H.
-        apply (precise_flow_all_inv) in H.
-        inversion H.
+      - inversion Heq.
       - exists T0. auto.
-      - pose proof (precise_flow_lemma Bi Hx) as H.
+      - pose proof (precise_flow_lemma Hx) as [W' H].
+        lets Hpb: (pf_binds H). apply (binds_func Bi) in Hpb. subst.
         apply (precise_flow_ref_inv) in H.
         inversion H.
     }

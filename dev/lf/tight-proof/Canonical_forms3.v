@@ -7,18 +7,17 @@ Require Import Weakening.
 Require Import Wellformed_store.
 Require Import Substitution.
 Require Import Some_lemmas.
-Require Import Precise_flow.
 Require Import Inert_types.
 Require Import General_to_tight.
 
 Lemma sigma_binds_to_store_binds_raw: forall sto G S l T,
-  wt_store G S sto ->
+  G, S |~ sto ->
   binds l T S ->
   exists S1 S2,
     S = S1 & (l ~ T) & S2 /\
     exists x,
-    bindsM l x sto /\
-    ty_trm ty_general sub_general G S (trm_var (avar_f x)) T.
+      bindsM l x sto /\
+      G, S |- trm_var (avar_f x) :: T.
 Proof.
   introv Wt. generalize l T. induction Wt; introv Bi.
   + false* binds_empty_inv.
@@ -65,9 +64,11 @@ Proof.
 Qed.
 
 Lemma sigma_binds_to_store_binds_typing: forall G S sto l T,
-  wt_store G S sto ->
+  G, S |~ sto ->
   binds l T S ->
-  exists x, bindsM l x sto /\ ty_trm ty_general sub_general G S (trm_var (avar_f x)) T.
+  exists x, 
+    bindsM l x sto /\
+    G, S |- trm_var (avar_f x) :: T.
 Proof.
   introv Hwf Bi.
   lets A: (sigma_binds_to_store_binds_raw Hwf Bi).
@@ -76,7 +77,7 @@ Proof.
 Qed.
 
 Lemma ref_binds_typ: forall G S l T,
-  ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref T) ->
+  G, S |-! trm_val (val_loc l) :: typ_ref T ->
   binds l T S.
 Proof.
   introv Hty.
@@ -94,14 +95,14 @@ If G, S ~ stack, G, S ~ store, G inert, and G, S |- x: Ref T then
 
 Lemma canonical_forms_3: forall G S sta sto x T,
   inert G ->
-  wf_stack G S sta ->
-  wt_store G S sto ->
-  ty_trm ty_general sub_general G S (trm_var (avar_f x)) (typ_ref T) ->
+  G, S ~~ sta ->
+  G, S |~ sto ->
+  G, S |- trm_var (avar_f x) :: typ_ref T ->
   exists l y,
     binds x (val_loc l) sta /\
-    ty_trm ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) /\
+    G, S |- trm_val (val_loc l) :: typ_ref T /\
     bindsM l y sto /\
-    ty_trm ty_general sub_general G S (trm_var (avar_f y)) T.
+    G, S |- trm_var (avar_f y) :: T.
 Proof.
   introv Hg Hwf Hwt Hty.
   pose proof (typing_implies_bound Hty) as [V Bi].
@@ -110,42 +111,42 @@ Proof.
   pose proof (corresponding_types Hwf Hg Bi)
     as [[L [U [W [S1 [W1 [t [Hb [Ht [Heq _]]]]]]]]] | [[U [ds [Hb [Ht Heq]]]] | [U [U' [l [Hb [Ht [Heq [Hs1' Hs2']]]]]]]]].
   - assert (H: exists T, record_type T /\ V = (typ_bnd T)).
-    { pose proof (inert_binds Hg Bi) as Hgt.
+    { pose proof (binds_inert Bi Hg) as Hgt.
       induction Hgt.
-      - pose proof (precise_flow_lemma Bi Hx) as H.
-        apply (precise_flow_all_inv) in H.
-        inversion H.
+      - destruct (precise_flow_lemma Hx) as [W' H].
+        pose proof (pf_binds H). apply (binds_func Bi) in H0.
+        apply pf_inert_ref_U in H. subst. inversion H0. assumption.
       - exists T0. auto.
       - inversion Heq. 
     }
     destruct H as [T0 [Hrt Hsubst]]; subst V; rename T0 into V.
     inversion Hsubst.
-  - pose proof (inert_binds Hg Bi) as Hgt.
+  - pose proof (binds_inert Bi Hg) as Hgt.
     induction Hgt.
     + inversion Heq.
-    + pose proof (precise_flow_lemma Bi Hx) as H'.
-      pose proof (precise_flow_bnd_eq_or_record H H'). 
-      destruct H0 as [[U' [Heq' Hrec]] | Hrec].
-      * inversion Heq'.
-      * inversion Hrec. inversion H0.
+    + pose proof (precise_flow_lemma Hx) as [W' H'].
+      pose proof (pf_binds H'). apply (binds_func Bi) in H0.
+      apply pf_inert_ref_U in H'. subst. inversion H0. assumption.
     + inversion Heq.
   - subst. 
-    pose proof (typing_implies_bound_loc Ht) as [V Bil].
+    pose proof (precise_typing_implies_bound_loc Ht) as [V Bil].
     pose proof (sigma_binds_to_store_binds_typing Hwt Bil) as [y [Bil' Htyl]].
-    pose proof (precise_flow_lemma Bi Hx) as H'.
+    pose proof (precise_flow_lemma Hx) as [W' H].
     exists l y. repeat split; try assumption.
     + apply ty_sub with (T:=typ_ref T'). 
       * apply ty_sub with (T:=typ_ref U). 
         { apply precise_to_general in Ht; auto. }
-        { apply precise_flow_ref_inv in H'. rewrite H'.
-        apply precise_to_general in Ht; auto. }
-      * pose proof (subtyp_ref Hs1 Hs2).
-        apply tight_to_general in H; auto.
-    + apply precise_flow_ref_inv in H'. inversion H'. subst. 
-      apply ty_sub with (T:=U).
+        { pose proof (pf_binds H). apply (binds_func Bi) in H0.
+          apply (pf_inert_ref_U Hg) in H. subst. inversion H0. rewrite <- H1.
+          apply precise_to_general in Ht; auto. }
+      * pose proof (subtyp_ref_t Hs1 Hs2).
+        apply tight_to_general in H0; auto.
+    + apply ty_sub with (T:=U).
       * apply ref_binds_typ in Ht. 
         pose proof (binds_func Ht Bil). subst. assumption.
       * apply subtyp_trans with (T:=U'). 
         { assumption. }
-        { apply tight_to_general in Hs1; auto. }
+        { pose proof (pf_binds H). apply (binds_func Bi) in H0. subst.
+          apply precise_flow_ref_inv in H. inversion H. rewrite <- H1.
+          apply tight_to_general in Hs1; auto. }
 Qed.

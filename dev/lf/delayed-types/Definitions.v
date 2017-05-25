@@ -349,24 +349,23 @@ Inductive ty_trm : tymode -> submode -> ctx -> sigma -> trm -> typ -> Prop :=
 | ty_and2 : forall m2 G S x T U,
     ty_trm ty_precise m2 G S (trm_var (avar_f x)) (typ_and T U) ->
     ty_trm ty_precise m2 G S (trm_var (avar_f x)) U
-| ty_ref_intro : forall m1 m2 G S x T,
-     ty_trm m1 m2 G S (trm_var (avar_f x)) T ->
-     ty_trm m1 m2 G S (trm_ref T) (typ_nref T)
-| ty_ref_elim : forall m1 m2 G S x T,
-    ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_ref T) ->
-    ty_trm m1 m2 G S (trm_deref (avar_f x)) T
+| ty_ref_intro : forall m2 G S T,
+     ty_trm ty_general m2 G S (trm_ref T) (typ_nref T)
+| ty_ref_elim : forall m2 G S x T,
+    ty_trm ty_general m2 G S (trm_var (avar_f x)) (typ_ref T) ->
+    ty_trm ty_general m2 G S (trm_deref (avar_f x)) T
 (* | ty_asgn_ref : forall m1 m2 G S x y T, (* not necessary? *) *)
 (*     ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_ref T) -> *)
 (*     ty_trm m1 m2 G S (trm_var (avar_f y)) T -> *)
 (*     ty_trm m1 m2 G S (trm_asg (avar_f x) (avar_f y)) (typ_ref T) *)
-| ty_asgn_nref : forall m1 m2 G S x y T,
-    ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_nref T) ->
-    ty_trm m1 m2 G S (trm_var (avar_f y)) T ->
-    ty_trm m1 m2 G S (trm_asg (avar_f x) (avar_f y)) (typ_ref T)
-| ty_ifnull: forall m1 m2 G S x y T,
-    ty_trm m1 m2 G S (trm_var (avar_f x)) (typ_nref T) ->
-    ty_trm m1 m2 G S (trm_var (avar_f y)) T ->
-    ty_trm m1 m2 G S (trm_ifnull (avar_f x) (avar_f y)) (typ_ref T)
+| ty_asgn_nref : forall m2 G S x y T,
+    ty_trm ty_general m2 G S (trm_var (avar_f x)) (typ_nref T) ->
+    ty_trm ty_general m2 G S (trm_var (avar_f y)) T ->
+    ty_trm ty_general m2 G S (trm_asg (avar_f x) (avar_f y)) (typ_ref T)
+| ty_ifnull: forall m2 G S x y T,
+    ty_trm ty_general m2 G S (trm_var (avar_f x)) (typ_nref T) ->
+    ty_trm ty_general m2 G S (trm_var (avar_f y)) T ->
+    ty_trm ty_general m2 G S (trm_ifnull (avar_f x) (avar_f y)) (typ_ref T)
 | ty_null : forall m1 m2 G S T,
     ty_trm m1 m2 G S (trm_val val_null) (typ_nref T)
 with ty_def : ctx -> sigma -> def -> dec -> Prop :=
@@ -437,8 +436,8 @@ with subtyp : tymode -> submode -> ctx -> sigma -> typ -> typ -> Prop :=
     subtyp ty_general m2 G S T U ->
     subtyp ty_general m2 G S U T ->
     subtyp ty_general m2 G S (typ_nref T) (typ_nref U)
-| subtyp_ref_nref: forall m1 m2 G S T, (* todo precise? *)
-    subtyp m1 m2 G S (typ_ref T) (typ_nref T).
+| subtyp_ref_nref: forall m2 G S T,
+    subtyp ty_general m2 G S (typ_ref T) (typ_nref T).
 
 (* well-formed stack *)
 Inductive wf_stack: ctx -> sigma -> stack -> Prop :=

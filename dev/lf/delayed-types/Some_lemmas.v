@@ -141,7 +141,7 @@ Proof.
     apply ty_new_intro with (L:=L); eauto. apply subtyp_refl.
   - destruct (IHty_trm _ eq_refl eq_refl eq_refl) as [T' [Hty Hsub]].
     exists T'. split; eauto.
-  - exists (typ_nref T). auto.
+  - exists (typ_nref T). auto. 
 Qed.
 
 Lemma typing_implies_bound: forall m1 m2 G S x T,

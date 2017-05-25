@@ -55,9 +55,9 @@ Lemma record_typ_has_label_in: forall T D ls,
 Proof.
   introv Htyp Has. generalize dependent D. induction Htyp; intros.
   - inversion Has. subst. apply in_singleton_self.
-  - inversion Has; subst.
-    + rewrite in_union. right. apply in_singleton_self.
-    + rewrite in_union. left. apply IHHtyp. assumption.
+  - inversion Has; subst; rewrite in_union.
+    + left. apply* IHHtyp.
+    + right. inversions H5. apply in_singleton_self.
 Qed.
 
 Lemma unique_rcd_typ: forall T A T1 T2,
@@ -69,43 +69,56 @@ Proof.
   introv Htype Has1 Has2.
   generalize dependent T2. generalize dependent T1. generalize dependent A.
   destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Has1; inversion Has2; subst.
-  - inversion H3. subst. reflexivity.
-  - inversion H5. subst. reflexivity.
-  - apply record_typ_has_label_in with (D:=dec_typ A T2 T2) in Htyp.
-    simpl in Htyp. simpl in H1. unfold "\notin" in H1. unfold not in H1.
-    specialize (H1 Htyp). inversion H1.
-    assumption.
+  - inversion* H3.
+  - inversion* H5.
   - apply record_typ_has_label_in with (D:=dec_typ A T1 T1) in Htyp.
-    simpl in Htyp. simpl in H1. unfold "\notin" in H1. unfold not in H1.
-    specialize (H1 Htyp). inversion H1.
-    assumption.
-  - eapply IHHtyp; eassumption.
+    + inversions H9. unfold "\notin" in H1. unfold not in H1. false* H1.
+    + assumption.
+  - apply record_typ_has_label_in with (D:=dec_typ A T2 T2) in Htyp.
+    + inversions H5. unfold "\notin" in H1. unfold not in H1. false* H1.
+    + assumption.
+  - inversions H5. inversions* H9.
+Qed.
+
+Lemma unique_rcd_trm: forall T a U1 U2,
+    record_type T ->
+    record_has T (dec_trm a U1) ->
+    record_has T (dec_trm a U2) ->
+    U1 = U2.
+Proof. 
+  introv Htype Has1 Has2.
+  generalize dependent U2. generalize dependent U1. generalize dependent a.
+  destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Has1; inversion Has2; subst.
+  - inversion* H3.
+  - inversion* H5.
+  - apply record_typ_has_label_in with (D:=dec_trm a U1) in Htyp.
+    + inversions H9. unfold "\notin" in H1. unfold not in H1. false* H1.
+    + assumption.
+  - apply record_typ_has_label_in with (D:=dec_trm a U2) in Htyp.
+    + inversions H5. unfold "\notin" in H1. unfold not in H1. false* H1.
+    + assumption.
+  - inversions H5. inversions* H9.
 Qed.
 
 (* ###################################################################### *)
 (** *** Lemmas to upcast to general typing *)
 
-Lemma precise_to_general: forall m1 m2 G S t T,
-    ty_trm m1 m2 G S t T ->
-    m1 = ty_precise ->
-    m2 = sub_general ->
-    ty_trm ty_general sub_general G S t T.
+Lemma precise_to_general: forall G S t T,
+    G, S |-! t :: T ->
+    G, S |- t :: T.
 Proof.
   intros. induction H; intros; subst; eauto.
 Qed.
 
 Lemma tight_to_general:
-  (forall m1 m2 G S t T,
-     ty_trm m1 m2 G S t T ->
-     m1 = ty_general ->
-     m2 = sub_tight ->
-     ty_trm ty_general sub_general G S t T) /\
-  (forall m2 G S V U,
-     subtyp m2 G S V U ->
-     m2 = sub_tight ->
-     subtyp sub_general G S V U).
+  (forall G S t T,
+     G, S |-# t :: T ->
+     G, S |- t :: T) /\
+  (forall G S V U,
+     G, S |-# V <: U ->
+     G, S |- V <: U).
 Proof.
-  apply ts_mutind; intros; subst; eauto.
+  apply ts_mutind_t; intros; subst; eauto.
   - apply precise_to_general in t; eauto.
   - apply precise_to_general in t; eauto.
 Qed.
@@ -114,7 +127,7 @@ Qed.
 (** *** Misc Lemmas *)
 
 Lemma var_typing_implies_avar_f: forall G S a T,
-  ty_trm ty_general sub_general G S (trm_var a) T ->
+  G, S |- trm_var a :: T ->
   exists x, a = avar_f x.
 Proof.
   intros. dependent induction H; try solve [eexists; reflexivity].
@@ -122,22 +135,22 @@ Proof.
 Qed.
 
 Lemma val_typing: forall G S v T,
-  ty_trm ty_general sub_general G S (trm_val v) T ->
-  exists T', ty_trm ty_precise sub_general G S (trm_val v) T' /\
-             subtyp sub_general G S T' T.
+  G, S |- trm_val v :: T ->
+  exists T', G, S |-! trm_val v :: T' /\
+             G, S |- T' <: T.
 Proof.
   intros. dependent induction H.
   - exists (typ_ref T). auto.
   - exists (typ_all T U). split.
-    apply ty_all_intro with (L:=L); eauto. apply subtyp_refl.
+    apply ty_all_intro_p with (L:=L); eauto. apply subtyp_refl.
   - exists (typ_bnd T). split.
-    apply ty_new_intro with (L:=L); eauto. apply subtyp_refl.
-  - destruct (IHty_trm _ eq_refl eq_refl eq_refl) as [T' [Hty Hsub]].
+    apply ty_new_intro_p with (L:=L); eauto. apply subtyp_refl.
+  - destruct (IHty_trm _ eq_refl) as [T' [Hty Hsub]].
     exists T'. split; eauto.
 Qed.
 
-Lemma typing_implies_bound: forall m1 m2 G S x T,
-  ty_trm m1 m2 G S (trm_var (avar_f x)) T ->
+Lemma typing_implies_bound: forall G S x T,
+  G, S |- trm_var (avar_f x) :: T ->
   exists T', binds x T' G.
 Proof.
   intros. remember (trm_var (avar_f x)) as t.
@@ -148,8 +161,17 @@ Proof.
   - inversion Heqt. subst. exists T. assumption.
 Qed.
 
-Lemma typing_implies_bound_loc: forall m1 m2 G S l T,
-  ty_trm m1 m2 G S (trm_val (val_loc l)) T ->
+Lemma precise_typing_implies_bound: forall G S x T,
+  G, S |-! trm_var (avar_f x) :: T ->
+  exists T', binds x T' G.
+Proof.
+  intros. 
+  pose proof (precise_to_general H) as H'.
+  pose proof (typing_implies_bound H'). assumption.
+Qed.
+
+Lemma typing_implies_bound_loc: forall G S l T,
+  G, S |- trm_val (val_loc l) :: T ->
   exists T', binds l T' S.
 Proof.
   intros. remember (trm_val (val_loc l)) as t.
@@ -158,4 +180,13 @@ Proof.
     try solve [inversion Heqt; eapply IHty_trm; eauto];
     try solve [inversion Heqt; eapply IHty_trm1; eauto].
   - inversion Heqt. subst. exists T. assumption.
+Qed.
+
+Lemma precise_typing_implies_bound_loc: forall G S l T,
+  G, S |-! trm_val (val_loc l) :: T ->
+  exists T', binds l T' S.
+Proof.
+  intros. 
+  pose proof (precise_to_general H) as H'.
+  pose proof (typing_implies_bound_loc H'). assumption.
 Qed.

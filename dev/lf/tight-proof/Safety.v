@@ -36,18 +36,18 @@ The proof is by a induction on typing derivations of G |- t: T.
 *)
 
 Lemma safety: forall G S sta sto t T,
-    wf_stack G S sta ->
-    wt_store G S sto ->
+    G, S ~~ sta ->
+    G, S |~ sto ->
     inert G ->
-    ty_trm ty_general sub_general G S t T ->
+    G, S |- t :: T ->
     (normal_form t \/ 
-      (exists sta' sto' t' G' G'' S' S'',
-      red t sta sto t' sta' sto' /\ 
-      G' = G & G'' /\ 
-      S' = S & S'' /\
-      ty_trm ty_general sub_general G' S' t' T /\ 
-      wf_stack G' S' sta' /\
-      wt_store G' S' sto')).
+     (exists sta' sto' t' G' G'' S' S'',
+         t / sta / sto => t' / sta' / sto' /\ 
+         G' = G & G'' /\ 
+         S' = S & S'' /\
+         G', S' |- t' :: T /\ 
+         G', S' ~~ sta' /\
+         G', S' |~ sto')).
 Proof.
   introv Hwf Hwt Hg H. dependent induction H; try solve [left; eauto].
   - (* All-E *) 
@@ -244,8 +244,8 @@ Proof.
       * assumption.
       * assumption.
       * pose proof (general_to_tight Hg) as [A _].
-        pose proof (A ty_general sub_general G S (trm_var (avar_f x)) (typ_ref T) H eq_refl eq_refl eq_refl).
-        pose proof (A ty_general sub_general G S (trm_val (val_loc l)) (typ_ref T) Hty eq_refl eq_refl eq_refl).
+        pose proof (A G S (trm_var (avar_f x)) (typ_ref T) H eq_refl).
+        pose proof (A G S (trm_val (val_loc l)) (typ_ref T) Hty eq_refl).
         destruct (precise_ref_subtyping Hg BiLoc H1 H2 Hwf Hwt) as [U [HU [Hs1 Hs2]]].
         apply wt_store_update with (T:=U); try assumption.
         apply (ref_binds_typ HU). apply ty_sub with (T:=T); assumption.

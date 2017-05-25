@@ -109,6 +109,7 @@ Proof.
       - pose proof (precise_flow_lemma Bi Hx) as H.
         apply (precise_flow_ref_inv) in H.
         inversion H.
+      - inversion Heq.
     }
     destruct H as [T0 [Hrt Hsubst]]; subst V; rename T0 into V.
     inversion Hsubst.
@@ -131,9 +132,14 @@ Proof.
       - pose proof (precise_flow_lemma Bi Hx) as H.
         apply (precise_flow_ref_inv) in H.
         inversion H.
+      - destruct Heq.
+        + inversion H.
+        + pose proof (precise_flow_lemma Bi Hx) as H'.
+          apply (precise_flow_nref_inv) in H'.
+          inversion H'.
     }
     destruct H as [T0 [Hrt Hsubst]]; subst V; rename T0 into V.
-    inversion Hsubst.
+    destruct Heq; inversion H.
   + assert (H: exists T, record_type T /\ V = (typ_bnd T)).
     { pose proof (inert_binds Hg Bi) as Hgt.
       induction Hgt.
@@ -143,6 +149,9 @@ Proof.
       - exists T0. auto.
       - pose proof (precise_flow_lemma Bi Hx) as H.
         apply (precise_flow_ref_inv) in H.
+        inversion H.
+      - pose proof (precise_flow_lemma Bi Hx) as H.
+        apply (precise_flow_nref_inv) in H.
         inversion H.
     }
     destruct H as [T0 [Hrt Hsubst]]; subst V; rename T0 into V.

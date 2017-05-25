@@ -56,21 +56,6 @@ Proof.
     specialize (IHHpf S T eq_refl); inversion IHHpf.
 Qed.
 
-Lemma precise_flow_lemma_rev : forall T U G p,
-    precise_flow p G T U ->
-    G |-! trm_path p :: U.
-Proof.
-  introv H. induction H; eauto.
-Qed.
-
-Lemma precise_flow_lemma_rev_T : forall T U G p,
-    precise_flow p G T U ->
-    G |-! trm_path p :: T.
-Proof.
-  introv H. induction H; eauto.
-  apply pf_fld in H. apply* precise_flow_lemma_rev. assumption. assumption.
-Qed.
-
 (* ###################################################################### *)
 (** ** Inert types *)
 
@@ -142,9 +127,9 @@ Proof.
     * inversions eq. right. lets Hr: (pf_rcd_T Hi Pf). apply* open_record_type_p.
     * inversion r. inversion H.
   - right. destruct (IHPf T Hi eq_refl) as [F | Hr]. inversion F. inversion Hr. inversions H.
-    unfold record_type. exists ls. assumption.
+    exists ls. assumption.
   - right. destruct (IHPf T Hi eq_refl) as [F | Hr]. inversion F. inversion Hr. inversions H.
-    unfold record_type. eexists. apply* rt_one.
+    eexists. apply* rt_one.
 Qed.
 
 Lemma pf_inert_lambda_T : forall G p T U S,

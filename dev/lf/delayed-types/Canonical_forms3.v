@@ -117,6 +117,7 @@ Proof.
         inversion H.
       - exists T0. auto.
       - inversion Heq. 
+      - inversion Heq.
     }
     destruct H as [T0 [Hrt Hsubst]]; subst V; rename T0 into V.
     inversion Hsubst.
@@ -129,15 +130,18 @@ Proof.
       * inversion Heq'.
       * inversion Hrec. inversion H0.
     + inversion Heq.
+    + inversion Heq.
   - subst. 
-    pose proof (typing_implies_bound_loc Ht) as [V Bil].
+    pose proof (typing_implies_bound_loc Ht) as [V' Bil].
     pose proof (sigma_binds_to_store_binds_typing Hwt Bil) as [y [Bil' Htyl]].
     pose proof (precise_flow_lemma Bi Hx) as H'.
     exists l y. repeat split; try assumption.
     + apply ty_sub with (T:=typ_ref T'). 
       * apply ty_sub with (T:=typ_ref U). 
         { apply precise_to_general in Ht; auto. }
-        { apply precise_flow_ref_inv in H'. rewrite H'.
+        { destruct Heq.
+          - subst.
+          apply precise_flow_ref_inv in H'. rewrite H'.
         apply precise_to_general in Ht; auto. }
       * pose proof (subtyp_ref Hs1 Hs2).
         apply tight_to_general in H; auto.

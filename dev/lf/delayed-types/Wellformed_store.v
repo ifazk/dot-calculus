@@ -108,7 +108,7 @@ Proof.
     - apply IHWt in H0. assumption.
 Qed.
 
-Lemma tpt_to_precise_rec: forall G S v T,
+Lemma tpt_to_precise_bnd: forall G S v T,
     tight_pt_v G S v (typ_bnd T) ->
     ty_trm ty_precise sub_general G S (trm_val v) (typ_bnd T).
 Proof.
@@ -116,7 +116,7 @@ Proof.
   inversions Ht. assumption.
 Qed.
 
-Lemma tpt_to_precise_lambda: forall G S v V T,
+Lemma tpt_to_precise_forall: forall G S v V T,
     tight_pt_v G S v (typ_all V T) ->
     inert G ->
     exists L V' T',
@@ -139,7 +139,7 @@ Proof.
     apply* H0.
 Qed.
 
-Lemma tpt_to_precise_loc: forall G S v T,
+Lemma tpt_to_precise_ref: forall G S v T,
     tight_pt_v G S v (typ_ref T) ->
     exists T', 
       ty_trm ty_precise sub_general G S (trm_val v) (typ_ref T') /\
@@ -154,6 +154,35 @@ Proof.
       apply ((proj22 tight_to_general) ty_general sub_tight); auto.
     + apply subtyp_trans with (T:=T0); auto.
       apply ((proj22 tight_to_general) ty_general sub_tight); auto.
+Qed.
+
+Lemma tpt_to_precise_nref: forall G S v T,
+    tight_pt_v G S v (typ_nref T) ->
+    (exists T', 
+        ty_trm ty_precise sub_general G S (trm_val v) (typ_ref T') /\
+        subtyp ty_general sub_general G S T' T /\
+        subtyp ty_general sub_general G S T T') \/
+    (exists T', 
+        ty_trm ty_precise sub_general G S (trm_val v) (typ_nref T') /\
+        subtyp ty_general sub_general G S T' T /\
+        subtyp ty_general sub_general G S T T').
+Proof.
+  introv Ht. dependent induction Ht.
+  - right. exists* T. 
+  - destruct (IHHt T0 eq_refl) as [[T' [Hty [Hs1 Hs2]]] | [T' [Hty [Hs1 Hs2]]]]. 
+    + left. exists T'. repeat split. 
+      * assumption.
+      * apply subtyp_trans with (T:=T0); auto.
+        apply ((proj22 tight_to_general) ty_general sub_tight); auto.
+      * apply subtyp_trans with (T:=T0); auto.
+        apply ((proj22 tight_to_general) ty_general sub_tight); auto.
+    + right. exists T'. repeat split. 
+      * assumption.
+      * apply subtyp_trans with (T:=T0); auto.
+        apply ((proj22 tight_to_general) ty_general sub_tight); auto.
+      * apply subtyp_trans with (T:=T0); auto.
+        apply ((proj22 tight_to_general) ty_general sub_tight); auto.
+  - left. apply* tpt_to_precise_ref.
 Qed.
 
 Lemma precise_forall_inv : forall G S v V T,
@@ -178,6 +207,14 @@ Lemma precise_ref_inv : forall G S v T,
       v = val_loc l.
 Proof.
   introv Ht. inversions Ht. exists* l.
+Qed.
+
+Lemma precise_nref_inv : forall G S v T,
+    ty_trm ty_precise sub_general G S (trm_val v) (typ_nref T) ->
+    (exists l, v = val_loc l) \/
+    v = val_null.
+Proof.
+  introv Ht. inversions Ht. right. reflexivity.
 Qed.
 
 Lemma precise_obj_typ : forall G S T ds U,
@@ -213,6 +250,16 @@ Proof.
   apply* IHHt.
 Qed.
 
+Lemma tpt_obj_nref : forall G S V ds T,
+    tight_pt_v G V (val_new S ds) (typ_nref T) ->
+    False.
+Proof.
+  introv Ht. dependent induction Ht.
+  apply precise_obj_typ in H. inversion H.
+  apply* IHHt. 
+  apply* tpt_obj_ref.
+Qed.
+
 Lemma corresponding_types: forall G S s x T,
     wf_stack G S s ->
     inert G ->
@@ -228,7 +275,7 @@ Lemma corresponding_types: forall G S s x T,
               T = typ_bnd V) \/
      (exists V V' l, binds x (val_loc l) s /\
                 ty_trm ty_precise sub_general G S (trm_val (val_loc l)) (typ_ref V) /\
-                T = typ_ref V' /\
+                (T = typ_ref V' \/ T = typ_nref V') /\
                 subtyp ty_general sub_general G S V V' /\
                 subtyp ty_general sub_general G S V' V) \/
      (exists V, binds x val_null s /\
@@ -257,7 +304,7 @@ Proof.
           inversions Hgd. false* empty_push_inv. destruct (eq_push_inv H5) as [Hx [Hv HG]]. subst*.
         }
         inversions HgT.
-        { apply tpt_to_precise_lambda in Hpt. destruct Hpt as [L [V' [T' [Hss [Hs1 Hs2]]]]].
+        { apply tpt_to_precise_forall in Hpt. destruct Hpt as [L [V' [T' [Hss [Hs1 Hs2]]]]].
           destruct (precise_forall_inv Hss) as [t Heq]. subst. left. 
           exists (L \u dom G \u \{ x0}) V' T' S0 T1 t.
           split. apply* f_equal. split. apply* weaken_ty_trm_ctx. split. reflexivity.
@@ -266,16 +313,28 @@ Proof.
           apply ok_push. apply* inert_ok. simpl_dom. rewrite notin_union. split*.
           assumption.
         }
-        { apply tpt_to_precise_rec in Hpt.
+        { apply tpt_to_precise_bnd in Hpt.
           destruct (precise_bnd_inv Hpt) as [ds Heq]. subst. right. left. exists T1 ds.
           split. reflexivity. split. apply* weaken_ty_trm_ctx. reflexivity.
         } 
-        { apply tpt_to_precise_loc in Hpt.
+        { apply tpt_to_precise_ref in Hpt.
           destruct Hpt as [T [Ht [Hs1 Hs2]]].
           destruct (precise_ref_inv Ht) as [l ?].
           subst. right. right. left. exists T T1 l. 
-          split. reflexivity. split. apply* weaken_ty_trm_ctx. split. reflexivity.
+          split. reflexivity. split. apply* weaken_ty_trm_ctx. split. left. reflexivity.
           split; apply* weaken_subtyp_ctx.
+        }
+        { apply tpt_to_precise_nref in Hpt.
+          destruct Hpt as [[T [Ht [Hs1 Hs2]]] | [T [Ht [Hs1 Hs2]]]].
+          - destruct (precise_ref_inv Ht) as [l ?].
+            subst. right. right. left. exists T T1 l.
+            split. reflexivity. split. apply* weaken_ty_trm_ctx. split. right. reflexivity.
+            split; apply* weaken_subtyp_ctx.
+          - destruct (precise_nref_inv Ht) as [[l ?] | ?].
+            + subst. right. right. left. exists T T1 l. split. reflexivity.
+              split. apply* weaken_ty_trm_ctx. inversion Ht. (* wat *)
+              split. right. reflexivity. split; apply* weaken_subtyp_ctx.
+            + subst. right. right. right. exists T1. auto.
         }
         assumption.
       * right. right. right. exists T0. split. reflexivity.
@@ -347,6 +406,8 @@ Proof.
       inversions H1; try solve [inversion HT].
       * apply* precise_obj_typ.
       * false* tpt_obj_all.
+      * false* tpt_obj_nref.
+      * false* tpt_obj_ref.
       * false* tpt_obj_ref.
     }
     subst*.
