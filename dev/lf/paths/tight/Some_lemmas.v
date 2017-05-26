@@ -163,17 +163,28 @@ Qed.
 (* ###################################################################### *)
 (** *** Lemmas to upcast to general typing *)
 
-Lemma precise_to_general: forall G t T,
-  G |-! t :: T ->
-  G |- t :: T.
+Lemma precise_to_tight:
+  (forall G t T, G |-! t : T ->
+            G |-# t : T) /\
+  (forall G p, norm_p G p ->
+          norm_t G p).
 Proof.
-  intros; induction H; eauto.
+  apply ts_mutind_p; intros; eauto.
+Qed.
+
+Lemma precise_to_general:
+  (forall G t T, G |-! t : T ->
+            G |- t : T) /\
+  (forall G p, norm_p G p ->
+          norm G p).
+Proof.
+  apply ts_mutind_p; intros; eauto.
 Qed.
 
 Lemma tight_to_general:
   (forall G t T,
-     G |-# t :: T ->
-     G |- t :: T) /\
+     G |-# t : T ->
+     G |- t : T) /\
   (forall G S U,
      G |-# S <: U ->
      G |- S <: U) /\
@@ -184,15 +195,13 @@ Proof.
   apply ts_mutind_t; intros; subst; eauto.
   - apply precise_to_general in t; eauto.
   - apply precise_to_general in t; eauto.
-  - apply* norm_var.
-  - apply* norm_path.
 Qed.
 
 (* ###################################################################### *)
 (** *** Misc Lemmas *)
 
 Lemma var_typing_implies_avar_f: forall G a T,
-  G |- trm_path (p_var a) :: T ->
+  G |- trm_path (p_var a) : T ->
   exists x, a = avar_f x.
 Proof.
   intros. dependent induction H; try solve [eexists; reflexivity].
@@ -200,8 +209,8 @@ Proof.
 Qed.
 
 Lemma val_typing: forall G v T,
-  G |- trm_val v :: T ->
-  exists T', G |-! trm_val v :: T' /\
+  G |- trm_val v : T ->
+  exists T', G |-! trm_val v : T' /\
              G |- T' <: T.
 Proof.
   intros. dependent induction H.
@@ -214,7 +223,7 @@ Proof.
 Qed.
 
 Lemma typing_implies_bound: forall G x T,
-  G |- trm_path (p_var (avar_f x)) :: T ->
+  G |- trm_path (p_var (avar_f x)) : T ->
   exists S, binds x S G.
 Proof.
   intros. remember (trm_path (p_var (avar_f x))) as t.
@@ -226,7 +235,7 @@ Proof.
 Qed.
 
 Lemma typing_implies_bound_p: forall G x T,
-  G |-! trm_path (p_var (avar_f x)) :: T ->
+  G |-! trm_path (p_var (avar_f x)) : T ->
   exists S, binds x S G.
 Proof.
   intros. eapply typing_implies_bound. apply* precise_to_general.

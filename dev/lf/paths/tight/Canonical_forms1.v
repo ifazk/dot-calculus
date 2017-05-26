@@ -14,9 +14,9 @@ Require Import Substitution.
 Lemma canonical_forms_1: forall G s x T U,
   G ~~ s ->
   inert G ->
-  G |- trm_var (avar_f x) :: typ_all T U ->
+  G |- trm_var (avar_f x) : typ_all T U ->
   (exists L T' t, binds x (val_lambda T' t) s /\ G |- T <: T' /\
-  (forall y, y \notin L -> G & y ~ T |- t |^ y :: U ||^ y)).
+  (forall y, y \notin L -> G & y ~ T |- t |^ y : U ||^ y)).
 Proof.
   introv Hwf Hgd Hty.
   pose proof (general_to_tight_typing Hgd Hty) as Hti.

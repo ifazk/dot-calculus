@@ -20,18 +20,18 @@ Proof. intros. induction H; jauto. Qed.
 Hint Resolve wf_sto_to_ok_G.
 
 Lemma tpt_to_precise_rec: forall G v T,
-    G |-##v v :: typ_bnd T ->
-    G |- trm_val v :: typ_bnd T.
+    G |-##v v : typ_bnd T ->
+    G |- trm_val v : typ_bnd T.
 Proof.
   introv Ht.
   inversions Ht. assumption.
 Qed.
 
 Lemma tpt_to_precise_lambda: forall G v S T,
-    G |-##v v :: typ_all S T ->
+    G |-##v v : typ_all S T ->
     inert G ->
     exists L S' T',
-      G |-! trm_val v :: typ_all S' T' /\
+      G |-! trm_val v : typ_all S' T' /\
       G |- S <: S' /\
       (forall y, y \notin L ->
                  G & y ~ S |- T' ||^ y <: T ||^ y).
@@ -51,28 +51,28 @@ Proof.
 Qed.
 
 Lemma precise_forall_inv : forall G v S T,
-    G |-! trm_val v :: typ_all S T ->
+    G |-! trm_val v : typ_all S T ->
     exists t, v = val_lambda S t.
 Proof.
   introv Ht. inversions Ht. exists* t.
 Qed.
 
 Lemma precise_bnd_inv : forall G v S,
-    G |-! trm_val v :: typ_bnd S ->
+    G |-! trm_val v : typ_bnd S ->
     exists ds, v = val_new S ds.
 Proof.
   introv Ht. inversions Ht. exists* ds.
 Qed.
 
 Lemma precise_obj_typ : forall G T ds U,
-    G |-! trm_val (val_new T ds) :: U ->
+    G |-! trm_val (val_new T ds) : U ->
     U = typ_bnd T.
 Proof.
   introv Hp. dependent induction Hp; auto.
 Qed.
 
 Lemma tpt_obj_all : forall G S ds T U,
-    G |-##v val_new S ds:: typ_all T U ->
+    G |-##v val_new S ds: typ_all T U ->
     False.
 Proof.
   introv Ht. dependent induction Ht.
@@ -85,13 +85,13 @@ Lemma corresponding_types: forall G s x T,
   inert G ->
   binds x T G ->
   ((exists L S U S' U' t, binds x (val_lambda S t) s /\
-                  G |-! trm_val (val_lambda S t):: typ_all S U /\
+                  G |-! trm_val (val_lambda S t): typ_all S U /\
                   T = typ_all S' U' /\
                   G |- S' <: S /\
                   (forall y, y \notin L ->
                     G & y ~ S' |- U ||^ y <: U' ||^ y)) \/
    (exists S ds, binds x (val_new S ds) s /\
-                 G |-! trm_val (val_new S ds) :: typ_bnd S /\
+                 G |-! trm_val (val_new S ds) : typ_bnd S /\
                  T = typ_bnd S)).
 Proof.
   introv H Hgd Bi. induction H.
@@ -184,7 +184,7 @@ Lemma val_new_typing: forall G s x T ds,
   G ~~ s ->
   inert G ->
   binds x (val_new T ds) s ->
-  G |-! trm_val (val_new T ds) :: typ_bnd T.
+  G |-! trm_val (val_new T ds) : typ_bnd T.
 Proof.
   introv Hwf Hg Bis.
   assert (exists T, binds x T G) as Bi. {

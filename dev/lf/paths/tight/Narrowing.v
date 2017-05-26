@@ -43,18 +43,18 @@ Proof.
 Qed.
 
 Lemma narrow_rules:
-  (forall G t T, G |- t :: T -> forall G',
+  (forall G t T, G |- t : T -> forall G',
     ok G' ->
     subenv G' G ->
-    G' |- t :: T)
-/\ (forall G z U d D, G && z ~ U |- d :: D -> forall G',
+    G' |- t : T)
+/\ (forall G z U d D, G && z ~ U |- d : D -> forall G',
     ok (G' & z ~ U) ->
     subenv G' G ->
-    G' && z ~ U |- d :: D)
-/\ (forall G z U ds T, G && z ~ U |- ds ::: T -> forall G',
+    G' && z ~ U |- d : D)
+/\ (forall G z U ds T, G && z ~ U |- ds :: T -> forall G',
     ok (G' & z ~ U) ->
     subenv G' G ->
-    G' && z ~ U |- ds ::: T)
+    G' && z ~ U |- ds :: T)
 /\ (forall G p, norm G p -> forall G',
     ok G' ->
     subenv G' G ->
@@ -88,19 +88,17 @@ Proof.
     unfold subenv in H0. destruct (H0 x T b) as [Hb | [T1 [Hb Hs]]].
     econstructor. eassumption.
     econstructor. eassumption.
-  - (* norm_path *)
-    econstructor; eauto.
   - (* subtyp_all *)
     subst.
     apply_fresh subtyp_all as y; eauto.
-apply H0; eauto. apply subenv_push; eauto.
+    apply H0; eauto. apply subenv_push; eauto.
 Qed.
 
 Lemma narrow_typing: forall G G' t T,
-  G |- t :: T ->
+  G |- t : T ->
   subenv G' G ->
   ok G' ->
-  G' |- t :: T.
+  G' |- t : T.
 Proof.
   intros. apply* narrow_rules.
 Qed.
