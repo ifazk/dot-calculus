@@ -33,8 +33,8 @@ Fixpoint subst_typ (z: var) (u: var) (T: typ) { struct T } : typ :=
   end
 with subst_dec (z: var) (u: var) (D: dec) { struct D } : dec :=
   match D with
-  | dec_typ L T U => dec_typ L (subst_typ z u T) (subst_typ z u U)
-  | dec_trm L m U => dec_trm L m (subst_typ z u U)
+  | { L >: T <: U } => { L >: subst_typ z u T <: subst_typ z u U }
+  | { a [m] U } => { a [m] subst_typ z u U }
   end.
 
 Fixpoint subst_trm (z: var) (u: var) (t: trm) : trm :=

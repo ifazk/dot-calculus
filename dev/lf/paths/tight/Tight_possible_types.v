@@ -34,19 +34,19 @@ Inductive tight_pt : ctx -> path -> typ -> Prop :=
     G |-## p : T
   (* General term member subtyping *)
 | t_pt_dec_trm : forall G p a T T',
-    G |-## p : typ_rcd {{ a [gen] T }} ->
+    G |-## p : typ_rcd { a [gen] T } ->
     G |-# T <: T' ->
-    G |-## p : typ_rcd {{ a [gen] T' }}
+    G |-## p : typ_rcd { a [gen] T' }
   (* Strong term member subtyping *)
 | t_pt_dec_trm_strong : forall G p a T,
-    G |-## p : typ_rcd {{ a [strong] T }} ->
-    G |-## p : typ_rcd {{ a [gen] T }}
+    G |-## p : typ_rcd { a [strong] T } ->
+    G |-## p : typ_rcd { a [gen] T }
   (* Type member subtyping *)
 | t_pt_dec_typ : forall G p A T T' U' U,
-    G |-## p : typ_rcd (dec_typ A T U) ->
+    G |-## p : typ_rcd { A >: T <: U } ->
     G |-# T' <: T ->
     G |-# U <: U' ->
-    G |-## p : typ_rcd (dec_typ A T' U')
+    G |-## p : typ_rcd { A >: T' <: U' }
   (* Recursive Types *)
 | t_pt_bnd : forall G x S,
     G |-## (p_var (avar_f x)) : S ||^ x ->
@@ -66,7 +66,7 @@ Inductive tight_pt : ctx -> path -> typ -> Prop :=
   (* Tight Selection *)
 | t_pt_sel : forall G p q A S,
     G |-## p : S ->
-    G |-! trm_path q : typ_rcd (dec_typ A S S) ->
+    G |-! trm_path q : typ_rcd { A >: S <: S } ->
     norm_t G q ->
     G |-## p : typ_path q A
   (* Top *)
@@ -83,9 +83,9 @@ Hint Constructors tight_pt.
 Lemma tpt_to_precise_typ_dec: forall G p A S U,
     inert G ->
     norm_t G p ->
-    G |-## p : typ_rcd (dec_typ A S U) ->
+    G |-## p : typ_rcd { A >: S <: U } ->
     exists T,
-      G |-! trm_path p : typ_rcd (dec_typ A T T) /\
+      G |-! trm_path p : typ_rcd { A >: T <: T } /\
       G |-# T <: U /\
       G |-# S <: T.
 Proof.
@@ -100,9 +100,9 @@ Qed.
 Lemma tpt_to_precise_trm_dec: forall G p a m T,
     inert G ->
     norm_t G p ->
-    G |-## p : typ_rcd {{ a [m] T }} ->
+    G |-## p : typ_rcd { a [m] T } ->
     exists T',
-      G |-! trm_path p : typ_rcd {{ a [m] T' }} /\
+      G |-! trm_path p : typ_rcd { a [m] T' } /\
       G |-# T' <: T.
 Proof.
   introv Hi Hn Ht. dependent induction Ht.
@@ -166,7 +166,7 @@ Qed.
 
 Lemma term_path_norm_false: forall G x a T,
     inert G ->
-    G |-## p_var (avar_f x) : typ_rcd {{a [gen] T}} ->
+    G |-## p_var (avar_f x) : typ_rcd { a [gen] T } ->
     norm_p G (p_sel (p_var (avar_f x)) a) ->
     False.
 Proof.
@@ -202,4 +202,4 @@ Proof.
     inversion IHHty; subst; auto.
   - apply t_pt_and; auto.
   - eapply tight_possible_types_closure_tight; auto.
-Qed.*)
+Qed.

@@ -120,8 +120,8 @@ Qed.
 
 Lemma unique_rcd_typ: forall T A T1 T2,
   record_type T ->
-  record_has T (dec_typ A T1 T1) ->
-  record_has T (dec_typ A T2 T2) ->
+  record_has T { A >: T1 <: T1 } ->
+  record_has T { A >: T2 <: T2 } ->
   T1 = T2.
 Proof.
   Proof.
@@ -130,10 +130,10 @@ Proof.
   destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Has1; inversion Has2; subst.
   - inversion* H3.
   - inversion* H5.
-  - apply record_typ_has_label_in with (D:=dec_typ A T1 T1) in Htyp.
+  - apply record_typ_has_label_in with (D:={ A >: T1 <: T1 })in Htyp.
     + inversions H9. unfold "\notin" in H1. unfold not in H1. false* H1.
     + assumption.
-  - apply record_typ_has_label_in with (D:=dec_typ A T2 T2) in Htyp.
+  - apply record_typ_has_label_in with (D:={ A >: T2 <: T2 }) in Htyp.
     + inversions H5. unfold "\notin" in H1. unfold not in H1. false* H1.
     + assumption.
   - inversions H5. inversions* H9.
@@ -141,8 +141,8 @@ Qed.
 
 Lemma unique_rcd_trm: forall T a m1 m2 U1 U2,
     record_type T ->
-    record_has T {{ a [m1] U1 }} ->
-    record_has T {{ a [m2] U2 }} ->
+    record_has T { a [m1] U1 } ->
+    record_has T { a [m2] U2 } ->
     m1 = m2 /\ U1 = U2.
 Proof.
   introv Htype Has1 Has2.
@@ -150,10 +150,10 @@ Proof.
   destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Has1; inversion Has2; subst.
   - inversion* H3.
   - inversion* H5.
-  - apply record_typ_has_label_in with (D:={{ a [m1]  U1 }}) in Htyp.
+  - apply record_typ_has_label_in with (D:={ a [m1]  U1 }) in Htyp.
     + inversions H9. false* H1.
     + assumption.
-  - apply record_typ_has_label_in with (D:={{ a [m1]  U2 }}) in Htyp.
+  - apply record_typ_has_label_in with (D:={ a [m1]  U2 }) in Htyp.
     + inversions H5. false* H1.
     + inversions H5. lets Hr: (record_typ_has_label_in Htyp H9).
       false* H1.

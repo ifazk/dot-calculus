@@ -12,7 +12,7 @@ Require Import Tight_possible_types.
 Lemma tight_subtyping_sel: forall G p A S U,
     inert G ->
     norm_t G p ->
-    G |-# trm_path p : typ_rcd (dec_typ A S U) ->
+    G |-# trm_path p : typ_rcd { A >: S <: U } ->
     G |-# typ_path p A <: U /\
     G |-# S <: typ_path p A.
 Proof.

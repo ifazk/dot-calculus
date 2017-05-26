@@ -24,7 +24,7 @@ Inductive precise_flow : path -> ctx -> typ -> typ -> Prop :=
       binds x T G ->
       precise_flow (p_var (avar_f x)) G T T
   | pf_fld : forall G p a T U,
-      precise_flow p G T (typ_rcd {{ a [strong] U }}) ->
+      precise_flow p G T (typ_rcd { a [strong] U }) ->
       norm_p G p ->
       inert_typ U ->
       precise_flow (p_sel p a) G U U
@@ -285,8 +285,8 @@ Qed.
 
 Lemma pf_record_unique_tight_bounds_rec : forall G p T A T1 T2,
     inert G ->
-    precise_flow p G (typ_bnd T) (typ_rcd (dec_typ A T1 T1)) ->
-    precise_flow p G (typ_bnd T) (typ_rcd (dec_typ A T2 T2)) ->
+    precise_flow p G (typ_bnd T) (typ_rcd { A >: T1 <: T1 }) ->
+    precise_flow p G (typ_bnd T) (typ_rcd { A >: T2 <: T2 }) ->
     T1 = T2.
 Proof.
   introv Hi Pf1 Pf2.
@@ -298,12 +298,12 @@ Qed.
 
 Lemma pf_inert_unique_tight_bounds : forall G p T T1 T2 A,
     inert G ->
-    precise_flow p G T (typ_rcd (dec_typ A T1 T1)) ->
-    precise_flow p G T (typ_rcd (dec_typ A T2 T2)) ->
+    precise_flow p G T (typ_rcd { A >: T1 <: T1 }) ->
+    precise_flow p G T (typ_rcd { A >: T2 <: T2 }) ->
     T1 = T2.
 Proof.
   introv Hi Pf1 Pf2.
-  assert (record_type (typ_rcd (dec_typ A T1 T1))) as Hrt. {
+  assert (record_type (typ_rcd { A >: T1 <: T1 })) as Hrt. {
     unfold record_type. eexists. apply* rt_one.
     constructor.
   }
@@ -339,25 +339,25 @@ Qed.
 
 Lemma pf_rcd_unique: forall G p T a m1 m2 U1 U2,
     inert G ->
-    precise_flow p G T (typ_rcd {{ a [m1] U1 }}) ->
-    precise_flow p G T (typ_rcd {{ a [m2] U2 }}) ->
+    precise_flow p G T (typ_rcd { a [m1] U1 }) ->
+    precise_flow p G T (typ_rcd { a [m2] U2 }) ->
     m1 = m2 /\ U1 = U2.
 Proof.
   introv Hi Pf1 Pf2. dependent induction Pf1.
   - apply (binds_inert H) in Hi. inversion Hi.
   - inversion H0.
-  - assert (record_type (typ_rcd {{ a [m2] U2 }})) as Hrt. {
+  - assert (record_type (typ_rcd { a [m2] U2 })) as Hrt. {
       eexists. apply* rt_one. constructor.
     }
     destruct (pf_inert_rcd_typ_U Hi Pf2 Hrt) as [S Heq]. subst.
     destruct U; inversions x. destruct d; inversions H0.
     apply (pf_inert_bnd_U Hi) in Pf1. inversions Pf1.
     lets Hr: (precise_flow_record_has Hi Pf2). inversion* Hr.
-  - assert (record_type (typ_rcd {{ a [m2] U2 }})) as Hrt. {
+  - assert (record_type (typ_rcd { a [m2] U2 })) as Hrt. {
       eexists. apply* rt_one. constructor.
     }
     destruct (pf_inert_rcd_typ_U Hi Pf2 Hrt) as [S Heq]. subst.
-    assert (record_has (typ_and (typ_rcd {{ a [m1] U1 }}) U0) {{ a [m1] U1 }}) as H
+    assert (record_has (typ_and (typ_rcd { a [m1] U1 }) U0) { a [m1] U1 }) as H
         by (apply* rh_andl).
     lets Hr1: (pf_record_sub Hi Pf1 H).
     lets Hr2: (precise_flow_record_has Hi Pf2).
@@ -365,11 +365,11 @@ Proof.
       apply open_record_type_p. apply pf_inert_T in Pf1. inversion* Pf1. assumption.
     }
     apply* unique_rcd_trm.
-  - assert (record_type (typ_rcd {{ a [m2] U2 }})) as Hrt. {
+  - assert (record_type (typ_rcd { a [m2] U2 })) as Hrt. {
       eexists. apply* rt_one. constructor.
     }
     destruct (pf_inert_rcd_typ_U Hi Pf2 Hrt) as [S Heq]. subst.
-    assert (record_has (typ_and U3 (typ_rcd {{ a [m1] U1 }})) {{ a [m1] U1 }}) as H
+    assert (record_has (typ_and U3 (typ_rcd { a [m1] U1 })) { a [m1] U1 }) as H
         by (apply* rh_andr).
     lets Hr1: (pf_record_sub Hi Pf1 H).
     lets Hr2: (precise_flow_record_has Hi Pf2).
@@ -388,14 +388,14 @@ Proof.
   introv Hi Pf1. gen T2 U2. induction Pf1; intros; try solve [apply* IHPf1]; auto.
   - apply pf_binds in H0. apply (binds_func H H0).
   - dependent induction H1; eauto.
-    specialize (IHPf1 Hi T0 (typ_rcd {{a [strong] U0}}) H1). subst.
+    specialize (IHPf1 Hi T0 (typ_rcd { a [strong] U0 }) H1). subst.
     lets Hu: (pf_rcd_unique Hi Pf1 H1). apply* Hu.
 Qed.
 
 Lemma p_rcd_unique: forall G p a m1 m2 U1 U2,
     inert G ->
-    G |-! trm_path p : typ_rcd {{ a [m1] U1 }} ->
-    G |-! trm_path p : typ_rcd {{ a [m2] U2 }} ->
+    G |-! trm_path p : typ_rcd { a [m1] U1 } ->
+    G |-! trm_path p : typ_rcd { a [m2] U2 } ->
     m1 = m2 /\ U1 = U2.
 Proof.
   introv Hi H1 H2. destruct (precise_flow_lemma H1) as [T1 Pf1].
@@ -406,8 +406,8 @@ Qed.
 
 Lemma inert_unique_tight_bounds : forall G p T1 T2 A,
     inert G ->
-    G |-! trm_path p : typ_rcd (dec_typ A T1 T1) ->
-    G |-! trm_path p : typ_rcd (dec_typ A T2 T2) ->
+    G |-! trm_path p : typ_rcd { A >: T1 <: T1 } ->
+    G |-! trm_path p : typ_rcd { A >: T2 <: T2 } ->
     T1 = T2.
 Proof.
   introv Hi H1 H2.
@@ -430,7 +430,7 @@ Qed.
 
 Lemma pf_dec_typ_inv : forall G p T A S U,
     inert G ->
-    precise_flow p G T (typ_rcd (dec_typ A S U)) ->
+    precise_flow p G T (typ_rcd { A >: S <: U }) ->
     S = U.
 Proof.
   introv Hi Pf.
@@ -441,7 +441,7 @@ Qed.
 
 Lemma precise_dec_typ_inv : forall G p A S U,
     inert G ->
-    G |-! trm_path p : typ_rcd (dec_typ A S U) ->
+    G |-! trm_path p : typ_rcd { A >: S <: U } ->
     S = U.
 Proof.
   introv Hi Hpt. destruct (precise_flow_lemma Hpt) as [V Pf].
