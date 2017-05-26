@@ -29,7 +29,7 @@ Inductive precise_flow : var -> ctx -> typ -> typ -> Prop :=
 Hint Constructors precise_flow.
 
 Lemma precise_flow_lemma : forall U G x,
-    G |-! trm_var (avar_f x) :: U ->
+    G |-! trm_var (avar_f x) : U ->
     exists T, precise_flow x G T U.
 Proof.
   introv H. dependent induction H; try (destruct* (IHty_trm _ eq_refl)); 
@@ -118,15 +118,6 @@ Proof.
     eexists. apply* rt_one.
 Qed.
 
-Lemma pf_inert_lambda_T : forall G x T U S,
-    inert G ->
-    precise_flow x G (typ_all T U) S ->
-    S = typ_all T U.
-Proof.
-  introv Hi Pf. dependent induction Pf;
-                  try (specialize (IHPf T U Hi eq_refl); inversion IHPf); auto.
-Qed.
-
 Lemma pf_inert_bnd_U: forall G x T U,
     inert G ->
     precise_flow x G T (typ_bnd U) ->
@@ -135,9 +126,9 @@ Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf). inversions HT; dependent induction Pf; auto.
   - destruct U0; inversions x.
-    apply pf_inert_lambda_T in Pf. inversion* Pf. assumption.
-  - apply pf_inert_lambda_T in Pf. inversion Pf. assumption.
-  - apply pf_inert_lambda_T in Pf. inversion Pf. assumption.
+    apply precise_flow_all_inv in Pf. inversion* Pf. 
+  - apply precise_flow_all_inv in Pf. inversion Pf. 
+  - apply precise_flow_all_inv in Pf. inversion Pf. 
   - specialize (IHPf U0 Hi T0 eq_refl eq_refl H).
     destruct (pf_inert_or_rcd Hi Pf) as [Heq | Hr].
     * inversions Heq. destruct T0; inversions x. inversion H. inversion H0.
@@ -157,9 +148,9 @@ Lemma pf_inert_rcd_U: forall G x T D,
 Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf). inversions HT; dependent induction Pf; auto.
-  - apply (pf_inert_lambda_T Hi) in Pf. inversion Pf.
-  - apply (pf_inert_lambda_T Hi) in Pf. inversion Pf.
-  - apply pf_inert_lambda_T in Pf. inversion Pf. assumption.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. inversion Pf. 
   - apply (pf_inert_bnd_U Hi) in Pf. exists* U.
   - exists* T0.
   - exists* T0.
@@ -174,9 +165,9 @@ Proof.
   introv Hi Pf Hr.
   lets HT: (pf_inert_T Hi Pf). inversions HT; dependent induction Pf; auto.
   - inversion Hr. inversion H0.
-  - apply (pf_inert_lambda_T Hi) in Pf. inversion Pf.
-  - apply (pf_inert_lambda_T Hi) in Pf. inversion Pf.
-  - apply pf_inert_lambda_T in Pf. inversion Pf. assumption.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. inversion Pf. 
   - inversion Hr. inversion H1.
   - apply (pf_inert_bnd_U Hi) in Pf. exists* U.
   - apply* IHPf. destruct (pf_inert_or_rcd Hi Pf) as [H1 | H1]. inversion H1. assumption.
@@ -200,7 +191,7 @@ Proof.
   introv Hi Pf.
   lets Hiu: (pf_inert_T Hi Pf).
   inversions Hiu.
-  - apply (pf_inert_lambda_T Hi) in Pf. inversion* Pf.
+  - apply precise_flow_all_inv in Pf. inversion* Pf.
   - destruct (pf_inert_or_rcd Hi Pf) as [H1 | H1]; inversions H1. inversion H0.
 Qed.
 
@@ -211,13 +202,13 @@ Lemma pf_bot_false : forall G x T,
 Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf). inversions HT.
-  - apply (pf_inert_lambda_T Hi) in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
   - destruct (pf_inert_or_rcd Hi Pf); inversion H0. inversion H1.
 Qed.
 
 Lemma precise_bot_false : forall G x,
     inert G ->
-    G |-! trm_var (avar_f x) :: typ_bot ->
+    G |-! trm_var (avar_f x) : typ_bot ->
     False.
 Proof.
   introv Hi Hp. destruct (precise_flow_lemma Hp) as [T Pf].
@@ -231,13 +222,13 @@ Lemma pf_psel_false : forall G T x y A,
 Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf). inversions HT.
-  - apply (pf_inert_lambda_T Hi) in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
   - destruct (pf_inert_or_rcd Hi Pf); inversion H0. inversion H1.
 Qed.
 
 Lemma precise_psel_false : forall G x y A,
     inert G ->
-    G |-! trm_var (avar_f x) :: typ_sel y A ->
+    G |-! trm_var (avar_f x) : typ_sel y A ->
     False.
 Proof.
   introv Hi Hp. destruct (precise_flow_lemma Hp) as [T Pf].
@@ -373,8 +364,8 @@ Qed.
 
 Lemma inert_unique_tight_bounds : forall G x T1 T2 A,
     inert G ->
-    G |-! trm_var (avar_f x) :: typ_rcd (dec_typ A T1 T1) ->
-    G |-! trm_var (avar_f x) :: typ_rcd (dec_typ A T2 T2) ->
+    G |-! trm_var (avar_f x) : typ_rcd (dec_typ A T1 T1) ->
+    G |-! trm_var (avar_f x) : typ_rcd (dec_typ A T2 T2) ->
     T1 = T2.
 Proof.
   introv Hi H1 H2.
@@ -407,7 +398,7 @@ Qed.
 
 Lemma precise_dec_typ_inv : forall G x A S U,
     inert G ->
-    G |-! trm_var (avar_f x) :: typ_rcd (dec_typ A S U) ->
+    G |-! trm_var (avar_f x) : typ_rcd (dec_typ A S U) ->
     S = U.
 Proof.
   introv Hi Hpt. destruct (precise_flow_lemma Hpt) as [V Pf].
@@ -416,7 +407,7 @@ Qed.
 
 Lemma inert_precise_all_inv : forall x G S T,
     inert G ->
-    G |-! trm_var (avar_f x) :: typ_all S T ->
+    G |-! trm_var (avar_f x) : typ_all S T ->
     binds x (typ_all S T) G.
 Proof.
   introv Hgd Htyp.
