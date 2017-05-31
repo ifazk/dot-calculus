@@ -347,27 +347,26 @@ Proof.
   - auto.
 Qed.
 
-Lemma precise_ref_subtyping: forall G S sta sto x l T,
+Lemma precise_ref_subtyping: forall G S sta x l T,
     inert G -> 
     binds x (val_loc l) sta ->
     G, S |-# trm_var (avar_f x) : typ_ref T ->
     G, S |-# trm_val (val_loc l) : typ_ref T ->
     G, S ~~ sta ->
-    G, S |~ sto ->
     exists U,
       (G, S |-! trm_val (val_loc l) : typ_ref U /\
        G, S |- T <: U /\
        G, S |- U <: T).
 Proof.
-  introv Hg Bi Htx Htl Wf Wt.
+  introv Hg Bi Htx Htl Wf.
   pose proof (tight_possible_types_lemma_v Hg Htl).
   dependent induction H.
   - exists T. split*. 
   - pose proof (subtyp_ref_t H1 H0) as Hs.
     pose proof (ty_sub_t Htx Hs) as Htx'.
     pose proof (ty_sub_t Htl Hs) as Htl'.
-    specialize (IHtight_pt_v l T0 Hg Bi Htx' Htl' Wf Wt eq_refl eq_refl) as [U [Hx [Hs1 Hs2]]].
-    pose proof (precise_typing_implies_bound_loc Hx) as [U' Bi'].
+    specialize (IHtight_pt_v l T0 Hg Bi Htx' Htl' Wf eq_refl eq_refl) as [U [Hx [Hs1 Hs2]]].
+    remember Hx as Hx'. inversions Hx'.
     exists U. repeat split.
     + assumption. 
     + apply subtyp_trans with (T:=T0); auto.

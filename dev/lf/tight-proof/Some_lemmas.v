@@ -181,12 +181,3 @@ Proof.
     try solve [inversion Heqt; eapply IHty_trm1; eauto].
   - inversion Heqt. subst. exists T. assumption.
 Qed.
-
-Lemma precise_typing_implies_bound_loc: forall G S l T,
-  G, S |-! trm_val (val_loc l) : T ->
-  exists T', binds l T' S.
-Proof.
-  intros. 
-  pose proof (precise_to_general H) as H'.
-  pose proof (typing_implies_bound_loc H'). assumption.
-Qed.

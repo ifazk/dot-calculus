@@ -246,7 +246,7 @@ Proof.
       * pose proof (general_to_tight Hg) as [A _].
         pose proof (A G S (trm_var (avar_f x)) (typ_ref T) H eq_refl).
         pose proof (A G S (trm_val (val_loc l)) (typ_ref T) Hty eq_refl).
-        destruct (precise_ref_subtyping Hg BiLoc H1 H2 Hwf Hwt) as [U [HU [Hs1 Hs2]]].
+        destruct (precise_ref_subtyping Hg BiLoc H1 H2 Hwf) as [U [HU [Hs1 Hs2]]].
         apply wt_store_update with (T:=U); try assumption.
         apply (ref_binds_typ HU). apply ty_sub with (T:=T); assumption.
 Qed.

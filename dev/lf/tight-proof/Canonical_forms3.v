@@ -129,8 +129,8 @@ Proof.
       apply pf_inert_ref_U in H'. subst. inversion H0. assumption.
     + inversion Heq.
   - subst. 
-    pose proof (precise_typing_implies_bound_loc Ht) as [V Bil].
-    pose proof (sigma_binds_to_store_binds_typing Hwt Bil) as [y [Bil' Htyl]].
+    remember Ht as Ht'. inversions Ht'. 
+    pose proof (sigma_binds_to_store_binds_typing Hwt H3) as [y [Bil' Htyl]].
     pose proof (precise_flow_lemma Hx) as [W' H].
     exists l y. repeat split; try assumption.
     + apply ty_sub with (T:=typ_ref T'). 
@@ -143,7 +143,7 @@ Proof.
         apply tight_to_general in H0; auto.
     + apply ty_sub with (T:=U).
       * apply ref_binds_typ in Ht. 
-        pose proof (binds_func Ht Bil). subst. assumption.
+        pose proof (binds_func Ht H3). subst. assumption.
       * apply subtyp_trans with (T:=U'). 
         { assumption. }
         { pose proof (pf_binds H). apply (binds_func Bi) in H0. subst.
