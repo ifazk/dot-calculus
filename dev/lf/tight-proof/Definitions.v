@@ -469,16 +469,6 @@ Inductive ty_trm_p : ctx -> sigma -> trm -> typ -> Prop :=
 | ty_and2_p : forall G S x T U,
     G, S |-! trm_var (avar_f x) : typ_and T U ->
     G, S |-! trm_var (avar_f x) : U
-| ty_ref_intro_p : forall G S x T,
-    G, S |-! trm_var (avar_f x) : T ->
-    G, S |-! trm_ref (avar_f x) T : typ_ref T
-| ty_ref_elim_p : forall G S x T,
-    G, S |-! trm_var (avar_f x) : typ_ref T ->
-    G, S |-! trm_deref (avar_f x) : T
-| ty_asgn_p : forall G S x y T,
-    G, S |-! trm_var (avar_f x) : typ_ref T ->
-    G, S |-! trm_var (avar_f y) : T ->
-    G, S |-! trm_asg (avar_f x) (avar_f y) : T
 where "G ',' S '|-!' t ':' T" := (ty_trm_p G S t T).
 
 Reserved Notation "G ',' S '|-#' t ':' T" (at level 40, S at level 58, t at level 59).
