@@ -7,7 +7,7 @@ Require Import Weakening.
 Require Import Some_lemmas.
 Require Import Inert_types.
 Require Import General_to_tight.
-Require Import Tight_possible_types_val.
+Require Import Invertible_typing.
 Require Import Narrowing.
 
 (* ###################################################################### *)
@@ -250,7 +250,7 @@ Proof.
       * right. left. exists T0 ds. split*. split*.
         apply* weaken_ty_trm_ctx_p.
       * apply general_to_tight_typing in H2.
-        lets Hpt: (tight_possible_types_lemma_v Hg H2).
+        lets Hpt: (invertible_typing_lemma_v Hg H2).
         assert (inert_typ T) as HgT. {
           inversions Hgd. false* empty_push_inv. destruct (eq_push_inv H5) as [Hx [Hv HG]]. subst*.
         }
@@ -336,7 +336,7 @@ Proof.
       apply binds_push_eq_inv in Bi. subst.
       clear IHHwf Hg Bis H H0 Hwf.
       apply general_to_tight_typing in H1; auto.
-      apply tight_possible_types_lemma_v in H1; auto.
+      apply invertible_typing_lemma_v in H1; auto.
       inversions H1; try solve [inversion HT].
       * apply* precise_obj_typ.
       * false* tpt_obj_all.
@@ -359,13 +359,13 @@ Lemma precise_ref_subtyping: forall G S sta x l T,
        G, S |- U <: T).
 Proof.
   introv Hg Bi Htx Htl Wf.
-  pose proof (tight_possible_types_lemma_v Hg Htl).
+  pose proof (invertible_typing_lemma_v Hg Htl).
   dependent induction H.
   - exists T. split*. 
   - pose proof (subtyp_ref_t H1 H0) as Hs.
     pose proof (ty_sub_t Htx Hs) as Htx'.
     pose proof (ty_sub_t Htl Hs) as Htl'.
-    specialize (IHtight_pt_v l T0 Hg Bi Htx' Htl' Wf eq_refl eq_refl) as [U [Hx [Hs1 Hs2]]].
+    specialize (IHty_trm_inv_v l T0 Hg Bi Htx' Htl' Wf eq_refl eq_refl) as [U [Hx [Hs1 Hs2]]].
     remember Hx as Hx'. inversions Hx'.
     exists U. repeat split.
     + assumption. 

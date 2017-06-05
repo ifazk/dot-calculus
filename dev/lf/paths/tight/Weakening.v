@@ -8,18 +8,18 @@ Require Import Definitions.
 (** ** Weakening *)
 
 Lemma weaken_rules:
-  (forall G t T, G |- t :: T -> forall G1 G2 G3,
+  (forall G t T, G |- t : T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 |- t :: T) /\
-  (forall G x T d D, G && x ~ T |- d :: D -> forall G1 G2 G3,
+    G1 & G2 & G3 |- t : T) /\
+  (forall G x T d D, G && x ~ T |- d : D -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3 & x ~ T) ->
-    (G1 & G2 & G3) && x ~ T |- d :: D) /\
-  (forall G x U ds T, G && x ~ U |- ds ::: T -> forall G1 G2 G3,
+    (G1 & G2 & G3) && x ~ T |- d : D) /\
+  (forall G x U ds T, G && x ~ U |- ds :: T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3 & x ~ U) ->
-    G1 & G2 & G3 && x ~ U |- ds ::: T) /\
+    G1 & G2 & G3 && x ~ U |- ds :: T) /\
   (forall G p, norm G p -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
@@ -50,7 +50,6 @@ Proof.
     rewrite <- concat_assoc. apply H; rewrite concat_assoc. reflexivity. assumption.
   + intros. subst.
     eapply norm_var. eapply binds_weaken; eassumption.
-  + intros. subst. apply* norm_path.
   + intros. subst.
     apply_fresh subtyp_all as z.
     auto.
@@ -61,9 +60,9 @@ Proof.
 Qed.
 
 Lemma weaken_ty_trm:  forall G1 G2 t T,
-    G1 |- t :: T ->
+    G1 |- t : T ->
     ok (G1 & G2) ->
-    G1 & G2 |- t :: T.
+    G1 & G2 |- t : T.
 Proof.
   intros.
     assert (G1 & G2 = G1 & G2 & empty) as EqG. {

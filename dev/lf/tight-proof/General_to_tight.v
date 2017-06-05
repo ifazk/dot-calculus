@@ -6,7 +6,7 @@ Require Import Definitions.
 Require Import Narrowing.
 Require Import Inert_types.
 Require Import Some_lemmas.
-Require Import Tight_possible_types.
+Require Import Invertible_typing.
 
 (* ###################################################################### *)
 (** ** Tight to precise *)
@@ -21,12 +21,12 @@ Lemma tight_to_precise_typ_dec: forall G S x A V U,
     G, S |-# V <: T.
 Proof.
   introv HG Ht.
-  lets Htp: (tight_possible_types_lemma HG Ht). clear Ht.
-  dependent induction Htp.
+  lets Hinv: (invertible_typing_lemma HG Ht). clear Ht.
+  dependent induction Hinv.
   - lets Hp: (precise_dec_typ_inv HG H). subst.
     exists U. split*.
-  - specialize (IHHtp A T U0 HG eq_refl). 
-    destruct IHHtp as [W [Hx [Hs1 Hs2]]].
+  - specialize (IHHinv A T U0 HG eq_refl). 
+    destruct IHHinv as [W [Hx [Hs1 Hs2]]].
     exists W. split*.
 Qed.
 
@@ -38,10 +38,10 @@ Lemma tight_to_precise_trm_dec: forall G S x a T,
     G, S |-# T' <: T.
 Proof.
   introv Hgd Ht.
-  lets Htp: (tight_possible_types_lemma Hgd Ht). clear Ht.
-  dependent induction Htp.
+  lets Hinv: (invertible_typing_lemma Hgd Ht). clear Ht.
+  dependent induction Hinv.
   - exists T. auto.
-  - specialize (IHHtp _ _ Hgd eq_refl). destruct IHHtp as [V [Hx Hs]].
+  - specialize (IHHinv _ _ Hgd eq_refl). destruct IHHinv as [V [Hx Hs]].
     exists V. split; auto.
     eapply subtyp_trans_t; eassumption.
 Qed.
@@ -57,11 +57,11 @@ Lemma tight_to_precise_typ_all: forall G S x V T,
             G & y ~ V, S |- open_typ y T' <: open_typ y T).
 Proof.
   introv HG Ht.
-  lets Htp: (tight_possible_types_lemma HG Ht). clear Ht.
-  dependent induction Htp.
+  lets Hinv: (invertible_typing_lemma HG Ht). clear Ht.
+  dependent induction Hinv.
   - exists V T (dom G); auto.
-  - specialize (IHHtp _ _ HG eq_refl).
-    destruct IHHtp as [V' [T' [L' [Hpt [HSsub HTsub]]]]].
+  - specialize (IHHinv _ _ HG eq_refl).
+    destruct IHHinv as [V' [T' [L' [Hpt [HSsub HTsub]]]]].
     exists V' T' (dom G \u L \u L').
     split; auto.
     assert (Hsub2 : G, S |-# typ_all V0 T0 <: typ_all V T).
@@ -85,7 +85,7 @@ Lemma tight_to_precise_typ_ref: forall G S x T,
     G, S |-# T <: T'.
 Proof.
   introv Hg Ht.
-  lets Htp: (tight_possible_types_lemma Hg Ht). clear Ht.
+  lets Htp: (invertible_typing_lemma Hg Ht). clear Ht.
   dependent induction Htp.
   - exists T. split*.
   - specialize (IHHtp T0 Hg eq_refl). 

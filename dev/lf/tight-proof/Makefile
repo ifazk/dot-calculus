@@ -6,19 +6,14 @@ PROOFS= \
     Wellformed_store.v \
     Weakening.v \
     Some_lemmas.v \
-    Has_member.v \
     Inert_types.v \
-    Tight_possible_types.v \
-    Tight_possible_types_val.v \
-    Tight_bound_completeness.v \
+    Invertible_typing.v \
     Substitution.v \
     Narrowing.v \
     General_to_tight.v \
-    Extra_rec.v \
     Canonical_forms1.v \
     Canonical_forms2.v \
     Canonical_forms3.v \
-    Misc.v \
     Safety.v
 PROOFOBJECTS=$(PROOFS:.v=.vo)
 

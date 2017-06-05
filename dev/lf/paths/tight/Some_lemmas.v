@@ -120,8 +120,8 @@ Qed.
 
 Lemma unique_rcd_typ: forall T A T1 T2,
   record_type T ->
-  record_has T (dec_typ A T1 T1) ->
-  record_has T (dec_typ A T2 T2) ->
+  record_has T { A >: T1 <: T1 } ->
+  record_has T { A >: T2 <: T2 } ->
   T1 = T2.
 Proof.
   Proof.
@@ -130,10 +130,10 @@ Proof.
   destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Has1; inversion Has2; subst.
   - inversion* H3.
   - inversion* H5.
-  - apply record_typ_has_label_in with (D:=dec_typ A T1 T1) in Htyp.
+  - apply record_typ_has_label_in with (D:={ A >: T1 <: T1 })in Htyp.
     + inversions H9. unfold "\notin" in H1. unfold not in H1. false* H1.
     + assumption.
-  - apply record_typ_has_label_in with (D:=dec_typ A T2 T2) in Htyp.
+  - apply record_typ_has_label_in with (D:={ A >: T2 <: T2 }) in Htyp.
     + inversions H5. unfold "\notin" in H1. unfold not in H1. false* H1.
     + assumption.
   - inversions H5. inversions* H9.
@@ -141,8 +141,8 @@ Qed.
 
 Lemma unique_rcd_trm: forall T a m1 m2 U1 U2,
     record_type T ->
-    record_has T {{ a [m1] U1 }} ->
-    record_has T {{ a [m2] U2 }} ->
+    record_has T { a [m1] U1 } ->
+    record_has T { a [m2] U2 } ->
     m1 = m2 /\ U1 = U2.
 Proof.
   introv Htype Has1 Has2.
@@ -150,10 +150,10 @@ Proof.
   destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Has1; inversion Has2; subst.
   - inversion* H3.
   - inversion* H5.
-  - apply record_typ_has_label_in with (D:={{ a [m1]  U1 }}) in Htyp.
+  - apply record_typ_has_label_in with (D:={ a [m1]  U1 }) in Htyp.
     + inversions H9. false* H1.
     + assumption.
-  - apply record_typ_has_label_in with (D:={{ a [m1]  U2 }}) in Htyp.
+  - apply record_typ_has_label_in with (D:={ a [m1]  U2 }) in Htyp.
     + inversions H5. false* H1.
     + inversions H5. lets Hr: (record_typ_has_label_in Htyp H9).
       false* H1.
@@ -163,17 +163,28 @@ Qed.
 (* ###################################################################### *)
 (** *** Lemmas to upcast to general typing *)
 
-Lemma precise_to_general: forall G t T,
-  G |-! t :: T ->
-  G |- t :: T.
+Lemma precise_to_tight:
+  (forall G t T, G |-! t : T ->
+            G |-# t : T) /\
+  (forall G p, norm_p G p ->
+          norm_t G p).
 Proof.
-  intros; induction H; eauto.
+  apply ts_mutind_p; intros; eauto.
+Qed.
+
+Lemma precise_to_general:
+  (forall G t T, G |-! t : T ->
+            G |- t : T) /\
+  (forall G p, norm_p G p ->
+          norm G p).
+Proof.
+  apply ts_mutind_p; intros; eauto.
 Qed.
 
 Lemma tight_to_general:
   (forall G t T,
-     G |-# t :: T ->
-     G |- t :: T) /\
+     G |-# t : T ->
+     G |- t : T) /\
   (forall G S U,
      G |-# S <: U ->
      G |- S <: U) /\
@@ -184,15 +195,13 @@ Proof.
   apply ts_mutind_t; intros; subst; eauto.
   - apply precise_to_general in t; eauto.
   - apply precise_to_general in t; eauto.
-  - apply* norm_var.
-  - apply* norm_path.
 Qed.
 
 (* ###################################################################### *)
 (** *** Misc Lemmas *)
 
 Lemma var_typing_implies_avar_f: forall G a T,
-  G |- trm_path (p_var a) :: T ->
+  G |- trm_path (p_var a) : T ->
   exists x, a = avar_f x.
 Proof.
   intros. dependent induction H; try solve [eexists; reflexivity].
@@ -200,8 +209,8 @@ Proof.
 Qed.
 
 Lemma val_typing: forall G v T,
-  G |- trm_val v :: T ->
-  exists T', G |-! trm_val v :: T' /\
+  G |- trm_val v : T ->
+  exists T', G |-! trm_val v : T' /\
              G |- T' <: T.
 Proof.
   intros. dependent induction H.
@@ -214,7 +223,7 @@ Proof.
 Qed.
 
 Lemma typing_implies_bound: forall G x T,
-  G |- trm_path (p_var (avar_f x)) :: T ->
+  G |- trm_path (p_var (avar_f x)) : T ->
   exists S, binds x S G.
 Proof.
   intros. remember (trm_path (p_var (avar_f x))) as t.
@@ -226,7 +235,7 @@ Proof.
 Qed.
 
 Lemma typing_implies_bound_p: forall G x T,
-  G |-! trm_path (p_var (avar_f x)) :: T ->
+  G |-! trm_path (p_var (avar_f x)) : T ->
   exists S, binds x S G.
 Proof.
   intros. eapply typing_implies_bound. apply* precise_to_general.

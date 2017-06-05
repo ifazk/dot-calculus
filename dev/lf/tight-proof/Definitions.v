@@ -580,6 +580,93 @@ with subtyp_t : ctx -> sigma -> typ -> typ -> Prop :=
     G, S |-# typ_ref T <: typ_ref U
 where "G ',' S '|-#' T '<:' U" := (subtyp_t G S T U).
 
+Reserved Notation "G ',' S '|-##' x ':' T" (at level 40, S at level 58, x at level 59).
+
+Inductive ty_trm_inv : ctx -> sigma -> var -> typ -> Prop :=
+  (* Precise typing *)
+| ty_precise_inv : forall G S x T,
+  G, S |-! trm_var (avar_f x) : T ->
+  G, S |-## x : T
+  (* Term member subtyping *)
+| ty_dec_trm_inv : forall G S x a T T',
+  G, S |-## x : typ_rcd (dec_trm a T) ->
+  G, S |-# T <: T' ->
+  G, S |-## x : typ_rcd (dec_trm a T')
+  (* Type member subtyping *)
+| ty_dec_typ_inv : forall G S x A T T' U' U,
+  G, S |-## x : typ_rcd (dec_typ A T U) ->
+  G, S |-# T' <: T ->
+  G, S |-# U <: U' ->
+  G, S |-## x : typ_rcd (dec_typ A T' U')
+  (* Recursive Types *)
+| ty_bnd_inv : forall G S x T T',
+  G, S |-## x : T ->
+  T = open_typ x T' ->
+  G, S |-## x : typ_bnd T'
+  (* Forall *)
+| ty_all_inv : forall L G S x V T V' T',
+  G, S |-## x : typ_all V T ->
+  G, S |-# V' <: V ->
+  (forall y, y \notin L ->
+        G & y ~ V', S |- open_typ y T <: open_typ y T') ->
+  G, S |-## x : typ_all V' T'
+  (* And *)
+| ty_and_inv : forall G S x S1 S2,
+  G, S |-## x : S1 ->
+  G, S |-## x : S2 ->
+  G, S |-## x : typ_and S1 S2
+  (* Tight Selection *)
+| ty_sel_inv : forall G S x y A T,
+  G, S |-## x : T ->
+  G, S |-! trm_var y : typ_rcd (dec_typ A T T) ->
+  G, S |-## x : typ_sel y A
+  (* Loc *)
+| ty_loc_inv : forall G S x T U,
+  G, S |-## x : typ_ref T ->
+  G, S |-# T <: U ->
+  G, S |-# U <: T ->  
+  G, S |-## x : typ_ref U
+  (* Top *)
+| ty_top_inv : forall G S x T,
+  G, S |-## x : T ->
+  G, S |-## x : typ_top
+where "G ',' S '|-##' x ':' T" := (ty_trm_inv G S x T).
+
+
+Reserved Notation "G ',' S '|-##v' v ':' T" (at level 40, S at level 58, v at level 59).
+
+Inductive ty_trm_inv_v : ctx -> sigma -> val -> typ -> Prop :=
+  (* Precise typing *)
+| ty_precise_inv_v : forall G S v T,
+  G, S |-! trm_val v : T ->
+  G, S |-##v v : T
+  (* Forall *)
+| ty_all_inv_v : forall L G S v V T V' T',
+  G, S |-##v v : typ_all V T ->
+  G, S |-# V' <: V ->
+  (forall y, y \notin L ->
+        G & y ~ V', S |- open_typ y T <: open_typ y T') ->
+  G, S |-##v v : typ_all V' T'
+  (* Tight Selection *)
+| ty_sel_inv_v : forall G S v y A V,
+  G, S |-##v v : V ->
+  G, S |-! trm_var y : typ_rcd (dec_typ A V V) ->
+  G, S |-##v v : typ_sel y A
+| ty_and_inv_v : forall G S v T U,
+  G, S |-##v v : T ->
+  G, S |-##v v : U ->
+  G, S |-##v v : typ_and T U
+  (* Loc *)
+| ty_loc_inv_v : forall G S v T U,
+  G, S |-##v v : typ_ref T ->
+  G, S |-# T <: U ->
+  G, S |-# U <: T ->  
+  G, S |-##v v : typ_ref U
+  (* Top *)
+| ty_top_inv_v : forall G S v T,
+  G, S |-##v v : T ->
+  G, S |-##v v : typ_top
+where "G ',' S '|-##v' v ':' T" := (ty_trm_inv_v G S v T).
 
 Reserved Notation "G ',' S '~~' sta" (at level 40, S at level 58).
 
@@ -658,7 +745,8 @@ Combined Scheme rules_mutind from rules_trm_mut, rules_def_mut, rules_defs_mut, 
 Hint Constructors
   ty_trm ty_def ty_defs subtyp
   ty_trm_p
-  ty_trm_t subtyp_t.
+  ty_trm_t subtyp_t
+  ty_trm_inv ty_trm_inv_v.
 
 Hint Constructors wf_stack wt_store.
 

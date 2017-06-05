@@ -33,8 +33,8 @@ Fixpoint subst_typ (z: var) (u: var) (T: typ) { struct T } : typ :=
   end
 with subst_dec (z: var) (u: var) (D: dec) { struct D } : dec :=
   match D with
-  | dec_typ L T U => dec_typ L (subst_typ z u T) (subst_typ z u U)
-  | dec_trm L m U => dec_trm L m (subst_typ z u U)
+  | { L >: T <: U } => { L >: subst_typ z u T <: subst_typ z u U }
+  | { a [m] U } => { a [m] subst_typ z u U }
   end.
 
 Fixpoint subst_trm (z: var) (u: var) (t: trm) : trm :=
@@ -252,35 +252,35 @@ Qed.
 (** ** The substitution principle *)
 
 Lemma subst_rules: forall y S,
-  (forall G t T, G |- t :: T -> forall G1 G2 x,
+  (forall G t T, G |- t : T -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
-    G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) :: subst_typ x y S ->
-    G1 & (subst_ctx x y G2) |- subst_trm x y t :: subst_typ x y T) /\
-  (forall G z T d D, G && z ~ T |- d :: D -> forall G1 G2 x,
+    G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) : subst_typ x y S ->
+    G1 & (subst_ctx x y G2) |- subst_trm x y t : subst_typ x y T) /\
+  (forall G z T d D, G && z ~ T |- d : D -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2 & z ~ T) ->
     x \notin fv_ctx_types G1 ->
-    G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) ::  subst_typ x y S ->
-    G1 & (subst_ctx x y G2) && z ~ subst_typ x y T |- subst_def x y d :: subst_dec x y D) /\
-  (forall G z T ds U, G && z ~ T |- ds ::: U -> forall G1 G2 x,
+    G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) :  subst_typ x y S ->
+    G1 & (subst_ctx x y G2) && z ~ subst_typ x y T |- subst_def x y d : subst_dec x y D) /\
+  (forall G z T ds U, G && z ~ T |- ds :: U -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2 & z ~ T) ->
     x \notin fv_ctx_types G1 ->
-    G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) :: subst_typ x y S ->
-    G1 & (subst_ctx x y G2) && z ~ subst_typ x y T |- subst_defs x y ds ::: subst_typ x y U) /\
+    G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) : subst_typ x y S ->
+    G1 & (subst_ctx x y G2) && z ~ subst_typ x y T |- subst_defs x y ds :: subst_typ x y U) /\
   (forall G p, norm G p -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
-    G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) :: subst_typ x y S ->
+    G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) : subst_typ x y S ->
     norm (G1 & (subst_ctx x y G2)) (subst_path x y p)) /\
   (forall G T U, G |- T <: U -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
-    G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) :: subst_typ x y S ->
+    G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) : subst_typ x y S ->
     G1 & (subst_ctx x y G2) |- subst_typ x y T <: subst_typ x y U).
 Proof.
   intros y S. apply rules_mutind; intros; simpl; subst.
@@ -469,11 +469,11 @@ Proof.
 Qed.
 
 Lemma subst_ty_trm: forall y S G x t T,
-    G & x ~ S |- t :: T ->
+    G & x ~ S |- t : T ->
     ok (G & x ~ S) ->
     x \notin fv_ctx_types G ->
-    G |- trm_path (p_var (avar_f y)) :: subst_typ x y S ->
-    G |- subst_trm x y t :: subst_typ x y T.
+    G |- trm_path (p_var (avar_f y)) : subst_typ x y S ->
+    G |- subst_trm x y t : subst_typ x y T.
 Proof.
   intros.
   apply (proj51 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H.
@@ -486,11 +486,11 @@ Proof.
 Qed.
 
 Lemma subst_ty_defs: forall y S G x ds z U T,
-    G & x ~ S && z ~ U |- ds ::: T ->
+    G & x ~ S && z ~ U |- ds :: T ->
     ok (G & x ~ S & z ~ U) ->
     x \notin fv_ctx_types G ->
-    G |- trm_path (p_var (avar_f y)) :: subst_typ x y S ->
-    G && z ~ subst_typ x y U |- subst_defs x y ds ::: subst_typ x y T.
+    G |- trm_path (p_var (avar_f y)) : subst_typ x y S ->
+    G && z ~ subst_typ x y U |- subst_defs x y ds :: subst_typ x y T.
 Proof.
   intros.
   apply (proj53 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H.
