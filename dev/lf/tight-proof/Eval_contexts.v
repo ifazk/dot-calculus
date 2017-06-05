@@ -31,7 +31,7 @@ Inductive ec_app : ec -> trm -> trm -> Prop :=               (* e[u] ≡ t *)
                                                 (* (e,x=v)[u] ≡ let x=v in t *)
 | ec_trm : forall u t x e,
     ~ In x (vars e) ->
-    (e_let_trm x u) [(open_trm x t)] == (trm_let u t)
+    (e_let_trm x (open_trm x t)) [u] == (trm_let u t)
                                                 (* let x = [u] in t ≡ let x=u in t *)
 where "e '[' u ']' '==' t" := (ec_app e u t).
 
@@ -53,7 +53,10 @@ Inductive ec_red : trm -> trm -> Prop :=
     (e_let_val x (val_new T ds) e) [ (trm_sel (avar_f x) a) ] == t1 ->
     (e_let_val x (val_new T ds) e) [ t ] == t2 ->
     t1 => t2
-(* TODO: Correctly express Let-Var and Let-Let rules with de Bruijn indices. *)
+| red_let_var : forall y t,
+    trm_let (trm_var (avar_f y)) t => (open_trm y t)
+| red_let_let : forall s t u,
+    trm_let (trm_let s t) u => (trm_let s (trm_let t u))
 where "t1 '=>' t2 " := (ec_red t1 t2).
 
 Reserved Notation "e '[[' G ']]' '==' G'" (at level 10).
@@ -70,8 +73,7 @@ where "e '[[' G ']]' '==' G'" := (eg_app e G G').
 Lemma e_preserves_inert : forall G e eG,
     inert G ->
     e[[G]] == eG ->
-    inert eG
-.
+    inert eG.
 Proof.
 Admitted.
 
