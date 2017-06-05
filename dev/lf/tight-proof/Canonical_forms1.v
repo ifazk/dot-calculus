@@ -6,7 +6,7 @@ Require Import Definitions.
 Require Import Wellformed_store.
 Require Import Some_lemmas.
 Require Import Narrowing.
-Require Import Tight_possible_types.
+Require Import Invertible_typing.
 Require Import Inert_types.
 Require Import General_to_tight.
 Require Import Substitution.
@@ -32,9 +32,9 @@ Proof.
   subst. inversion Heq; subst. inversions Ht.
   - exists (L \u L' \u L0 \u dom G) S t.
     split; auto.
-    pose proof (tight_possible_types_lemma Hgd Hti) as Htp.
+    pose proof (invertible_typing_lemma Hgd Hti) as Hinv.
     assert (forall y W, y # G -> ok (G & y ~ W)) as Hok by (intros; apply* ok_push).
-    inversion Htp; subst.
+    inversion Hinv; subst.
     + apply (inert_precise_all_inv Hgd) in Hpt.
       apply (inert_precise_all_inv Hgd) in H.
       pose proof (binds_func Hpt H) as H4.

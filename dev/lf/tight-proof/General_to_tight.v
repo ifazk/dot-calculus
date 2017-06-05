@@ -6,7 +6,7 @@ Require Import Definitions.
 Require Import Narrowing.
 Require Import Inert_types.
 Require Import Some_lemmas.
-Require Import Tight_possible_types.
+Require Import Invertible_typing.
 
 (* ###################################################################### *)
 (** ** Tight to precise *)
@@ -21,12 +21,12 @@ Lemma tight_to_precise_typ_dec: forall G x A S U,
     G |-# S <: T.
 Proof.
   introv HG Ht.
-  lets Htp: (tight_possible_types_lemma HG Ht). clear Ht.
-  dependent induction Htp.
+  lets Hinv: (invertible_typing_lemma HG Ht). clear Ht.
+  dependent induction Hinv.
   - lets Hp: (precise_dec_typ_inv HG H). subst.
     exists U. split*.
-  - specialize (IHHtp A T U0 HG eq_refl).
-    destruct IHHtp as [V [Hx [Hs1 Hs2]]].
+  - specialize (IHHinv A T U0 HG eq_refl).
+    destruct IHHinv as [V [Hx [Hs1 Hs2]]].
     exists V. split*.
 Qed.
 
@@ -38,10 +38,10 @@ Lemma tight_to_precise_trm_dec: forall G x a T,
     G |-# T' <: T.
 Proof.
   introv Hgd Ht.
-  lets Htp: (tight_possible_types_lemma Hgd Ht). clear Ht.
-  dependent induction Htp.
+  lets Hinv: (invertible_typing_lemma Hgd Ht). clear Ht.
+  dependent induction Hinv.
   - exists T. auto.
-  - specialize (IHHtp _ _ Hgd eq_refl). destruct IHHtp as [V [Hx Hs]].
+  - specialize (IHHinv _ _ Hgd eq_refl). destruct IHHinv as [V [Hx Hs]].
     exists V. split; auto.
     eapply subtyp_trans_t; eassumption.
 Qed.
@@ -58,11 +58,11 @@ Lemma tight_to_precise_typ_all: forall G x S T,
     .
 Proof.
   introv HG Ht.
-  lets Htp: (tight_possible_types_lemma HG Ht). clear Ht.
-  dependent induction Htp.
+  lets Hinv: (invertible_typing_lemma HG Ht). clear Ht.
+  dependent induction Hinv.
   - exists S T (dom G); auto.
-  - specialize (IHHtp _ _ HG eq_refl).
-    destruct IHHtp as [S' [T' [L' [Hpt [HSsub HTsub]]]]].
+  - specialize (IHHinv _ _ HG eq_refl).
+    destruct IHHinv as [S' [T' [L' [Hpt [HSsub HTsub]]]]].
     exists S' T' (dom G \u L \u L').
     split; auto.
     assert (Hsub2 : G |-# typ_all S0 T0 <: typ_all S T).
