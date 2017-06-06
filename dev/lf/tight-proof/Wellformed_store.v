@@ -50,11 +50,11 @@ Proof.
   - lets Hind: (IHWt l0 H1).
     lets Hinh: (prove_Inhab x).
     pose proof (classicT (l = l0)) as [H' | H']; unfolds store, addr.
-    * pose proof (indom_update sto l l0 x). 
+    * pose proof (indom_update sto l l0 (Some x)). 
       rewrite index_def. rewrite H2. left. rewrite H'. reflexivity. 
-    * pose proof (indom_update sto l l0 x). 
+    * pose proof (indom_update sto l l0 (Some x)). 
       rewrite index_def. rewrite H2. right. assumption. 
-  - lets Hinh: (prove_Inhab x).
+  - lets Hinh: (prove_Inhab (Some x)).
     pose proof (classicT (l = l0)) as [H' | H']; unfolds store, addr.
     * rewrite index_def. rewrite indom_update. left. rewrite H'. reflexivity. assumption.
     * rewrite index_def. rewrite indom_update. right.
@@ -79,9 +79,9 @@ Proof.
       * subst. false (binds_fresh_inv H H1).
       * assumption.
     }
-    assert (LibBag.dom sto[l := x] = LibBag.dom sto). {
+    assert (LibBag.dom sto[l := (Some x)] = LibBag.dom sto). {
       apply dom_update_index.
-      * apply (prove_Inhab x).
+      * apply (prove_Inhab (Some x)).
       * apply binds_get in H. apply get_some_inv in H.
         lets Hind: (wt_in_dom Wt H). assumption.
     }
@@ -94,7 +94,7 @@ Proof.
       * assumption.
     }
     unfold LibBag.notin. unfold not. intro His_in.
-    assert (l0 \indom sto[l := x]) as Hindom by assumption. clear His_in.
+    assert (l0 \indom sto[l := (Some x)]) as Hindom by assumption. clear His_in.
     destruct (indom_update_inv Hindom) as [Hl | Hl].
     * subst. false H2. reflexivity.
     * subst.
@@ -179,7 +179,7 @@ Lemma precise_ref_inv : forall G S v T,
     exists l,
       v = val_loc l.
 Proof.
-  introv Ht. inversions Ht. exists* l.
+  introv Ht. inversions Ht. 
 Qed.
 
 Lemma precise_obj_typ : forall G S T ds U,
@@ -192,7 +192,7 @@ Qed.
 Lemma precise_loc_typ : forall G S l T,
     G, S |-! trm_val (val_loc l) : T ->
     exists U,
-      T = typ_ref U.
+      T = typ_nref U.
 Proof.
   introv Hp. dependent induction Hp. exists* T.
 Qed.

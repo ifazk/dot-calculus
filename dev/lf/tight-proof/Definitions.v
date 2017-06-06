@@ -26,7 +26,8 @@ Inductive avar : Set :=
 Inductive typ : Set :=
   | typ_top  : typ
   | typ_bot  : typ
-  | typ_ref  : typ -> typ (* Ref T *)
+  | typ_ref  : typ -> typ (* Ref! T *)
+  | typ_nref  : typ -> typ (* Ref? T *)
   | typ_rcd  : dec -> typ (* { D } *)
   | typ_and  : typ -> typ -> typ
   | typ_sel  : avar -> typ_label -> typ (* x.L *)
@@ -42,8 +43,9 @@ Inductive trm : Set :=
   | trm_sel  : avar -> trm_label -> trm
   | trm_app  : avar -> avar -> trm
   | trm_let  : trm -> trm -> trm (* let x = t in u *)
-  | trm_ref  : avar -> typ -> trm (* ref x T *)
+  | trm_ref  : typ -> trm (* ref T *)
   | trm_deref  : avar -> trm (* !x *)
+  | trm_nderef : avar -> avar -> trm (* !x ? y *)
   | trm_asg  : avar -> avar -> trm (* x := y *)
 with val : Set :=
   | val_new  : typ -> defs -> val
@@ -66,11 +68,11 @@ Definition sigma := env typ.
 Definition stack := env val.
 
 (** *** Store ("sto") *)
-Definition store := LibMap.map addr var.
+Definition store := LibMap.map addr (option var).
 
-Definition bindsM l x sto := LibBag.binds (A:=addr) (B:=var) sto l x.
+Definition bindsM l x sto := LibBag.binds (A:=addr) (B:=option var) sto l x.
 
-Definition emptyM : store := (@empty_impl addr var).
+Definition emptyM : store := (@empty_impl addr (option var)).
 
 (* ###################################################################### *)
 (** ** Definition list membership *)
@@ -111,6 +113,7 @@ Fixpoint open_rec_typ (k: nat) (u: var) (T: typ): typ :=
   | typ_top        => typ_top
   | typ_bot        => typ_bot
   | typ_ref T      => typ_ref (open_rec_typ k u T)
+  | typ_nref T     => typ_nref (open_rec_typ k u T)
   | typ_rcd D      => typ_rcd (open_rec_dec k u D)
   | typ_and T1 T2  => typ_and (open_rec_typ k u T1) (open_rec_typ k u T2)
   | typ_sel x L    => typ_sel (open_rec_avar k u x) L
@@ -130,8 +133,9 @@ Fixpoint open_rec_trm (k: nat) (u: var) (t: trm): trm :=
   | trm_sel v m    => trm_sel (open_rec_avar k u v) m
   | trm_app f a    => trm_app (open_rec_avar k u f) (open_rec_avar k u a)
   | trm_let t1 t2  => trm_let (open_rec_trm k u t1) (open_rec_trm (S k) u t2)
-  | trm_ref a t    => trm_ref (open_rec_avar k u a) (open_rec_typ k u t)
+  | trm_ref T      => trm_ref (open_rec_typ k u T)
   | trm_deref a    => trm_deref (open_rec_avar k u a)
+  | trm_nderef l r => trm_nderef (open_rec_avar k u l) (open_rec_avar k u r)
   | trm_asg l r    => trm_asg (open_rec_avar k u l) (open_rec_avar k u r)
   end
 with open_rec_val (k: nat) (u: var) (v: val): val :=
@@ -204,6 +208,7 @@ Fixpoint fv_typ (T: typ) : vars :=
   | typ_top        => \{}
   | typ_bot        => \{}
   | typ_ref T      => (fv_typ T)
+  | typ_nref T     => (fv_typ T)
   | typ_rcd D      => (fv_dec D)
   | typ_and T U    => (fv_typ T) \u (fv_typ U)
   | typ_sel x L    => (fv_avar x)
@@ -223,8 +228,9 @@ Fixpoint fv_trm (t: trm) : vars :=
   | trm_sel x m      => (fv_avar x)
   | trm_app f a      => (fv_avar f) \u (fv_avar a)
   | trm_let t1 t2    => (fv_trm t1) \u (fv_trm t2)
-  | trm_ref a t      => (fv_avar a) \u (fv_typ t)
+  | trm_ref T        => (fv_typ T)
   | trm_deref a      => (fv_avar a)
+  | trm_nderef l r   => (fv_avar l) \u (fv_avar r)
   | trm_asg l r      => (fv_avar l) \u (fv_avar r)
   end
 with fv_val (v: val) : vars :=
@@ -307,17 +313,25 @@ Inductive red : trm -> stack -> store -> trm -> stack -> store -> Prop :=
 | red_let_tgt : forall t0 t sta sto t0' sta' sto',
     (t0 / sta / sto => t0' / sta' / sto') ->
     trm_let t0 t / sta / sto => trm_let t0' t / sta' / sto'
-| red_ref_var : forall x sta sto l T,
+| red_ref : forall sta sto l T,
     l \notindom sto ->
-    trm_ref (avar_f x) T / sta / sto => trm_val (val_loc l) / sta / sto[l :=  x]
+    trm_ref T / sta / sto => trm_val (val_loc l) / sta / sto[l := None]
 | red_asgn : forall x y l sta sto,
     binds x (val_loc l) sta ->
     l \indom sto -> (* TODO is this redundant? *)
-    trm_asg (avar_f x) (avar_f y) / sta / sto => trm_var (avar_f y) / sta / sto[l := y]
+    trm_asg (avar_f x) (avar_f y) / sta / sto => trm_let (trm_val (val_loc l)) (trm_var (avar_b 0)) / sta / sto[l := Some y]
 | red_deref : forall x y (l: addr) sta (sto: store),
     binds x (val_loc l) sta ->
-    bindsM l y sto ->
+    bindsM l (Some y) sto ->
     trm_deref (avar_f x) / sta / sto => trm_var (avar_f y) / sta / sto
+| red_nderef_notin : forall x y (l: addr) sta (sto: store),
+    binds x (val_loc l) sta ->
+    bindsM l None sto ->
+    trm_nderef (avar_f x) (avar_f y) / sta / sto => trm_var (avar_f y) / sta / sto
+| red_nderef_in : forall x y z (l: addr) sta (sto: store),
+    binds x (val_loc l) sta ->
+    bindsM l (Some z) sto ->
+    trm_nderef (avar_f x) (avar_f y) / sta / sto => trm_var (avar_f z) / sta / sto
 where "t1 '/' sta1 '/' sto1 '=>' t2 '/' sta2 '/' sto2" := (red t1 sta1 sto1 t2 sta2 sto2).
 
 (* ###################################################################### *)
@@ -334,7 +348,7 @@ Inductive ty_trm : ctx -> sigma -> trm -> typ -> Prop :=
     G, S |- trm_var (avar_f x) : T
 | ty_loc : forall G S l T,
     binds l T S ->
-    G, S |- trm_val (val_loc l) : typ_ref T
+    G, S |- trm_val (val_loc l) : typ_nref T
 | ty_all_intro : forall L G S T t U,
     (forall x, x \notin L ->
           G & x ~ T, S |- open_trm x t : open_typ x U) ->
@@ -369,16 +383,19 @@ Inductive ty_trm : ctx -> sigma -> trm -> typ -> Prop :=
     G, S |- t : T ->
     G, S |- T <: U ->
     G, S |- t : U
-| ty_ref_intro : forall G S x T,
-    G, S |- trm_var (avar_f x) : T ->
-    G, S |- trm_ref (avar_f x) T : typ_ref T
+| ty_ref_intro : forall G S T,
+    G, S |- trm_ref T : typ_nref T
 | ty_ref_elim : forall G S x T,
     G, S |- trm_var (avar_f x) : typ_ref T ->
     G, S |- trm_deref (avar_f x) : T
-| ty_asgn : forall G S x y T,
-    G, S |- trm_var (avar_f x) : typ_ref T ->
+| ty_nref_elim : forall G S x y T,
+    G, S |- trm_var (avar_f x) : typ_nref T ->
     G, S |- trm_var (avar_f y) : T ->
-    G, S |- trm_asg (avar_f x) (avar_f y) : T
+    G, S |- trm_nderef (avar_f x) (avar_f y) : T
+| ty_asgn : forall G S x y T,
+    G, S |- trm_var (avar_f x) : typ_nref T ->
+    G, S |- trm_var (avar_f y) : T ->
+    G, S |- trm_asg (avar_f x) (avar_f y) : typ_ref T
 where "G ',' S '|-' t ':' T" := (ty_trm G S t T)
 
 with ty_def : ctx -> sigma -> def -> dec -> Prop :=
@@ -441,6 +458,12 @@ with subtyp : ctx -> sigma -> typ -> typ -> Prop :=
     G, S |- T <: U ->
     G, S |- U <: T ->
     G, S |- typ_ref T <: typ_ref U
+| subtyp_nref: forall G S T U,
+    G, S |- T <: U ->
+    G, S |- U <: T ->
+    G, S |- typ_nref T <: typ_nref U
+| subtyp_ref_nref: forall G S T,
+    G, S |- typ_ref T <: typ_nref T
 where "G ',' S '|-' T '<:' U" := (subtyp G S T U).
 
 Reserved Notation "G ',' S '|-!' t ':' T" (at level 40, S at level 58, t at level 59).
@@ -451,7 +474,7 @@ Inductive ty_trm_p : ctx -> sigma -> trm -> typ -> Prop :=
     G, S |-! trm_var (avar_f x) : T
 | ty_loc_p : forall G S l T,
     binds l T S ->
-    G, S |-! trm_val (val_loc l) : typ_ref T
+    G, S |-! trm_val (val_loc l) : typ_nref T
 | ty_all_intro_p : forall L G S T t U,
     (forall x, x \notin L ->
       G & x ~ T, S |- open_trm x t : open_typ x U) ->
@@ -480,7 +503,7 @@ Inductive ty_trm_t : ctx -> sigma -> trm -> typ -> Prop :=
     G, S |-# trm_var (avar_f x) : T
 | ty_loc_t : forall G S l T,
     binds l T S ->
-    G, S |-# trm_val (val_loc l) : typ_ref T
+    G, S |-# trm_val (val_loc l) : typ_nref T
 | ty_all_intro_t : forall L G S T t U,
     (forall x, x \notin L ->
           G & x ~ T, S |- open_trm x t : open_typ x U) ->
@@ -515,16 +538,19 @@ Inductive ty_trm_t : ctx -> sigma -> trm -> typ -> Prop :=
     G, S |-# t : T ->
     G, S |-# T <: U ->
     G, S |-# t : U
-| ty_ref_intro_t : forall G S x T,
-    G, S |-# trm_var (avar_f x) : T ->
-    G, S |-# trm_ref (avar_f x) T : typ_ref T
+| ty_ref_intro_t : forall G S T,
+    G, S |-# trm_ref T : typ_nref T
 | ty_ref_elim_t : forall G S x T,
     G, S |-# trm_var (avar_f x) : typ_ref T ->
     G, S |-# trm_deref (avar_f x) : T
-| ty_asgn_t : forall G S x y T,
-    G, S |-# trm_var (avar_f x) : typ_ref T ->
+| ty_nref_elim_t : forall G S x y T,
+    G, S |-# trm_var (avar_f x) : typ_nref T ->
     G, S |-# trm_var (avar_f y) : T ->
-    G, S |-# trm_asg (avar_f x) (avar_f y) : T
+    G, S |-# trm_nderef (avar_f x) (avar_f y) : T
+| ty_asgn_t : forall G S x y T,
+    G, S |-# trm_var (avar_f x) : typ_nref T ->
+    G, S |-# trm_var (avar_f y) : T ->
+    G, S |-# trm_asg (avar_f x) (avar_f y) : typ_ref T
 where "G ',' S '|-#' t ':' T" := (ty_trm_t G S t T)
 
 with subtyp_t : ctx -> sigma -> typ -> typ -> Prop :=
@@ -568,6 +594,12 @@ with subtyp_t : ctx -> sigma -> typ -> typ -> Prop :=
     G, S |-# T <: U ->
     G, S |-# U <: T ->
     G, S |-# typ_ref T <: typ_ref U
+| subtyp_nref_t: forall G S T U,
+    G, S |-# T <: U ->
+    G, S |-# U <: T ->
+    G, S |-# typ_nref T <: typ_nref U
+| subtyp_ref_nref_t: forall G S T,
+    G, S |-# typ_ref T <: typ_nref T
 where "G ',' S '|-#' T '<:' U" := (subtyp_t G S T U).
 
 Reserved Notation "G ',' S '|-##' x ':' T" (at level 40, S at level 58, x at level 59).
@@ -610,12 +642,22 @@ Inductive ty_trm_inv : ctx -> sigma -> var -> typ -> Prop :=
   G, S |-## x : T ->
   G, S |-! trm_var y : typ_rcd (dec_typ A T T) ->
   G, S |-## x : typ_sel y A
-  (* Loc *)
-| ty_loc_inv : forall G S x T U,
+  (* Ref *)
+| ty_ref_inv : forall G S x T U,
   G, S |-## x : typ_ref T ->
   G, S |-# T <: U ->
   G, S |-# U <: T ->  
   G, S |-## x : typ_ref U
+  (* Nullable Ref *)
+| ty_nref_inv : forall G S x T U,
+  G, S |-## x : typ_nref T ->
+  G, S |-# T <: U ->
+  G, S |-# U <: T ->  
+  G, S |-## x : typ_nref U
+  (* Ref to Nullable Ref *)
+| ty_ref_nref_inv : forall G S x T,
+  G, S |-## x : typ_ref T ->
+  G, S |-## x : typ_nref T
   (* Top *)
 | ty_top_inv : forall G S x T,
   G, S |-## x : T ->
@@ -646,12 +688,22 @@ Inductive ty_trm_inv_v : ctx -> sigma -> val -> typ -> Prop :=
   G, S |-##v v : T ->
   G, S |-##v v : U ->
   G, S |-##v v : typ_and T U
-  (* Loc *)
-| ty_loc_inv_v : forall G S v T U,
+  (* Ref *)
+| ty_ref_inv_v : forall G S v T U,
   G, S |-##v v : typ_ref T ->
   G, S |-# T <: U ->
   G, S |-# U <: T ->  
   G, S |-##v v : typ_ref U
+  (* Nullable Ref *)
+| ty_nref_inv_v : forall G S v T U,
+  G, S |-##v v : typ_nref T ->
+  G, S |-# T <: U ->
+  G, S |-# U <: T ->  
+  G, S |-##v v : typ_nref U
+  (* Ref to Nullable Ref *)
+| ty_ref_nref_inv_v : forall G S v T,
+  G, S |-##v v : typ_ref T ->
+  G, S |-##v v : typ_nref T
   (* Top *)
 | ty_top_inv_v : forall G S v T,
   G, S |-##v v : T ->
@@ -684,12 +736,13 @@ Inductive wt_store: ctx -> sigma -> store -> Prop :=
     G, S |~ sto ->
     binds l T S ->
     G, S |- trm_var (avar_f x) : T ->
-    G, S |~ sto[l := x]
+    G, S |~ sto[l := (Some x)]
 | wt_store_new: forall G S sto l x T,
     G, S |~ sto ->
     l # S ->
     G, S |- trm_var (avar_f x) : T ->
-    G, S & l ~ T |~ sto[l := x]
+    G, S & l ~ T |~ sto[l := (Some x)]
+(* TODO None case *)
 | wt_stack_push: forall G S x T sto,
     G, S |~ sto ->
     x # G ->

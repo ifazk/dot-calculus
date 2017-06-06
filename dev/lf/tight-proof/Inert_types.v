@@ -54,6 +54,15 @@ Proof.
     specialize (IHHpf T eq_refl); inversion IHHpf.
 Qed.
 
+Lemma precise_flow_nref_inv : forall x G T U,
+    precise_flow x G (typ_nref T) U ->
+    U = typ_nref T.
+Proof.
+  introv Hpf.
+  dependent induction Hpf; auto;
+    specialize (IHHpf T eq_refl); inversion IHHpf.
+Qed.
+
 (* ###################################################################### *)
 (** ** Inert types *)
 
@@ -62,7 +71,8 @@ Inductive inert_typ : typ -> Prop :=
   | inert_typ_bnd : forall T,
       record_type T ->
       inert_typ (typ_bnd T) (* rec(x:T) *)
-  | inert_typ_ref : forall T, inert_typ (typ_ref T).
+  | inert_typ_ref : forall T, inert_typ (typ_ref T)
+  | inert_typ_nref : forall T, inert_typ (typ_nref T).
 
 Inductive inert : ctx -> Prop :=
   | inert_empty : inert empty
@@ -152,6 +162,9 @@ Proof.
   - apply precise_flow_ref_inv in Pf. inversion Pf. 
   - apply precise_flow_ref_inv in Pf. inversion Pf. 
   - apply precise_flow_ref_inv in Pf. inversion Pf. 
+  - apply precise_flow_nref_inv in Pf. inversion Pf. 
+  - apply precise_flow_nref_inv in Pf. inversion Pf. 
+  - apply precise_flow_nref_inv in Pf. inversion Pf. 
 Qed.
 
 Lemma pf_inert_rcd_U: forall G x T D,
@@ -170,6 +183,9 @@ Proof.
   - apply precise_flow_ref_inv in Pf. inversion Pf. 
   - apply precise_flow_ref_inv in Pf. inversion Pf. 
   - apply precise_flow_ref_inv in Pf. inversion Pf. 
+  - apply precise_flow_nref_inv in Pf. inversion Pf. 
+  - apply precise_flow_nref_inv in Pf. inversion Pf. 
+  - apply precise_flow_nref_inv in Pf. inversion Pf. 
 Qed.
 
 Lemma pf_inert_rcd_typ_U: forall G x T Ds,
@@ -191,7 +207,11 @@ Proof.
   - inversion Hr. inversion H0.
   - apply precise_flow_ref_inv in Pf. inversion Pf. 
   - apply precise_flow_ref_inv in Pf. inversion Pf. 
-  - apply precise_flow_ref_inv in Pf. inversion Pf. 
+  - apply precise_flow_ref_inv in Pf. inversion Pf.
+  - inversion Hr. inversion H0.
+  - apply precise_flow_nref_inv in Pf. inversion Pf. 
+  - apply precise_flow_nref_inv in Pf. inversion Pf. 
+  - apply precise_flow_nref_inv in Pf. inversion Pf. 
 Qed.
 
 Lemma pf_inert_rcd_bnd_U : forall G x T U,
@@ -214,6 +234,7 @@ Proof.
   - apply precise_flow_all_inv in Pf. inversion* Pf.
   - destruct (pf_inert_or_rcd Hi Pf) as [H1 | H1]; inversions H1. inversion H0.
   - apply precise_flow_ref_inv in Pf. inversion Pf. 
+  - apply precise_flow_nref_inv in Pf. inversion Pf. 
 Qed.
 
 Lemma pf_inert_ref_U : forall x G T U,
@@ -227,6 +248,21 @@ Proof.
   - apply precise_flow_all_inv in Pf. inversion* Pf.
   - destruct (pf_inert_or_rcd Hi Pf) as [H1 | H1]; inversions H1. inversion H0.
   - apply precise_flow_ref_inv in Pf. symmetry. assumption.
+  - apply precise_flow_nref_inv in Pf. inversion Pf.
+Qed.
+
+Lemma pf_inert_nref_U : forall x G T U,
+    inert G ->
+    precise_flow x G U (typ_nref T) ->
+    U = typ_nref T.
+Proof.
+  introv Hi Pf.
+  lets Hiu: (pf_inert_T Hi Pf).
+  inversions Hiu.
+  - apply precise_flow_all_inv in Pf. inversion* Pf.
+  - destruct (pf_inert_or_rcd Hi Pf) as [H1 | H1]; inversions H1. inversion H0.
+  - apply precise_flow_ref_inv in Pf. inversion Pf. 
+  - apply precise_flow_nref_inv in Pf. symmetry. assumption.
 Qed.
 
 Lemma pf_bot_false : forall G x T,
@@ -239,6 +275,7 @@ Proof.
   - apply precise_flow_all_inv in Pf. inversion Pf.
   - destruct (pf_inert_or_rcd Hi Pf); inversion H0. inversion H1.
   - apply precise_flow_ref_inv in Pf. inversion Pf. 
+  - apply precise_flow_nref_inv in Pf. inversion Pf. 
 Qed.
 
 Lemma precise_bot_false : forall G S x,
@@ -260,6 +297,7 @@ Proof.
   - apply precise_flow_all_inv in Pf. inversion Pf.
   - destruct (pf_inert_or_rcd Hi Pf); inversion H0. inversion H1.
   - apply precise_flow_ref_inv in Pf. inversion Pf. 
+  - apply precise_flow_nref_inv in Pf. inversion Pf. 
 Qed.
 
 Lemma precise_psel_false : forall G S x y A,
@@ -343,18 +381,32 @@ Proof.
     apply (pf_inert_lambda_U Hi) in P1. inversions* P2.
   - apply (pf_inert_lambda_U Hi) in P1.
     apply (pf_inert_ref_U Hi) in P2. inversions* P1. 
+  - apply (pf_inert_lambda_U Hi) in P1.
+    apply (pf_inert_nref_U Hi) in P2. inversions* P1. 
   - apply (pf_inert_bnd_U Hi) in P1.
     apply (pf_inert_lambda_U Hi) in P2. inversions* P2.
   - apply (pf_inert_bnd_U Hi) in P1.
     apply (pf_inert_bnd_U Hi) in P2. inversions* P2.
   - apply (pf_inert_bnd_U Hi) in P1.
     apply (pf_inert_ref_U Hi) in P2. inversions* P1. 
+  - apply (pf_inert_bnd_U Hi) in P1.
+    apply (pf_inert_nref_U Hi) in P2. inversions* P1. 
   - apply (pf_inert_ref_U Hi) in P1.
     apply (pf_inert_lambda_U Hi) in P2. inversions* P1. 
   - apply (pf_inert_ref_U Hi) in P1.
     apply (pf_inert_bnd_U Hi) in P2. inversions* P1. 
   - apply (pf_inert_ref_U Hi) in P1.
     apply (pf_inert_ref_U Hi) in P2. inversions* P1. 
+  - apply (pf_inert_ref_U Hi) in P1.
+    apply (pf_inert_nref_U Hi) in P2. inversions* P1. 
+  - apply (pf_inert_nref_U Hi) in P1.
+    apply (pf_inert_lambda_U Hi) in P2. inversions* P1. 
+  - apply (pf_inert_nref_U Hi) in P1.
+    apply (pf_inert_bnd_U Hi) in P2. inversions* P1. 
+  - apply (pf_inert_nref_U Hi) in P1.
+    apply (pf_inert_ref_U Hi) in P2. inversions* P1. 
+  - apply (pf_inert_nref_U Hi) in P1.
+    apply (pf_inert_nref_U Hi) in P2. inversions* P1. 
 Qed.
 
 Lemma pf_rcd_unique: forall G x T a U1 U2,

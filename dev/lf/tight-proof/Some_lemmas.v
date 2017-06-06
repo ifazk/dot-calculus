@@ -137,10 +137,10 @@ Qed.
 Lemma val_typing: forall G S v T,
   G, S |- trm_val v : T ->
   exists T', G, S |-! trm_val v : T' /\
-             G, S |- T' <: T.
+        G, S |- T' <: T.
 Proof.
   intros. dependent induction H.
-  - exists (typ_ref T). auto.
+  - exists (typ_nref T). auto.
   - exists (typ_all T U). split.
     apply ty_all_intro_p with (L:=L); eauto. apply subtyp_refl.
   - exists (typ_bnd T). split.
