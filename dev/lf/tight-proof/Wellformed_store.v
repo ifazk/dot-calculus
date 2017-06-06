@@ -140,7 +140,7 @@ Proof.
     apply* H0.
 Qed.
 
-Lemma tpt_to_precise_loc: forall G S v T,
+Lemma tpt_to_precise_ref: forall G S v T,
     G, S |-##v v : typ_ref T ->
     exists T',
       G, S |-! trm_val v : typ_ref T' /\
@@ -269,7 +269,7 @@ Proof.
           destruct (precise_bnd_inv Hpt) as [ds Heq]. subst. right. left. exists T1 ds.
           split. reflexivity. split. apply* weaken_ty_trm_ctx_p. reflexivity.
         } 
-        { apply tpt_to_precise_loc in Hpt.
+        { apply tpt_to_precise_ref in Hpt.
           destruct Hpt as [T [Ht [Hs1 Hs2]]].
           destruct (precise_ref_inv Ht) as [l ?].
           subst. right. right. exists T T1 l. 
