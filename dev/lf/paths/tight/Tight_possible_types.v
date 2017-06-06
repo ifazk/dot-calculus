@@ -98,11 +98,41 @@ Proof.
     + pose proof (inert_unique_tight_bounds Hi H H6). subst. assumption.
 Qed.
 
+(*Lemma tpt_lemma :
+  (forall G t T, G |-# t: T -> forall p,
+    t = trm_path p ->
+    inert G ->
+    norm_t G p ->
+    G |-## p: T) /\
+  (forall G p, norm_t G p ->
+    inert G ->
+    norm_p G p).
+Proof.
+  apply ts_mutind_t; intros; try (inversions H);  eauto.
+  - admit.
+  - inversions H0. specialize (H _ eq_refl H1).  admit.
+  - inversions H1. specialize (H0 H2). specialize (H _ eq_refl H2 n).
+    apply tpt_to_precise_trm_dec in H; auto.
+    destruct H as [T' [m' [Hp [Heq  Hsx]]]]. specialize (Heq eq_refl). subst.
+    assert (norm_p G (p_sel p a)) as Hnp by admit. inversions Hnp.
+
+    assert (G |-! trm_path (p_sel p a): T') as Hpa. {
+      apply* ty_fld_elim_p. admit.
+    }
+    apply t_pt_precise in Hpa. apply* tight_possible_types_closure_tight.*)
+
+
 Lemma tight_possible_types_lemma_var : forall G U x,
     inert G ->
     G |-# trm_path (p_var (avar_f x)) : U ->
     G |-## p_var (avar_f x) : U.
-Proof. Admitted.
+Proof.
+  introv Hi Ht. dependent induction Ht; auto; specialize (IHHt _ Hi eq_refl).
+  - inversions IHHt; auto. rewrite* <- open_var_path_typ_eq.
+  - apply* tight_possible_types_closure_tight.
+Qed.
+
+Lemma
 
 Lemma tight_possible_types_lemma_paths: forall G p a U,
     inert G ->

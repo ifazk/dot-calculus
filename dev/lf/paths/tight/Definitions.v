@@ -703,14 +703,18 @@ with   ts_subtyp      := Induction for subtyp    Sort Prop
 with   ts_norm        := Induction for norm      Sort Prop.
 Combined Scheme ts_mutind from ts_ty_trm_mut, ts_subtyp, ts_norm.
 
-Scheme ts_ty_trm_mut_t  := Induction for ty_trm_t    Sort Prop
-with   ts_subtyp_t      := Induction for subtyp_t    Sort Prop
-with   ts_norm_t        := Induction for norm_t      Sort Prop.
-Combined Scheme ts_mutind_t from ts_ty_trm_mut_t, ts_subtyp_t, ts_norm_t.
+Scheme ts_ty_trm_mut_ts  := Induction for ty_trm_t    Sort Prop
+with   ts_subtyp_ts      := Induction for subtyp_t    Sort Prop
+with   ts_norm_ts        := Induction for norm_t      Sort Prop.
+Combined Scheme ts_mutind_ts from ts_ty_trm_mut_ts, ts_subtyp_ts, ts_norm_ts.
 
 Scheme ts_ty_trm_mut_p  := Induction for ty_trm_p    Sort Prop
 with   ts_norm_p        := Induction for norm_p      Sort Prop.
 Combined Scheme ts_mutind_p from ts_ty_trm_mut_p, ts_norm_p.
+
+Scheme ts_ty_trm_mut_t  := Induction for ty_trm_t    Sort Prop
+with   ts_norm_t        := Induction for norm_t      Sort Prop.
+Combined Scheme ts_mutind_t from ts_ty_trm_mut_t, ts_norm_t.
 
 Scheme rules_trm_mut    := Induction for ty_trm    Sort Prop
 with   rules_def_mut    := Induction for ty_def    Sort Prop
