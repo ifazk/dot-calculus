@@ -33,7 +33,7 @@ Lemma tpt_to_precise_trm_dec: forall G p a m T,
     G |-## p : typ_rcd { a [m] T } ->
     exists T' m',
       G |-! trm_path p : typ_rcd { a [m'] T' } /\
-      (m = strong -> m' = strong) /\
+      (m = strong -> m' = strong /\ T = T') /\
       G |-# T' <: T.
 Proof.
   introv Hi Hn Ht. dependent induction Ht.
@@ -41,10 +41,10 @@ Proof.
     exists T m. auto.
   - (* t_pt_dec_trm *)
     specialize (IHHt _ _ _ Hi Hn eq_refl). destruct IHHt as [V [m [Hp [Eq Hs]]]].
-    exists V m. split*.
+    exists V m. split*. split. intros F. inversion F. apply* subtyp_trans_t.
   - (* t_pt_dec_trm_strong *)
     specialize (IHHt _ _ _ Hi Hn eq_refl). destruct IHHt as [V [m [Hp [Eq Hs]]]].
-    specialize (Eq eq_refl). subst.
+    specialize (Eq eq_refl). destruct Eq as [Eq1 Eq2]. subst.
     exists V strong. split*.
 Qed.
 
@@ -82,7 +82,7 @@ Proof.
   introv Hi. induction Hi; eauto. apply* precise_to_tight.
 Qed.
 
-Lemma tight_possible_types_closure_tight: forall G p T U,
+Lemma tpt_sub_closure: forall G p T U,
   inert G ->
   G |-## p : T ->
   G |-# T <: U ->
@@ -98,7 +98,7 @@ Proof.
     + pose proof (inert_unique_tight_bounds Hi H H6). subst. assumption.
 Qed.
 
-(*Lemma tpt_lemma :
+Lemma tpt_lemma :
   (forall G t T, G |-# t: T -> forall p,
     t = trm_path p ->
     inert G ->
@@ -110,29 +110,51 @@ Qed.
 Proof.
   apply ts_mutind_t; intros; try (inversions H);  eauto.
   - admit.
-  - inversions H0. specialize (H _ eq_refl H1).  admit.
+  - inversions H0. specialize (H _ eq_refl H1). admit.
   - inversions H1. specialize (H0 H2). specialize (H _ eq_refl H2 n).
     apply tpt_to_precise_trm_dec in H; auto.
     destruct H as [T' [m' [Hp [Heq  Hsx]]]]. specialize (Heq eq_refl). subst.
-    assert (norm_p G (p_sel p a)) as Hnp by admit. inversions Hnp.
-
-    assert (G |-! trm_path (p_sel p a): T') as Hpa. {
-      apply* ty_fld_elim_p. admit.
-    }
-    apply t_pt_precise in Hpa. apply* tight_possible_types_closure_tight.*)
+    assert (norm_p G (p_sel p a)) as Hnp by admit. inversions Hnp. Abort.
 
 
-Lemma tight_possible_types_lemma_var : forall G U x,
+Lemma tpt_lemma_var : forall G U x,
     inert G ->
     G |-# trm_path (p_var (avar_f x)) : U ->
     G |-## p_var (avar_f x) : U.
 Proof.
   introv Hi Ht. dependent induction Ht; auto; specialize (IHHt _ Hi eq_refl).
   - inversions IHHt; auto. rewrite* <- open_var_path_typ_eq.
-  - apply* tight_possible_types_closure_tight.
+  - apply* tpt_sub_closure.
 Qed.
 
-Lemma
+Lemma tpt_lemma_paths:
+  (forall G t T, G |-# t: T -> forall p a,
+    t = trm_path (p_sel p a) ->
+    inert G ->
+    norm_t G (p_sel p a) ->
+    exists U U',
+      G |-## p: typ_rcd {a [strong] U } /\
+      inert_typ U /\
+      precise_flow (p_sel p a) G U U' /\
+      G |-# U' <: T) /\
+  (forall G p, norm_t G p ->
+    inert G ->
+    norm_p G p).
+Proof.
+  apply ts_mutind_t; intros; try solve [inversion H]; eauto.
+  - inversions H1.
+  - inversions H0. apply (tpt_lemma_var H1) in t.
+    admit.
+  - inversions H1. destruct p0 as [x | q]. destruct x as [b | x].
+    * inversions n.
+    * apply (tpt_lemma_var H2) in t.
+      destruct (tpt_to_precise_trm_dec H2 n t) as [U [m [Hp [Heq Hs]]]].
+      specialize (Heq eq_refl). destruct Heq as [Eq1 Eq2]. subst. clear H Hs.
+      specialize (H0 H2). inversions H0. lets Hb: (binds_inert H4 H2).
+      destruct (precise_flow_lemma Hp) as [V Pf].
+      apply pf_fld in Pf; auto.
+      exists U U. split*. split. admit. split*.
+      apply* norm_var_p. admit. Abort.
 
 Lemma tight_possible_types_lemma_paths: forall G p a U,
     inert G ->
@@ -142,20 +164,20 @@ Lemma tight_possible_types_lemma_paths: forall G p a U,
 Proof.
   introv Hi Hn Ht. dependent induction Ht.
   - (* ty_fld_elim_var_t *)
-    inversions Hn. apply tight_possible_types_lemma_var in H1; auto.
-    apply tight_possible_types_lemma_var in Ht; auto.
+    inversions Hn. apply tpt_lemma_var in H1; auto.
+    apply tpt_lemma_var in Ht; auto.
     destruct (tpt_to_precise_trm_dec Hi H4 Ht) as [T' [m [Hpx [_ Hsx]]]].
     destruct (tpt_to_precise_trm_dec Hi H4 H1) as [U' [m' [Hpx' [Heq Hsx']]]].
-    specialize (Heq eq_refl). subst. lets Hu: (p_rcd_unique Hi Hpx Hpx').
+    specialize (Heq eq_refl). destruct Heq. subst. lets Hu: (p_rcd_unique Hi Hpx Hpx').
     destruct Hu; subst. exists U'; split*.
   - (* ty_fld_elim_path_t *)
     destruct p as [v | p]. destruct v.
     * inversions Hn. inversions H5.
-    * lets Htl: (tight_possible_types_lemma_var Hi Ht). exists* T.
+    * lets Htl: (tpt_lemma_var Hi Ht). exists* T.
     * specialize (IHHt _ _ Hi H eq_refl). destruct IHHt as [U [Tpt Hs]].
       apply tpt_to_precise_trm_dec in Tpt; auto.
       destruct Tpt as [T' [m' [Hp [Heq  Hsx]]]]. specialize (Heq eq_refl). subst.
-
+Abort.
 
 Lemma tight_possible_types_lemma_paths: forall G p a U,
     inert G ->
@@ -164,54 +186,10 @@ Lemma tight_possible_types_lemma_paths: forall G p a U,
     exists T, G |-! trm_path p : typ_rcd { a [strong] T } /\ G |-# T <: U.
 Proof.
   introv Hi Hn Ht. dependent induction Ht.
-  - inversions Hn. apply tight_possible_types_lemma_var in H1; auto.
-    apply tight_possible_types_lemma_var in Ht; auto.
+  - inversions Hn. apply tpt_lemma_var in H1; auto.
+    apply tpt_lemma_var in Ht; auto.
     destruct (tpt_to_precise_trm_dec Hi H4 Ht) as [T' [m [Hpx [_ Hsx]]]].
     destruct (tpt_to_precise_trm_dec Hi H4 H1) as [U' [m' [Hpx' [Heq Hsx']]]].
     specialize (Heq eq_refl). subst. lets Hu: (p_rcd_unique Hi Hpx Hpx').
     destruct Hu; subst. exists U'; split*.
-  -
-
-
-Lemma tight_possible_types_lemma : forall G U p,
-    inert G ->
-    G |-# trm_path p : U ->
-    norm_t G p ->
-    G |-## p : U.
-Proof.
-  introv Hi Hty Hn. gen U.
-  induction p; introv Ht.
-  - admit.
-  - inversions Hn. specialize (IHp H4).
-    lets Hp1: (IHp _ H1); clear H1. apply tpt_to_precise_trm_dec in Hp1; auto.
-    destruct Hp1 as [T [m [Hp [Heq Hs]]]]. specialize (Heq eq_refl). subst.
-    inversions Ht.
-    * (* ty_fld_elim_var_t *)
-specialize (IHp _ H5). apply tpt_to_precise_trm_dec in IHp; auto.
-      destruct IHp as [T' [m' [Hp' [_ Hs']]]]. destruct (p_rcd_unique Hi Hp Hp') as [Hm HT].
-      subst. apply ty_fld_elim_p in Hp. apply t_pt_precise in Hp.
-      apply* tight_possible_types_closure_tight.
-      apply precise_to_general in Hp. destruct (typing_implies_bound Hp). apply* norm_var_p.
-      admit.
-    * (* ty_fld_elim_path_t *)
-    * (* ty_rec_elim_t *)
-    * (* ty_and_intro_t *)
-    * (* ty_sub_t *)
-
-  dependent induction Hty; auto.
-  - (* ty_fld_elim_var_t *)
-    inversions Hn.
-    specialize (IHHty (p_var (avar_f x )) Hi eq_refl H4).
-    destruct (tpt_to_precise_trm_dec Hi H4 IHHty) as [V [m [Hp [_ Hs]]]].
-admit.
-  - specialize (IHHty p0  Hi eq_refl H). inversions IHHty.
-    * apply ty_fld_elim_p in H0; auto.
-    specialize (IHHty _ Hgd eq_refl eq_refl eq_refl).
-    eapply t_pt_bnd.
-    apply IHHty.
-    reflexivity.
-  - specialize (IHHty _ Hgd eq_refl eq_refl eq_refl).
-    inversion IHHty; subst; auto.
-  - apply t_pt_and; auto.
-  - eapply tight_possible_types_closure_tight; auto.
-Qed.
+  Abort.
