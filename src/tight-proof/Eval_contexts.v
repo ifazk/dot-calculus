@@ -86,8 +86,7 @@ Lemma e_preserves_typing : forall G e t et T eG,
     e[t] == et ->
     G |- et : T ->
     e[[G]] == eG ->
-    exists U, eG |- t : U
-.
+    exists U, eG |- t : U.
 Proof.
   (* Hint: The proof follows the same general structure as parts of the safety proof in Safety.v.
            Those parts might not be in safety itself, but could be hidden in Some_lemmas that the
@@ -100,8 +99,7 @@ Lemma progress_induction : forall G e eG t T et,
   e[[G]] == eG ->
   eG |- t : T ->
   e[t] == et ->
-  (normal_form et \/ exists t' et', (et => et' /\ e[t'] == et'))
-.
+  (normal_form et \/ exists t' et', (et => et' /\ e[t'] == et')).
 Proof.
   (* Hint: The proof follows the same general structure as the safety proof in Safety.v. *)
   (* Hint: The proof uses e_preserves_inert and e_preserves_typing. *)
@@ -109,26 +107,26 @@ Admitted.
 
 Lemma progress : forall t T,
   empty |- t : T ->
-  (normal_form t \/ exists t', t => t')
-.
+  (normal_form t \/ exists t', t => t').
 Proof.
   intros.
-  assert (normal_form t \/ exists t' et', (t => et' /\ e_empty[t'] == et')).
+  assert (normal_form t \/ exists t' et', (t => et' /\ e_empty[t'] == et')). {
     apply progress_induction with (G := empty)(eG := empty)(t := t)(T := T).
-    admit.
-    admit.
-    assumption.
-    admit.
-  destruct H0. auto.
-  destruct H0. destruct H0. destruct H0. right. exists x0. assumption.
+    - admit.
+    - admit.
+    - assumption.
+    - admit.
+  }
+  destruct H0. 
+  - auto.
+  - destruct H0. destruct H0. destruct H0. right. exists x0. assumption.
   (* TODO: This proof is embarrassingly non-automated. *)
-Admitted.
+Qed.
 
 Lemma preservation : forall G t T t',
   inert G ->
   G |- t : T ->
   t => t' ->
-  G |- t' : T
-.
+  G |- t' : T.
 Proof.
 Admitted.
