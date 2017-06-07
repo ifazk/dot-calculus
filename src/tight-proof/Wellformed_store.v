@@ -19,7 +19,7 @@ Proof. intros. induction H; jauto. Qed.
 
 Hint Resolve wf_sto_to_ok_G.
 
-Lemma tpt_to_precise_rec: forall G v T,
+Lemma invertible_val_to_precise_rec: forall G v T,
     G |-##v v : typ_bnd T ->
     G |-! trm_val v : typ_bnd T.
 Proof.
@@ -27,7 +27,7 @@ Proof.
   inversions Ht. assumption.
 Qed.
 
-Lemma tpt_to_precise_lambda: forall G v S T,
+Lemma invertible_val_to_precise_lambda: forall G v S T,
     G |-##v v : typ_all S T ->
     inert G ->
     exists L S' T',
@@ -73,7 +73,7 @@ Proof.
   introv Hp. dependent induction Hp; auto.
 Qed.
 
-Lemma tpt_obj_all : forall G S ds T U,
+Lemma invertible_val_obj_all : forall G S ds T U,
     G |-##v val_new S ds : typ_all T U ->
     False.
 Proof.
@@ -114,7 +114,7 @@ Proof.
           inversions Hgd. false* empty_push_inv. destruct (eq_push_inv H5) as [Hx [Hv HG]]. subst*.
         }
         inversions HgT.
-        apply tpt_to_precise_lambda in Hpt. destruct Hpt as [L [S' [T' [Hss [Hs1 Hs2]]]]].
+        apply invertible_val_to_precise_lambda in Hpt. destruct Hpt as [L [S' [T' [Hss [Hs1 Hs2]]]]].
         destruct (precise_forall_inv Hss) as [t Heq]. subst. left.
         exists (L \u dom G \u \{ x0}) S' T' S T1 t.
         split. apply* f_equal. split. apply* weaken_ty_trm_p. split. reflexivity.
@@ -122,7 +122,7 @@ Proof.
         apply (proj44 weaken_rules) with (G:=G & y ~ S). apply* Hs2. reflexivity.
         apply ok_push. apply* inert_ok. simpl_dom. rewrite notin_union. split*.
         assumption.
-        apply tpt_to_precise_rec in Hpt.
+        apply invertible_val_to_precise_rec in Hpt.
         destruct (precise_bnd_inv Hpt) as [ds Heq]. subst. right. exists T1 ds.
         split. reflexivity. split. apply* weaken_ty_trm_p. reflexivity.
         assumption.
@@ -176,7 +176,7 @@ Proof.
       apply invertible_typing_lemma_v in H1; auto.
       inversions H1; try solve [inversion HT].
       * apply* precise_obj_typ.
-      * false* tpt_obj_all.
+      * false* invertible_val_obj_all.
     }
     subst*.
   - apply binds_push_neq_inv in Bi; auto.
