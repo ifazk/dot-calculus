@@ -62,6 +62,17 @@ Inductive inert : ctx -> Prop :=
       x # pre ->
       inert (pre & x ~ T).
 
+Lemma precise_inert_typ : forall G v T,
+    G |-! trm_val v : T ->
+    inert_typ T.
+Proof.
+  introv Ht. inversions Ht; constructor; rename T0 into T.
+  pick_fresh z. assert (Hz: z \notin L) by auto. specialize (H1 z Hz). clear Hz.
+  pose proof (ty_defs_record_type H1).
+  assert (Hz: z \notin fv_typ T) by auto.
+  apply (record_type_open T Hz H).
+Qed.
+
 Lemma binds_inert : forall G x T,
     binds x T G ->
     inert G ->

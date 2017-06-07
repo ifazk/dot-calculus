@@ -3,6 +3,7 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
+Require Import Some_lemmas.
 Require Import Safety. (* TODO: This is needed only for normal_form. Consider moving normal_form out to some other file (maybe Definitions). *)
 Require Import Inert_types.
 Require Import Coq.Lists.List.
@@ -64,7 +65,8 @@ Inductive eg_app : ec -> ctx -> ctx -> Prop :=
 | eg_empty : forall G, e_empty [[G]] == G
 | eg_val : forall G x e (v: val) T G',
     ~ In x (vars e) ->
-    G |-! (trm_val v) : T ->
+    x # G ->
+    G |-! trm_val v : T ->
     e[[G & x ~ T]] == G' ->
     (e_let_val x v e) [[G]] == G'
 | eg_trm : forall G x u, (e_let_trm x u) [[G]] == G
@@ -75,7 +77,10 @@ Lemma e_preserves_inert : forall G e eG,
     e[[G]] == eG ->
     inert eG.
 Proof.
-Admitted.
+  introv Hi He. induction He; try assumption.
+  apply IHHe. constructor; try assumption.
+  apply (precise_inert_typ H1).
+Qed.
 
 Lemma e_preserves_typing : forall G e t et T eG,
     e[t] == et ->
