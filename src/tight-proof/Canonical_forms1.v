@@ -25,14 +25,14 @@ Lemma canonical_forms_1: forall G s x T U,
 Proof.
   introv Hwf Hgd Hty.
   pose proof (general_to_tight_typing Hgd Hty) as Hti.
-  pose proof (tight_to_precise_typ_all Hgd Hti) as [S' [T' [L' [Hpt [HSsub HTsub]]]]].
+  pose proof (invertible_typing_lemma Hgd Hti) as Hinv.
+  pose proof (invertible_to_precise_typ_all Hgd Hinv) as [S' [T' [L' [Hpt [HSsub HTsub]]]]].
   pose proof (inert_precise_all_inv Hgd Hpt) as Bi.
   pose proof (corresponding_types Hwf Hgd Bi)
     as [[L [S [V [S1 [V1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [S [ds [Hb [Ht Heq]]]]].
   subst. inversion Heq; subst. inversions Ht.
   - exists (L \u L' \u L0 \u dom G) S t.
     split; auto.
-    pose proof (invertible_typing_lemma Hgd Hti) as Hinv.
     assert (forall y W, y # G -> ok (G & y ~ W)) as Hok by (intros; apply* ok_push).
     inversion Hinv; subst.
     + apply (inert_precise_all_inv Hgd) in Hpt.

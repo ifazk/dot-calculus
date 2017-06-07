@@ -9,6 +9,7 @@ Require Import Substitution.
 Require Import Some_lemmas.
 Require Import Inert_types.
 Require Import General_to_tight.
+Require Import Invertible_typing.
 
 Lemma defs_has_hasnt_neq: forall ds d1 d2,
   defs_has ds d1 ->
@@ -96,7 +97,8 @@ Proof.
   introv Hg Hwf Hty.
   pose proof (typing_implies_bound Hty) as [S Bi].
   pose proof (general_to_tight_typing Hg Hty) as Hty'.
-  pose proof (tight_to_precise_trm_dec Hg Hty') as [T' [Hx Hs]].
+  pose proof (invertible_typing_lemma Hg Hty') as Hinv.
+  pose proof (invertible_to_precise_trm_dec Hg Hinv) as [T' [Hx Hs]].
   pose proof (corresponding_types Hwf Hg Bi)
     as [[L [U [V [S1 [V1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [U [ds [Hb [Ht Heq]]]]].
   + assert (H: exists T, record_type T /\ S = (typ_bnd T)).
