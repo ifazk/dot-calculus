@@ -86,6 +86,7 @@ Proof.
         lets Hind: (wt_in_dom Wt H). assumption.
     }
     unfolds addr. rewrite H3.
+
     apply IHWt in H1. assumption.
   - assert (l <> l0). {
       lets Hdec: (classicT (l = l0)). destruct Hdec.
@@ -109,7 +110,7 @@ Proof.
     - apply IHWt in H0. assumption.
 Qed.
 
-Lemma tpt_to_precise_rec: forall G S v T,
+Lemma invertible_val_to_precise_rec: forall G S v T,
     G, S |-##v v : typ_bnd T ->
     G, S |-! trm_val v : typ_bnd T.
 Proof.
@@ -117,7 +118,7 @@ Proof.
   inversions Ht. assumption.
 Qed.
 
-Lemma tpt_to_precise_lambda: forall G S v V T,
+Lemma invertible_val_to_precise_lambda: forall G S v V T,
     G, S |-##v v : typ_all V T ->
     inert G ->
     exists L V' T',
@@ -140,7 +141,7 @@ Proof.
     apply* H0.
 Qed.
 
-Lemma tpt_to_precise_ref: forall G S v T,
+Lemma invertible_val_to_precise_ref: forall G S v T,
     G, S |-##v v : typ_ref T ->
     exists T',
       G, S |-! trm_val v : typ_ref T' /\
@@ -197,7 +198,7 @@ Proof.
   introv Hp. dependent induction Hp. exists* T.
 Qed.
 
-Lemma tpt_obj_all : forall G S V ds T U,
+Lemma invertible_val_obj_all : forall G S V ds T U,
     G, S |-##v val_new V ds : typ_all T U ->
     False.
 Proof.
@@ -206,7 +207,7 @@ Proof.
   apply* IHHt.
 Qed.
 
-Lemma tpt_obj_ref : forall G S V ds T,
+Lemma invertible_val_obj_ref : forall G S V ds T,
     G, S |-##v val_new V ds : typ_ref T ->
     False.
 Proof.
@@ -255,8 +256,7 @@ Proof.
           inversions Hgd. false* empty_push_inv. destruct (eq_push_inv H5) as [Hx [Hv HG]]. subst*.
         }
         inversions HgT.
-
-        { apply tpt_to_precise_lambda in Hpt. destruct Hpt as [L [V' [T' [Hss [Hs1 Hs2]]]]].
+        { apply invertible_val_to_precise_lambda in Hpt. destruct Hpt as [L [V' [T' [Hss [Hs1 Hs2]]]]].
           destruct (precise_forall_inv Hss) as [t Heq]. subst. left. 
           exists (L \u dom G \u \{ x0}) V' T' S0 T1 t.
           split. apply* f_equal. split. apply* weaken_ty_trm_ctx_p. split. reflexivity.
@@ -265,11 +265,11 @@ Proof.
           apply ok_push. apply* inert_ok. simpl_dom. rewrite notin_union. split*.
           assumption.
         }
-        { apply tpt_to_precise_rec in Hpt.
+        { apply invertible_val_to_precise_rec in Hpt.
           destruct (precise_bnd_inv Hpt) as [ds Heq]. subst. right. left. exists T1 ds.
           split. reflexivity. split. apply* weaken_ty_trm_ctx_p. reflexivity.
         } 
-        { apply tpt_to_precise_ref in Hpt.
+        { apply invertible_val_to_precise_ref in Hpt.
           destruct Hpt as [T [Ht [Hs1 Hs2]]].
           destruct (precise_ref_inv Ht) as [l ?].
           subst. right. right. exists T T1 l. 
@@ -339,8 +339,8 @@ Proof.
       apply invertible_typing_lemma_v in H1; auto.
       inversions H1; try solve [inversion HT].
       * apply* precise_obj_typ.
-      * false* tpt_obj_all.
-      * false* tpt_obj_ref.
+      * false* invertible_val_obj_all.
+      * false* invertible_val_obj_ref.
     }
     subst*.
   - apply binds_push_neq_inv in Bi; auto.
