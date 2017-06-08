@@ -8,20 +8,15 @@ Require Import Inert_types.
 Require Import Some_lemmas.
 Require Import Invertible_typing.
 
-(* ###################################################################### *)
-(** ** Tight to precise *)
-
-(* Lemma 1 *)
-Lemma tight_to_precise_typ_dec: forall G x A S U,
+Lemma invertible_to_precise_typ_dec: forall G x A S U,
   inert G ->
-  G |-# trm_var (avar_f x) : typ_rcd (dec_typ A S U) ->
+  G |-## x : typ_rcd (dec_typ A S U) ->
   exists T,
     G |-! trm_var (avar_f x) : typ_rcd (dec_typ A T T) /\
     G |-# T <: U /\
     G |-# S <: T.
 Proof.
-  introv HG Ht.
-  lets Hinv: (invertible_typing_lemma HG Ht). clear Ht.
+  introv HG Hinv.
   dependent induction Hinv.
   - lets Hp: (precise_dec_typ_inv HG H). subst.
     exists U. split*.
@@ -30,15 +25,14 @@ Proof.
     exists V. split*.
 Qed.
 
-Lemma tight_to_precise_trm_dec: forall G x a T,
+Lemma invertible_to_precise_trm_dec: forall G x a T,
   inert G ->
-  G |-# trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
+  G |-## x : typ_rcd (dec_trm a T) ->
   exists T',
     G |-! trm_var (avar_f x) : typ_rcd (dec_trm a T') /\
     G |-# T' <: T.
 Proof.
-  introv Hgd Ht.
-  lets Hinv: (invertible_typing_lemma Hgd Ht). clear Ht.
+  introv Hgd Hinv.
   dependent induction Hinv.
   - exists T. auto.
   - specialize (IHHinv _ _ Hgd eq_refl). destruct IHHinv as [V [Hx Hs]].
@@ -46,9 +40,9 @@ Proof.
     eapply subtyp_trans_t; eassumption.
 Qed.
 
-Lemma tight_to_precise_typ_all: forall G x S T,
+Lemma invertible_to_precise_typ_all: forall G x S T,
   inert G ->
-  G |-# trm_var (avar_f x) : typ_all S T ->
+  G |-## x : typ_all S T ->
   exists S' T' L,
     G |-! trm_var (avar_f x) : typ_all S' T' /\
     G |-# S <: S' /\
@@ -57,8 +51,7 @@ Lemma tight_to_precise_typ_all: forall G x S T,
             G & y ~ S |- open_typ y T' <: open_typ y T)
     .
 Proof.
-  introv HG Ht.
-  lets Hinv: (invertible_typing_lemma HG Ht). clear Ht.
+  introv HG Hinv.
   dependent induction Hinv.
   - exists S T (dom G); auto.
   - specialize (IHHinv _ _ HG eq_refl).
@@ -85,7 +78,8 @@ Lemma tight_subtyping_sel: forall G x A S U,
      G |-# S <: typ_sel (avar_f x) A).
 Proof.
   introv HG Hty.
-  pose proof (tight_to_precise_typ_dec HG Hty) as [T [Ht [Hs1 Hs2]]].
+  pose proof (invertible_typing_lemma HG Hty) as Hinv.
+  pose proof (invertible_to_precise_typ_dec HG Hinv) as [T [Ht [Hs1 Hs2]]].
   split.
   - apply subtyp_sel1_t in Ht. apply subtyp_trans_t with (T:=T); auto.
   - apply subtyp_sel2_t in Ht. apply subtyp_trans_t with (T:=T); auto.
