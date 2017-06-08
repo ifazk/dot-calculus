@@ -85,9 +85,8 @@ Proof.
   - (* ty_def_val *)
     constructor. apply H; auto. apply subenv_push. assumption. assumption.
   - (* norm_var *)
-    unfold subenv in H0. destruct (H0 x T b) as [Hb | [T1 [Hb Hs]]].
-    econstructor. eassumption.
-    econstructor. eassumption.
+    unfold subenv in H0. destruct (H0 x T b) as [Hb | [T1 [Hb Hs]]];
+    apply* norm_var.
   - (* subtyp_all *)
     subst.
     apply_fresh subtyp_all as y; eauto.

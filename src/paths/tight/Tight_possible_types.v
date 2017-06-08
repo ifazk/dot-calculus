@@ -12,7 +12,7 @@ Require Import Narrowing.
 
 Lemma tpt_to_precise_typ_dec: forall G p A S U,
     inert G ->
-    norm_t G p ->
+    G |-# p ||v ->
     G |-## p : typ_rcd { A >: S <: U } ->
     exists T,
       G |-! trm_path p : typ_rcd { A >: T <: T } /\
@@ -29,7 +29,7 @@ Qed.
 
 Lemma tpt_to_precise_trm_dec: forall G p a m T,
     inert G ->
-    norm_t G p ->
+    G |-# p ||v ->
     G |-## p : typ_rcd { a [m] T } ->
     exists T' m',
       G |-! trm_path p : typ_rcd { a [m'] T' } /\
@@ -50,7 +50,7 @@ Qed.
 
 Lemma tpt_to_precise_typ_all: forall G p S T,
     inert G ->
-    norm_t G p ->
+    G |-# p ||v ->
     G |-## p : typ_all S T ->
     exists S' T' L,
       G |-! trm_path p : typ_all S' T' /\
@@ -102,20 +102,33 @@ Lemma tpt_lemma :
   (forall G t T, G |-# t: T -> forall p,
     t = trm_path p ->
     inert G ->
-    norm_t G p ->
+    norm_t G t ->
     G |-## p: T) /\
-  (forall G p, norm_t G p ->
+  (forall G t, norm_t G t ->
     inert G ->
-    norm_p G p).
+    norm_p G t).
 Proof.
-  apply ts_mutind_t; intros; try (inversions H);  eauto.
-  - admit.
-  - inversions H0. specialize (H _ eq_refl H1). admit.
-  - inversions H1. specialize (H0 H2). specialize (H _ eq_refl H2 n).
+  apply ts_mutind_t; intros; try (inversions H);
+    try solve [inversion H0 || inversion H1]; eauto.
+  - inversions H0. inversions H2. specialize (H _ eq_refl H1 H8).
+    apply tpt_to_precise_trm_dec in H; auto. destruct H as [V [m [Hp [_ Hs]]]].
+    admit.
+  - inversions H1. specialize (H0 H2).
+    assert (G |-# p ||v) as Hp by (inversion* n).
+    specialize (H _ eq_refl H2 Hp).
     apply tpt_to_precise_trm_dec in H; auto.
-    destruct H as [T' [m' [Hp [Heq  Hsx]]]]. specialize (Heq eq_refl). subst.
-    assert (norm_p G (p_sel p a)) as Hnp by admit. inversions Hnp. Abort.
-
+    destruct H as [T' [m' [Ht [Heq  Hsx]]]]. specialize (Heq eq_refl). destruct Heq. subst.
+    inversions H0.
+    destruct (p_rcd_unique H2 Ht H5) as [_ Heq]. subst.
+    apply ty_fld_elim_p in H5; auto. apply* norm_path_p.
+  - inversions H0. specialize (H _ eq_refl H1 H2). apply* t_pt_bnd.
+  - inversions H0. specialize (H _ eq_refl H1 H2). inversions H. auto.
+    rewrite* <- open_var_path_typ_eq.
+  - subst. specialize (H _ eq_refl H1 H2). apply* tpt_sub_closure.
+  - subst. specialize (H _ eq_refl H1 n). apply tpt_to_precise_trm_dec in H; auto.
+    destruct H as [V [m [Hp [Heq Hs]]]]. specialize (Heq eq_refl). destruct Heq. subst.
+    apply* norm_path_p.
+ Qed.
 
 Lemma tpt_lemma_var : forall G U x,
     inert G ->

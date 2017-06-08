@@ -49,7 +49,7 @@ Proof.
   + intros. subst. apply ty_def_val.
     rewrite <- concat_assoc. apply H; rewrite concat_assoc. reflexivity. assumption.
   + intros. subst.
-    eapply norm_var. eapply binds_weaken; eassumption.
+    apply* norm_var. eapply binds_weaken; eassumption.
   + intros. subst.
     apply_fresh subtyp_all as z.
     auto.
