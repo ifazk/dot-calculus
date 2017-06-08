@@ -710,6 +710,33 @@ Inductive ty_trm_inv_v : ctx -> sigma -> val -> typ -> Prop :=
   G, S |-##v v : typ_top
 where "G ',' S '|-##v' v ':' T" := (ty_trm_inv_v G S v T).
 
+(* Reserved Notation "G ',' S '|~~' sta '~' sto" (at level 40, S at level 58, sta at level 59, sto at level 60). *)
+
+Inductive well_formed : ctx -> sigma -> stack -> store -> Prop := 
+| well_formed_empty: well_formed empty empty empty emptyM
+| well_formed_push_stack: forall G S x v T sta sto,
+    well_formed G S sta sto ->
+    x # G ->
+    x # sta ->
+    G, S |- trm_val v : T ->
+    well_formed (G & x ~ T) S (sta & x ~ v) sto
+| well_formed_push_loc_stack: forall G S x l T sta sto,
+    well_formed G S sta sto ->
+    x # G ->
+    x # sta ->
+    G, S |- trm_val (val_loc l) : typ_nref T ->
+    well_formed (G & x ~ (typ_ref T)) S (sta & x ~ (val_loc l)) sto
+| well_formed_new_store: forall G S l T sta sto, 
+    well_formed G S sta sto ->
+    l # S ->
+    well_formed G (S & l ~ T) sta sto[l := None]
+| well_formed_update_store: forall G S l x T sta sto,
+    well_formed G S sta sto ->
+    binds l T S ->
+    G, S |- trm_var (avar_f x) : T ->
+    well_formed G S sta sto[l := (Some x)].
+(* where "G ',' S '|~~' sta '~' sto" := (well_formed G S sta sto). *)
+
 Reserved Notation "G ',' S '~~' sta" (at level 40, S at level 58).
 
 (* well-formed stack *)
