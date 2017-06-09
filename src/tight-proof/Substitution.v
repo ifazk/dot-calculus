@@ -18,12 +18,13 @@ Fixpoint subst_typ (z: var) (u: var) (T: typ) { struct T } : typ :=
   match T with
   | typ_top        => typ_top
   | typ_bot        => typ_bot
+  | typ_ref T      => typ_ref (subst_typ z u T)
+  | typ_nref T     => typ_nref (subst_typ z u T)
   | typ_rcd D      => typ_rcd (subst_dec z u D)
   | typ_and T1 T2  => typ_and (subst_typ z u T1) (subst_typ z u T2)
   | typ_sel x L    => typ_sel (subst_avar z u x) L
   | typ_bnd T      => typ_bnd (subst_typ z u T)
   | typ_all T U    => typ_all (subst_typ z u T) (subst_typ z u U)
-  | typ_ref T      => typ_ref (subst_typ z u T)
   end
 with subst_dec (z: var) (u: var) (D: dec) { struct D } : dec :=
   match D with
@@ -38,8 +39,9 @@ Fixpoint subst_trm (z: var) (u: var) (t: trm) : trm :=
   | trm_sel x1 L     => trm_sel (subst_avar z u x1) L
   | trm_app x1 x2    => trm_app (subst_avar z u x1) (subst_avar z u x2)
   | trm_let t1 t2    => trm_let (subst_trm z u t1) (subst_trm z u t2)
-  | trm_ref x t      => trm_ref (subst_avar z u x) (subst_typ z u t)
+  | trm_ref T        => trm_ref (subst_typ z u T)
   | trm_deref x      => trm_deref (subst_avar z u x)
+  | trm_nderef x y   => trm_nderef (subst_avar z u x) (subst_avar z u y)
   | trm_asg x y      => trm_asg (subst_avar z u x) (subst_avar z u y)
   end
 with subst_val (z: var) (u: var) (v: val) : val :=
@@ -355,14 +357,13 @@ Proof.
   - (* ty_sub *)
     eapply ty_sub; eauto.
   - (* ty_ref_intro *)
+    apply ty_ref_intro; eauto.
+  - (* ty_nref_intro *)
     simpl. constructor.
-    assert (trm_var (avar_f (If x = x0 then y else x)) = subst_trm x0 y (trm_var (avar_f x))) as A by (simpl; reflexivity).
-    rewrite A.
-    apply H; auto.
   - (* ty_ref_elim *)
     apply ty_ref_elim; eauto.
-  - (* ty_asgn *)
-    apply ty_asgn; eauto.
+  - (* ty_nref_elim *)
+    apply ty_nref_elim; eauto.
   - (* ty_def_typ *)
     simpl. apply ty_def_typ; auto.
   - (* ty_def_trm *)
@@ -415,6 +416,8 @@ Proof.
     rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm_ctx. assumption.
     apply ok_push. apply ok_concat_map. auto. unfold subst_env. auto.
   - (* subtyp_ref *) apply subtyp_ref; auto.
+  - (* subtyp_nref *) apply subtyp_nref; auto.
+  - (* subtyp_ref_nref *) apply subtyp_ref_nref; auto.
 Qed.
 
 Lemma subst_ty_trm: forall y V G S x t T,

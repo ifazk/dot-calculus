@@ -383,7 +383,11 @@ Inductive ty_trm : ctx -> sigma -> trm -> typ -> Prop :=
     G, S |- t : T ->
     G, S |- T <: U ->
     G, S |- t : U
-| ty_ref_intro : forall G S T,
+| ty_ref_intro : forall G S x y T,
+    G, S |- trm_var (avar_f x) : typ_nref T ->
+    G, S |- trm_var (avar_f y) : T ->
+    G, S |- trm_asg (avar_f x) (avar_f y) : typ_ref T
+| ty_nref_intro : forall G S T,
     G, S |- trm_ref T : typ_nref T
 | ty_ref_elim : forall G S x T,
     G, S |- trm_var (avar_f x) : typ_ref T ->
@@ -392,10 +396,6 @@ Inductive ty_trm : ctx -> sigma -> trm -> typ -> Prop :=
     G, S |- trm_var (avar_f x) : typ_nref T ->
     G, S |- trm_var (avar_f y) : T ->
     G, S |- trm_nderef (avar_f x) (avar_f y) : T
-| ty_asgn : forall G S x y T,
-    G, S |- trm_var (avar_f x) : typ_nref T ->
-    G, S |- trm_var (avar_f y) : T ->
-    G, S |- trm_asg (avar_f x) (avar_f y) : typ_ref T
 where "G ',' S '|-' t ':' T" := (ty_trm G S t T)
 
 with ty_def : ctx -> sigma -> def -> dec -> Prop :=
@@ -538,7 +538,11 @@ Inductive ty_trm_t : ctx -> sigma -> trm -> typ -> Prop :=
     G, S |-# t : T ->
     G, S |-# T <: U ->
     G, S |-# t : U
-| ty_ref_intro_t : forall G S T,
+| ty_ref_intro_t : forall G S x y T,
+    G, S |-# trm_var (avar_f x) : typ_nref T ->
+    G, S |-# trm_var (avar_f y) : T ->
+    G, S |-# trm_asg (avar_f x) (avar_f y) : typ_ref T
+| ty_nref_intro_t : forall G S T,
     G, S |-# trm_ref T : typ_nref T
 | ty_ref_elim_t : forall G S x T,
     G, S |-# trm_var (avar_f x) : typ_ref T ->
@@ -547,10 +551,6 @@ Inductive ty_trm_t : ctx -> sigma -> trm -> typ -> Prop :=
     G, S |-# trm_var (avar_f x) : typ_nref T ->
     G, S |-# trm_var (avar_f y) : T ->
     G, S |-# trm_nderef (avar_f x) (avar_f y) : T
-| ty_asgn_t : forall G S x y T,
-    G, S |-# trm_var (avar_f x) : typ_nref T ->
-    G, S |-# trm_var (avar_f y) : T ->
-    G, S |-# trm_asg (avar_f x) (avar_f y) : typ_ref T
 where "G ',' S '|-#' t ':' T" := (ty_trm_t G S t T)
 
 with subtyp_t : ctx -> sigma -> typ -> typ -> Prop :=

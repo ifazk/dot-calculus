@@ -16,14 +16,14 @@ Lemma (Canonical forms 1)
 If G ~ s and G |- x: all(x: T)U then s(x) = lambda(x: T')t where G |- T <: T' and G, x: T |- t: U.
  *)
 
-Lemma canonical_forms_1: forall G S s x T U,
-  G, S ~~ s ->
+Lemma canonical_forms_1: forall G S sta sto x T U,
+  well_formed G S sta sto ->
   inert G ->
   G, S |- trm_var (avar_f x) : typ_all T U ->
   (exists L T' t, 
-      binds x (val_lambda T' t) s /\
+      binds x (val_lambda T' t) sta /\
       G, S |- T <: T' /\
-               (forall y, y \notin L -> G & y ~ T, S |- open_trm y t : open_typ y U)).
+      (forall y, y \notin L -> G & y ~ T, S |- open_trm y t : open_typ y U)).
 Proof.
   introv Hwf Hgd Hty.
   pose proof (general_to_tight_typing Hgd Hty) as Hti.
@@ -58,5 +58,5 @@ Proof.
       assumption. apply* subenv_last. apply* Hok.
       apply* HTsub. apply* subenv_last. apply* Hok.
   - inversion Heq.
-  - inversion Heq.
+  - destruct Heq as [Heq | Heq]; inversion Heq.
 Qed.
