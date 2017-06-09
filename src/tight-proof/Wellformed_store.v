@@ -154,22 +154,22 @@ Proof.
     apply* H0.
 Qed.
 
-Lemma invertible_val_to_precise_ref: forall G S v T,
-    G, S |-##v v : typ_ref T ->
-    exists T',
-      G, S |-! trm_val v : typ_ref T' /\
-      G, S |- T' <: T /\
-      G, S |- T <: T'.
-Proof.
-  introv Ht. dependent induction Ht.
-  - exists* T. 
-  - destruct (IHHt T0 eq_refl) as [T' [Hty [Hs1 Hs2]]]. exists T'. repeat split. 
-    + assumption.
-    + apply subtyp_trans with (T:=T0); auto.
-      apply (proj22 tight_to_general); auto.
-    + apply subtyp_trans with (T:=T0); auto.
-      apply (proj22 tight_to_general); auto.
-Qed.
+(* Lemma invertible_val_to_precise_ref: forall G S v T, *)
+(*     G, S |-##v v : typ_ref T -> *)
+(*     exists T', *)
+(*       G, S |-! trm_val v : typ_ref T' /\ *)
+(*       G, S |- T' <: T /\ *)
+(*       G, S |- T <: T'. *)
+(* Proof. *)
+(*   introv Ht. dependent induction Ht. *)
+(*   - exists* T.  *)
+(*   - destruct (IHHt T0 eq_refl) as [T' [Hty [Hs1 Hs2]]]. exists T'. repeat split.  *)
+(*     + assumption. *)
+(*     + apply subtyp_trans with (T:=T0); auto. *)
+(*       apply (proj22 tight_to_general); auto. *)
+(*     + apply subtyp_trans with (T:=T0); auto. *)
+(*       apply (proj22 tight_to_general); auto. *)
+(* Qed. *)
 
 Lemma invertible_val_to_precise_nref: forall G S v T,
     G, S |-##v v : typ_nref T ->
@@ -186,9 +186,9 @@ Proof.
       apply (proj22 tight_to_general); auto.
     + apply subtyp_trans with (T:=T0); auto.
       apply (proj22 tight_to_general); auto.
-  - apply invertible_val_to_precise_ref in Ht.
-    destruct Ht as [T' [Ht [Hs1 Hs2]]].
-    inversions Ht.
+  (* - apply invertible_val_to_precise_ref in Ht. *)
+  (*   destruct Ht as [T' [Ht [Hs1 Hs2]]]. *)
+  (*   inversions Ht. *)
 Qed.
 
 Lemma precise_forall_inv : forall G S v V T,
@@ -246,7 +246,6 @@ Lemma invertible_val_obj_ref : forall G S V ds T,
 Proof.
   introv Ht. dependent induction Ht.
   apply precise_obj_typ in H. inversion H.
-  apply* IHHt.
 Qed.
 
 Lemma invertible_val_obj_nref : forall G S V ds T,
@@ -256,7 +255,6 @@ Proof.
   introv Ht. dependent induction Ht.
   apply precise_obj_typ in H. inversion H.
   apply* IHHt.
-  apply* invertible_val_obj_ref.
 Qed.
 
 Lemma corresponding_types: forall G S sta sto x T,
@@ -319,9 +317,10 @@ Proof.
           right. left. exists T1 ds.
           split. reflexivity. split. apply* weaken_ty_trm_ctx_p. reflexivity.
         } 
-        { apply invertible_val_to_precise_ref in Hinv.
-          destruct Hinv as [T [Ht [Hs1 Hs2]]].
-          inversion Ht. 
+        { inversions Hinv. inversions H4. 
+        (* apply invertible_val_to_precise_ref in Hinv. *)
+          (* destruct Hinv as [T [Ht [Hs1 Hs2]]]. *)
+          (* inversion Ht.  *)
         }
         { apply invertible_val_to_precise_nref in Hinv. 
           destruct Hinv as [T [Hty [Hs1 Hs2]]].
@@ -393,104 +392,119 @@ Proof.
       * left. exists (L \u dom G \u \{x}) V U V' U' t. split*.
       * right. left. exists V ds. split*. 
       * right. right. exists V V' l'. split*. 
-Qed.        
+Qed.
 
-Lemma stack_binds_to_ctx_binds: forall G S s x v,
-  G, S ~~ s -> binds x v s -> exists V, binds x V G.
+Lemma stack_binds_to_ctx_binds: forall G S sta sto x v,
+    well_formed G S sta sto ->
+    binds x v sta -> 
+    exists V, binds x V G.
 Proof.
   introv Hwf Bis.
   remember Hwf as Hwf'. clear HeqHwf'.
   induction Hwf.
-  false* binds_empty_inv.
-  destruct (binds_push_inv Bis) as [[Hx Hv] | [Hn Hb]]; subst.
-  - exists* T.
-  - destruct (IHHwf Hb Hwf) as [V HV]. exists V.
-    apply* binds_push_neq.
+  - false* binds_empty_inv.
+  - destruct (binds_push_inv Bis) as [[Hx Hv] | [Hn Hb]]; subst.
+    + exists* T.
+    + destruct (IHHwf Hb Hwf) as [V HV]. exists V.
+      apply* binds_push_neq.
+  - destruct (binds_push_inv Bis) as [[Hx Hv] | [Hn Hb]]; subst.
+    + exists* (typ_ref T).
+    + destruct (IHHwf Hb Hwf) as [V HV]. exists V.
+      apply* binds_push_neq.
+  - auto.
   - auto.
 Qed.
 
-Lemma wf_stack_val_new_in_G: forall G S s x T ds,
-    G, S ~~ s ->
-       inert G ->
-       binds x (val_new T ds) s ->
-       binds x (typ_bnd T) G.
+Lemma wf_stack_val_new_in_G: forall G S sta sto x T ds,
+    well_formed G S sta sto ->
+    inert G ->
+    binds x (val_new T ds) sta ->
+    binds x (typ_bnd T) G.
 Proof.
-  introv Hwf Hg Bis.
+  introv Hwf Hin Bis.
   assert (exists V, binds x V G) as Bi. {
     eapply stack_binds_to_ctx_binds; eauto.
   }
   destruct Bi as [V Bi].
   induction Hwf.
-  false* binds_empty_inv.
-  assert (inert G /\ inert_typ T0) as HG. {
-    inversions Hg. false* empty_push_inv. destruct (eq_push_inv H2) as [Hg [Hx Ht]].
-    subst. auto.
-  }
-  destruct HG as [HG HT].
-  destruct (binds_push_inv Bis) as [[Hx Hv] | [Hn Hb]]; subst.
-  - assert (T0 = typ_bnd T) as Heq. {
-      apply binds_push_eq_inv in Bi. subst.
-      clear IHHwf Hg Bis H H0 Hwf.
-      apply general_to_tight_typing in H1; auto.
-      apply invertible_typing_lemma_v in H1; auto.
-      inversions H1; try solve [inversion HT].
-      * apply* precise_obj_typ.
-      * false* invertible_val_obj_all.
-      * false* invertible_val_obj_ref.
-      * false* invertible_val_obj_nref.
-      * false* invertible_val_obj_ref.
+  - false* binds_empty_inv.
+  - assert (inert G /\ inert_typ T0) as HG. {
+      inversions Hin. 
+      - false* empty_push_inv. 
+      - destruct (eq_push_inv H2) as [Hg [Hx Ht]]. subst. auto.
     }
-    subst*.
-  - apply binds_push_neq_inv in Bi; auto.
+    destruct HG as [HG HT].
+    destruct (binds_push_inv Bis) as [[Hx Hv] | [Hn Hb]]; subst.
+    + assert (T0 = typ_bnd T) as Heq. {
+        apply binds_push_eq_inv in Bi. subst.
+        clear IHHwf Hin Bis H H0 Hwf.
+        apply general_to_tight_typing in H1; auto.
+        apply invertible_typing_lemma_v in H1; auto.
+        inversions H1; try solve [inversion HT].
+        * apply* precise_obj_typ.
+        * false* invertible_val_obj_all.
+        * false* invertible_val_obj_nref.
+      }
+      subst*.
+    + apply binds_push_neq_inv in Bi; auto.
+  - assert (inert G) as HG. {
+      inversions Hin. 
+      - false* empty_push_inv. 
+      - destruct (eq_push_inv H2) as [Hg [Hx Ht]]. subst. auto.
+    }
+    destruct (binds_push_inv Bis) as [[Hx Hv] | [Hn Hb]]; subst.
+    + inversion Hv. 
+    + apply binds_push_neq_inv in Bi; auto.
+  - auto.
   - auto.
 Qed.
 
-Lemma precise_ref_subtyping: forall G S sta x l T,
+(* TODO *)
+Lemma precise_ref_subtyping: forall G S sta sto x l T,
+    well_formed G S sta sto ->
     inert G -> 
     binds x (val_loc l) sta ->
-    G, S |-# trm_var (avar_f x) : typ_ref T ->
-    G, S |-# trm_val (val_loc l) : typ_ref T ->
-    G, S ~~ sta ->
+    G, S |-# trm_var (avar_f x) : typ_nref T ->
+    G, S |-# trm_val (val_loc l) : typ_nref T ->
     exists U,
-      (G, S |-! trm_val (val_loc l) : typ_ref U /\
+      (G, S |-! trm_val (val_loc l) : typ_nref U /\
        G, S |- T <: U /\
        G, S |- U <: T).
 Proof.
-  introv Hg Bi Htx Htl Wf.
-  pose proof (invertible_typing_lemma_v Hg Htl).
+  introv Hwf Hin Bi Htx Htl.
+  pose proof (invertible_typing_lemma_v Hin Htl).
   dependent induction H.
   - exists T. split*. 
-  - pose proof (subtyp_ref_t H1 H0) as Hs.
+  - pose proof (subtyp_nref_t H1 H0) as Hs.
     pose proof (ty_sub_t Htx Hs) as Htx'.
     pose proof (ty_sub_t Htl Hs) as Htl'.
-    specialize (IHty_trm_inv_v l T0 Hg Bi Htx' Htl' Wf eq_refl eq_refl) as [U [Hx [Hs1 Hs2]]].
+    specialize (IHty_trm_inv_v l T0 Hwf Hin Bi Htx' Htl' eq_refl eq_refl) as [U [Hx [Hs1 Hs2]]].
     remember Hx as Hx'. inversions Hx'.
+    exists U. repeat split.
+    + assumption.
+    + apply subtyp_trans with (T:=T0); auto.
+      apply (proj22 tight_to_general); auto.
+    + apply subtyp_trans with (T:=T0); auto.
+      apply (proj22 tight_to_general); auto.
 Qed.
-(*     exists U. repeat split. *)
-(*     + assumption.  *)
-(*     + apply subtyp_trans with (T:=T0); auto. *)
-(*       apply (proj22 tight_to_general); auto. *)
-(*     + apply subtyp_trans with (T:=T0); auto. *)
-(*       apply (proj22 tight_to_general); auto. *)
-(* Qed. *)
 
-(* Lemma val_new_typing: forall G S s x T ds, *)
-(*   G, S ~~ s -> *)
-(*   inert G -> *)
-(*   binds x (val_new T ds) s -> *)
-(*   G, S |-! trm_val (val_new T ds) : typ_bnd T. *)
-(* Proof. *)
-(*   introv Hwf Hg Bis. *)
-(*   assert (exists T, binds x T G) as Bi. { *)
-(*     eapply stack_binds_to_ctx_binds; eauto. *)
-(*   } *)
-(*   destruct Bi as [T0 Bi]. *)
-(*   destruct (corresponding_types Hwf Hg Bi) as [Hnew | [Hlambda | Hloc]]. *)
-(*   - destruct Hnew as [_ [V [_ [_ [_ [t [Contra _]]]]]]]. *)
-(*     false. *)
-(*   - destruct Hlambda as [T' [ds' [Bis' [Ht EqT]]]]. subst. *)
-(*     pose proof (binds_func Bis Bis') as Heq; inversions Heq. *)
-(*     assumption. *)
-(*   - destruct Hloc as [V [l [Bi' [Htyp]]]]. *)
-(*     false. *)
-(* Qed. *)
+Lemma val_new_typing: forall G S sta sto x T ds,
+    well_formed G S sta sto ->
+    inert G ->
+    binds x (val_new T ds) sta ->
+    G, S |-! trm_val (val_new T ds) : typ_bnd T.
+Proof.
+  introv Hwf Hin Bis.
+  assert (exists T, binds x T G) as Bi. {
+    eapply stack_binds_to_ctx_binds; eauto.
+  }
+  destruct Bi as [T0 Bi].
+  destruct (corresponding_types Hwf Hin Bi) as [Hnew | [Hlambda | Hloc]].
+  - destruct Hnew as [_ [V [_ [_ [_ [t [Contra _]]]]]]].
+    false.
+  - destruct Hlambda as [T' [ds' [Bis' [Ht EqT]]]]. subst.
+    pose proof (binds_func Bis Bis') as Heq; inversions Heq.
+    assumption.
+  - destruct Hloc as [V [l [Bi' [Htyp]]]].
+    false.
+Qed.

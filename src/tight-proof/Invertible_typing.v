@@ -55,6 +55,8 @@ Proof.
   - inversions HT. inversions H.
   - inversions HT. inversions H0.
     lets Hb: (inert_unique_tight_bounds Hgd H H6). subst*.
+  - inversions HT. inversions H.
+  - inversions HT. inversions H.
 Qed.
 
 Lemma invertible_typing_lemma_v : forall G S v T,

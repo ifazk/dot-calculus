@@ -688,22 +688,12 @@ Inductive ty_trm_inv_v : ctx -> sigma -> val -> typ -> Prop :=
   G, S |-##v v : T ->
   G, S |-##v v : U ->
   G, S |-##v v : typ_and T U
-  (* Ref *)
-| ty_ref_inv_v : forall G S v T U,
-  G, S |-##v v : typ_ref T ->
-  G, S |-# T <: U ->
-  G, S |-# U <: T ->  
-  G, S |-##v v : typ_ref U
   (* Nullable Ref *)
 | ty_nref_inv_v : forall G S v T U,
   G, S |-##v v : typ_nref T ->
   G, S |-# T <: U ->
   G, S |-# U <: T ->  
   G, S |-##v v : typ_nref U
-  (* Ref to Nullable Ref *)
-| ty_ref_nref_inv_v : forall G S v T,
-  G, S |-##v v : typ_ref T ->
-  G, S |-##v v : typ_nref T
   (* Top *)
 | ty_top_inv_v : forall G S v T,
   G, S |-##v v : T ->
