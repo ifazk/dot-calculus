@@ -98,6 +98,16 @@ Proof.
     + pose proof (inert_unique_tight_bounds Hi H H6). subst. assumption.
 Qed.
 
+Lemma tpt_lemma_var : forall G U x,
+    inert G ->
+    G |-# trm_path (p_var (avar_f x)) : U ->
+    G |-## p_var (avar_f x) : U.
+Proof.
+  introv Hi Ht. dependent induction Ht; auto; specialize (IHHt _ Hi eq_refl).
+  - inversions IHHt; auto. rewrite* <- open_var_path_typ_eq.
+  - apply* tpt_sub_closure.
+Qed.
+
 Lemma tpt_lemma :
   (forall G t T, G |-# t: T -> forall p,
     t = trm_path p ->
@@ -112,7 +122,12 @@ Proof.
     try solve [inversion H0 || inversion H1]; eauto.
   - inversions H0. inversions H2. specialize (H _ eq_refl H1 H8).
     apply tpt_to_precise_trm_dec in H; auto. destruct H as [V [m [Hp [_ Hs]]]].
-    admit.
+    apply tpt_lemma_var in H5; auto. apply tpt_to_precise_trm_dec in H5; auto.
+    destruct H5 as [T' [m' [Hp' [Heq Hs']]]]. specialize (Heq eq_refl). destruct Heq. subst.
+    lets Hu: (p_rcd_unique H1 Hp' Hp). destruct Hu. subst.
+    apply ty_fld_elim_p in Hp'; auto. apply t_pt_precise in Hp'. apply* tpt_sub_closure.
+    apply precise_to_general in Hp'. apply typing_implies_bound in Hp'. destruct Hp'.
+    apply* norm_path_p.
   - inversions H1. specialize (H0 H2).
     assert (G |-# p ||v) as Hp by (inversion* n).
     specialize (H _ eq_refl H2 Hp).
