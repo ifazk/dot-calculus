@@ -294,42 +294,42 @@ Proof.
       * apply general_to_tight_typing in H1.
         lets Hinv: (invertible_typing_lemma_v Hin' H1).
         assert (inert_typ T) as HinT. {
-          inversions Hin. 
-          - false* empty_push_inv. 
+          inversions Hin.
+          - false* empty_push_inv.
           - destruct (eq_push_inv H4) as [Hx [Hv HG]]. subst*.
         }
         inversions HinT.
-        { apply invertible_val_to_precise_lambda in Hinv. 
+        { apply invertible_val_to_precise_lambda in Hinv.
           destruct Hinv as [L [V' [T' [Hty [Hs1 Hs2]]]]].
-          destruct (precise_forall_inv Hty) as [t Heq]. subst. left. 
+          destruct (precise_forall_inv Hty) as [t Heq]. subst. left.
           exists (L \u dom G \u \{ x0}) V' T' S0 T1 t.
-          split. reflexivity. split. apply* weaken_ty_trm_ctx_p. 
+          split. reflexivity. split. apply* weaken_ty_trm_ctx_p.
           split. reflexivity.
           split. apply* weaken_subtyp_ctx. intros y Hy.
-          apply (proj44 weaken_rules_ctx) with (G:=G & y ~ S0). apply* Hs2. 
+          apply (proj44 weaken_rules_ctx) with (G:=G & y ~ S0). apply* Hs2.
           reflexivity.
-          apply ok_push. apply* inert_ok. simpl_dom. rewrite notin_union. 
+          apply ok_push. apply* inert_ok. simpl_dom. rewrite notin_union.
           split*.
           assumption.
         }
         { apply invertible_val_to_precise_rec in Hinv.
-          destruct (precise_bnd_inv Hinv) as [ds Heq]. subst. 
+          destruct (precise_bnd_inv Hinv) as [ds Heq]. subst.
           right. left. exists T1 ds.
           split. reflexivity. split. apply* weaken_ty_trm_ctx_p. reflexivity.
-        } 
-        { inversions Hinv. inversions H4. 
+        }
+        { inversions Hinv. inversions H4.
         (* apply invertible_val_to_precise_ref in Hinv. *)
           (* destruct Hinv as [T [Ht [Hs1 Hs2]]]. *)
           (* inversion Ht.  *)
         }
-        { apply invertible_val_to_precise_nref in Hinv. 
+        { apply invertible_val_to_precise_nref in Hinv.
           destruct Hinv as [T [Hty [Hs1 Hs2]]].
           destruct (precise_nref_inv Hty) as [l Heq]. subst.
           right. right. exists T T1 l.
-          split. reflexivity. split. apply* weaken_ty_trm_ctx_p. 
+          split. reflexivity. split. apply* weaken_ty_trm_ctx_p.
           split. left. reflexivity.
           split; apply* weaken_subtyp_ctx.
-        } 
+        }
         assumption.
     + specialize (IHHwf Hin' Bi).
       destruct IHHwf as [[L [V [U [V' [U' [t [Hv [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [[V [ds [Hv [Ht He]]]] | [V [V' [l [Hv [Ht [He Hs]]]]]]]].
@@ -347,19 +347,19 @@ Proof.
   - assert (inert G) as Hin'. {
       inversions Hin.
       - false* empty_push_inv.
-      - destruct (eq_push_inv H2) as [Hx [Ht Hg]]. subst*.
+      - destruct (eq_push_inv H3) as [Hx [Ht Hg]]. subst*.
     }
     unfold binds in *. rewrite get_push in *. case_if.
-    + inversions Bi. inversion H1; subst.
+    + inversions Bi. inversion H2; subst.
       * right. right. exists T0 T0 l. split. reflexivity. 
         split. apply* weaken_ty_trm_ctx_p. split*.
-      * apply general_to_tight_typing in H1.
-        lets Hinv: (invertible_typing_lemma_v Hin' H1).
-        apply invertible_val_to_precise_nref in Hinv. 
+      * apply general_to_tight_typing in H2.
+        lets Hinv: (invertible_typing_lemma_v Hin' H2).
+        apply invertible_val_to_precise_nref in Hinv.
         destruct Hinv as [T' [Hty [Hs1 Hs2]]].
         destruct (precise_nref_inv Hty) as [l' Heq]. subst.
         right. right. exists T' T0 l.
-        split. reflexivity. split. apply* weaken_ty_trm_ctx_p. 
+        split. reflexivity. split. apply* weaken_ty_trm_ctx_p.
         split. right. reflexivity.
         split; apply* weaken_subtyp_ctx.
         assumption.
@@ -368,8 +368,8 @@ Proof.
       * left. exists (L \u dom G \u \{x0}) V U V' U' t. split. assumption. split.
         apply* weaken_ty_trm_ctx_p.
         split. assumption. split. apply* weaken_subtyp_ctx.
-        intros y Hy.
-        apply (proj44 (weaken_rules_ctx)) with (G:=G & y ~ V'). apply* Hs2.
+        intros y' Hy.
+        apply (proj44 (weaken_rules_ctx)) with (G:=G & y' ~ V'). apply* Hs2.
         reflexivity. apply ok_push. apply* inert_ok. auto.
       * right. left. exists V ds. split. assumption. split. 
         apply* weaken_ty_trm_ctx_p. assumption.
@@ -450,7 +450,7 @@ Proof.
   - assert (inert G) as HG. {
       inversions Hin. 
       - false* empty_push_inv. 
-      - destruct (eq_push_inv H2) as [Hg [Hx Ht]]. subst. auto.
+      - destruct (eq_push_inv H3) as [Hg [Hx Ht]]. subst. auto.
     }
     destruct (binds_push_inv Bis) as [[Hx Hv] | [Hn Hb]]; subst.
     + inversion Hv. 

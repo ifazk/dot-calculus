@@ -710,10 +710,11 @@ Inductive well_formed : ctx -> sigma -> stack -> store -> Prop :=
     x # sta ->
     G, S |- trm_val v : T ->
     well_formed (G & x ~ T) S (sta & x ~ v) sto
-| well_formed_push_loc_stack: forall G S x l T sta sto,
+| well_formed_push_loc_stack: forall G S x y l T sta sto,
     well_formed G S sta sto ->
     x # G ->
     x # sta ->
+    bindsM l (Some y) sto ->
     G, S |- trm_val (val_loc l) : typ_nref T ->
     well_formed (G & x ~ (typ_ref T)) S (sta & x ~ (val_loc l)) sto
 | well_formed_new_store: forall G S l T sta sto, 
