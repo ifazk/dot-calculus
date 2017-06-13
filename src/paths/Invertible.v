@@ -109,11 +109,21 @@ Lemma normalizing_to_invertible: forall G p T,
     G |-#n p: T ->
     G |-## p: T.
 Proof.
-  introv Hi Ht. dependent induction Ht; eauto; specialize (IHHt Hi).
-  - inversions IHHt. (*this breaks*) admit.
-  - inversions IHHt. apply ty_rec_elim_p in H.
-    apply* ty_path_i. rewrite* <- open_var_path_typ_eq.
-  - apply* invertible_sub_closure.
+  introv Hi Ht.
+  dependent induction p; eauto.
+  * admit. (*should be easy*)
+  *
+    dependent induction Ht; eauto.
+  -
+      inversions H.
+      remember IHp as IHp2. clear HeqIHp2.
+      specialize (IHp2 _ Hi Ht).
+      (* Could we use H2 and IHp2 here to deduce U=T, since there is no subtyping
+         inside "typ_rcd {_ [strong] _}" ? *)
+    (*specialize (IHHt _ _ IHp). inversions IHHt. (*this breaks*) admit.*)
+    - inversions IHHt. apply ty_rec_elim_p in H.
+        apply* ty_path_i. rewrite* <- open_var_path_typ_eq.
+    - apply* invertible_sub_closure.
 Qed.
 
 Lemma tight_to_normalizing_var: forall G x T,
@@ -136,7 +146,15 @@ Proof.
     specialize (IHp Hnp). dependent induction Ht; eauto.
     destruct p as [[b | x] | p].
     * inversion Hnp.
-    * apply tight_to_normalizing_var in Ht; auto. (*this breaks*)
+    * apply tight_to_normalizing_var in Ht; auto.
+      inversion Hn; subst.
+      specialize (IHp _ H1).
+      specialize (normalizing_to_invertible Hi Ht). intro.
+      specialize (normalizing_to_invertible Hi IHp). intro.
+      destruct (invertible_to_precise_trm_dec Hi Hnp H) as [T' [mT [PrecT modeT]]].
+      destruct (invertible_to_precise_trm_dec Hi Hnp H0) as [U' [mU [PrecU modeU]]].
+      (* From PrecT and PrecU, can we now discover some useful relationship between T' and U'? *)
+      (*this breaks*)
 Qed.
 
 Lemma invertible_lemma_var : forall G U x,
