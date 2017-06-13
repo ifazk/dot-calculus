@@ -98,6 +98,7 @@ Proof.
   rewrite concat_empty_r. reflexivity. rewrite <- EqG. assumption.
 Qed.
 
+(*
 Lemma weaken_rules_p:
   (forall G t T,
     G |-! t : T ->
@@ -145,3 +146,4 @@ Proof.
   rewrite concat_empty_r. reflexivity.
   rewrite <- EqG. assumption.
 Qed.
+*)

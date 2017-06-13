@@ -350,12 +350,8 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     (forall x, x \notin L ->
       G && x ~ T ||^ x |- ds |||^ x :: T ||^ x) ->
     G |- trm_val (val_new T ds) : typ_bnd T
-| ty_fld_elim_var : forall G x a T,
-    G |- trm_path (p_var (avar_f x)) : typ_rcd { a [gen] T } ->
-    G |- trm_path (p_sel (p_var (avar_f x)) a) : T
-| ty_fld_elim_path : forall G p a T,
-    G |- trm_path p : typ_rcd { a [strong] T } ->
-    G |- p_sel p a \||/ ->
+| ty_fld_elim : forall G p a T,
+    G |- trm_path p : typ_rcd { a [gen] T } ->
     G |- trm_path (p_sel p a) : T
 | ty_let : forall L G t u T U,
     G |- t : T ->
@@ -491,8 +487,7 @@ Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
     G |-! trm_path p : open_typ_p p T
 |ty_fld_elim_p : forall G p a T,
     G |-! trm_path p : typ_rcd { a [strong] T } ->
-    G |-! p_sel p a \||/ ->
-    inert_typ T ->
+    inert_sngl T ->
     G |-! trm_path (p_sel p a) : T
 | ty_and1_p : forall G p T U,
     G |-! trm_path p : typ_and T U ->
@@ -500,18 +495,7 @@ Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
 | ty_and2_p : forall G p T U,
     G |-! trm_path p : typ_and T U ->
     G |-! trm_path p : U
-where "G '|-!' t ':' T" := (ty_trm_p G t T)
-
-with norm_p : ctx -> path -> Prop :=
-| norm_var_p : forall x T G,
-    binds x T G ->
-    G |-! p_var (avar_f x) \||/
-| norm_path_p : forall p U a G,
-    G |-! trm_path p : typ_rcd { a [strong] U } ->
-    inert_sngl U ->
-    G |-! p \||/ ->
-    G |-! p_sel p a \||/
-where "G '|-!' p '\||/'" := (norm_p G p).
+where "G '|-!' t ':' T" := (ty_trm_p G t T).
 
 
 (* tight typing relation *)
@@ -536,12 +520,8 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     (forall x, x \notin L ->
       G && x ~ T ||^ x |- ds |||^ x :: T ||^ x) ->
     G |-# trm_val (val_new T ds) : typ_bnd T
-| ty_fld_elim_var_t : forall G x a T,
-    G |-# trm_path (p_var (avar_f x)) : typ_rcd { a [gen] T } ->
-    G |-# trm_path (p_sel (p_var (avar_f x)) a) : T
-| ty_fld_elim_path_t : forall G p a T,
-    G |-# trm_path p : typ_rcd { a [strong] T } ->
-    G |-# p_sel p a \||/ ->
+| ty_fld_elim_t : forall G p a T,
+    G |-# trm_path p : typ_rcd { a [gen] T } ->
     G |-# trm_path (p_sel p a) : T
 | ty_let_t : forall L G t u T U,
     G |-# t : T ->
@@ -632,6 +612,36 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
 where "G '|-#' T '<:' U" := (subtyp_t G T U).
 
 
+Reserved Notation "G '|-#n' p ':' T" (at level 40, p at level 59).
+
+Inductive ty_path_n : ctx -> path -> typ -> Prop :=
+| ty_var_n : forall G x T,
+    binds x T G ->
+    G |-#n p_var (avar_f x) : T
+| ty_sngl_n: forall G x T,
+    binds x T G ->
+    G |-#n p_var (avar_f x): typ_sngl (p_var (avar_f x))
+| ty_fld_elim_path_n : forall G p a T,
+    G |-#n p : typ_rcd { a [strong] T } ->
+    G |-# p_sel p a \||/ ->
+    G |-#n p_sel p a : T
+| ty_rec_intro_n : forall G x T,
+    G |-#n p_var (avar_f x) : T ||^ x ->
+    G |-#n p_var (avar_f x) : typ_bnd T
+| ty_rec_elim_n : forall G p T,
+    G |-#n p : typ_bnd T ->
+    G |-#n p : open_typ_p p T
+| ty_and_intro_n : forall G p T U,
+    G |-#n p : T ->
+    G |-#n p : U ->
+    G |-#n p : typ_and T U
+| ty_sub_n : forall G p T U,
+    G |-#n p : T ->
+    G |-# T <: U ->
+    G |-#n p : U
+where "G '|-#n' p ':' T" := (ty_path_n G p T).
+
+
 Reserved Notation "G '|-##' p ':' T" (at level 40, p at level 59).
 
 (* Invertible typing *)
@@ -641,6 +651,9 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
 | ty_path_i : forall G p T,
     G |-! trm_path p : T ->
     G |-## p : T
+| ty_sngl_i : forall G x T,
+    G |-## p_var (avar_f x): T ->
+    G |-## p_var (avar_f x) : typ_sngl (p_var (avar_f x))
   (* General term member subtyping *)
 | subtyp_fld_i : forall G p a T T',
     G |-## p : typ_rcd { a [gen] T } ->
@@ -771,10 +784,6 @@ with   ts_subtyp_ts      := Induction for subtyp_t    Sort Prop
 with   ts_norm_ts        := Induction for norm_t      Sort Prop.
 Combined Scheme ts_mutind_ts from ts_ty_trm_mut_ts, ts_subtyp_ts, ts_norm_ts.
 
-Scheme ts_ty_trm_mut_p  := Induction for ty_trm_p    Sort Prop
-with   ts_norm_p        := Induction for norm_p      Sort Prop.
-Combined Scheme ts_mutind_p from ts_ty_trm_mut_p, ts_norm_p.
-
 Scheme ts_ty_trm_mut_t  := Induction for ty_trm_t    Sort Prop
 with   ts_norm_t        := Induction for norm_t      Sort Prop.
 Combined Scheme ts_mutind_t from ts_ty_trm_mut_t, ts_norm_t.
@@ -826,8 +835,8 @@ Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
   apply_fresh_base T gather_vars x.
 
 Hint Constructors
-     ty_trm ty_def ty_defs subtyp ty_trm_t subtyp_t ty_trm_p
-     norm norm_t norm_p ty_path_inv ty_val_inv.
+     ty_trm ty_def ty_defs subtyp ty_trm_t subtyp_t ty_trm_p ty_path_n
+     norm norm_t ty_path_inv ty_val_inv.
 
 Hint Constructors wf_sto.
 

@@ -6,7 +6,7 @@ Require Import Definitions.
 Require Import Narrowing.
 Require Import Inert_types.
 Require Import Some_lemmas.
-Require Import Tight_possible_types.
+Require Import Invertible.
 
 (* Lemma 2 *)
 Lemma tight_subtyping_sel: forall G p A S U,

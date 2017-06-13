@@ -147,6 +147,20 @@ Qed.
 (* ###################################################################### *)
 (** *** Lemmas to upcast to general typing *)
 
+Lemma precise_to_tight: forall G t T,
+    G |-! t : T ->
+    G |-# t : T.
+Proof.
+  introv Hp. induction Hp; eauto.
+Qed.
+
+Lemma precise_to_general: forall G t T,
+    G |-! t : T ->
+    G |- t : T.
+Proof.
+  introv Hp. induction Hp; eauto.
+Qed.
+  (*
 Lemma precise_to_tight:
   (forall G t T, G |-! t : T ->
             G |-# t : T) /\
@@ -163,7 +177,7 @@ Lemma precise_to_general:
           norm G p).
 Proof.
   apply ts_mutind_p; intros; eauto.
-Qed.
+Qed. *)
 
 Lemma tight_to_general:
   (forall G t T,

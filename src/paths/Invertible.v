@@ -10,7 +10,7 @@ Require Import Narrowing.
 (* ****************************************** *)
 (* Invertable to precise *)
 
-Lemma tpt_to_precise_typ_dec: forall G p A S U,
+Lemma invertible_to_precise_typ_dec: forall G p A S U,
     inert G ->
     G |-# p \||/ ->
     G |-## p : typ_rcd { A >: S <: U } ->
@@ -27,7 +27,7 @@ Proof.
     exists V. split*.
 Qed.
 
-Lemma tpt_to_precise_trm_dec: forall G p a m T,
+Lemma invertible_to_precise_trm_dec: forall G p a m T,
     inert G ->
     G |-# p \||/ ->
     G |-## p : typ_rcd { a [m] T } ->
@@ -48,7 +48,7 @@ Proof.
     exists V strong. split*.
 Qed.
 
-Lemma tpt_to_precise_typ_all: forall G p S T,
+Lemma invertible_to_precise_typ_all: forall G p S T,
     inert G ->
     G |-# p \||/ ->
     G |-## p : typ_all S T ->
@@ -79,10 +79,13 @@ Lemma invertable_to_tight: forall G p T,
     G |-## p : T ->
     G |-# trm_path p : T.
 Proof.
-  introv Hi. induction Hi; eauto. apply* precise_to_tight.
+  introv Hi. induction Hi; eauto.
+  - apply* precise_to_tight.
+  - apply tight_to_general in IHHi. apply typing_implies_bound in IHHi. destruct IHHi. apply* ty_sngl_intro_t.
+  - admit.
 Qed.
 
-Lemma tpt_sub_closure: forall G p T U,
+Lemma invertible_sub_closure: forall G p T U,
   inert G ->
   G |-## p : T ->
   G |-# T <: U ->
@@ -96,19 +99,29 @@ Proof.
   - inversions HT.
     + false *precise_psel_false.
     + pose proof (inert_unique_tight_bounds Hi H H6). subst. assumption.
+    + admit.
+  - admit.
+  - admit.
 Qed.
 
-Lemma tpt_lemma_var : forall G U x,
+Lemma tight_to_normalizing: forall G p T,
+    inert G ->
+    G |-# trm_path p: T ->
+    G |-# p \||/ ->
+    G |-#n p: T.
+
+Lemma invertible_lemma_var : forall G U x,
     inert G ->
     G |-# trm_path (p_var (avar_f x)) : U ->
     G |-## p_var (avar_f x) : U.
 Proof.
-  introv Hi Ht. dependent induction Ht; auto; specialize (IHHt _ Hi eq_refl).
+  introv Hi Ht. dependent induction Ht; auto; try (specialize (IHHt _ Hi eq_refl)).
   - inversions IHHt; auto. rewrite* <- open_var_path_typ_eq.
-  - apply* tpt_sub_closure.
+  - apply* ty_sngl_i.
+  - apply* invertible_sub_closure.
 Qed.
 
-Lemma tpt_lemma :
+Lemma invertible_lemma :
   (forall G t T, G |-# t: T -> forall p,
     t = trm_path p ->
     inert G ->
@@ -121,17 +134,17 @@ Proof.
   apply ts_mutind_t; intros; try (inversions H);
     try solve [inversion H0 || inversion H1]; eauto.
   - inversions H0. inversions H2. specialize (H _ eq_refl H1 H8).
-    apply tpt_to_precise_trm_dec in H; auto. destruct H as [V [m [Hp [_ Hs]]]].
-    apply tpt_lemma_var in H5; auto. apply tpt_to_precise_trm_dec in H5; auto.
+    apply invertible_to_precise_trm_dec in H; auto. destruct H as [V [m [Hp [_ Hs]]]].
+    apply invertible_lemma_var in H5; auto. apply invertible_to_precise_trm_dec in H5; auto.
     destruct H5 as [T' [m' [Hp' [Heq Hs']]]]. specialize (Heq eq_refl). destruct Heq. subst.
     lets Hu: (p_rcd_unique H1 Hp' Hp). destruct Hu. subst.
-    apply ty_fld_elim_p in Hp'; auto. apply t_pt_precise in Hp'. apply* tpt_sub_closure.
+    apply ty_fld_elim_p in Hp'; auto. apply t_pt_precise in Hp'. apply* invertible_sub_closure.
     apply precise_to_general in Hp'. apply typing_implies_bound in Hp'. destruct Hp'.
     apply* norm_path_p.
   - inversions H1. specialize (H0 H2).
     assert (G |-# p \||/) as Hp by (inversion* n).
     specialize (H _ eq_refl H2 Hp).
-    apply tpt_to_precise_trm_dec in H; auto.
+    apply invertible_to_precise_trm_dec in H; auto.
     destruct H as [T' [m' [Ht [Heq  Hsx]]]]. specialize (Heq eq_refl). destruct Heq. subst.
     inversions H0.
     destruct (p_rcd_unique H2 Ht H5) as [_ Heq]. subst.
@@ -139,18 +152,18 @@ Proof.
   - inversions H0. specialize (H _ eq_refl H1 H2). apply* t_pt_bnd.
   - inversions H0. specialize (H _ eq_refl H1 H2). inversions H. auto.
     rewrite* <- open_var_path_typ_eq.
-  - subst. specialize (H _ eq_refl H1 H2). apply* tpt_sub_closure.
-  - subst. specialize (H _ eq_refl H1 n). apply tpt_to_precise_trm_dec in H; auto.
+  - subst. specialize (H _ eq_refl H1 H2). apply* invertible_sub_closure.
+  - subst. specialize (H _ eq_refl H1 n). apply invertible_to_precise_trm_dec in H; auto.
     destruct H as [V [m [Hp [Heq Hs]]]]. specialize (Heq eq_refl). destruct Heq. subst.
     apply* norm_path_p.
  Qed.
 
-Lemma tpt_lemma_typ: forall G p T,
+Lemma invertible_lemma_typ: forall G p T,
     G |-# trm_path p: T ->
     inert G ->
     G |-# p \||/ ->
     G |-## p: T.
-Proof. intros. apply* tpt_lemma. Qed.
+Proof. intros. apply* invertible_lemma. Qed.
 
 Lemma tight_possible_types_closure_tight_v: forall G v T U,
   inert G ->
