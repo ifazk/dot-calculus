@@ -407,18 +407,16 @@ with ty_defs : ctx -> var -> typ -> defs -> typ -> Prop :=
     G && x ~ U |- defs_cons ds d :: typ_and T (typ_rcd D)
 where "G '&&' z '~' T '|-' ds '::' U" := (ty_defs G z T ds U)
 
-with norm : ctx -> trm -> Prop :=
-| norm_var : forall t x T G,
-    t = trm_path (p_var (avar_f x)) ->
+with norm : ctx -> path -> Prop :=
+| norm_var : forall x T G,
     binds x T G ->
-    norm G (trm_path (p_var (avar_f x)))
-| norm_path : forall t p U a G,
-    t = trm_path p ->
+    G |- p_var (avar_f x) \||/
+| norm_path : forall p U a G,
     G |- trm_path p : typ_rcd { a [strong] U } ->
     inert_sngl U ->
     G |- p \||/ ->
     G |- p_sel p a \||/
-where "G '|-' p '\||/'" := (norm G (trm_path p))
+where "G '|-' p '\||/'" := (norm G p)
 
 with subtyp : ctx -> typ -> typ -> Prop :=
 | subtyp_top: forall G T,
@@ -504,18 +502,16 @@ Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
     G |-! trm_path p : U
 where "G '|-!' t ':' T" := (ty_trm_p G t T)
 
-with norm_p : ctx -> trm -> Prop :=
-| norm_var_p : forall t x T G,
-    t = trm_path (p_var (avar_f x)) ->
+with norm_p : ctx -> path -> Prop :=
+| norm_var_p : forall x T G,
     binds x T G ->
     G |-! p_var (avar_f x) \||/
-| norm_path_p : forall t p U a G,
-    t = trm_path p ->
+| norm_path_p : forall p U a G,
     G |-! trm_path p : typ_rcd { a [strong] U } ->
     inert_sngl U ->
     G |-! p \||/ ->
     G |-! p_sel p a \||/
-where "G '|-!' p '\||/'" := (norm_p G (trm_path p)).
+where "G '|-!' p '\||/'" := (norm_p G p).
 
 
 (* tight typing relation *)
@@ -571,18 +567,16 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     G |-# t : U
 where "G '|-#' t ':' T" := (ty_trm_t G t T)
 
-with norm_t : ctx -> trm -> Prop :=
-| norm_var_t : forall t x T G,
-    t = trm_path (p_var (avar_f x)) ->
+with norm_t : ctx -> path -> Prop :=
+| norm_var_t : forall x T G,
     binds x T G ->
     G |-# p_var (avar_f x) \||/
-| norm_path_t : forall t p U a G,
-    t = trm_path p ->
+| norm_path_t : forall p U a G,
     G |-# trm_path p : typ_rcd { a [strong] U } ->
     inert_sngl U ->
     G |-# p \||/ ->
     G |-# (p_sel p a) \||/
-where "G '|-#' p '\||/'" := (norm_t G (trm_path p))
+where "G '|-#' p '\||/'" := (norm_t G p)
 
 with subtyp_t : ctx -> typ -> typ -> Prop :=
 | subtyp_top_t: forall G T,
@@ -640,58 +634,60 @@ where "G '|-#' T '<:' U" := (subtyp_t G T U).
 
 Reserved Notation "G '|-##' p ':' T" (at level 40, p at level 59).
 
-Inductive tight_pt : ctx -> path -> typ -> Prop :=
+(* Invertible typing *)
+
+Inductive ty_trm_inv : ctx -> path -> typ -> Prop :=
   (* Precise typing *)
-| t_pt_precise : forall G p T,
+| ty_path_i : forall G p T,
     G |-! trm_path p : T ->
     G |-## p : T
   (* General term member subtyping *)
-| t_pt_dec_trm : forall G p a T T',
+| subtyp_fld_i : forall G p a T T',
     G |-## p : typ_rcd { a [gen] T } ->
     G |-# T <: T' ->
     G |-## p : typ_rcd { a [gen] T' }
   (* Strong term member subtyping *)
-| t_pt_dec_trm_strong : forall G p a T,
+| subtyp_path_i : forall G p a T,
     G |-## p : typ_rcd { a [strong] T } ->
     G |-## p : typ_rcd { a [gen] T }
   (* Type member subtyping *)
-| t_pt_dec_typ : forall G p A T T' U' U,
+| subtyp_typ_i : forall G p A T T' U' U,
     G |-## p : typ_rcd { A >: T <: U } ->
     G |-# T' <: T ->
     G |-# U <: U' ->
     G |-## p : typ_rcd { A >: T' <: U' }
   (* Recursive Types *)
-| t_pt_bnd : forall G x S,
+| ty_rec_intro_i : forall G x S,
     G |-## (p_var (avar_f x)) : S ||^ x ->
     G |-## (p_var (avar_f x)) : typ_bnd S
   (* Forall *)
-| t_pt_all : forall L G p S T S' T',
+| subtyp_all_i : forall L G p S T S' T',
     G |-## p : typ_all S T ->
     G |-# S' <: S ->
     (forall y, y \notin L ->
       G & y ~ S' |- T ||^ y <: T' ||^ y) ->
     G |-## p : typ_all S' T'
   (* And *)
-| t_pt_and : forall G p S T,
+| ty_and_intro_i : forall G p S T,
     G |-## p : S ->
     G |-## p : T ->
     G |-## p : typ_and S T
   (* Tight Selection *)
-| t_pt_sel : forall G p q A S,
+| subtyp_sel_i : forall G p q A S,
     G |-## p : S ->
     G |-! trm_path q : typ_rcd { A >: S <: S } ->
     G |-# q \||/ ->
     G |-## p : typ_path q A
-| t_pt_sngl_sel : forall G p S q1 q2 A,
+| subtyp_sngl_sel_i : forall G p S q1 q2 A,
     G |-## p: S ->
     G |-! trm_path q1: typ_rcd { A >: S <: S } ->
     G |-! trm_path q2: typ_sngl q1 ->
     G |-## p: typ_path q2 A
   (* Top *)
-| t_pt_top : forall G p T,
+| ty_top_i : forall G p T,
     G |-## p : T ->
     G |-## p : typ_top
-where "G '|-##' p ':' T" := (tight_pt G p T).
+where "G '|-##' p ':' T" := (ty_trm_inv G p T).
 
 Reserved Notation "G '~~' s" (at level 40).
 
@@ -801,7 +797,7 @@ Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
   apply_fresh_base T gather_vars x.
 
 Hint Constructors
-  ty_trm ty_def ty_defs subtyp ty_trm_t subtyp_t ty_trm_p norm norm_t norm_p tight_pt.
+  ty_trm ty_def ty_defs subtyp ty_trm_t subtyp_t ty_trm_p norm norm_t norm_p ty_trm_inv.
 
 Hint Constructors wf_sto.
 
