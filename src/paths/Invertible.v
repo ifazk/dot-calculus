@@ -104,17 +104,6 @@ Proof.
   - admit.
 Qed.
 
-Lemma normalizing_to_invertible_var: forall G x T,
-    inert G ->
-    G |-#n p_var (avar_f x): T ->
-    G |-## p_var (avar_f x): T.
-Proof.
-  introv Hi Ht. dependent induction Ht; eauto; specialize (IHHt _ Hi eq_refl).
-  - inversions IHHt. apply ty_rec_elim_p in H.
-    apply* ty_path_i. rewrite* <- open_var_path_typ_eq.
-  - apply* invertible_sub_closure.
-Qed.
-
 Lemma normalizing_to_invertible: forall G p T,
     inert G ->
     G |-#n p: T ->
