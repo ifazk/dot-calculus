@@ -636,7 +636,7 @@ Reserved Notation "G '|-##' p ':' T" (at level 40, p at level 59).
 
 (* Invertible typing *)
 
-Inductive ty_trm_inv : ctx -> path -> typ -> Prop :=
+Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
   (* Precise typing *)
 | ty_path_i : forall G p T,
     G |-! trm_path p : T ->
@@ -687,7 +687,36 @@ Inductive ty_trm_inv : ctx -> path -> typ -> Prop :=
 | ty_top_i : forall G p T,
     G |-## p : T ->
     G |-## p : typ_top
-where "G '|-##' p ':' T" := (ty_trm_inv G p T).
+where "G '|-##' p ':' T" := (ty_path_inv G p T).
+
+Reserved Notation "G '|-##v' v ':' T" (at level 40, v at level 59).
+
+Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
+  (* Precise typing *)
+| ty_val_i : forall G v T,
+    G |-! trm_val v : T ->
+    G |-##v v : T
+  (* Forall *)
+| subtyp_all_v : forall L G v S T S' T',
+    G |-##v v : typ_all S T ->
+    G |-# S' <: S ->
+    (forall y, y \notin L ->
+      G & y ~ S' |- T ||^ y <: T' ||^ y) ->
+    G |-##v v : typ_all S' T'
+  (* Tight Selection *)
+| subtyp_path_v : forall G v p A S,
+    G |-##v v : S ->
+    G |-! trm_path p : typ_rcd (dec_typ A S S) ->
+    G |-##v v : typ_path p A
+| ty_and_intro_v : forall G v T U,
+    G |-##v v : T ->
+    G |-##v v : U ->
+    G |-##v v : typ_and T U
+  (* Top *)
+| ty_top_v : forall G v T,
+    G |-##v v : T ->
+    G |-##v v : typ_top
+where "G '|-##v' v ':' T" := (ty_val_inv G v T).
 
 Reserved Notation "G '~~' s" (at level 40).
 
@@ -797,7 +826,8 @@ Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
   apply_fresh_base T gather_vars x.
 
 Hint Constructors
-  ty_trm ty_def ty_defs subtyp ty_trm_t subtyp_t ty_trm_p norm norm_t norm_p ty_trm_inv.
+     ty_trm ty_def ty_defs subtyp ty_trm_t subtyp_t ty_trm_p
+     norm norm_t norm_p ty_path_inv ty_val_inv.
 
 Hint Constructors wf_sto.
 

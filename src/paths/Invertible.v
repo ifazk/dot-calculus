@@ -151,3 +151,26 @@ Lemma tpt_lemma_typ: forall G p T,
     G |-# p \||/ ->
     G |-## p: T.
 Proof. intros. apply* tpt_lemma. Qed.
+
+Lemma tight_possible_types_closure_tight_v: forall G v T U,
+  inert G ->
+  tight_pt_v G v T ->
+  G |-# T <: U ->
+  G |-##v v : U.
+Proof.
+  introv Hgd HT Hsub.
+  dependent induction Hsub; eauto; inversions HT; try solve [inversion H]; try assumption.
+  - inversions H1.
+  - lets Hb: (inert_unique_tight_bounds Hgd H H6). subst*.
+Qed.
+
+Lemma tight_possible_types_lemma_v : forall G v T,
+    inert G ->
+    G |-# trm_val v : T ->
+    G |-##v v : T.
+Proof.
+  introv Hgd Hty.
+  dependent induction Hty; eauto.
+  specialize (IHHty _ Hgd eq_refl).
+  apply* tight_possible_types_closure_tight_v.
+Qed.

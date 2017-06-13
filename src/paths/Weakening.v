@@ -44,14 +44,14 @@ Proof.
       specialize (H0 z zL G1 G2 (G3 & z ~ T)).
       repeat rewrite concat_assoc in H0.
       apply* H0.
-  + intros. subst. apply ty_def_trm.
+  + apply* ty_sngl_intro. apply* binds_weaken.
+  + apply ty_def_trm.
     rewrite <- concat_assoc. apply H;rewrite concat_assoc. reflexivity. assumption.
-  + intros. subst. apply ty_def_val.
-    rewrite <- concat_assoc. apply H; rewrite concat_assoc. reflexivity. assumption.
-  + intros. subst.
-    apply* norm_var. eapply binds_weaken; eassumption.
-  + intros. subst.
-    apply_fresh subtyp_all as z.
+  + apply ty_def_val. rewrite <- concat_assoc. apply H; rewrite concat_assoc. reflexivity. assumption.
+  + apply* norm_var. eapply binds_weaken; eassumption.
+  + apply* subtyp_sngl_sel1.
+  + apply* subtyp_sngl_sel2.
+  + apply_fresh subtyp_all as z.
     auto.
     assert (zL: z \notin L) by auto.
     specialize (H0 z zL G1 G2 (G3 & z ~ S2)).

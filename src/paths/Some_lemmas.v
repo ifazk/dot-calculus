@@ -17,25 +17,9 @@ Lemma open_var_eq_p_typ_dec_path: forall x,
     (forall P : path, forall n : nat,
           open_rec_path n x P = open_rec_path_p n (p_var (avar_f x)) P).
 Proof.
-  intros. apply typ_mutind; unfold open_typ, open_typ_p; simpl; intros; auto.
-  - (* typ_rcd *)
-    f_equal*.
-  - (* typ_and *)
-    rewrite H. rewrite* H0.
-  - (* typ_path *)
-    rewrite* H.
-  - (* typ_bnd *)
-    f_equal*.
-  - (* typ_all *)
-    rewrite H. rewrite* H0.
-  - (* dec_typ *)
-    rewrite H. rewrite* H0.
-  - (* dec_trm *)
-    rewrite* H.
-  - (* p_var *)
-    unfold open_rec_avar, open_rec_avar_p. destruct a; simpl. case_if*. f_equal*.
-  - (* p_sel *)
-    rewrite* H.
+  intros. apply typ_mutind; unfold open_typ, open_typ_p; simpl; intros; auto;
+            try solve [rewrite* H; rewrite* H0].
+  unfold open_rec_avar, open_rec_avar_p. destruct a; simpl. case_if*. f_equal*.
 Qed.
 
 Lemma open_var_path_typ_eq: forall x T,
@@ -227,11 +211,9 @@ Lemma typing_implies_bound: forall G x T,
   exists S, binds x S G.
 Proof.
   intros. remember (trm_path (p_var (avar_f x))) as t.
-  induction H;
-    try solve [inversion Heqt];
-    try solve [inversion Heqt; eapply IHty_trm; eauto];
-    try solve [inversion Heqt; eapply IHty_trm1; eauto].
-  - inversion Heqt. subst. exists T. assumption.
+  induction H; inversion Heqt;
+    try solve [apply* IHty_trm];
+    try solve [apply* IHty_trm1]; subst*.
 Qed.
 
 Lemma typing_implies_bound_p: forall G x T,
