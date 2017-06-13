@@ -104,11 +104,51 @@ Proof.
   - admit.
 Qed.
 
+Lemma normalizing_to_invertible_var: forall G x T,
+    inert G ->
+    G |-#n p_var (avar_f x): T ->
+    G |-## p_var (avar_f x): T.
+Proof.
+  introv Hi Ht. dependent induction Ht; eauto; specialize (IHHt _ Hi eq_refl).
+  - inversions IHHt. apply ty_rec_elim_p in H.
+    apply* ty_path_i. rewrite* <- open_var_path_typ_eq.
+  - apply* invertible_sub_closure.
+Qed.
+
+Lemma normalizing_to_invertible: forall G p T,
+    inert G ->
+    G |-#n p: T ->
+    G |-## p: T.
+Proof.
+  introv Hi Ht. dependent induction Ht; eauto; specialize (IHHt Hi).
+  - inversions IHHt. (*this breaks*) admit.
+  - inversions IHHt. apply ty_rec_elim_p in H.
+    apply* ty_path_i. rewrite* <- open_var_path_typ_eq.
+  - apply* invertible_sub_closure.
+Qed.
+
+Lemma tight_to_normalizing_var: forall G x T,
+    inert G ->
+    G |-# trm_path (p_var (avar_f x)) : T ->
+    G |-#n p_var (avar_f x): T.
+Proof.
+  introv Hi Ht. dependent induction Ht; eauto.
+Qed.
+
 Lemma tight_to_normalizing: forall G p T,
     inert G ->
     G |-# trm_path p: T ->
     G |-# p \||/ ->
     G |-#n p: T.
+Proof.
+  introv Hi Hp Hn. gen T. induction p.
+  - destruct a as [b | x]. inversion Hn. intros. apply* tight_to_normalizing_var.
+  - introv Ht. assert (G |-# p \||/) as Hnp by inversion* Hn.
+    specialize (IHp Hnp). dependent induction Ht; eauto.
+    destruct p as [[b | x] | p].
+    * inversion Hnp.
+    * apply tight_to_normalizing_var in Ht; auto. (*this breaks*)
+Qed.
 
 Lemma invertible_lemma_var : forall G U x,
     inert G ->
