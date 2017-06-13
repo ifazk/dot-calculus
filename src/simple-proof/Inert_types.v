@@ -524,3 +524,14 @@ Proof.
   pose proof (pf_inert_lambda_U Hgd Pf) as H. subst.
   apply* pf_binds.
 Qed.
+
+Lemma inert_precise_ref_inv : forall x G S T,
+    inert G ->
+    G, S |-! trm_var (avar_f x) : typ_ref T ->
+    binds x (typ_ref T) G.
+Proof.
+  introv Hin Htyp.
+  destruct (precise_flow_lemma Htyp) as [U Pf].
+  pose proof (pf_inert_ref_U Hin Pf) as H. subst.
+  apply* pf_binds.
+Qed.

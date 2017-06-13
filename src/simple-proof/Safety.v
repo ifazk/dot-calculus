@@ -36,8 +36,7 @@ The proof is by a induction on typing derivations of G |- t: T.
 *)
 
 Lemma safety: forall G S sta sto t T,
-    G, S ~~ sta ->
-    G, S |~ sto ->
+    well_formed G S sta sto ->
     inert G ->
     G, S |- t : T ->
     (normal_form t \/ 
@@ -46,13 +45,12 @@ Lemma safety: forall G S sta sto t T,
          G' = G & G'' /\ 
          S' = S & S'' /\
          G', S' |- t' : T /\ 
-         G', S' ~~ sta' /\
-         G', S' |~ sto')).
+         well_formed G' S' sta' sto')).
 Proof.
-  introv Hwf Hwt Hg H. dependent induction H; try solve [left; eauto].
+  introv Hwf Hin H. dependent induction H; try solve [left; eauto].
   - (* All-E *) 
     right.
-    lets C: (canonical_forms_1 Hwf Hg H).
+    lets C: (canonical_forms_1 Hwf Hin H).
     destruct C as [L [T' [t [Bis [Hsub Hty]]]]].
     exists sta sto (open_trm z t) G (@empty typ). exists S (@empty typ).
     repeat split.
@@ -66,16 +64,14 @@ Proof.
       * apply* ok_push. 
       * rewrite* subst_fresh_typ.
     + assumption. 
-    + assumption. 
   - (* Fld-E *) right.
-    pose proof (canonical_forms_2 Hg Hwf H) as [V [ds [t [Bis [Has Ty]]]]].
+    pose proof (canonical_forms_2 Hwf Hin H) as [V [ds [t [Bis [Has Ty]]]]].
     exists sta sto t G (@empty typ). exists S (@empty typ).
     split.
     + apply red_sel with (T:=V) (ds:=ds); assumption.
     + repeat split.
       * rewrite concat_empty_r. reflexivity.
       * rewrite concat_empty_r. reflexivity.
-      * assumption.
       * assumption.
       * assumption.
   - (* Let *) right.
@@ -97,7 +93,6 @@ Proof.
         apply* ok_push.
         rewrite* subst_fresh_typ. 
       * assumption.
-      * assumption.
     + lets Hv: (val_typing H).
       destruct Hv as [T' [Htyp Hsub]].
       pick_fresh x. assert (x \notin L) as FrL by auto. specialize (H0 x FrL).
@@ -106,10 +101,9 @@ Proof.
       * apply* red_let. 
       * rewrite concat_empty_r. reflexivity. 
       * assumption. 
-      * apply* wf_stack_push.
-      * apply* wt_stack_push.
+      * apply* well_formed_push_stack.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
-      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 [IH5 IH6]]]]]]]]]]]].
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 IH5]]]]]]]]]]].
       exists sta' sto' (trm_let t' u) G' G''. exists S' S''.
       repeat split. 
       * apply red_let_tgt. assumption.
@@ -119,12 +113,11 @@ Proof.
         rewrite IH3. apply weaken_ty_trm_sigma. 
         rewrite IH2. eapply (proj41 weaken_rules_ctx). 
         apply H0. auto. reflexivity.
-        rewrite <- IH2. apply ok_push. eapply wf_stack_to_ok_G. eassumption. eauto.
-        eapply wf_stack_to_ok_S. subst. eauto.
+        rewrite <- IH2. apply ok_push. eapply wf_to_ok_G. eassumption. eauto.
+        eapply wf_to_ok_S. subst. eauto.
       * rewrite IH2. rewrite <- IH2. eauto.
-      * assumption.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
-      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 [IH5 IH6]]]]]]]]]]]].
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 IH5]]]]]]]]]]].
       exists sta' sto' (trm_let t' u) G' G''. exists S' S''.
       repeat split. 
       * apply red_let_tgt. assumption.
@@ -134,12 +127,11 @@ Proof.
         rewrite IH3. apply weaken_ty_trm_sigma.
         rewrite IH2. eapply (proj41 weaken_rules_ctx). apply H0. auto. 
         reflexivity.
-        rewrite <- IH2. apply ok_push. eapply wf_stack_to_ok_G. eassumption. 
-        eauto. eapply wf_stack_to_ok_S. subst. eauto.
+        rewrite <- IH2. apply ok_push. eapply wf_to_ok_G. eassumption. 
+        eauto. eapply wf_to_ok_S. subst. eauto.
       * rewrite IH2. rewrite <- IH2. eauto.
-      * assumption.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
-      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 [IH5 IH6]]]]]]]]]]]].
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 IH5]]]]]]]]]]].
       exists sta' sto' (trm_let t' u) G' G''. exists S' S''.
       repeat split. 
       * apply red_let_tgt. assumption.
@@ -149,12 +141,11 @@ Proof.
         rewrite IH3. apply weaken_ty_trm_sigma.
         rewrite IH2. eapply (proj41 weaken_rules_ctx). apply H0. auto. 
         reflexivity.
-        rewrite <- IH2. apply ok_push. eapply wf_stack_to_ok_G. eassumption. 
-        eauto. eapply wf_stack_to_ok_S. subst. eauto.
-      * assumption.
+        rewrite <- IH2. apply ok_push. eapply wf_to_ok_G. eassumption. 
+        eauto. eapply wf_to_ok_S. subst. eauto.
       * assumption.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
-      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 [IH5 IH6]]]]]]]]]]]].
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 IH5]]]]]]]]]]].
       exists sta' sto' (trm_let t' u) G' G''. exists S' S''.
       repeat split. 
       * apply red_let_tgt. assumption.
@@ -164,12 +155,11 @@ Proof.
         rewrite IH3. apply weaken_ty_trm_sigma.
         rewrite IH2. eapply (proj41 weaken_rules_ctx). apply H0. auto. 
         reflexivity.
-        rewrite <- IH2. apply ok_push. eapply wf_stack_to_ok_G. eassumption. 
-        eauto. eapply wf_stack_to_ok_S. subst. eauto.
-      * assumption.
+        rewrite <- IH2. apply ok_push. eapply wf_to_ok_G. eassumption. 
+        eauto. eapply wf_to_ok_S. subst. eauto.
       * assumption.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
-      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 [IH5 IH6]]]]]]]]]]]].
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 IH5]]]]]]]]]]].
       exists sta' sto' (trm_let t' u) G' G''. exists S' S''.
       repeat split. 
       * apply red_let_tgt. assumption.
@@ -179,12 +169,11 @@ Proof.
         rewrite IH3. apply weaken_ty_trm_sigma.
         rewrite IH2. eapply (proj41 weaken_rules_ctx). apply H0. auto. 
         reflexivity.
-        rewrite <- IH2. apply ok_push. eapply wf_stack_to_ok_G. eassumption. 
-        eauto. eapply wf_stack_to_ok_S. subst. eauto.
-      * assumption.
+        rewrite <- IH2. apply ok_push. eapply wf_to_ok_G. eassumption. 
+        eauto. eapply wf_to_ok_S. subst. eauto.
       * assumption.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
-      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 [IH5 IH6]]]]]]]]]]]].
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 IH5]]]]]]]]]]].
       exists sta' sto' (trm_let t' u) G' G''. exists S' S''.
       repeat split. 
       * apply red_let_tgt. assumption.
@@ -194,20 +183,77 @@ Proof.
         rewrite IH3. apply weaken_ty_trm_sigma.
         rewrite IH2. eapply (proj41 weaken_rules_ctx). apply H0. auto. 
         reflexivity.
-        rewrite <- IH2. apply ok_push. eapply wf_stack_to_ok_G. eassumption. 
-        eauto. eapply wf_stack_to_ok_S. subst. eauto.
+        rewrite <- IH2. apply ok_push. eapply wf_to_ok_G. eassumption. 
+        eauto. eapply wf_to_ok_S. subst. eauto.
       * assumption.
+    + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
+      destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 IH5]]]]]]]]]]].
+      exists sta' sto' (trm_let t' u) G' G''. exists S' S''.
+      repeat split. 
+      * apply red_let_tgt. assumption.
+      * assumption. 
+      * assumption. 
+      * apply ty_let with (L:=L \u dom G') (T:=T); eauto. intros. 
+        rewrite IH3. apply weaken_ty_trm_sigma.
+        rewrite IH2. eapply (proj41 weaken_rules_ctx). apply H0. auto. 
+        reflexivity.
+        rewrite <- IH2. apply ok_push. eapply wf_to_ok_G. eassumption. 
+        eauto. eapply wf_to_ok_S. subst. eauto.
       * assumption.
   - specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto.
-    right. destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 [IH5 IH6]]]]]]]]]]]].
+    right. destruct IH as [sta' [sto' [t' [G' [G'' [S' [S'' [IH1 [IH2 [IH3 [IH4 IH5]]]]]]]]]]].
     exists sta' sto' t' G' G''. exists S' S''.
     split; try split; try split; try split; try split; try assumption.
     apply ty_sub with (T:=T).
     assumption.
     rewrite IH3. apply weaken_subtyp_sigma.
     rewrite IH2. apply weaken_subtyp_ctx. assumption.
-    rewrite <- IH2. eapply wf_stack_to_ok_G. eassumption.
-    rewrite <- IH3. eapply wf_stack_to_ok_S. eassumption.
+    rewrite <- IH2. eapply wf_to_ok_G. eassumption.
+    rewrite <- IH3. eapply wf_to_ok_S. eassumption.
+  - (* asg *)
+    right.
+    pose proof (canonical_forms_4 Hin Hwf H) as [[l [BiLoc [Hty BiSto]]] | Hx'].
+    {
+      exists sta (sto[l := (Some y)]) (trm_let (trm_val (val_loc l)) (trm_var (avar_b 0))) G (@empty typ). exists S (@empty typ).
+      split. 
+      - apply red_asgn.
+        + assumption.
+        + lets Hbd: (LibMap.binds_def sto l None). unfold bindsM in BiSto. 
+          rewrite Hbd in BiSto.
+          destruct BiSto as [His Hsto]. assumption.
+      - repeat split.
+        * rewrite concat_empty_r. reflexivity.
+        * rewrite concat_empty_r. reflexivity.
+        * admit. (* Open with some x, and add x to G? *)
+        * (* todo maybe change canon forms to add binds l T S? *)
+          assumption.
+          (* First use well_formed_update_store, then use well_formed_push_loc_stack *)
+        * pose proof (general_to_tight Hg) as [A _].
+          pose proof (A G S (trm_var (avar_f x)) (typ_ref T) H eq_refl).
+          pose proof (A G S (trm_val (val_loc l)) (typ_ref T) Hty eq_refl).
+          destruct (precise_ref_subtyping Hg BiLoc H1 H2 Hwf) as [U [HU [Hs1 Hs2]]].
+          apply wt_store_update with (T:=U); try assumption.
+          apply (ref_binds_typ HU). apply ty_sub with (T:=T); assumption.
+    }
+    { 
+      exists sta (sto[l := y]) (trm_var (avar_f y)) G (@empty typ). exists S (@empty typ).
+      split.
+      + apply red_asgn with (l:=l).
+        * assumption.
+        * lets Hbd: (LibMap.binds_def sto l y'). unfold bindsM in BiSto. rewrite Hbd in BiSto.
+          destruct BiSto as [His Hsto]. assumption.
+      + repeat split.
+        * rewrite concat_empty_r. reflexivity.
+        * rewrite concat_empty_r. reflexivity.
+        * assumption.
+        * assumption.
+        * pose proof (general_to_tight Hg) as [A _].
+          pose proof (A G S (trm_var (avar_f x)) (typ_ref T) H eq_refl).
+          pose proof (A G S (trm_val (val_loc l)) (typ_ref T) Hty eq_refl).
+          destruct (precise_ref_subtyping Hg BiLoc H1 H2 Hwf) as [U [HU [Hs1 Hs2]]].
+          apply wt_store_update with (T:=U); try assumption.
+          apply (ref_binds_typ HU). apply ty_sub with (T:=T); assumption.
+    }
   - (* ref *)
     right. pick_fresh l.
     exists sta (sto[l:=x]) (trm_val (val_loc l)) G (@empty typ). exists (S & l ~ T) (l ~ T).
@@ -229,24 +275,4 @@ Proof.
     split. rewrite concat_empty_r. reflexivity.
     split. rewrite concat_empty_r. reflexivity.
     split. assumption. split. assumption. assumption.
-  - (* asg *)
-    right.
-    pose proof (canonical_forms_3 Hg Hwf Hwt H) as [l [y' [BiLoc [Hty [BiSto Htyy']]]]].
-    exists sta (sto[l := y]) (trm_var (avar_f y)) G (@empty typ). exists S (@empty typ).
-    split.
-    + apply red_asgn with (l:=l).
-      * assumption.
-      * lets Hbd: (LibMap.binds_def sto l y'). unfold bindsM in BiSto. rewrite Hbd in BiSto.
-        destruct BiSto as [His Hsto]. assumption.
-    + repeat split.
-      * rewrite concat_empty_r. reflexivity.
-      * rewrite concat_empty_r. reflexivity.
-      * assumption.
-      * assumption.
-      * pose proof (general_to_tight Hg) as [A _].
-        pose proof (A G S (trm_var (avar_f x)) (typ_ref T) H eq_refl).
-        pose proof (A G S (trm_val (val_loc l)) (typ_ref T) Hty eq_refl).
-        destruct (precise_ref_subtyping Hg BiLoc H1 H2 Hwf) as [U [HU [Hs1 Hs2]]].
-        apply wt_store_update with (T:=U); try assumption.
-        apply (ref_binds_typ HU). apply ty_sub with (T:=T); assumption.
 Qed.
