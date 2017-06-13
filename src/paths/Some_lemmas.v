@@ -240,3 +240,14 @@ Lemma typing_implies_bound_p: forall G x T,
 Proof.
   intros. eapply typing_implies_bound. apply* precise_to_general.
 Qed.
+
+Lemma binds_destruct: forall {A} x (v:A) E,
+  binds x v E ->
+  exists E' E'', E = E' & x ~ v & E''.
+Proof.
+  introv Hb. induction E using env_ind. false* binds_empty_inv.
+  destruct (binds_push_inv Hb) as [[Hx HT] | [Hn Hbx]]; subst.
+  - exists E (@empty A). rewrite concat_empty_r. reflexivity.
+  - apply binds_push_neq_inv in Hb. destruct (IHE Hb) as [E' [E'' HE]]. subst.
+    exists E' (E'' & x0 ~ v0). rewrite concat_assoc. reflexivity. assumption.
+Qed.

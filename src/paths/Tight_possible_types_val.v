@@ -3,7 +3,6 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import Precise_flow.
 Require Import Inert_types.
 
 (* ###################################################################### *)
@@ -59,14 +58,9 @@ Lemma tight_possible_types_closure_tight_v: forall G v T U,
   G |-##v v : U.
 Proof.
   introv Hgd HT Hsub.
-  dependent induction Hsub; eauto.
-  - inversions HT. inversion H.
-  - inversions HT. inversion H. assumption.
-  - inversions HT. inversions H. assumption.
-  - inversions HT. inversions H.
-  - inversions HT. inversions H.
-  - inversions HT. inversions H0.
-    lets Hb: (inert_unique_tight_bounds Hgd H H5). subst*.
+  dependent induction Hsub; eauto; inversions HT; try solve [inversion H]; try assumption.
+  - inversions H1.
+  - lets Hb: (inert_unique_tight_bounds Hgd H H6). subst*.
 Qed.
 
 Lemma tight_possible_types_lemma_v : forall G v T,
@@ -76,6 +70,6 @@ Lemma tight_possible_types_lemma_v : forall G v T,
 Proof.
   introv Hgd Hty.
   dependent induction Hty; eauto.
-  specialize (IHHty v Hgd eq_refl eq_refl eq_refl).
+  specialize (IHHty _ Hgd eq_refl).
   apply* tight_possible_types_closure_tight_v.
 Qed.

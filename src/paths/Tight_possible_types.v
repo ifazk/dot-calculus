@@ -12,7 +12,7 @@ Require Import Narrowing.
 
 Lemma tpt_to_precise_typ_dec: forall G p A S U,
     inert G ->
-    G |-# p ||v ->
+    G |-# p \||/ ->
     G |-## p : typ_rcd { A >: S <: U } ->
     exists T,
       G |-! trm_path p : typ_rcd { A >: T <: T } /\
@@ -29,7 +29,7 @@ Qed.
 
 Lemma tpt_to_precise_trm_dec: forall G p a m T,
     inert G ->
-    G |-# p ||v ->
+    G |-# p \||/ ->
     G |-## p : typ_rcd { a [m] T } ->
     exists T' m',
       G |-! trm_path p : typ_rcd { a [m'] T' } /\
@@ -50,7 +50,7 @@ Qed.
 
 Lemma tpt_to_precise_typ_all: forall G p S T,
     inert G ->
-    G |-# p ||v ->
+    G |-# p \||/ ->
     G |-## p : typ_all S T ->
     exists S' T' L,
       G |-! trm_path p : typ_all S' T' /\
@@ -129,7 +129,7 @@ Proof.
     apply precise_to_general in Hp'. apply typing_implies_bound in Hp'. destruct Hp'.
     apply* norm_path_p.
   - inversions H1. specialize (H0 H2).
-    assert (G |-# p ||v) as Hp by (inversion* n).
+    assert (G |-# p \||/) as Hp by (inversion* n).
     specialize (H _ eq_refl H2 Hp).
     apply tpt_to_precise_trm_dec in H; auto.
     destruct H as [T' [m' [Ht [Heq  Hsx]]]]. specialize (Heq eq_refl). destruct Heq. subst.
@@ -144,3 +144,10 @@ Proof.
     destruct H as [V [m [Hp [Heq Hs]]]]. specialize (Heq eq_refl). destruct Heq. subst.
     apply* norm_path_p.
  Qed.
+
+Lemma tpt_lemma_typ: forall G p T,
+    G |-# trm_path p: T ->
+    inert G ->
+    G |-# p \||/ ->
+    G |-## p: T.
+Proof. intros. apply* tpt_lemma. Qed.

@@ -31,6 +31,7 @@ Inductive typ : Set :=
   | typ_path : path -> typ_label -> typ (* x.a1.a2. ... .an.L *)
   | typ_bnd  : typ -> typ (* rec(x: T) *)
   | typ_all  : typ -> typ -> typ (* all(x: S)T *)
+  | typ_sngl : path -> typ (* p.type *)
 with dec : Set :=
   | dec_typ  : typ_label -> typ -> typ -> dec (* A: S..U *)
   | dec_trm  : trm_label -> pathmode -> typ -> dec (* {a: T} or {a:! T} *)
@@ -121,6 +122,7 @@ Fixpoint open_rec_typ (k: nat) (u: var) (T: typ): typ :=
   | typ_path p L   => typ_path (open_rec_path k u p) L
   | typ_bnd T      => typ_bnd (open_rec_typ (S k) u T)
   | typ_all T1 T2  => typ_all (open_rec_typ k u T1) (open_rec_typ (S k) u T2)
+  | typ_sngl p     => typ_sngl (open_rec_path k u p)
   end
 with open_rec_dec (k: nat) (u: var) (D: dec): dec :=
   match D with
@@ -188,6 +190,7 @@ Fixpoint open_rec_typ_p (k: nat) (u: path) (T: typ): typ :=
   | typ_path p L   => typ_path (open_rec_path_p k u p) L
   | typ_bnd T      => typ_bnd (open_rec_typ_p (S k) u T)
   | typ_all T1 T2  => typ_all (open_rec_typ_p k u T1) (open_rec_typ_p (S k) u T2)
+  | typ_sngl p     => typ_sngl (open_rec_path_p k u p)
   end
 with open_rec_dec_p (k: nat) (u: path) (D: dec): dec :=
   match D with
@@ -220,11 +223,12 @@ Fixpoint fv_typ (T: typ) : vars :=
   match T with
   | typ_top        => \{}
   | typ_bot        => \{}
-  | typ_rcd D      => (fv_dec D)
+  | typ_rcd D      => fv_dec D
   | typ_and T U    => (fv_typ T) \u (fv_typ U)
-  | typ_path p L   => (fv_path p)
-  | typ_bnd T      => (fv_typ T)
+  | typ_path p L   => fv_path p
+  | typ_bnd T      => fv_typ T
   | typ_all T1 T2  => (fv_typ T1) \u (fv_typ T2)
+  | typ_sngl p     => fv_path p
   end
 with fv_dec (D: dec) : vars :=
   match D with
@@ -319,11 +323,16 @@ where "t1 '/' st1 '⇒' t2 '/' st2" := (red t1 st1 t2 st2).
 (* ###################################################################### *)
 (** ** Typing *)
 
+(* is a type inert or a singleton type? *)
+Inductive inert_sngl: typ -> Prop :=
+| is_inert: forall T, inert_typ T -> inert_sngl T
+| is_sngl: forall p, inert_sngl (typ_sngl p).
+
 Reserved Notation "G '|-' t ':' T" (at level 40, t at level 59).
 Reserved Notation "G '|-' T '<:' U" (at level 40, T at level 59).
 Reserved Notation "G '&&' z '~' T '|-' d ':' D" (at level 39, z at level 26, T at level 39, d at level 59).
 Reserved Notation "G '&&' z '~' T '|-' ds '::' U" (at level 39, z at level 26, T at level 39, ds at level 59).
-Reserved Notation "G '|-' p '||v'" (at level 40, p at level 59).
+Reserved Notation "G '|-' p '\||/'" (at level 40, p at level 59).
 
 Inductive ty_trm : ctx -> trm -> typ -> Prop :=
 | ty_var : forall G x T,
@@ -346,7 +355,7 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     G |- trm_path (p_sel (p_var (avar_f x)) a) : T
 | ty_fld_elim_path : forall G p a T,
     G |- trm_path p : typ_rcd { a [strong] T } ->
-    G |- p_sel p a ||v ->
+    G |- p_sel p a \||/ ->
     G |- trm_path (p_sel p a) : T
 | ty_let : forall L G t u T U,
     G |- t : T ->
@@ -363,6 +372,9 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     G |- trm_path p : T ->
     G |- trm_path p : U ->
     G |- trm_path p : typ_and T U
+| ty_sngl_intro : forall G x T,
+    binds x T G ->
+    G |- trm_path (p_var (avar_f x)) : typ_sngl (p_var (avar_f x))
 | ty_sub : forall G t T U,
     G |- t : T ->
     G |- T <: U ->
@@ -377,7 +389,7 @@ with ty_def : ctx -> var -> typ -> def -> dec -> Prop := (* Γ; z: U |- d: T U *
     G && x ~ U |- def_trm a t : { a [gen] T }
 | ty_def_path : forall x G a p U T,
     G |- trm_path p : T ->
-    G |- p ||v ->
+    G |- p \||/ ->
     G && x ~ U |- def_trm a (trm_path p) : { a [strong] T }
 | ty_def_val : forall G x U v T a,
     G & x ~ U |- trm_val v : T ->
@@ -403,10 +415,10 @@ with norm : ctx -> trm -> Prop :=
 | norm_path : forall t p U a G,
     t = trm_path p ->
     G |- trm_path p : typ_rcd { a [strong] U } ->
-    inert_typ U ->
-    G |- p ||v ->
-    G |- p_sel p a ||v
-where "G '|-' p '||v'" := (norm G (trm_path p))
+    inert_sngl U ->
+    G |- p \||/ ->
+    G |- p_sel p a \||/
+where "G '|-' p '\||/'" := (norm G (trm_path p))
 
 with subtyp : ctx -> typ -> typ -> Prop :=
 | subtyp_top: forall G T,
@@ -436,12 +448,22 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     G |- typ_rcd { A >: S1 <: T1 } <: typ_rcd { A >: S2 <: T2 }
 | subtyp_sel2: forall G p A S T,
     G |- trm_path p : typ_rcd { A >: S <: T } ->
-    G |- p ||v ->
+    G |- p \||/ ->
     G |- S <: typ_path p A
 | subtyp_sel1: forall G p A S T,
     G |- trm_path p : typ_rcd { A >: S <: T } ->
-    G |- p ||v ->
+    G |- p \||/ ->
     G |- typ_path p A <: T
+| subtyp_sngl_sel1: forall G p q A S U,
+    G |- trm_path p: typ_sngl q ->
+    G |- p \||/ ->
+    G |- trm_path q: typ_rcd { A >: S <: U } ->
+    G |- typ_path p A <: typ_path q A
+| subtyp_sngl_sel2: forall G p q A S U,
+    G |- trm_path p: typ_sngl q ->
+    G |- p \||/ ->
+    G |- trm_path q: typ_rcd { A >: S <: U } ->
+    G |- typ_path q A <: typ_path p A
 | subtyp_all: forall L G S1 T1 S2 T2,
     G |- S2 <: S1 ->
     (forall x, x \notin L ->
@@ -452,7 +474,7 @@ with subtyp : ctx -> typ -> typ -> Prop :=
 where "G '|-' T '<:' U" := (subtyp G T U).
 
 Reserved Notation "G '|-!' t ':' T" (at level 40, t at level 59).
-Reserved Notation "G '|-!' p '||v'" (at level 40, p at level 59).
+Reserved Notation "G '|-!' p '\||/'" (at level 40, p at level 59).
 
 Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
 | ty_var_p : forall G x T,
@@ -471,7 +493,7 @@ Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
     G |-! trm_path p : open_typ_p p T
 |ty_fld_elim_p : forall G p a T,
     G |-! trm_path p : typ_rcd { a [strong] T } ->
-    G |-! p_sel p a ||v ->
+    G |-! p_sel p a \||/ ->
     inert_typ T ->
     G |-! trm_path (p_sel p a) : T
 | ty_and1_p : forall G p T U,
@@ -486,21 +508,21 @@ with norm_p : ctx -> trm -> Prop :=
 | norm_var_p : forall t x T G,
     t = trm_path (p_var (avar_f x)) ->
     binds x T G ->
-    G |-! p_var (avar_f x) ||v
+    G |-! p_var (avar_f x) \||/
 | norm_path_p : forall t p U a G,
     t = trm_path p ->
     G |-! trm_path p : typ_rcd { a [strong] U } ->
-    inert_typ U ->
-    G |-! p ||v ->
-    G |-! p_sel p a ||v
-where "G '|-!' p '||v'" := (norm_p G (trm_path p)).
+    inert_sngl U ->
+    G |-! p \||/ ->
+    G |-! p_sel p a \||/
+where "G '|-!' p '\||/'" := (norm_p G (trm_path p)).
 
 
 (* tight typing relation *)
 
 Reserved Notation "G '|-#' t ':' T" (at level 40, t at level 59).
 Reserved Notation "G '|-#' T '<:' U" (at level 40, T at level 59).
-Reserved Notation "G '|-#' p '||v'" (at level 40, p at level 59).
+Reserved Notation "G '|-#' p '\||/'" (at level 40, p at level 59).
 
 Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
 | ty_var_t : forall G x T,
@@ -523,7 +545,7 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     G |-# trm_path (p_sel (p_var (avar_f x)) a) : T
 | ty_fld_elim_path_t : forall G p a T,
     G |-# trm_path p : typ_rcd { a [strong] T } ->
-    G |-# p_sel p a ||v ->
+    G |-# p_sel p a \||/ ->
     G |-# trm_path (p_sel p a) : T
 | ty_let_t : forall L G t u T U,
     G |-# t : T ->
@@ -540,6 +562,9 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     G |-# trm_path p : T ->
     G |-# trm_path p : U ->
     G |-# trm_path p : typ_and T U
+| ty_sngl_intro_t : forall G x T,
+    binds x T G ->
+    G |-# trm_path (p_var (avar_f x)) : typ_sngl (p_var (avar_f x))
 | ty_sub_t : forall G t T U,
     G |-# t : T ->
     G |-# T <: U ->
@@ -550,14 +575,14 @@ with norm_t : ctx -> trm -> Prop :=
 | norm_var_t : forall t x T G,
     t = trm_path (p_var (avar_f x)) ->
     binds x T G ->
-    G |-# p_var (avar_f x) ||v
+    G |-# p_var (avar_f x) \||/
 | norm_path_t : forall t p U a G,
     t = trm_path p ->
     G |-# trm_path p : typ_rcd { a [strong] U } ->
-    inert_typ U ->
-    G |-# p ||v ->
-    G |-# (p_sel p a) ||v
-where "G '|-#' p '||v'" := (norm_t G (trm_path p))
+    inert_sngl U ->
+    G |-# p \||/ ->
+    G |-# (p_sel p a) \||/
+where "G '|-#' p '\||/'" := (norm_t G (trm_path p))
 
 with subtyp_t : ctx -> typ -> typ -> Prop :=
 | subtyp_top_t: forall G T,
@@ -587,35 +612,31 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
     G |-# typ_rcd { A >: S1 <: T1 } <: typ_rcd { A >: S2 <: T2 }
 | subtyp_sel2_t: forall G p A T,
     G |-! trm_path p : typ_rcd { A >: T <: T } ->
-    G |-# p ||v ->
+    G |-# p \||/ ->
     G |-# T <: typ_path p A
 | subtyp_sel1_t: forall G p A T,
     G |-! trm_path p : typ_rcd { A >: T <: T } ->
-    G |-# p ||v ->
+    G |-# p \||/ ->
     G |-# typ_path p A <: T
 | subtyp_all_t: forall L G S1 T1 S2 T2,
     G |-# S2 <: S1 ->
     (forall x, x \notin L ->
        G & x ~ S2 |- T1 ||^ x <: T2 ||^ x) ->
     G |-# typ_all S1 T1 <: typ_all S2 T2
+| subtyp_sngl_sel1_t: forall G p q A S U,
+    G |-# trm_path p: typ_sngl q ->
+    G |-# p \||/ ->
+    G |-# trm_path q: typ_rcd { A >: S <: U } ->
+    G |-# typ_path p A <: typ_path q A
+| subtyp_sngl_sel2_t: forall G p q A S U,
+    G |-# trm_path p: typ_sngl q ->
+    G |-# p \||/ ->
+    G |-# trm_path q: typ_rcd { A >: S <: U } ->
+    G |-# typ_path q A <: typ_path p A
 | subtyp_path_t: forall G a T,
     G |-# typ_rcd { a [strong] T } <: typ_rcd { a [gen] T }
 where "G '|-#' T '<:' U" := (subtyp_t G T U).
 
-(*
-Definition (Tight Possible types)
-
-For a variable x, environment G, the set TPT(G, x) of simplified possible types
-of x defined as v in G is the smallest set SS such that:
-
-If G |-! x:T then T in SS.
-If {a:T} in SS and G |-# T<:T' then {a:T'} in SS.
-If {A:T..U} in SS, G |-# T'<:T and G |-# U<:U' then {A:T'..U'} in SS.
-If S in SS then rec(x: S) in SS.
-If all(x: S)T in SS, G |-# S'<:S and G, x: S' |-# T<:T' then all(x: S')T' in SS.
-If S1 in SS and S2 in SS then (S1 & S2) in SS.
-If S in SS and G |-! y: {A: S..S} then y.A in SS.
- *)
 
 Reserved Notation "G '|-##' p ':' T" (at level 40, p at level 59).
 
@@ -659,8 +680,13 @@ Inductive tight_pt : ctx -> path -> typ -> Prop :=
 | t_pt_sel : forall G p q A S,
     G |-## p : S ->
     G |-! trm_path q : typ_rcd { A >: S <: S } ->
-    G |-# q ||v ->
+    G |-# q \||/ ->
     G |-## p : typ_path q A
+| t_pt_sngl_sel : forall G p S q1 q2 A,
+    G |-## p: S ->
+    G |-! trm_path q1: typ_rcd { A >: S <: S } ->
+    G |-! trm_path q2: typ_sngl q1 ->
+    G |-## p: typ_path q2 A
   (* Top *)
 | t_pt_top : forall G p T,
     G |-## p : T ->

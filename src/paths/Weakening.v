@@ -97,3 +97,51 @@ Proof.
   rewrite EqG. apply* weaken_rules.
   rewrite concat_empty_r. reflexivity. rewrite <- EqG. assumption.
 Qed.
+
+Lemma weaken_rules_p:
+  (forall G t T,
+    G |-! t : T ->
+    forall G1 G2 G3,
+      G = G1 & G3 ->
+      ok (G1 & G2 & G3) ->
+      G1 & G2 & G3 |-! t : T) /\
+  (forall G p,
+    norm_p G p -> forall G1 G2 G3,
+    G = G1 & G3 ->
+    ok (G1 & G2 & G3) ->
+    norm_p (G1 & G2 & G3) p).
+Proof.
+  apply ts_mutind_p; eauto; intros.
+  - apply ty_var_p. apply* binds_weaken. subst*.
+  - apply_fresh ty_all_intro_p as z.
+    assert (zL: z \notin L) by auto.
+    specialize (t0 z zL).
+    assert (Hz: G & z ~ T = G1 & G3 & z ~ T) by rewrite* H.
+    assert(Hok: ok (G1 & G2 & G3 & z ~ T)) by auto.
+    rewrite <- concat_assoc.
+    apply ((proj41 weaken_rules) (G & z ~ T)).
+    + assumption.
+    + rewrite concat_assoc. subst*.
+    + rewrite concat_assoc. subst*.
+  - apply_fresh ty_new_intro_p as z.
+    assert (zL: z \notin L) by auto.
+    specialize (t z zL).
+    assert (Hz: G & z ~ open_typ z T = G1 & G3 & z ~ open_typ z T) by rewrite* H.
+    assert(Hok: ok (G1 & G2 & G3 & z ~ open_typ z T)) by auto. inversions Hz.
+    apply* ((proj53 weaken_rules) (G1 & G3)).
+  - apply* norm_var_p. subst. apply* binds_weaken.
+Qed.
+
+Lemma weaken_ty_trm_p: forall G1 G2 t T,
+    G1 |-! t : T ->
+    ok (G1 & G2) ->
+    G1 & G2 |-! t : T.
+Proof.
+  intros.
+    assert (G1 & G2 = G1 & G2 & empty) as EqG. {
+    rewrite concat_empty_r. reflexivity.
+  }
+  rewrite EqG. apply* weaken_rules_p.
+  rewrite concat_empty_r. reflexivity.
+  rewrite <- EqG. assumption.
+Qed.

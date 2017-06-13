@@ -25,7 +25,7 @@ Inductive precise_flow : path -> ctx -> typ -> typ -> Prop :=
       precise_flow (p_var (avar_f x)) G T T
   | pf_fld : forall G p a T U,
       precise_flow p G T (typ_rcd { a [strong] U }) ->
-      G |-! p_sel p a ||v ->
+      G |-! p_sel p a \||/ ->
       inert_typ U ->
       precise_flow (p_sel p a) G U U
   | pf_rec : forall p G T U,
