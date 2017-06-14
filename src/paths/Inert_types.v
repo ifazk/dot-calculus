@@ -226,6 +226,17 @@ Proof.
   lets HiT: (pf_rcd_T Hi Pf). assumption.
 Qed.
 
+Lemma pf_sngl_U: forall G p q T,
+    inert G ->
+    precise_flow p G T (typ_sngl q) ->
+    T = typ_sngl q.
+Proof.
+  introv Hi Pf. lets His: (pf_inert_sngl_T Hi Pf). inversions His. inversions H.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
+  - apply (pf_inert_or_rcd Hi) in Pf. destruct* Pf. inversion H. inversion H1.
+  - apply pf_sngl_T in Pf; auto.
+Qed.
+
 Lemma pf_inert_lambda_U : forall p G S T U,
     inert G ->
     precise_flow p G U (typ_all S T) ->
@@ -465,4 +476,25 @@ Lemma precise_dec_typ_inv : forall G p A S U,
 Proof.
   introv Hi Hpt. destruct (precise_flow_lemma Hpt) as [V Pf].
   apply* pf_dec_typ_inv.
+Qed.
+
+Lemma pf_sngl_unique: forall G p P T Q q,
+    inert G ->
+    precise_flow p G P T ->
+    precise_flow p G Q (typ_sngl q) ->
+    T = typ_sngl q.
+Proof.
+  introv Hi Pf1 Pf2. lets Hu: (p_bound_unique Hi Pf1 Pf2). subst.
+  apply pf_sngl_U in Pf2. subst. apply* pf_sngl_T. assumption.
+Qed.
+
+Lemma p_sngl_unique: forall G p q T,
+    inert G ->
+    G |-! trm_path p: typ_sngl q ->
+    G |-! trm_path p: T ->
+    T = typ_sngl q.
+Proof.
+  introv Hi Hp1 Hp2.
+  destruct (precise_flow_lemma Hp1) as [T1 H1]. destruct (precise_flow_lemma Hp2) as [T2 H2].
+  apply* pf_sngl_unique.
 Qed.

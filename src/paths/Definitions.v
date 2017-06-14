@@ -371,6 +371,10 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
 | ty_sngl_intro : forall G x T,
     binds x T G ->
     G |- trm_path (p_var (avar_f x)) : typ_sngl (p_var (avar_f x))
+(*| ty_sngl_typing : forall G p q T,
+    G |- trm_path p: typ_sngl q ->
+    G |- trm_path q: T ->
+    G |- trm_path p: T*)
 | ty_sub : forall G t T U,
     G |- t : T ->
     G |- T <: U ->
@@ -555,7 +559,7 @@ with norm_t : ctx -> path -> Prop :=
     G |-# trm_path p : typ_rcd { a [strong] U } ->
     inert_sngl U ->
     G |-# p \||/ ->
-    G |-# (p_sel p a) \||/
+    G |-# p_sel p a \||/
 where "G '|-#' p '\||/'" := (norm_t G p)
 
 with subtyp_t : ctx -> typ -> typ -> Prop :=
@@ -611,37 +615,6 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
     G |-# typ_rcd { a [strong] T } <: typ_rcd { a [gen] T }
 where "G '|-#' T '<:' U" := (subtyp_t G T U).
 
-
-Reserved Notation "G '|-#n' p ':' T" (at level 40, p at level 59).
-
-Inductive ty_path_n : ctx -> path -> typ -> Prop :=
-| ty_var_n : forall G x T,
-    binds x T G ->
-    G |-#n p_var (avar_f x) : T
-| ty_sngl_n: forall G x T,
-    binds x T G ->
-    G |-#n p_var (avar_f x): typ_sngl (p_var (avar_f x))
-| ty_fld_elim_path_n : forall G p a T,
-    G |-#n p : typ_rcd { a [strong] T } ->
-    G |-# p_sel p a \||/ ->
-    G |-#n p_sel p a : T
-| ty_rec_intro_n : forall G x T,
-    G |-#n p_var (avar_f x) : T ||^ x ->
-    G |-#n p_var (avar_f x) : typ_bnd T
-| ty_rec_elim_n : forall G p T,
-    G |-#n p : typ_bnd T ->
-    G |-#n p : open_typ_p p T
-| ty_and_intro_n : forall G p T U,
-    G |-#n p : T ->
-    G |-#n p : U ->
-    G |-#n p : typ_and T U
-| ty_sub_n : forall G p T U,
-    G |-#n p : T ->
-    G |-# T <: U ->
-    G |-#n p : U
-where "G '|-#n' p ':' T" := (ty_path_n G p T).
-
-
 Reserved Notation "G '|-##' p ':' T" (at level 40, p at level 59).
 
 (* Invertible typing *)
@@ -651,9 +624,9 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
 | ty_path_i : forall G p T,
     G |-! trm_path p : T ->
     G |-## p : T
-| ty_sngl_i : forall G x T,
-    G |-## p_var (avar_f x): T ->
-    G |-## p_var (avar_f x) : typ_sngl (p_var (avar_f x))
+| ty_sngl_i : forall G p T,
+    G |-! trm_path p: T ->
+    G |-## p: typ_sngl p
   (* General term member subtyping *)
 | subtyp_fld_i : forall G p a T T',
     G |-## p : typ_rcd { a [gen] T } ->
@@ -691,12 +664,13 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
     G |-! trm_path q : typ_rcd { A >: S <: S } ->
     G |-# q \||/ ->
     G |-## p : typ_path q A
-| subtyp_sngl_sel_i : forall G p S q1 q2 A,
-    G |-## p: S ->
-    G |-! trm_path q1: typ_rcd { A >: S <: S } ->
-    G |-! trm_path q2: typ_sngl q1 ->
-    G |-## p: typ_path q2 A
-  (* Top *)
+  (* Singleton type selection *)
+| subtyp_sngl_i: forall G p q r A,
+    G |-## p: typ_sngl r ->
+    p <> r ->
+    G |-## q: typ_path r A ->
+    G |-## q: typ_path p A
+(* Top *)
 | ty_top_i : forall G p T,
     G |-## p : T ->
     G |-## p : typ_top
@@ -835,7 +809,7 @@ Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
   apply_fresh_base T gather_vars x.
 
 Hint Constructors
-     ty_trm ty_def ty_defs subtyp ty_trm_t subtyp_t ty_trm_p ty_path_n
+     ty_trm ty_def ty_defs subtyp ty_trm_t subtyp_t ty_trm_p
      norm norm_t ty_path_inv ty_val_inv.
 
 Hint Constructors wf_sto.
