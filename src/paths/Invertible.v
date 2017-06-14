@@ -221,6 +221,31 @@ Proof.
          admit.
 Qed.
 
+Lemma direct: forall G p,
+    inert G ->
+    ( forall T, G |-# trm_path p: T -> G |-# p \||/ -> G |-## p: T)
+.
+Proof.
+ introv Hi.
+ dependent induction p.
+ - admit. (* variables, hopefully easy *)
+ - specialize (IHp Hi).
+   introv Ht Hn.
+   dependent induction Ht; try specialize (IHHt p t IHp Hi eq_refl Hn); eauto.
+   *
+     inversions Hn.
+     remember IHp as IHp2. clear HeqIHp2.
+     specialize (IHp _ H1 H4).
+     specialize (IHp2 _ Ht H4).
+     (* Now use
+  IHp : G |-## p : typ_rcd {t [strong] U}
+  IHp2 : G |-## p : typ_rcd {t [gen] T}
+*)
+     admit.
+   * admit.
+   * admit.
+Qed.
+
 Lemma tight_to_normalizing: forall G p T,
     inert G ->
     G |-# trm_path p: T ->
