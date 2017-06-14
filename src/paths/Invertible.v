@@ -171,79 +171,28 @@ Proof.
   introv Hi Ht Hs. dependent induction Hs; eauto.
 Qed.
 
-Lemma both: forall G p,
+Lemma direct: forall G p T,
     inert G ->
-    ( forall T, G |-#n p: T -> G |-## p: T) /\
-    ( forall T, G |-# trm_path p: T -> G |-# p \||/ -> G |-#n p: T)
-.
+    G |-# trm_path p: T ->
+    G |-# p \||/ ->
+    G |-## p: T.
 Proof.
- introv Hi.
- dependent induction p.
- - admit. (* variables, hopefully easy *)
-   -
-     destruct (IHp Hi) as [NI TN].
-     split.
-     +
-       introv Ht. dependent induction Ht; eauto.
-       *
-         specialize (IHHt p t IHp Hi NI TN).
-         inversions H.
-         specialize (TN _ H2 H5).
-         remember NI as NI2. clear HeqNI2.
-         specialize (NI _ TN).
-         specialize (NI2 _ Ht).
-         (* Now can we get T=U from
-  NI : G |-## p : typ_rcd {t [strong] U}
-  NI2 : G |-## p : typ_rcd {t [strong] T}
-?
-*)
-         assert (T=U) by admit. subst.
-         (* Should be easy now. *)
-         admit.
-       * admit.
-       * admit.
-     +
-       introv Ht Hn. clear IHp Hi.
-       dependent induction Ht; eauto.
-       *
-         inversions Hn.
-         remember TN as TN2. clear HeqTN2.
-         specialize (TN _ H1 H4).
-         specialize (TN2 _ Ht H4).
-         remember NI as NI2. clear HeqNI2.
-         specialize (NI _ TN).
-         specialize (NI2 _ TN2).
-         (* Now can we get T=U from
-  NI : G |-## p : typ_rcd {t [strong] U}
-  NI2 : G |-## p : typ_rcd {t [gen] T}
-?
-*)
-         admit.
-Qed.
-
-Lemma direct: forall G p,
-    inert G ->
-    ( forall T, G |-# trm_path p: T -> G |-# p \||/ -> G |-## p: T)
-.
-Proof.
- introv Hi.
- dependent induction p.
- - admit. (* variables, hopefully easy *)
+ introv Hi Hp. gen T. dependent induction p.
+ - introv Hp Hn. destruct a as [b | x]. inversion Hn.
+   dependent induction Hp; eauto.
+   * specialize (IHHp _ Hi eq_refl Hn). inversions IHHp.
+     apply ty_rec_elim_p in H. apply* ty_path_i. rewrite* <- open_var_path_typ_eq.
+   * specialize (IHHp _ Hi eq_refl Hn). apply* invertible_sub_closure.
  - specialize (IHp Hi).
    introv Ht Hn.
    dependent induction Ht; try specialize (IHHt p t IHp Hi eq_refl Hn); eauto.
-   *
-     inversions Hn.
-     remember IHp as IHp2. clear HeqIHp2.
-     specialize (IHp _ H1 H4).
-     specialize (IHp2 _ Ht H4).
-     (* Now use
-  IHp : G |-## p : typ_rcd {t [strong] U}
-  IHp2 : G |-## p : typ_rcd {t [gen] T}
-*)
-     admit.
-   * admit.
-   * admit.
+   * inversions Hn.
+     lets IHp2: (IHp _ Ht H4). specialize (IHp _ H1 H4). inversions IHp.
+     destruct (invertible_to_precise_trm_dec Hi H4 IHp2) as [V [m [Hp [_ Hs]]]].
+     destruct (p_rcd_unique Hi H Hp). subst. apply ty_fld_elim_p in H; auto.
+     apply ty_path_i in Hp. apply* invertible_sub_closure.
+   * inversions IHHt. apply ty_rec_elim_p in H. apply* ty_path_i.
+   * apply* invertible_sub_closure.
 Qed.
 
 Lemma tight_to_normalizing: forall G p T,
@@ -278,7 +227,7 @@ Proof.
          Yes: *)
       destruct (p_rcd_unique Hi PrecT PrecU). subst.
       apply ty_fld_elim_p in PrecT; auto. apply precise_to_normalizing in PrecT; auto.
-      apply* normalizing_sub_closure.
+      apply* normalizing_sub_closure
     * lets Hpt0: (IHp _ Ht). inversions Hn. specialize (IHp _ H1).
 Qed.
 
