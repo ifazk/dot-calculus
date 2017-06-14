@@ -8,9 +8,11 @@ Require Import Wellformed_store.
 Require Import Substitution.
 Require Import Narrowing.
 Require Import Some_lemmas.
+Require Import Invertible_typing.
 Require Import Canonical_forms1.
 Require Import Canonical_forms2.
 Require Import Canonical_forms3.
+Require Import Canonical_forms4.
 Require Import Inert_types.
 Require Import General_to_tight.
 
@@ -212,67 +214,85 @@ Proof.
     rewrite <- IH3. eapply wf_to_ok_S. eassumption.
   - (* asg *)
     right.
-    pose proof (canonical_forms_4 Hin Hwf H) as [[l [BiLoc [Hty BiSto]]] | Hx'].
-    {
-      exists sta (sto[l := (Some y)]) (trm_let (trm_val (val_loc l)) (trm_var (avar_b 0))) G (@empty typ). exists S (@empty typ).
-      split. 
-      - apply red_asgn.
-        + assumption.
-        + lets Hbd: (LibMap.binds_def sto l None). unfold bindsM in BiSto. 
+    pose proof (canonical_forms_4 Hin Hwf H) as [l [BiLoc [Hty BiSto]]].
+    pick_fresh z. 
+    exists (sta & z ~ (val_loc l)) (sto[l := (Some y)]) (open_trm z (trm_var (avar_b 0))) (G & z ~ (typ_ref T)) (z ~ (typ_ref T)). exists S (@empty typ).
+    split. 
+    + apply red_asgn. 
+      * assumption.
+      * destruct BiSto as [BiSto | [y' [BiSto _]]].
+        { 
+          lets Hbd: (LibMap.binds_def sto l None). unfold bindsM in BiSto. 
           rewrite Hbd in BiSto.
           destruct BiSto as [His Hsto]. assumption.
-      - repeat split.
-        * rewrite concat_empty_r. reflexivity.
-        * rewrite concat_empty_r. reflexivity.
-        * admit. (* Open with some x, and add x to G? *)
-        * (* todo maybe change canon forms to add binds l T S? *)
-          assumption.
-          (* First use well_formed_update_store, then use well_formed_push_loc_stack *)
-        * pose proof (general_to_tight Hg) as [A _].
-          pose proof (A G S (trm_var (avar_f x)) (typ_ref T) H eq_refl).
-          pose proof (A G S (trm_val (val_loc l)) (typ_ref T) Hty eq_refl).
-          destruct (precise_ref_subtyping Hg BiLoc H1 H2 Hwf) as [U [HU [Hs1 Hs2]]].
-          apply wt_store_update with (T:=U); try assumption.
-          apply (ref_binds_typ HU). apply ty_sub with (T:=T); assumption.
-    }
-    { 
-      exists sta (sto[l := y]) (trm_var (avar_f y)) G (@empty typ). exists S (@empty typ).
-      split.
-      + apply red_asgn with (l:=l).
-        * assumption.
-        * lets Hbd: (LibMap.binds_def sto l y'). unfold bindsM in BiSto. rewrite Hbd in BiSto.
+        } 
+        { 
+          lets Hbd: (LibMap.binds_def sto l (Some y')). unfold bindsM in BiSto. 
+          rewrite Hbd in BiSto.
           destruct BiSto as [His Hsto]. assumption.
-      + repeat split.
-        * rewrite concat_empty_r. reflexivity.
-        * rewrite concat_empty_r. reflexivity.
-        * assumption.
-        * assumption.
-        * pose proof (general_to_tight Hg) as [A _].
-          pose proof (A G S (trm_var (avar_f x)) (typ_ref T) H eq_refl).
-          pose proof (A G S (trm_val (val_loc l)) (typ_ref T) Hty eq_refl).
-          destruct (precise_ref_subtyping Hg BiLoc H1 H2 Hwf) as [U [HU [Hs1 Hs2]]].
-          apply wt_store_update with (T:=U); try assumption.
-          apply (ref_binds_typ HU). apply ty_sub with (T:=T); assumption.
-    }
+        }
+      * auto.
+    + repeat split.
+      * rewrite concat_empty_r. reflexivity.
+      * unfold open_trm. simpl. case_if. 
+        assert (binds z (typ_ref T) (G & z ~ (typ_ref T))) by auto.
+        apply* ty_var.
+      * apply well_formed_push_loc_stack with (y:=y). 
+        {
+          apply (general_to_tight_typing Hin) in H.
+          apply (general_to_tight_typing Hin) in Hty.
+          pose proof (precise_nref_subtyping Hwf Hin BiLoc H Hty) as [U [Htp [Hs1 Hs2]]].
+          apply well_formed_update_store with (T:=U); try reflexivity.
+          - assumption. 
+          - inversion* Htp.
+          - apply (ty_sub H0 Hs1).
+        }
+        { auto. }
+        { auto. }
+        { apply binds_update_eq. }
+        { assumption. }
   - (* ref *)
     right. pick_fresh l.
-    exists sta (sto[l:=x]) (trm_val (val_loc l)) G (@empty typ). exists (S & l ~ T) (l ~ T).
-    split. apply* red_ref_var.
-    assert (l # S) as HS by auto.
-    apply (wt_notin_dom Hwt HS).
-    split. rewrite concat_empty_r. reflexivity.
-    split. reflexivity.
-    split. constructor. auto.
-    split. constructor. assumption. auto.
-    apply wt_store_new. assumption. auto.
-    assumption. 
+    exists sta (sto[l := None]) (trm_val (val_loc l)) G (@empty typ). exists (S & l ~ T) (l ~ T).
+    split. 
+    + apply* red_ref.
+      assert (l # S) as HS by auto.
+      apply (wf_notin_dom Hwf HS).
+    + repeat split. 
+      * rewrite concat_empty_r. reflexivity.
+      * apply* ty_loc. 
+      * apply* well_formed_new_store.
   - (* deref *)
-    right.
-    lets C: (canonical_forms_3 Hg Hwf Hwt H).
-    destruct C as [l [y [BiLoc [_ [BiVal Htyval]]]]].
+    right. pose proof (canonical_forms_3 Hin Hwf H) as [l [y [BiLoc [_ [BiVal Htyval]]]]].
     exists sta sto (trm_var (avar_f y)) G (@empty typ). exists S (@empty typ).
-    split. apply red_deref with (l:=l). assumption. assumption.
-    split. rewrite concat_empty_r. reflexivity.
-    split. rewrite concat_empty_r. reflexivity.
-    split. assumption. split. assumption. assumption.
+    split. 
+    + apply red_deref with (l:=l); assumption. 
+    + repeat split. 
+      * rewrite concat_empty_r. reflexivity.
+      * rewrite concat_empty_r. reflexivity.
+      * assumption. 
+      * assumption.
+  - (* nderef *)
+    right. pose proof (canonical_forms_4 Hin Hwf H) as [l [BiLoc [Hty BiSto]]].
+    destruct BiSto as [BiSto | [y' [BiSto Hy']]]. 
+    {
+      exists sta sto (trm_var (avar_f y)) G (@empty typ). exists S (@empty typ).
+      split. 
+      - apply red_nderef_notin with (l:=l); assumption.
+      - repeat split. 
+        + rewrite concat_empty_r. reflexivity.
+        + rewrite concat_empty_r. reflexivity.
+        + assumption. 
+        + assumption.
+    }
+    {
+      exists sta sto (trm_var (avar_f y')) G (@empty typ). exists S (@empty typ).
+      split.
+      - apply red_nderef_in with (l:=l); assumption.
+      - repeat split.
+        + rewrite concat_empty_r. reflexivity.
+        + rewrite concat_empty_r. reflexivity.
+        + assumption. 
+        + assumption.
+    }
 Qed.

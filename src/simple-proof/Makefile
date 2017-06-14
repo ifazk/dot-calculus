@@ -14,6 +14,7 @@ PROOFS= \
     Canonical_forms1.v \
     Canonical_forms2.v \
     Canonical_forms3.v \
+    Canonical_forms4.v \
     Safety.v
 PROOFOBJECTS=$(PROOFS:.v=.vo)
 

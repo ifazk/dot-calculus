@@ -80,47 +80,26 @@ Proof.
   - apply IHWt in H0. assumption.
 Qed.
 
-Lemma wt_notin_dom: forall G S sto l,
-  G, S |~ sto ->
+Lemma wf_notin_dom: forall G S sta sto l,
+  well_formed G S sta sto ->
   l # S ->
   l \notindom sto.
 Proof.
-  introv Wt. gen l. induction Wt; intros.
+  introv Hwf H. induction Hwf.
   - unfold store. rewrite LibMap.dom_empty. auto.
-  - assert (l <> l0). {
-      lets Hdec: (classicT (l = l0)). destruct Hdec.
-      * subst. false (binds_fresh_inv H H1).
-      * assumption.
-    }
-    assert (LibBag.dom sto[l := (Some x)] = LibBag.dom sto). {
-      apply dom_update_index.
-      * apply (prove_Inhab (Some x)).
-      * apply binds_get in H. apply get_some_inv in H.
-        lets Hind: (wt_in_dom Wt H). assumption.
-    }
-    unfolds addr. rewrite H3.
-
-    apply IHWt in H1. assumption.
-  - assert (l <> l0). {
-      lets Hdec: (classicT (l = l0)). destruct Hdec.
-      * subst. rew_env_defs. simpl in H1. apply notin_union in H1. destruct H1.
-        false (notin_same H1).
-      * assumption.
-    }
-    unfold LibBag.notin. unfold not. intro His_in.
-    assert (l0 \indom sto[l := (Some x)]) as Hindom by assumption. clear His_in.
-    destruct (indom_update_inv Hindom) as [Hl | Hl].
-    * subst. false H2. reflexivity.
-    * subst.
-      assert (l0 # S) as Hl0. {
-        unfolds in H1.
-        intro. apply H1. simpl_dom.
-        assert (l0 \notin \{l } \u (dom S)) as Hdom by auto.
-        apply notin_union in Hdom. destruct Hdom.
-        rewrite in_union. right. assumption.
-      }
-    specialize (IHWt l0 Hl0).  apply IHWt in Hl. false.
-    - apply IHWt in H0. assumption.
+  - apply* IHHwf. 
+  - apply* IHHwf. 
+  - destruct (classicT (l = l0)).
+    + subst. false (fresh_push_eq_inv H). 
+    + assert (HS: l # S) by auto.
+      specialize (IHHwf HS). unfold LibBag.notin in *.
+      unfold not. intros. 
+      destruct (indom_update_inv H1); false*.
+  - destruct (classicT (l = l0)).
+    + subst. false (binds_fresh_inv H0 H).
+    + specialize (IHHwf H). unfold LibBag.notin in *.
+      unfold not. intros. 
+      destruct (indom_update_inv H2); false*.
 Qed.
 
 Lemma invertible_val_to_precise_rec: forall G S v T,
@@ -459,8 +438,7 @@ Proof.
   - auto.
 Qed.
 
-(* TODO *)
-Lemma precise_ref_subtyping: forall G S sta sto x l T,
+Lemma precise_nref_subtyping: forall G S sta sto x l T,
     well_formed G S sta sto ->
     inert G -> 
     binds x (val_loc l) sta ->

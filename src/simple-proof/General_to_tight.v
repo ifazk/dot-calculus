@@ -77,11 +77,30 @@ Lemma invertible_to_precise_typ_ref: forall G S x T,
     G, S |-# T' <: T /\
     G, S |-# T <: T'.
 Proof.
-  introv Hg Hinv.
+  introv Hin Hinv.
   dependent induction Hinv.
   - exists T. split*.
-  - specialize (IHHinv T0 Hg eq_refl). 
+  - specialize (IHHinv T0 Hin eq_refl). 
     destruct IHHinv as [U [Hx Hs]]. exists U. split*.
+Qed.
+
+Lemma invertible_to_precise_typ_nref: forall G S x T,
+  inert G ->
+  G, S |-## x : typ_nref T ->
+  exists T',
+    (G, S |-! trm_var (avar_f x) : typ_nref T' \/ G, S |-! trm_var (avar_f x) : typ_ref T') /\
+    G, S |-# T' <: T /\
+    G, S |-# T <: T'.
+Proof.
+  introv Hin Hinv.
+  dependent induction Hinv.
+  - exists T. split*.
+  - specialize (IHHinv T0 Hin eq_refl). 
+    destruct IHHinv as [U [Hx Hs]]. exists U. split*.
+  - pose proof (invertible_to_precise_typ_ref Hin Hinv) as [T' [Htp [Hs1 Hs2]]].
+    exists T'. split.
+    + right. assumption.
+    + split*.
 Qed.
 
 (* Lemma 2 *)

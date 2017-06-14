@@ -316,10 +316,11 @@ Inductive red : trm -> stack -> store -> trm -> stack -> store -> Prop :=
 | red_ref : forall sta sto l T,
     l \notindom sto ->
     trm_ref T / sta / sto => trm_val (val_loc l) / sta / sto[l := None]
-| red_asgn : forall x y l sta sto,
+| red_asgn : forall x y z l sta sto,
     binds x (val_loc l) sta ->
     l \indom sto -> (* TODO is this redundant? *)
-    trm_asg (avar_f x) (avar_f y) / sta / sto => trm_let (trm_val (val_loc l)) (trm_var (avar_b 0)) / sta / sto[l := Some y]
+    z # sta ->
+    trm_asg (avar_f x) (avar_f y) / sta / sto => (open_trm z (trm_var (avar_b 0))) / sta & z ~ (val_loc l) / sto[l := Some y]
 | red_deref : forall x y (l: addr) sta (sto: store),
     binds x (val_loc l) sta ->
     bindsM l (Some y) sto ->

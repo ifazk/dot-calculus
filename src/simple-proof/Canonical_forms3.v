@@ -77,14 +77,6 @@ Require Import Invertible_typing.
 (*   exists x. split; eauto. *)
 (* Qed. *)
 
-Lemma ref_binds_typ: forall G S l T,
-  G, S |-! trm_val (val_loc l) : typ_nref T ->
-  binds l T S.
-Proof.
-  introv Hty.
-  inversion Hty. assumption.
-Qed.
-
 Lemma loc_ref: forall G S v T,
     inert G ->
     G, S |-# (trm_val v) : typ_ref T ->
@@ -211,6 +203,68 @@ Proof.
   - destruct (classicT (l = l0)).
     + subst. false (binds_fresh_inv H Hnotin).
     + apply* IHHwf.
+Qed.
+
+Lemma in_sto_type: forall G S sta sto l T,
+    inert G ->
+    well_formed G S sta sto ->
+    binds l T S ->
+    (bindsM l None sto \/ (exists x, bindsM l (Some x) sto /\ G, S |- trm_var (avar_f x) : T)).
+Proof.
+  introv Hin Hwf HS. induction Hwf. 
+  - false* binds_empty_inv.
+  - assert (Hin': inert G). {
+      inversions Hin.
+      - false* empty_push_inv.
+      - destruct (eq_push_inv H2) as [_ [_ ?]]. subst. assumption.
+    }
+    specialize (IHHwf Hin' HS) as [Hsto | [x' [Hsto Ht]]].
+    + left. assumption.
+    + right. exists x'. split.
+      * assumption.
+      * apply* weaken_ty_trm_ctx.
+  - assert (Hin': inert G). {
+      inversions Hin.
+      - false* empty_push_inv.
+      - destruct (eq_push_inv H3) as [_ [_ ?]]. subst. assumption.
+    }
+    specialize (IHHwf Hin' HS) as [Hsto | [x' [Hsto Ht]]].
+    + left. assumption.
+    + right. exists x'. split.
+      * assumption.
+      * apply* weaken_ty_trm_ctx.
+  - destruct (classicT (l = l0)).
+    + subst. apply binds_push_eq_inv in HS. subst. 
+      left. apply binds_update_eq.
+    + pose proof (binds_push_neq_inv HS n) as HS'. 
+      specialize (IHHwf Hin HS') as [Hsto | [x [Hsto Ht]]].
+      * left. apply* binds_update_neq.
+      * right. exists x. split.
+        { apply* binds_update_neq. }
+        { apply* weaken_ty_trm_sigma. }
+  - destruct (classicT (l = l0)).
+    + subst. right. exists x. split. 
+      * apply binds_update_eq.
+      * apply (binds_func H) in HS. subst. assumption.
+    + specialize (IHHwf Hin HS) as [Hsto | [x' [Hsto Ht]]].
+      * left. apply* binds_update_neq.
+      * right. exists x'. split.
+        { apply* binds_update_neq. }
+        { assumption. }
+Qed.
+
+Lemma test4: forall G S sta sto x l T T',
+    inert G ->
+    well_formed G S sta sto ->
+    binds x (typ_nref T) G ->
+    binds x (val_loc l) sta ->
+    binds l T' S ->
+    bindsM l None sto \/ (exists y, bindsM l (Some y) sto /\ G, S |- trm_var (avar_f y) : T').
+Proof.
+  introv Hin Hwf HG Hsta HS.
+  pose proof (in_sto_type Hin Hwf HS) as [Hsto | [y [Hsto Ht]]].
+  - left. assumption.
+  - right. exists y. split*.
 Qed.
 
 Lemma test: forall G S sta sto x l T T',
@@ -358,18 +412,6 @@ Proof.
       destruct IHHwf as [Hs1 Hs2].
       split*.
 Qed.
-
-Lemma canonical_forms_4: forall G S sta sto x T,
-  inert G ->
-  well_formed G S sta sto ->
-  G, S |- trm_var (avar_f x) : typ_nref T ->
-  (exists l,
-      binds x (val_loc l) sta /\
-      G, S |- trm_val (val_loc l) : typ_nref T /\
-      bindsM l None sto) \/
-  exists y, G, S |- trm_var (avar_f y) : typ_ref T.
-
-Admitted.
 
 Lemma canonical_forms_3: forall G S sta sto x T,
   inert G ->
