@@ -104,6 +104,23 @@ Proof.
   - admit.
 Qed.
 
+Lemma normalizing_to_invertible_var: forall G x T,
+    inert G ->
+    G |-#n p_var (avar_f x): T ->
+    G |-## p_var (avar_f x): T.
+Proof.
+  introv Hi Ht. dependent induction Ht; eauto; specialize (IHHt _ Hi eq_refl).
+  - inversions IHHt. apply ty_rec_elim_p in H.
+    apply* ty_path_i. rewrite* <- open_var_path_typ_eq.
+  - apply* invertible_sub_closure.
+Qed.
+
+Lemma avar_typing_false: forall G b T,
+    G |-#n p_var (avar_b b) : T -> False.
+Proof.
+  introv Ht. dependent induction Ht; eauto.
+Qed.
+
 Lemma normalizing_to_invertible: forall G p T,
     inert G ->
     G |-#n p: T ->
@@ -111,20 +128,21 @@ Lemma normalizing_to_invertible: forall G p T,
 Proof.
   introv Hi Ht.
   dependent induction p; eauto.
-  * admit. (*should be easy*)
-  *
-    dependent induction Ht; eauto.
-  -
-      inversions H.
-      remember IHp as IHp2. clear HeqIHp2.
-      specialize (IHp2 _ Hi Ht).
-      (* Could we use H2 and IHp2 here to deduce U=T, since there is no subtyping
+  * destruct a as [b | x].
+    - false* avar_typing_false.
+    - apply* normalizing_to_invertible_var.
+  * dependent induction Ht; eauto.
+    - inversions H. lets IHp2: (IHp _ Hi Ht).
+      (* O:
+         Could we use H2 and IHp2 here to deduce U=T, since there is no subtyping
          inside "typ_rcd {_ [strong] _}" ? *)
-    (*specialize (IHHt _ _ IHp). inversions IHHt. (*this breaks*) admit.*)
-    - inversions IHHt. apply ty_rec_elim_p in H.
-        apply* ty_path_i. rewrite* <- open_var_path_typ_eq.
-    - apply* invertible_sub_closure.
-Qed.
+
+      (* M:
+         We can't, because we don't know anything about tight typing.
+         Just like with general typing, we can't reason about it without converting it
+         to another typing mode. So we would need some IH that we could apply to it,
+         but we don't have that here *)
+Admitted.
 
 Lemma tight_to_normalizing_var: forall G x T,
     inert G ->
@@ -132,6 +150,25 @@ Lemma tight_to_normalizing_var: forall G x T,
     G |-#n p_var (avar_f x): T.
 Proof.
   introv Hi Ht. dependent induction Ht; eauto.
+Qed.
+
+Lemma precise_to_normalizing: forall G p T,
+    G |-! trm_path p: T ->
+    G |-# p \||/ ->
+    G |-#n p: T.
+Proof.
+  introv H Hn. dependent induction H; eauto.
+  specialize (IHty_trm_p _ eq_refl). apply ty_fld_elim_path_n in IHty_trm_p; auto.
+  inversion* Hn.
+Qed.
+
+Lemma normalizing_sub_closure: forall G p T U,
+    inert G ->
+    G |-#n p: T ->
+    G |-# T <: U ->
+    G |-#n p: U.
+Proof.
+  introv Hi Ht Hs. dependent induction Hs; eauto.
 Qed.
 
 Lemma tight_to_normalizing: forall G p T,
@@ -145,16 +182,29 @@ Proof.
   - introv Ht. assert (G |-# p \||/) as Hnp by inversion* Hn.
     specialize (IHp Hnp). dependent induction Ht; eauto.
     destruct p as [[b | x] | p].
+    (* M:
+       this destruct was a mistake: I thought it would help me in the second case
+       to apply the IH, but I still can't apply it. So I shouldn't be destructing,
+       and we will not be able to apply the IH. This means that we could just do
+       inversion Ht (above) *)
     * inversion Hnp.
     * apply tight_to_normalizing_var in Ht; auto.
       inversion Hn; subst.
       specialize (IHp _ H1).
-      specialize (normalizing_to_invertible Hi Ht). intro.
-      specialize (normalizing_to_invertible Hi IHp). intro.
-      destruct (invertible_to_precise_trm_dec Hi Hnp H) as [T' [mT [PrecT modeT]]].
-      destruct (invertible_to_precise_trm_dec Hi Hnp H0) as [U' [mU [PrecU modeU]]].
-      (* From PrecT and PrecU, can we now discover some useful relationship between T' and U'? *)
-      (*this breaks*)
+      lets Hti: (normalizing_to_invertible Hi Ht).
+      lets Hpi: (normalizing_to_invertible Hi IHp).
+      destruct (invertible_to_precise_trm_dec Hi Hnp Hti) as [T' [mT [PrecT [_ HsT]]]].
+      destruct (invertible_to_precise_trm_dec Hi Hnp Hpi) as [U' [mU [PrecU [modeU _]]]].
+      specialize (modeU eq_refl). destruct modeU. subst.
+
+      (* O:
+         From PrecT and PrecU, can we now discover some useful relationship between T' and U'? *)
+      (* M:
+         Yes: *)
+      destruct (p_rcd_unique Hi PrecT PrecU). subst.
+      apply ty_fld_elim_p in PrecT; auto. apply precise_to_normalizing in PrecT; auto.
+      apply* normalizing_sub_closure.
+    * lets Hpt0: (IHp _ Ht). inversions Hn. specialize (IHp _ H1).
 Qed.
 
 Lemma invertible_lemma_var : forall G U x,
