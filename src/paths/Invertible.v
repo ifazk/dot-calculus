@@ -171,6 +171,56 @@ Proof.
   introv Hi Ht Hs. dependent induction Hs; eauto.
 Qed.
 
+Lemma both: forall G p,
+    inert G ->
+    ( forall T, G |-#n p: T -> G |-## p: T) /\
+    ( forall T, G |-# trm_path p: T -> G |-# p \||/ -> G |-#n p: T)
+.
+Proof.
+ introv Hi.
+ dependent induction p.
+ - admit. (* variables, hopefully easy *)
+   -
+     destruct (IHp Hi) as [NI TN].
+     split.
+     +
+       introv Ht. dependent induction Ht; eauto.
+       *
+         specialize (IHHt p t IHp Hi NI TN).
+         inversions H.
+         specialize (TN _ H2 H5).
+         remember NI as NI2. clear HeqNI2.
+         specialize (NI _ TN).
+         specialize (NI2 _ Ht).
+         (* Now can we get T=U from
+  NI : G |-## p : typ_rcd {t [strong] U}
+  NI2 : G |-## p : typ_rcd {t [strong] T}
+?
+*)
+         assert (T=U) by admit. subst.
+         (* Should be easy now. *)
+         admit.
+       * admit.
+       * admit.
+     +
+       introv Ht Hn. clear IHp Hi.
+       dependent induction Ht; eauto.
+       *
+         inversions Hn.
+         remember TN as TN2. clear HeqTN2.
+         specialize (TN _ H1 H4).
+         specialize (TN2 _ Ht H4).
+         remember NI as NI2. clear HeqNI2.
+         specialize (NI _ TN).
+         specialize (NI2 _ TN2).
+         (* Now can we get T=U from
+  NI : G |-## p : typ_rcd {t [strong] U}
+  NI2 : G |-## p : typ_rcd {t [gen] T}
+?
+*)
+         admit.
+Qed.
+
 Lemma tight_to_normalizing: forall G p T,
     inert G ->
     G |-# trm_path p: T ->
