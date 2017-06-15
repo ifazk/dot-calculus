@@ -48,14 +48,9 @@ Lemma invertible_typing_closure_tight_v: forall G v T U,
   G |-##v v : U.
 Proof.
   introv Hgd HT Hsub.
-  dependent induction Hsub; eauto.
-  - inversions HT. inversion H.
-  - inversions HT. inversion H. assumption.
-  - inversions HT. inversions H. assumption.
-  - inversions HT. inversions H.
-  - inversions HT. inversions H.
-  - inversions HT. inversions H0.
-    lets Hb: (inert_unique_tight_bounds Hgd H H5). subst*.
+  dependent induction Hsub; eauto; inversions HT; auto; try solve [inversion* H].
+  - inversions H0.
+  - lets Hb: (inert_unique_tight_bounds Hgd H H5). subst*.
 Qed.
 
 Lemma invertible_typing_lemma_v : forall G v T,

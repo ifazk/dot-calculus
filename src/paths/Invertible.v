@@ -80,26 +80,6 @@ Proof.
   introv Hi Hp. dependent induction Hp; eauto.
 Qed.
 
-(*
-Lemma invertible_lemma:
-  (forall G t T,
-      G |-# t: T -> forall p,
-      inert G ->
-      t = trm_path p ->
-      G |-# p \||/ ->
-      G |-## p: T) /\
-  (forall G T U,
-      G |-# T <: U -> forall p,
-      inert G ->
-      G |-## p: T ->
-      G |-## p: U) /\
-  (forall G p,
-      G |-# p \||/ -> True).
-Proof.
-  apply ts_mutind_ts; intros; eauto.
-Admitted.
- *)
-
 Lemma invertible_sub_closure: forall G p T U,
   inert G ->
   G |-## p : T ->
@@ -120,10 +100,7 @@ Proof.
     + (* subtyp_sel_i *)
       lets Hu: (inert_unique_tight_bounds Hi H H6). subst*.
     + (* subtyp_sel1_t *)
-      lets Hu: (p_sngl_unique Hi H3 H). inversion Hu. (*
-      inversions H7. false* precise_psel_false.
-      lets Hu: (inert_unique_tight_bounds Hi H9 H). subst*.
-      false* H6. *)
+      lets Hu: (p_sngl_unique Hi H3 H). inversion Hu.
   - (* subtyp_sel2_t *)
     inversions HT.
     + false* precise_psel_false.
@@ -175,7 +152,7 @@ Proof.
   dependent induction Hsub; eauto; inversions HT; try solve [inversion H]; try assumption.
   - inversions H1.
   - lets Hb: (inert_unique_tight_bounds Hgd H H6). subst*.
-  - Admitted.
+  -
 
 Lemma invertible_lemma_v : forall G v T,
     inert G ->
