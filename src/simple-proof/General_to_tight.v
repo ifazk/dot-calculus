@@ -70,8 +70,7 @@ Proof.
       eauto.
 Qed.
 
-(* Lemma 2 *)
-Lemma tight_subtyping_sel: forall G x A S U,
+Lemma sel_replacement: forall G x A S U,
     inert G ->
     G |-# trm_var (avar_f x) : typ_rcd (dec_typ A S U) ->
     (G |-# typ_sel (avar_f x) A <: U /\
@@ -85,7 +84,6 @@ Proof.
   - apply subtyp_sel2_t in Ht. apply subtyp_trans_t with (T:=T); auto.
 Qed.
 
-(* Theorem 1 *)
 Lemma general_to_tight: forall G0,
   inert G0 ->
   (forall G t T,
@@ -98,7 +96,7 @@ Lemma general_to_tight: forall G0,
      G |-# S <: U).
 Proof.
   intros G0 HG.
-  apply ts_mutind; intros; subst; try solve [eapply tight_subtyping_sel; auto]; eauto.
+  apply ts_mutind; intros; subst; try solve [eapply sel_replacement; auto]; eauto.
 Qed.
 
 Lemma general_to_tight_typing: forall G t T,
