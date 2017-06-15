@@ -368,9 +368,9 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     G |- trm_path p : T ->
     G |- trm_path p : U ->
     G |- trm_path p : typ_and T U
-| ty_sngl_intro : forall G x T,
+(*| ty_sngl_intro : forall G x T,
     binds x T G ->
-    G |- trm_path (p_var (avar_f x)) : typ_sngl (p_var (avar_f x))
+    G |- trm_path (p_var (avar_f x)) : typ_sngl (p_var (avar_f x))*)
 (*| ty_sngl_typing : forall G p q T,
     G |- trm_path p: typ_sngl q ->
     G |- trm_path q: T ->
@@ -542,9 +542,9 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     G |-# trm_path p : T ->
     G |-# trm_path p : U ->
     G |-# trm_path p : typ_and T U
-| ty_sngl_intro_t : forall G x T,
+(*| ty_sngl_intro_t : forall G x T,
     binds x T G ->
-    G |-# trm_path (p_var (avar_f x)) : typ_sngl (p_var (avar_f x))
+    G |-# trm_path (p_var (avar_f x)) : typ_sngl (p_var (avar_f x))*)
 | ty_sub_t : forall G t T U,
     G |-# t : T ->
     G |-# T <: U ->
@@ -602,12 +602,12 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
        G & x ~ S2 |- T1 ||^ x <: T2 ||^ x) ->
     G |-# typ_all S1 T1 <: typ_all S2 T2
 | subtyp_sngl_sel1_t: forall G p q A S U,
-    G |-# trm_path p: typ_sngl q ->
+    G |-! trm_path p: typ_sngl q ->
     G |-# p \||/ ->
     G |-# trm_path q: typ_rcd { A >: S <: U } ->
     G |-# typ_path p A <: typ_path q A
 | subtyp_sngl_sel2_t: forall G p q A S U,
-    G |-# trm_path p: typ_sngl q ->
+    G |-! trm_path p: typ_sngl q ->
     G |-# p \||/ ->
     G |-# trm_path q: typ_rcd { A >: S <: U } ->
     G |-# typ_path q A <: typ_path p A
@@ -624,9 +624,9 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
 | ty_path_i : forall G p T,
     G |-! trm_path p : T ->
     G |-## p : T
-| ty_sngl_i : forall G p T,
+(*| ty_sngl_i : forall G p T,
     G |-! trm_path p: T ->
-    G |-## p: typ_sngl p
+    G |-## p : typ_sngl p *)
   (* General term member subtyping *)
 | subtyp_fld_i : forall G p a T T',
     G |-## p : typ_rcd { a [gen] T } ->
@@ -666,7 +666,7 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
     G |-## p : typ_path q A
   (* Singleton type selection *)
 | subtyp_sngl_i: forall G p q r A,
-    G |-## p: typ_sngl r ->
+    G |-! trm_path p: typ_sngl r ->
     p <> r ->
     G |-## q: typ_path r A ->
     G |-## q: typ_path p A

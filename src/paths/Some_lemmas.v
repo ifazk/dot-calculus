@@ -190,9 +190,7 @@ Lemma tight_to_general:
      norm_t G p ->
      norm G p).
 Proof.
-  apply ts_mutind_ts; intros; subst; eauto.
-  - apply precise_to_general in t; eauto.
-  - apply precise_to_general in t; eauto.
+  apply ts_mutind_ts; intros; subst; eauto; apply precise_to_general in t; eauto.
 Qed.
 
 (* ###################################################################### *)

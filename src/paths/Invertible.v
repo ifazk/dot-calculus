@@ -72,6 +72,34 @@ Proof.
       eauto.
 Qed.
 
+Lemma invertible_to_precise_sngl: forall G p q,
+    inert G ->
+    G |-## p: typ_sngl q ->
+    G |-! trm_path p: typ_sngl q.
+Proof.
+  introv Hi Hp. dependent induction Hp; eauto.
+Qed.
+
+(*
+Lemma invertible_lemma:
+  (forall G t T,
+      G |-# t: T -> forall p,
+      inert G ->
+      t = trm_path p ->
+      G |-# p \||/ ->
+      G |-## p: T) /\
+  (forall G T U,
+      G |-# T <: U -> forall p,
+      inert G ->
+      G |-## p: T ->
+      G |-## p: U) /\
+  (forall G p,
+      G |-# p \||/ -> True).
+Proof.
+  apply ts_mutind_ts; intros; eauto.
+Admitted.
+ *)
+
 Lemma invertible_sub_closure: forall G p T U,
   inert G ->
   G |-## p : T ->
@@ -92,14 +120,24 @@ Proof.
     + (* subtyp_sel_i *)
       lets Hu: (inert_unique_tight_bounds Hi H H6). subst*.
     + (* subtyp_sel1_t *)
-      inversions H3. lets Hu: (p_sngl_unique Hi H1 H). inversion Hu.
+      lets Hu: (p_sngl_unique Hi H3 H). inversion Hu. (*
       inversions H7. false* precise_psel_false.
       lets Hu: (inert_unique_tight_bounds Hi H9 H). subst*.
-      false* H6.
-  - (* subtyp_sngl_sel1_t *)
+      false* H6. *)
+  - (* subtyp_sel2_t *)
     inversions HT.
     + false* precise_psel_false.
-    + Admitted. (* stuck here *)
+    + lets Hu: (p_sngl_unique Hi H H7). inversion Hu.
+    + lets Hu: (p_sngl_unique Hi H H4). inversions Hu. assumption.
+  - (* subtyp_sngl_sel2_t *)
+    inversions HT.
+    + false* precise_psel_false.
+    + lets Hs: (subtyp_sel_i H4 H7 H8).
+      destruct (classicT (p = q)) as [Heq | Hneq].
+      * subst*.
+      * apply* subtyp_sngl_i.
+    + destruct (classicT (p = q)) as [Heq | Hneq]. subst*. apply* subtyp_sngl_i.
+Qed.
 
 Lemma invertible_lemma: forall G p T,
     inert G ->
@@ -118,7 +156,7 @@ Proof.
    dependent induction Ht; try specialize (IHHt p t IHp Hi eq_refl Hn); eauto.
    * inversions Hn.
      lets IHp2: (IHp _ Ht H4). specialize (IHp _ H1 H4). inversions IHp.
-     destruct (invertible_to_precise_trm_dec Hi H4 IHp2) as [V [m [Hp [_ Hs]]]].
+     destruct (invertible_to_precise_trm_dec Hi IHp2) as [V [m [Hp [_ Hs]]]].
      destruct (p_rcd_unique Hi H Hp). subst. apply ty_fld_elim_p in H; auto.
      apply ty_path_i in Hp. apply* invertible_sub_closure.
    * inversions IHHt. apply ty_rec_elim_p in H. apply* ty_path_i.

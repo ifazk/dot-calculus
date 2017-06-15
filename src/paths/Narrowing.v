@@ -77,9 +77,9 @@ Proof.
   - (* ty_let *)
     subst.
     apply_fresh ty_let as y; eauto using subenv_push.
-  - (* ty_sngl_intro *)
+ (* - (* ty_sngl_intro *)
     unfold subenv in H0. specialize (H0 x T b). destruct* H0. destruct H0 as [T' [Bi Hsub]].
-    apply* ty_sngl_intro.
+    apply* ty_sngl_intro.*)
  - (* ty_def_path *)
     constructor. apply H; auto. apply subenv_push. assumption. assumption.
   - (* ty_def_val *)
