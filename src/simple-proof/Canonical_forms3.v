@@ -11,72 +11,6 @@ Require Import Inert_types.
 Require Import General_to_tight.
 Require Import Invertible_typing.
 
-(* Lemma sigma_binds_to_store_binds_raw: forall sto G S l T, *)
-(*   G, S |~ sto -> *)
-(*   binds l T S -> *)
-(*   exists S1 S2, *)
-(*     S = S1 & (l ~ T) & S2 /\ *)
-(*     exists x, *)
-(*       bindsM l (Some x) sto /\ *)
-(*       G, S |- trm_var (avar_f x) : T. *)
-(* Proof. *)
-(*   introv Wt. generalize l T. induction Wt; introv Bi. *)
-(*   + false* binds_empty_inv. *)
-(*   + lets OkS: (wt_store_to_ok_S Wt). *)
-(*     apply IHWt in Bi; clear IHWt. *)
-(*     destruct Bi as [S1 [S2 [HS [v0 [HBi Hty]]]]]. *)
-(*     exists S1 S2. *)
-(*     split. assumption. *)
-(*     lets Hdec: (classicT (l1 = l0)). destruct Hdec as [Hdec | Hdec]. *)
-(*     - subst l1. exists x. split. *)
-(*       * apply binds_update_eq. *)
-(*       * assert (binds l0 T1 S) as Hbi. { *)
-(*           subst S. apply binds_middle_eq. *)
-(*           apply ok_middle_inv in OkS. destruct OkS as [_ Hl]. assumption. *)
-(*         } *)
-(*         subst S. apply binds_middle_eq_inv in H. *)
-(*         subst. assumption. assumption. *)
-(*     - exists v0. split. *)
-(*       * apply binds_update_neq; assumption. *)
-(*       * assumption. *)
-(*   + lets OkS: (wt_store_to_ok_S Wt). *)
-(*     lets Hdec: (classicT (l1 = l0)). destruct Hdec as [Hdec | Hdec]. *)
-(*     - subst l1. exists S (@empty typ). *)
-(*       apply binds_push_eq_inv in Bi. subst T1. *)
-(*       split. *)
-(*       rewrite concat_empty_r. reflexivity. *)
-(*       exists x. split. *)
-(*       * apply binds_update_eq. *)
-(*       * apply weaken_ty_trm_sigma. *)
-(*         assumption. *)
-(*         constructor; assumption. *)
-(*     - apply binds_push_neq_inv in Bi; try assumption. *)
-(*       destruct (IHWt l1 T1 Bi) as [S1 [S2 [HS [v0 [HBiM Hty]]]]]. *)
-(*       exists S1 (S2 & l0 ~ T0). split. *)
-(*       subst S. rewrite concat_assoc. reflexivity. *)
-(*       exists v0. split. *)
-(*       apply binds_update_neq; assumption. *)
-(*       apply weaken_ty_trm_sigma. assumption. constructor; assumption. *)
-(*   + destruct (IHWt l0 T1 Bi) as [S1 [S2 [HS [v [HBi Hty]]]]]. *)
-(*     exists S1 S2. split. *)
-(*     assumption. *)
-(*     exists v. split. assumption. apply weaken_ty_trm_ctx. *)
-(*     assumption. constructor. apply wt_store_to_ok_G in Wt. assumption. assumption. *)
-(* Qed. *)
-
-(* Lemma sigma_binds_to_store_binds_typing: forall G S sto l T, *)
-(*   G, S |~ sto -> *)
-(*   binds l T S -> *)
-(*   exists x, *)
-(*     bindsM l (Some x) sto /\ *)
-(*     G, S |- trm_var (avar_f x) : T. *)
-(* Proof. *)
-(*   introv Hwf Bi. *)
-(*   lets A: (sigma_binds_to_store_binds_raw Hwf Bi). *)
-(*   destruct A as [S1 [S2 [HeqG [x [Bis Hty]]]]]. *)
-(*   exists x. split; eauto. *)
-(* Qed. *)
-
 Lemma loc_ref: forall G S v T,
     inert G ->
     G, S |-# (trm_val v) : typ_ref T ->
@@ -87,7 +21,7 @@ Qed.
 
 Lemma binds_bindsM: forall G S sta sto l x T,
     inert G ->
-    well_formed G S sta sto ->
+    G, S |~ sta, sto ->
     binds l T S ->
     bindsM l (Some x) sto ->
     G, S |- trm_var (avar_f x) : T.
@@ -130,7 +64,7 @@ Qed.
 
 Lemma test_bindsM: forall G S sta sto l x,
     inert G ->
-    well_formed G S sta sto ->
+    G, S |~ sta, sto ->
     bindsM l x sto ->
     l # S ->
     False.
@@ -162,7 +96,7 @@ Qed.
 
 Lemma test_binds_l_notin_ref: forall G S sta sto l x T,
     inert G ->
-    well_formed G S sta sto ->
+    G, S |~ sta, sto ->
     l # S ->
     binds x (typ_ref T) G ->
     binds x (val_loc l) sta ->
@@ -207,7 +141,7 @@ Qed.
 
 Lemma in_sto_type: forall G S sta sto l T,
     inert G ->
-    well_formed G S sta sto ->
+    G, S |~ sta, sto ->
     binds l T S ->
     (bindsM l None sto \/ (exists x, bindsM l (Some x) sto /\ G, S |- trm_var (avar_f x) : T)).
 Proof.
@@ -255,7 +189,7 @@ Qed.
 
 Lemma test4: forall G S sta sto x l T T',
     inert G ->
-    well_formed G S sta sto ->
+    G, S |~ sta, sto ->
     binds x (typ_nref T) G ->
     binds x (val_loc l) sta ->
     binds l T' S ->
@@ -269,7 +203,7 @@ Qed.
 
 Lemma test: forall G S sta sto x l T T',
     inert G ->
-    well_formed G S sta sto ->
+    G, S |~ sta, sto ->
     binds x (typ_ref T) G ->
     binds l T' S ->
     binds x (val_loc l) sta ->
@@ -359,7 +293,7 @@ Qed.
 
 Lemma test_invariant: forall G S sta sto x l T T',
     inert G ->
-    well_formed G S sta sto ->
+    G, S |~ sta, sto ->
     binds x (typ_ref T) G ->
     binds l T' S ->
     binds x (val_loc l) sta ->
@@ -415,7 +349,7 @@ Qed.
 
 Lemma canonical_forms_3: forall G S sta sto x T,
   inert G ->
-  well_formed G S sta sto ->
+  G, S |~ sta, sto ->
   G, S |- trm_var (avar_f x) : typ_ref T ->
   exists l y,
     binds x (val_loc l) sta /\

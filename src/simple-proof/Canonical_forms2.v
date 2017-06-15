@@ -47,7 +47,7 @@ Proof.
 Qed.
 
 Lemma new_ty_defs: forall G S sta sto x T ds,
-  well_formed G S sta sto ->
+  G, S |~ sta, sto ->
   inert G ->
   binds x (val_new T ds) sta ->
   G, S /- open_defs x ds :: open_typ x T.
@@ -68,7 +68,7 @@ Proof.
 Qed.
 
 Lemma corresponding_types_ty_trms: forall G S sta sto ds x V,
-  well_formed G S sta sto ->
+  G, S |~ sta, sto ->
   inert G ->
   binds x (typ_bnd V) G ->
   binds x (val_new V ds) sta ->
@@ -90,7 +90,7 @@ Proof.
 Qed.
 
 Lemma canonical_forms_2: forall G S sta sto x a T,
-  well_formed G S sta sto ->
+  G, S |~ sta, sto ->
   inert G ->
   G, S |- trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
   (exists V ds t, 

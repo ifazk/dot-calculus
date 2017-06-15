@@ -14,7 +14,7 @@ Require Import Canonical_forms3.
 
 Lemma canonical_forms_4: forall G S sta sto x T,
   inert G ->
-  well_formed G S sta sto ->
+  G, S |~ sta, sto ->
   G, S |- trm_var (avar_f x) : typ_nref T ->
   (exists l,
       binds x (val_loc l) sta /\

@@ -14,76 +14,23 @@ Require Import Narrowing.
 (** ** Well-formed stack *)
 
 Lemma wf_to_ok_s: forall G S sta sto,
-    well_formed G S sta sto -> ok sta.
+    G, S |~ sta, sto -> ok sta.
 Proof. intros. induction H; jauto. Qed.
 
 Lemma wf_to_ok_G: forall G S sta sto,
-    well_formed G S sta sto -> ok G.
+    G, S |~ sta, sto -> ok G.
 Proof. intros. induction H; jauto. Qed.
 
 Lemma wf_to_ok_S: forall G S sta sto,
-    well_formed G S sta sto -> ok S.
+    G, S |~ sta, sto -> ok S.
 Proof. intros. induction H; jauto. Qed.
 
 Hint Resolve wf_to_ok_s wf_to_ok_G wf_to_ok_S.
 
-Lemma wf_stack_to_ok_s: forall s G S,
-    G, S ~~ s -> ok s.
-Proof. intros. induction H; jauto. Qed.
-
-Lemma wf_stack_to_ok_G: forall s G S,
-    G, S ~~ s -> ok G.
-Proof. intros. induction H; jauto. Qed.
-
-Lemma wf_stack_to_ok_S: forall s G S,
-    G, S ~~ s -> ok S.
-Proof. intros. induction H; jauto. Qed.
-
-Lemma wt_store_to_ok_S: forall s G S,
-    G, S |~ s -> ok S.
-Proof.
-  introv Wt. induction Wt; auto.
-Qed.
-
-Lemma wt_store_to_ok_G: forall s G S,
-    G, S |~ s -> ok G.
-Proof.
-  introv Wt. induction Wt; auto.
-Qed.
-
-Hint Resolve wf_stack_to_ok_s wf_stack_to_ok_G wf_stack_to_ok_S wt_store_to_ok_S wt_store_to_ok_G.
-
-Lemma wt_in_dom: forall G S sto l,
-  G, S |~ sto ->
-  l \in dom S ->
-  index sto l.
-Proof.
-  introv Wt. gen l. induction Wt; intros.
-  - rewrite dom_empty in H. rewrite in_empty in H. false.
-  - lets Hind: (IHWt l0 H1).
-    lets Hinh: (prove_Inhab x).
-    pose proof (classicT (l = l0)) as [H' | H']; unfolds store, addr.
-    * pose proof (indom_update sto l l0 (Some x)). 
-      rewrite index_def. rewrite H2. left. rewrite H'. reflexivity. 
-    * pose proof (indom_update sto l l0 (Some x)). 
-      rewrite index_def. rewrite H2. right. assumption. 
-  - lets Hinh: (prove_Inhab (Some x)).
-    pose proof (classicT (l = l0)) as [H' | H']; unfolds store, addr.
-    * rewrite index_def. rewrite indom_update. left. rewrite H'. reflexivity. assumption.
-    * rewrite index_def. rewrite indom_update. right.
-      assert (l0 \in dom S). {
-        simpl_dom. rewrite in_union in H1. destruct H1.
-        + rewrite in_singleton in H1. subst. false H'. reflexivity.
-        + assumption.
-      }
-      lets Hin: (IHWt l0 H2). assumption. assumption.
-  - apply IHWt in H0. assumption.
-Qed.
-
 Lemma wf_notin_dom: forall G S sta sto l,
-  well_formed G S sta sto ->
-  l # S ->
-  l \notindom sto.
+    G, S |~ sta, sto ->
+    l # S ->
+    l \notindom sto.
 Proof.
   introv Hwf H. induction Hwf.
   - unfold store. rewrite LibMap.dom_empty. auto.
@@ -133,23 +80,6 @@ Proof.
     apply* H0.
 Qed.
 
-(* Lemma invertible_val_to_precise_ref: forall G S v T, *)
-(*     G, S |-##v v : typ_ref T -> *)
-(*     exists T', *)
-(*       G, S |-! trm_val v : typ_ref T' /\ *)
-(*       G, S |- T' <: T /\ *)
-(*       G, S |- T <: T'. *)
-(* Proof. *)
-(*   introv Ht. dependent induction Ht. *)
-(*   - exists* T.  *)
-(*   - destruct (IHHt T0 eq_refl) as [T' [Hty [Hs1 Hs2]]]. exists T'. repeat split.  *)
-(*     + assumption. *)
-(*     + apply subtyp_trans with (T:=T0); auto. *)
-(*       apply (proj22 tight_to_general); auto. *)
-(*     + apply subtyp_trans with (T:=T0); auto. *)
-(*       apply (proj22 tight_to_general); auto. *)
-(* Qed. *)
-
 Lemma invertible_val_to_precise_nref: forall G S v T,
     G, S |-##v v : typ_nref T ->
     exists T',
@@ -165,9 +95,6 @@ Proof.
       apply (proj22 tight_to_general); auto.
     + apply subtyp_trans with (T:=T0); auto.
       apply (proj22 tight_to_general); auto.
-  (* - apply invertible_val_to_precise_ref in Ht. *)
-  (*   destruct Ht as [T' [Ht [Hs1 Hs2]]]. *)
-  (*   inversions Ht. *)
 Qed.
 
 Lemma precise_forall_inv : forall G S v V T,
@@ -237,7 +164,7 @@ Proof.
 Qed.
 
 Lemma corresponding_types: forall G S sta sto x T,
-    well_formed G S sta sto ->
+    G, S |~ sta, sto ->
     inert G ->
     binds x T G ->
     ((exists L V U V' U' t, binds x (val_lambda V t) sta /\
@@ -374,7 +301,7 @@ Proof.
 Qed.
 
 Lemma stack_binds_to_ctx_binds: forall G S sta sto x v,
-    well_formed G S sta sto ->
+    G, S |~ sta, sto ->
     binds x v sta -> 
     exists V, binds x V G.
 Proof.
@@ -395,7 +322,7 @@ Proof.
 Qed.
 
 Lemma wf_stack_val_new_in_G: forall G S sta sto x T ds,
-    well_formed G S sta sto ->
+    G, S |~ sta, sto ->
     inert G ->
     binds x (val_new T ds) sta ->
     binds x (typ_bnd T) G.
@@ -439,7 +366,7 @@ Proof.
 Qed.
 
 Lemma precise_nref_subtyping: forall G S sta sto x l T,
-    well_formed G S sta sto ->
+    G, S |~ sta, sto ->
     inert G -> 
     binds x (val_loc l) sta ->
     G, S |-# trm_var (avar_f x) : typ_nref T ->
@@ -467,7 +394,7 @@ Proof.
 Qed.
 
 Lemma val_new_typing: forall G S sta sto x T ds,
-    well_formed G S sta sto ->
+    G, S |~ sta, sto ->
     inert G ->
     binds x (val_new T ds) sta ->
     G, S |-! trm_val (val_new T ds) : typ_bnd T.

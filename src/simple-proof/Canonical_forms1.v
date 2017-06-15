@@ -11,13 +11,8 @@ Require Import Inert_types.
 Require Import General_to_tight.
 Require Import Substitution.
 
-(*
-Lemma (Canonical forms 1)
-If G ~ s and G |- x: all(x: T)U then s(x) = lambda(x: T')t where G |- T <: T' and G, x: T |- t: U.
- *)
-
 Lemma canonical_forms_1: forall G S sta sto x T U,
-  well_formed G S sta sto ->
+  G, S |~ sta, sto ->
   inert G ->
   G, S |- trm_var (avar_f x) : typ_all T U ->
   (exists L T' t, 
