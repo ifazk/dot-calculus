@@ -10,7 +10,20 @@ Require Import Some_lemmas.
 Require Import Inert_types.
 Require Import General_to_tight.
 Require Import Invertible_typing.
-Require Import Canonical_forms3.
+
+Lemma wf_binds_sto_None_or_Some: forall G S sta sto x l T T',
+    inert G ->
+    G, S |~ sta, sto ->
+    binds x (typ_nref T) G ->
+    binds x (val_loc l) sta ->
+    binds l T' S ->
+    bindsM l None sto \/ (exists y, bindsM l (Some y) sto /\ G, S |- trm_var (avar_f y) : T').
+Proof.
+  introv Hin Hwf HG Hsta HS.
+  pose proof (wf_in_sto Hin Hwf HS) as [Hsto | [y [Hsto Ht]]].
+  - left. assumption.
+  - right. exists y. split*.
+Qed.
 
 Lemma canonical_forms_4: forall G S sta sto x T,
   inert G ->
@@ -84,7 +97,7 @@ Proof.
           apply (ty_sub Ht) in H.
           pose proof (subtyp_nref Hs1 Hs2).
           apply (ty_sub H H0).
-        - pose proof (test4 Hin Hwf Hpf Hb H3) as [Hsto | [y [Hsto Hy]]].
+        - pose proof (wf_binds_sto_None_or_Some Hin Hwf Hpf Hb H3) as [Hsto | [y [Hsto Hy]]].
           + left. assumption.
           + right. exists y. split. 
             * assumption.
@@ -100,7 +113,7 @@ Proof.
       } 
     } 
     { (* ref *)
-      pose proof (test Hin Hwf Bi H3 Hb) as [y [Biy Hy]].
+      pose proof (wf_binds_sto_Some Hin Hwf Bi H3 Hb) as [y [Biy Hy]].
       destruct Hx as [Hx | Hx].
       { (* nref *)
         pose proof (precise_flow_lemma Hx).

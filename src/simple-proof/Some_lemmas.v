@@ -1,6 +1,6 @@
 Set Implicit Arguments.
 
-Require Import LibLN.
+Require Import LibMap LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Weakening.
@@ -360,4 +360,13 @@ Proof.
     try solve [inversion Heqt; eapply IHty_trm; eauto];
     try solve [inversion Heqt; eapply IHty_trm1; eauto].
   - inversion Heqt. subst. exists T. assumption.
+Qed.
+
+Lemma bindsM_empty: forall x l,
+    bindsM l x emptyM -> False.
+Proof.
+  intros. unfold bindsM in H. 
+  rewrite binds_def with (H:=(prove_Inhab None)) in H. destruct H.
+  rewrite LibMap.dom_empty in H.
+  rewrite in_empty_eq in H. false.
 Qed.
