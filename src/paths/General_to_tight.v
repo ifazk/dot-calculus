@@ -33,8 +33,8 @@ Lemma sngl_replacement: forall G p r A S U,
 Proof.
   introv Hi Hn Hp Hr. lets Hil: (invertible_lemma Hi Hp Hn).
   lets Hs: (invertible_to_precise_sngl Hi Hil). split.
-  - apply* subtyp_sngl_sel2_t.
-  - apply* subtyp_sngl_sel1_t.
+  - destruct Hs as [Ht | Heq]. apply* subtyp_sngl_sel2_t. subst*.
+  - destruct Hs as [Ht | Heq]. apply* subtyp_sngl_sel1_t. subst*.
 Qed.
 
 (* Theorem 1 *)

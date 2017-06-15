@@ -368,9 +368,9 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     G |- trm_path p : T ->
     G |- trm_path p : U ->
     G |- trm_path p : typ_and T U
-(*| ty_sngl_intro : forall G x T,
+| ty_sngl_intro : forall G x T,
     binds x T G ->
-    G |- trm_path (p_var (avar_f x)) : typ_sngl (p_var (avar_f x))*)
+    G |- trm_path (p_var (avar_f x)) : typ_sngl (p_var (avar_f x))
 (*| ty_sngl_typing : forall G p q T,
     G |- trm_path p: typ_sngl q ->
     G |- trm_path q: T ->
@@ -542,9 +542,9 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     G |-# trm_path p : T ->
     G |-# trm_path p : U ->
     G |-# trm_path p : typ_and T U
-(*| ty_sngl_intro_t : forall G x T,
+| ty_sngl_intro_t : forall G x T,
     binds x T G ->
-    G |-# trm_path (p_var (avar_f x)) : typ_sngl (p_var (avar_f x))*)
+    G |-# trm_path (p_var (avar_f x)) : typ_sngl (p_var (avar_f x))
 | ty_sub_t : forall G t T U,
     G |-# t : T ->
     G |-# T <: U ->
@@ -624,9 +624,9 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
 | ty_path_i : forall G p T,
     G |-! trm_path p : T ->
     G |-## p : T
-(*| ty_sngl_i : forall G p T,
+| ty_sngl_i : forall G p T,
     G |-! trm_path p: T ->
-    G |-## p : typ_sngl p *)
+    G |-## p : typ_sngl p
   (* General term member subtyping *)
 | subtyp_fld_i : forall G p a T T',
     G |-## p : typ_rcd { a [gen] T } ->

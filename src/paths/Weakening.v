@@ -44,7 +44,7 @@ Proof.
       specialize (H0 z zL G1 G2 (G3 & z ~ T)).
       repeat rewrite concat_assoc in H0.
       apply* H0.
-(*  + apply* ty_sngl_intro. apply* binds_weaken. *)
+  + apply* ty_sngl_intro. apply* binds_weaken.
   + apply ty_def_trm.
     rewrite <- concat_assoc. apply H;rewrite concat_assoc. reflexivity. assumption.
   + apply ty_def_val. rewrite <- concat_assoc. apply H; rewrite concat_assoc. reflexivity. assumption.

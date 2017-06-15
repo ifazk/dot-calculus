@@ -75,7 +75,7 @@ Qed.
 Lemma invertible_to_precise_sngl: forall G p q,
     inert G ->
     G |-## p: typ_sngl q ->
-    G |-! trm_path p: typ_sngl q.
+    G |-! trm_path p: typ_sngl q \/ p = q.
 Proof.
   introv Hi Hp. dependent induction Hp; eauto.
 Qed.
@@ -150,7 +150,9 @@ Proof.
    dependent induction Hp; eauto.
    * specialize (IHHp _ Hi eq_refl Hn). inversions IHHp.
      apply ty_rec_elim_p in H. apply* ty_path_i. rewrite* <- open_var_path_typ_eq.
-   * specialize (IHHp _ Hi eq_refl Hn). apply* invertible_sub_closure.
+   * subst.
+
+     specialize (IHHp _ Hi eq_refl Hn). apply* invertible_sub_closure.
  - specialize (IHp Hi).
    introv Ht Hn.
    dependent induction Ht; try specialize (IHHt p t IHp Hi eq_refl Hn); eauto.
