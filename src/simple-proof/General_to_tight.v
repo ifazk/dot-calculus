@@ -84,8 +84,7 @@ Proof.
     destruct IHHinv as [U [Hx Hs]]. exists U. split*.
 Qed.
 
-(* Lemma 2 *)
-Lemma tight_subtyping_sel: forall G S x A V U,
+Lemma sel_replacement: forall G S x A V U,
     inert G ->
     G, S |-# trm_var (avar_f x) : typ_rcd (dec_typ A V U) ->
        (G, S |-# typ_sel (avar_f x) A <: U /\
@@ -99,7 +98,6 @@ Proof.
   - apply subtyp_sel2_t in Ht. apply subtyp_trans_t with (T:=T); auto.
 Qed.
 
-(* Theorem 1 *)
 Lemma general_to_tight: forall G0,
   inert G0 ->
   (forall G S t T,
@@ -112,7 +110,7 @@ Lemma general_to_tight: forall G0,
      G, S |-# V <: U).
 Proof.
   intros G0 HG.
-  apply ts_mutind; intros; subst; try solve [eapply tight_subtyping_sel; auto]; eauto.
+  apply ts_mutind; intros; subst; try solve [eapply sel_replacement; auto]; eauto.
 Qed.
 
 Lemma general_to_tight_typing: forall G S t T,

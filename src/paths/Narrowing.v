@@ -67,10 +67,7 @@ Proof.
   apply rules_mutind; intros; eauto 4.
   - (* ty_var *)
     subst. unfold subenv in H0. specialize (H0 x T b).
-    destruct H0.
-    + eauto.
-    + destruct H0 as [T' [Bi Hsub]].
-      eapply ty_sub; eauto.
+    destruct* H0. destruct H0 as [T' [Bi Hsub]]. eapply ty_sub; eauto.
   - (* ty_all_intro *)
     subst.
     apply_fresh ty_all_intro as y; eauto using subenv_push.
@@ -80,6 +77,9 @@ Proof.
   - (* ty_let *)
     subst.
     apply_fresh ty_let as y; eauto using subenv_push.
+  - (* ty_sngl_intro *)
+    unfold subenv in H0. specialize (H0 x T b). destruct* H0. destruct H0 as [T' [Bi Hsub]].
+    apply* ty_sngl_intro.
  - (* ty_def_path *)
     constructor. apply H; auto. apply subenv_push. assumption. assumption.
   - (* ty_def_val *)
@@ -87,6 +87,10 @@ Proof.
   - (* norm_var *)
     unfold subenv in H0. destruct (H0 x T b) as [Hb | [T1 [Hb Hs]]];
     apply* norm_var.
+  - (* subtyp_sngl_sel1 *)
+    apply* subtyp_sngl_sel1.
+  - (* subtyp_sngl_sel2 *)
+    apply* subtyp_sngl_sel2.
   - (* subtyp_all *)
     subst.
     apply_fresh subtyp_all as y; eauto.

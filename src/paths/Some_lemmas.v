@@ -17,25 +17,9 @@ Lemma open_var_eq_p_typ_dec_path: forall x,
     (forall P : path, forall n : nat,
           open_rec_path n x P = open_rec_path_p n (p_var (avar_f x)) P).
 Proof.
-  intros. apply typ_mutind; unfold open_typ, open_typ_p; simpl; intros; auto.
-  - (* typ_rcd *)
-    f_equal*.
-  - (* typ_and *)
-    rewrite H. rewrite* H0.
-  - (* typ_path *)
-    rewrite* H.
-  - (* typ_bnd *)
-    f_equal*.
-  - (* typ_all *)
-    rewrite H. rewrite* H0.
-  - (* dec_typ *)
-    rewrite H. rewrite* H0.
-  - (* dec_trm *)
-    rewrite* H.
-  - (* p_var *)
-    unfold open_rec_avar, open_rec_avar_p. destruct a; simpl. case_if*. f_equal*.
-  - (* p_sel *)
-    rewrite* H.
+  intros. apply typ_mutind; unfold open_typ, open_typ_p; simpl; intros; auto;
+            try solve [rewrite* H; rewrite* H0].
+  unfold open_rec_avar, open_rec_avar_p. destruct a; simpl. case_if*. f_equal*.
 Qed.
 
 Lemma open_var_path_typ_eq: forall x T,
@@ -163,6 +147,20 @@ Qed.
 (* ###################################################################### *)
 (** *** Lemmas to upcast to general typing *)
 
+Lemma precise_to_tight: forall G t T,
+    G |-! t : T ->
+    G |-# t : T.
+Proof.
+  introv Hp. induction Hp; eauto.
+Qed.
+
+Lemma precise_to_general: forall G t T,
+    G |-! t : T ->
+    G |- t : T.
+Proof.
+  introv Hp. induction Hp; eauto.
+Qed.
+  (*
 Lemma precise_to_tight:
   (forall G t T, G |-! t : T ->
             G |-# t : T) /\
@@ -179,7 +177,7 @@ Lemma precise_to_general:
           norm G p).
 Proof.
   apply ts_mutind_p; intros; eauto.
-Qed.
+Qed. *)
 
 Lemma tight_to_general:
   (forall G t T,
@@ -192,9 +190,7 @@ Lemma tight_to_general:
      norm_t G p ->
      norm G p).
 Proof.
-  apply ts_mutind_ts; intros; subst; eauto.
-  - apply precise_to_general in t; eauto.
-  - apply precise_to_general in t; eauto.
+  apply ts_mutind_ts; intros; subst; eauto; apply precise_to_general in t; eauto.
 Qed.
 
 (* ###################################################################### *)
@@ -227,11 +223,9 @@ Lemma typing_implies_bound: forall G x T,
   exists S, binds x S G.
 Proof.
   intros. remember (trm_path (p_var (avar_f x))) as t.
-  induction H;
-    try solve [inversion Heqt];
-    try solve [inversion Heqt; eapply IHty_trm; eauto];
-    try solve [inversion Heqt; eapply IHty_trm1; eauto].
-  - inversion Heqt. subst. exists T. assumption.
+  induction H; inversion Heqt;
+    try solve [apply* IHty_trm];
+    try solve [apply* IHty_trm1]; subst*.
 Qed.
 
 Lemma typing_implies_bound_p: forall G x T,
@@ -239,4 +233,15 @@ Lemma typing_implies_bound_p: forall G x T,
   exists S, binds x S G.
 Proof.
   intros. eapply typing_implies_bound. apply* precise_to_general.
+Qed.
+
+Lemma binds_destruct: forall {A} x (v:A) E,
+  binds x v E ->
+  exists E' E'', E = E' & x ~ v & E''.
+Proof.
+  introv Hb. induction E using env_ind. false* binds_empty_inv.
+  destruct (binds_push_inv Hb) as [[Hx HT] | [Hn Hbx]]; subst.
+  - exists E (@empty A). rewrite concat_empty_r. reflexivity.
+  - apply binds_push_neq_inv in Hb. destruct (IHE Hb) as [E' [E'' HE]]. subst.
+    exists E' (E'' & x0 ~ v0). rewrite concat_assoc. reflexivity. assumption.
 Qed.
