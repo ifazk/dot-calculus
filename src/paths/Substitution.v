@@ -30,6 +30,7 @@ Fixpoint subst_typ (z: var) (u: var) (T: typ) { struct T } : typ :=
   | typ_path p L   => typ_path (subst_path z u p) L
   | typ_bnd T      => typ_bnd (subst_typ z u T)
   | typ_all T U    => typ_all (subst_typ z u T) (subst_typ z u U)
+  | typ_sngl p     => typ_sngl (subst_path z u p)
   end
 with subst_dec (z: var) (u: var) (D: dec) { struct D } : dec :=
   match D with
@@ -275,7 +276,7 @@ Lemma subst_rules: forall y S,
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
     G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) : subst_typ x y S ->
-    norm (G1 & (subst_ctx x y G2)) (subst_trm x y p)) /\
+    norm (G1 & (subst_ctx x y G2)) (subst_path x y p)) /\
   (forall G T U, G |- T <: U -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->

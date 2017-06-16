@@ -695,6 +695,12 @@ Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
     G |-##v v : S ->
     G |-! trm_path p : typ_rcd (dec_typ A S S) ->
     G |-##v v : typ_path p A
+  (* Singleton types *)
+| subtyp_sngl_v : forall G v r A p,
+    G |-##v v: typ_path r A ->
+    G |-! trm_path p : typ_sngl r ->
+    G |-##v v: typ_path p A
+  (* Intersection introduction *)
 | ty_and_intro_v : forall G v T U,
     G |-##v v : T ->
     G |-##v v : U ->
