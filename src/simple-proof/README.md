@@ -1,31 +1,5 @@
-# Alternative DOT Proof
+# A Simple Soundness Proof for DOT
 
-## Old Possible Types Lemma
+This is a simplified version of the [original](https://github.com/samuelgruetter/dot-calculus) Wadlerfest [DOT](http://infoscience.epfl.ch/record/215280/files/paper_1.pdf) type-safety proof.
 
-    Γ ~ s   s(x) = v   Γ ⊢ x: T
-    ---------------------------
-            T ∈ PT(Γ,x,v)
-
-## New Possible Types Lemma
-
-    Γ inert   Γ(x) = T   Γ ⊢ x: U
-    -----------------------------
-            U ∈ PT(Γ,x,T)
-
-## Inert Types
-
-    inert ∀(x: S)T
-
-        record T
-    ----------------
-      inert μ(x: T)
-
-## Inert Environments
-
-    inert {}
-
-        x # Γ
-        inert Γ
-        inert T
-    ---------------
-    inert (Γ, x: T)
+Please refer to our [technical report](https://arxiv.org/abs/1706.03814) for details.
