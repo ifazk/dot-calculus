@@ -3,7 +3,8 @@ Extensions for Dependent Object Types
 
 We are working on type-safe extensions to the Dependent Object Types (DOT) calculus as defined by Amin et al. in their [Wadlerfest](http://infoscience.epfl.ch/record/215280/files/paper_1.pdf) paper.
 
-We developed a [simplified](https://github.com/amaurremi/dot-calculus/tree/master/src/simple-proof), modular version of the [original](https://github.com/samuelgruetter/dot-calculus) DOT soundness proof.
+We developed a [simplified](https://github.com/amaurremi/dot-calculus/tree/master/src/simple-proof), modular version of the [original](https://github.com/samuelgruetter/dot-calculus) DOT soundness proof. For details, see our [technical report](https://arxiv.org/abs/1706.03814).
+
 Our extensions based on that simplified proof.
 
 Our DOT extensions are:

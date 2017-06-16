@@ -1,5 +1,5 @@
 # DOT with Extended Paths
 
-This is work in progress. The definition of the type system can be found in `Definitions.v`.
-
 We are working on extension for DOT that supports type selection on paths of arbitrary length, as opposed to type selection on variables. For example, we allow a type of the form `x.a.b.A` instead of only `x.A`.
+
+This is work in progress. The definition of the type system can be found in `Definitions.v`.
