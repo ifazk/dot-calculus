@@ -12,5 +12,5 @@ Our DOT extensions are:
   ([proof](https://github.com/amaurremi/dot-calculus/tree/master/src/mutation) | [technical report](https://arxiv.org/abs/1611.07610))
 - expanded type paths (adding type selections on _full paths_ of the form `p.A` instead of `x.A`, where `p` is a path and `x` is a variable)
   ([proof in progress](https://github.com/amaurremi/dot-calculus/tree/master/src/paths))
-- initialization order (developing a sound initialization order)
+- initialization order (developing a sound _initialization order_)
   ([proof in progress](https://github.com/amaurremi/dot-calculus/tree/master/src/initialization))
