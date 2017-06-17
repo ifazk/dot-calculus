@@ -17,6 +17,10 @@ Lemma wf_sto_to_ok_G: forall s G,
   G ~~ s -> ok G.
 Proof. intros. induction H; jauto. Qed.
 
+Lemma wf_sto_to_ok_s: forall s G,
+  G ~~ s -> ok s.
+Proof. intros. induction H; jauto. Qed.
+
 Hint Resolve wf_sto_to_ok_G.
 
 Lemma tpt_to_precise_rec: forall G v T,
