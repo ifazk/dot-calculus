@@ -101,7 +101,7 @@ Lemma renaming_gen: forall x y,
   (forall G p, norm G p ->
     ok G ->
     y # G ->
-    norm (rename_ctx x y G) (subst_trm x y p)) /\
+    norm (rename_ctx x y G) (subst_path x y p)) /\
   (forall G T U, G |- T <: U ->
     ok G ->
     y # G ->
@@ -166,12 +166,17 @@ Proof.
       * unfold rename_var. case_if*.
   - (* norm_path *)
     specialize (H H1 H2). eapply norm_path with (U:=subst_typ x y U); auto.
-    destruct U; inversions i. simpl. apply inert_typ_bnd.
-    lets Hrs: (subst_record_type x y H4). assumption. simpl. constructor.
+    destruct U; inversions i; try inversions H3. simpl. apply is_inert. apply inert_typ_bnd.
+    lets Hrs: (subst_record_type x y H5). assumption. simpl. constructor. constructor.
+    apply is_sngl.
   - (* subtyp_sel2 *)
     apply subtyp_sel2 with (T:=(subst_typ x y T)); auto.
   - (* subtyp_sel1 *)
     apply subtyp_sel1 with (S:=(subst_typ x y S)); auto.
+  - (* subtyp_sngl_sel1 *)
+    specialize (H1 H2 H3). simpls. apply* subtyp_sngl_sel1.
+  - (* subtyp_sngl_sel2 *)
+    specialize (H1 H2 H3). simpls. apply* subtyp_sngl_sel2.
   - (* subtyp_all *)
     apply_fresh subtyp_all as z; auto. specialize (H0 z). assert (Hzx: z <> x) by auto.
     rewrite rename_ctx_other_var; auto. repeat rewrite subst_open_commute_typ in H0.
