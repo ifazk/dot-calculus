@@ -84,28 +84,6 @@ Proof.
   - rewrite* map_keys_notin.
 Qed.
 
-Lemma subst_dec_preserves_label: forall D x y,
-  label_of_dec D = label_of_dec (subst_dec x y D).
-Proof.
-  intros. induction D; simpl; reflexivity.
-Qed.
-
-Lemma subst_record_dec: forall d x y,
-  record_dec d -> record_dec (subst_dec x y d).
-Proof.
-  introv Hd. inversions Hd. apply rd_typ. apply rd_trm.
-Qed.
-
-Lemma subst_record_type: forall T x y,
-  record_type T -> record_type (subst_typ x y T).
-Proof.
-  introv Hr. unfolds record_type. destruct Hr as [ls Hr].
-  induction Hr; simpl.
-  - eexists. apply* rt_one. apply* subst_record_dec.
-  - destruct IHHr as [ls' Hr']. eexists. apply* rt_cons. apply* subst_record_dec.
-    rewrite <- subst_dec_preserves_label. subst. admit.
-Qed.
-
 Lemma renaming_gen: forall x y,
   (forall G t T, G |- t: T ->
     ok G ->

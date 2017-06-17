@@ -249,6 +249,48 @@ Proof.
     simpl in Eq. case_if. apply (IHds Eq).
 Qed.
 
+Lemma subst_dec_preserves_label: forall D x y,
+  label_of_dec D = label_of_dec (subst_dec x y D).
+Proof.
+  intros. induction D; simpl; reflexivity.
+Qed.
+
+Lemma subst_record_dec: forall d x y,
+  record_dec d -> record_dec (subst_dec x y d).
+Proof.
+  introv Hd. inversions Hd. apply rd_typ. apply rd_trm.
+Qed.
+
+Lemma subst_record_typ: forall T x y ls,
+  record_typ T ls -> record_typ (subst_typ x y T) ls.
+Proof.
+  introv Hr. induction Hr; simpl.
+  - apply* rt_one. apply* subst_record_dec. rewrite* <- subst_dec_preserves_label.
+  - apply* rt_cons. apply* subst_record_dec. rewrite* <- subst_dec_preserves_label.
+Qed.
+
+Lemma subst_record_type: forall T x y,
+  record_type T -> record_type (subst_typ x y T).
+Proof.
+  introv Hr. unfolds record_type. destruct Hr as [ls Hr].
+  lets Hr': (subst_record_typ x y Hr). exists* ls.
+Qed.
+
+Lemma inert_subst: forall x y T,
+    inert_typ T ->
+    inert_typ (subst_typ x y T).
+Proof.
+  introv Ht. inversions Ht; simpl. constructor. constructor. apply* subst_record_type.
+Qed.
+
+Lemma inert_sngl_subst: forall x y T,
+    inert_sngl T ->
+    inert_sngl (subst_typ x y T).
+Proof.
+  introv Hi. inversions Hi. apply is_inert. apply* inert_subst.
+  simpl. apply* is_sngl.
+Qed.
+
 (* ###################################################################### *)
 (** ** The substitution principle *)
 
@@ -329,10 +371,8 @@ Proof.
       unfold subst_ctx. rewrite map_concat. rewrite map_single. reflexivity.
     }
     apply H; eauto.
-  - (* ty_fld_elim_var *)
-    apply* ty_fld_elim_var.
-  - (* ty_fld_elim_path *)
-    apply* ty_fld_elim_path.
+  - (* ty_fld_elim *)
+    apply* ty_fld_elim.
   - (* ty_let *)
     apply_fresh ty_let as z; eauto.
     assert (subst_ctx x y G2 & z ~ subst_typ x y T = subst_ctx x y (G2 & z ~ T)) as B. {
@@ -365,8 +405,10 @@ Proof.
     apply H; eauto.
   - (* ty_and_intro *)
     apply ty_and_intro; eauto.
+  - (* ty_sngl_intro *)
+    apply* ty_sngl_intro.
   - (* ty_sub *)
-    eapply ty_sub; eauto.
+    apply* ty_sub.
   - (* ty_def_trm *)
     apply ty_def_trm.
     assert (G1 & subst_ctx x0 y G2 & x ~ subst_typ x0 y U = G1 & subst_ctx x0 y (G2 & x ~ U)) as Hs. {
@@ -417,7 +459,8 @@ Proof.
         eapply binds_concat_left. eassumption.
         unfold notin. intro. unfolds subst_ctx. simpl_dom. false.
   - (* norm_path *)
-    apply* norm_path. admit.
+    specialize (H _ _ _ eq_refl H2 H3 H4). simpl in H.  apply* norm_path.
+    apply* inert_sngl_subst.
   - (* subtyp_trans *)
     eapply subtyp_trans; eauto.
   - (* subtyp_sel2 *)
@@ -426,8 +469,14 @@ Proof.
   - (* subtyp_sel1 *)
     eapply subtyp_sel1; eauto.
     eapply H; eauto.
+  - (* subtyp_sngl_sel1 *)
+    specialize (H1 _ _ _ eq_refl H3 H4 H5). simpl in H1.
+    apply* subtyp_sngl_sel1.
+  - (* subtyp_sngl_sel2 *)
+    specialize (H1 _ _ _ eq_refl H3 H4 H5). simpl in H1.
+    apply* subtyp_sngl_sel2.
   - (* subtyp_all *)
-    simpl. apply_fresh subtyp_all as z; eauto.
+    apply_fresh subtyp_all as z; eauto.
     assert (z \notin L) as FrL by eauto.
     assert (subst_fvar x y z = z) as A. {
       unfold subst_fvar. rewrite If_r. reflexivity. eauto.
