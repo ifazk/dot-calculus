@@ -302,9 +302,7 @@ Inductive red : trm -> sto -> trm -> sto -> Prop :=
 | red_sel : forall x m s t T ds,
     binds x (val_new T ds) s ->
     defs_has (ds |||^ x) (def_trm m t) ->
-    trm_path (p_sel (p_var (avar_f x)) m) / s ⇒ t / s
-| red_pvar : forall x s,
-    trm_path (p_var (avar_f x)) / s ⇒ trm_path (p_var (avar_f x)) / s
+    trm_path (p_sel (p_var (avar_f x)) m) / s ⇒ trm_let t (trm_path (p_var (avar_b 0))) / s
 | red_path : forall q m' m s,
     trm_path (p_sel (p_sel q m') m) / s ⇒ trm_let (trm_path (p_sel q m')) (trm_path (p_sel (p_var (avar_b 0)) m)) / s
 | red_app : forall f a s T t,

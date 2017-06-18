@@ -5,7 +5,7 @@ We are working on type-safe extensions to the Dependent Object Types (DOT) calcu
 
 We developed a [simplified](https://github.com/amaurremi/dot-calculus/tree/master/src/simple-proof), modular version of the [original](https://github.com/samuelgruetter/dot-calculus) DOT soundness proof. For details, see our [technical report](https://arxiv.org/abs/1706.03814).
 
-Our extensions based on that simplified proof.
+Our extensions are based on that simplified proof.
 
 Our DOT extensions are:
 - mutation (adding _mutable references_ to DOT)

@@ -26,6 +26,8 @@ Proof.
     exists V. split*.
 Qed.
 
+Lemma invertible_to_rec
+
 Lemma invertible_to_precise_trm_dec: forall G p a m T,
     inert G ->
     G |-## p : typ_rcd { a [m] T } ->

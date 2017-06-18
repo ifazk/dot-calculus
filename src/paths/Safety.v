@@ -12,6 +12,7 @@ Require Import Canonical_forms1.
 Require Import Canonical_forms2.
 Require Import Inert_types.
 Require Import General_to_tight.
+Require Import Invertible.
 
 (* ###################################################################### *)
 (** * Safety *)
@@ -30,6 +31,19 @@ Proof.
   false (IHHt2 _ eq_refl).
   false (IHHt _ eq_refl).
 Qed.
+(*
+Lemma rec_elim_terms: forall G t T,
+    inert G ->
+    G |- t: typ_bnd T ->
+    G |- t: *)
+
+Lemma red_unique: forall t s t1 s1 t2 s2,
+    t / s ⇒ t1 / s1 ->
+    t / s ⇒ t2 / s2 ->
+    t1 = t2 /\ s1 = s2.
+Proof.
+  introv R1 R2. induction R1.
+  - inversions R2. Admitted.
 
 Lemma safety: forall G s t T,
     G ~~ s ->
@@ -64,10 +78,9 @@ Proof.
     destruct p as [[b | x] | p].
     + false* avar_b_typ_false.
     + pose proof (canonical_forms_2 Hi Hwf H) as [S [ds [t [Bis [Has Ty]]]]].
-      exists s t G (@empty typ).
-      split.
-      * apply red_sel with (T:=S) (ds:=ds); assumption.
-      * split. rewrite concat_empty_r. reflexivity. split; assumption.
+      exists s (trm_let t (trm_path (p_var (avar_b 0)))) G (@empty typ). split. apply* red_sel.
+      split. rewrite* concat_empty_r. split. apply ty_let with (T:=T) (L:=dom G); auto.
+      introv Hx. unfold open_trm. simpl. case_if. auto. assumption.
     + exists s (trm_let (trm_path (p_sel p t))
                    (trm_path (p_sel (p_var (avar_b 0)) a))) G (@empty typ).
       split. apply red_path. split. rewrite* concat_empty_r. split.
@@ -129,11 +142,11 @@ Proof.
         rewrite IH2.
         rewrite <- IH2. eauto.
   - (* ty_rec_elim *)
-    destruct p as [[b | x] | p]; eauto. (*
+    specialize (IHty_trm Hwf Hi).
+    destruct IHty_trm as [Hn | [s' [t' [G' [G'' [Hb [Heq [Ht Hwf']]]]]]]]; auto.
+    right. exists s' t' G' G''. split. assumption. split. assumption. split; auto.
 
-    specialize (IHty_trm Hwf Hi). destruct IHty_trm as [IH | IH]; auto.
-    right. destruct IH as [s' [t' [G' [G'' [Hr [Heq [Ht Hw]]]]]]]. *)
-    admit.
+
   - (* ty_and *)
     right.
 (*
