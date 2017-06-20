@@ -84,28 +84,6 @@ Proof.
   - rewrite* map_keys_notin.
 Qed.
 
-Lemma subst_dec_preserves_label: forall D x y,
-  label_of_dec D = label_of_dec (subst_dec x y D).
-Proof.
-  intros. induction D; simpl; reflexivity.
-Qed.
-
-Lemma subst_record_dec: forall d x y,
-  record_dec d -> record_dec (subst_dec x y d).
-Proof.
-  introv Hd. inversions Hd. apply rd_typ. apply rd_trm.
-Qed.
-
-Lemma subst_record_type: forall T x y,
-  record_type T -> record_type (subst_typ x y T).
-Proof.
-  introv Hr. unfolds record_type. destruct Hr as [ls Hr].
-  induction Hr; simpl.
-  - eexists. apply* rt_one. apply* subst_record_dec.
-  - destruct IHHr as [ls' Hr']. eexists. apply* rt_cons. apply* subst_record_dec.
-    rewrite <- subst_dec_preserves_label. subst. admit.
-Qed.
-
 Lemma renaming_gen: forall x y,
   (forall G t T, G |- t: T ->
     ok G ->
@@ -123,7 +101,7 @@ Lemma renaming_gen: forall x y,
   (forall G p, norm G p ->
     ok G ->
     y # G ->
-    norm (rename_ctx x y G) (subst_trm x y p)) /\
+    norm (rename_ctx x y G) (subst_path x y p)) /\
   (forall G T U, G |- T <: U ->
     ok G ->
     y # G ->
@@ -188,12 +166,17 @@ Proof.
       * unfold rename_var. case_if*.
   - (* norm_path *)
     specialize (H H1 H2). eapply norm_path with (U:=subst_typ x y U); auto.
-    destruct U; inversions i. simpl. apply inert_typ_bnd.
-    lets Hrs: (subst_record_type x y H4). assumption. simpl. constructor.
+    destruct U; inversions i; try inversions H3. simpl. apply is_inert. apply inert_typ_bnd.
+    lets Hrs: (subst_record_type x y H5). assumption. simpl. constructor. constructor.
+    apply is_sngl.
   - (* subtyp_sel2 *)
     apply subtyp_sel2 with (T:=(subst_typ x y T)); auto.
   - (* subtyp_sel1 *)
     apply subtyp_sel1 with (S:=(subst_typ x y S)); auto.
+  - (* subtyp_sngl_sel1 *)
+    specialize (H1 H2 H3). simpls. apply* subtyp_sngl_sel1.
+  - (* subtyp_sngl_sel2 *)
+    specialize (H1 H2 H3). simpls. apply* subtyp_sngl_sel2.
   - (* subtyp_all *)
     apply_fresh subtyp_all as z; auto. specialize (H0 z). assert (Hzx: z <> x) by auto.
     rewrite rename_ctx_other_var; auto. repeat rewrite subst_open_commute_typ in H0.

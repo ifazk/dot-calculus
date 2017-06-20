@@ -302,9 +302,7 @@ Inductive red : trm -> sto -> trm -> sto -> Prop :=
 | red_sel : forall x m s t T ds,
     binds x (val_new T ds) s ->
     defs_has (ds |||^ x) (def_trm m t) ->
-    trm_path (p_sel (p_var (avar_f x)) m) / s ⇒ t / s
-| red_pvar : forall x s,
-    trm_path (p_var (avar_f x)) / s ⇒ trm_path (p_var (avar_f x)) / s
+    trm_path (p_sel (p_var (avar_f x)) m) / s ⇒ trm_let t (trm_path (p_var (avar_b 0))) / s
 | red_path : forall q m' m s,
     trm_path (p_sel (p_sel q m') m) / s ⇒ trm_let (trm_path (p_sel q m')) (trm_path (p_sel (p_var (avar_b 0)) m)) / s
 | red_app : forall f a s T t,
@@ -369,7 +367,7 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     G |- trm_path p : U ->
     G |- trm_path p : typ_and T U
 | ty_sngl_intro : forall G x T,
-    binds x T G ->
+    G |- trm_path (p_var (avar_f x)): T ->
     G |- trm_path (p_var (avar_f x)) : typ_sngl (p_var (avar_f x))
 (*| ty_sngl_typing : forall G p q T,
     G |- trm_path p: typ_sngl q ->
@@ -543,7 +541,7 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     G |-# trm_path p : U ->
     G |-# trm_path p : typ_and T U
 | ty_sngl_intro_t : forall G x T,
-    binds x T G ->
+    G |-# trm_path (p_var (avar_f x)): T ->
     G |-# trm_path (p_var (avar_f x)) : typ_sngl (p_var (avar_f x))
 | ty_sub_t : forall G t T U,
     G |-# t : T ->
@@ -625,7 +623,7 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
     G |-! trm_path p : T ->
     G |-## p : T
 | ty_sngl_i : forall G p T,
-    G |-! trm_path p: T ->
+    G |-## p: T ->
     G |-## p : typ_sngl p
   (* General term member subtyping *)
 | subtyp_fld_i : forall G p a T T',
@@ -695,6 +693,12 @@ Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
     G |-##v v : S ->
     G |-! trm_path p : typ_rcd (dec_typ A S S) ->
     G |-##v v : typ_path p A
+  (* Singleton types *)
+| subtyp_sngl_v : forall G v r A p,
+    G |-##v v: typ_path r A ->
+    G |-! trm_path p : typ_sngl r ->
+    G |-##v v: typ_path p A
+  (* Intersection introduction *)
 | ty_and_intro_v : forall G v T U,
     G |-##v v : T ->
     G |-##v v : U ->

@@ -127,9 +127,7 @@ Proof.
    dependent induction Hp; eauto.
    * specialize (IHHp _ Hi eq_refl Hn). inversions IHHp.
      apply ty_rec_elim_p in H. apply* ty_path_i. rewrite* <- open_var_path_typ_eq.
-   * subst.
-
-     specialize (IHHp _ Hi eq_refl Hn). apply* invertible_sub_closure.
+   * subst. specialize (IHHp _ Hi eq_refl Hn). apply* invertible_sub_closure.
  - specialize (IHp Hi).
    introv Ht Hn.
    dependent induction Ht; try specialize (IHHt p t IHp Hi eq_refl Hn); eauto.
@@ -148,11 +146,15 @@ Lemma invertible_sub_closure_v: forall G v T U,
   G |-# T <: U ->
   G |-##v v : U.
 Proof.
-  introv Hgd HT Hsub.
+  introv Hi HT Hsub.
   dependent induction Hsub; eauto; inversions HT; try solve [inversion H]; try assumption.
-  - inversions H1.
-  - lets Hb: (inert_unique_tight_bounds Hgd H H6). subst*.
-  -
+  - inversion H1.
+  - lets Hb: (inert_unique_tight_bounds Hi H H6). subst*.
+  - lets Hu: (p_sngl_unique Hi H6 H). inversion Hu.
+  - inversion H2.
+  - lets Hb: (p_sngl_unique Hi H H7). inversion Hb.
+  - lets Hb: (p_sngl_unique Hi H7 H). inversions Hb. assumption.
+Qed.
 
 Lemma invertible_lemma_v : forall G v T,
     inert G ->
