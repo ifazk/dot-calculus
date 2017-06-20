@@ -315,7 +315,7 @@ Qed.
 Lemma val_typing: forall G v T,
   G |- trm_val v : T ->
   exists T', G |-! trm_val v : T' /\
-             G |- T' <: T.
+        G |- T' <: T.
 Proof.
   intros G v T H. dependent induction H.
   - exists (typ_all T U). split.
