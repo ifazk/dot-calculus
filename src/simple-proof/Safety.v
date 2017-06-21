@@ -69,10 +69,7 @@ Proof.
   - (* Let *) right.
     destruct t.
     + (* var *)
-      assert (exists x, a = avar_f x) as A. {
-        eapply var_typing_implies_avar_f. eassumption.
-      }
-      destruct A as [x A]. subst a.
+      pose proof (var_typing_implies_avar_f H) as [x A]. subst a.
       exists s (open_trm x u) G (@empty typ).
       split.
       apply red_let_var.
@@ -85,9 +82,7 @@ Proof.
       eapply subst_ty_trm. eapply H0.
       apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto.
       rewrite subst_fresh_typ. assumption. eauto. eauto. eauto. eauto.
-    + lets Hv: (val_typing H).
-      destruct Hv as [T' [Htyp Hsub]].
-      pick_fresh x. assert (x \notin L) as FrL by auto. specialize (H0 x FrL).
+    + pick_fresh x. assert (x \notin L) as FrL by auto. specialize (H0 x FrL).
       exists (s & x ~ v) (open_trm x u) (G & x ~ T) (x ~ T).
       split.
       apply red_let. eauto.

@@ -7,68 +7,25 @@ Require Import Some_lemmas.
 Require Import General_to_tight.
 Require Import Invertible_typing.
 Require Import Inert_types.
-Require Import Coq.Lists.List.
-Import ListNotations.
+Require Import Substitution.
 
-Inductive ec : Set :=
-| e_empty     : ec              (* [] *)
-| e_let_val   : var -> val -> ec -> ec  (* let x = v in e *)
-| e_let_trm   : var -> trm -> ec.      (* let x = [] in t *)
+(* (** NB **)  *)
+(* Hypothesis var_dec : forall x y: var, {x = y} + {x <> y}. *)
 
-Fixpoint vars (e: ec) : list var := match e with
-| e_empty => []
-| e_let_val x v e => x :: (vars e)
-| e_let_trm x t => [x]
-end.
+(* Fixpoint binds_ec (x : var) (e : ec) : option val := *)
+(*   match e with *)
+(*   | e_empty => None *)
+(*   | e_let_val y v e => if var_dec x y then Some v else binds_ec x e *)
+(*   | e_let_trm y t => None *)
+(*   end. *)
 
-Reserved Notation "e '[' u ']' '==' t" (at level 10).
-Inductive ec_app : ec -> trm -> trm -> Prop :=               
-(* e[u] ≡ t *)
-| ec_empty : forall t,
-    e_empty [t] == t                                      
-(* ⦰[t] ≡ t *)
-| ec_val : forall e u t v x,
-    ~ In x (vars e) ->
-    e[u] == (open_trm x t) ->
-    (e_let_val x v e) [u] == (trm_let (trm_val v) t)
-(* let x = v in e[u] ≡ let x=v in t *)
-(* (e,x=v)[u] ≡ let x=v in t *)
-| ec_trm : forall u t x e,
-    ~ In x (vars e) ->
-    (e_let_trm x (open_trm x t)) [u] == (trm_let u t)
-(* let x = [u] in t ≡ let x=u in t *)
-where "e '[' u ']' '==' t" := (ec_app e u t).
-
-Reserved Notation "t1 '=>' t2" (at level 10).
-Inductive ec_red : trm -> trm -> Prop :=
-| red_term : forall t t' e et et',
-    t => t' ->
-    e[t] == et ->
-    e[t'] == et' ->
-    et => et'
-| red_apply : forall x e y t T t1 t2,
-    ~ In x (vars e) ->
-    (e_let_val x (val_lambda T t) e) [ (trm_app (avar_f x) (avar_f y)) ] == t1 ->
-    (e_let_val x (val_lambda T t) e) [ (open_trm y t) ] == t2 ->
-    t1 => t2
-| red_project : forall x e a t ds T t1 t2,
-    ~ In x (vars e) ->
-    defs_has (open_defs x ds) (def_trm a t) ->
-    (e_let_val x (val_new T ds) e) [ (trm_sel (avar_f x) a) ] == t1 ->
-    (e_let_val x (val_new T ds) e) [ t ] == t2 ->
-    t1 => t2
-| red_let_var : forall y t,
-    trm_let (trm_var (avar_f y)) t => (open_trm y t)
-| red_let_let : forall s t u,
-    trm_let (trm_let s t) u => (trm_let s (trm_let t u))
-where "t1 '=>' t2 " := (ec_red t1 t2).
+(** TODO: move to definitions and update notation **) 
 
 Reserved Notation "e '[[' G ']]' '==' G'" (at level 10).
 Inductive eg_app : ec -> ctx -> ctx -> Prop :=
 | eg_empty : forall G, e_empty [[G]] == G
 | eg_val : forall G x e (v: val) T G',
-    ~ In x (vars e) ->
-    x # G ->
+    x \notin ((fv_ec e) \u (dom G) \u (fv_ctx_types G) \u (fv_typ T) \u (fv_val v)) ->
     G |-! trm_val v : T ->
     e[[G & x ~ T]] == G' ->
     (e_let_val x v e) [[G]] == G'
@@ -82,11 +39,11 @@ Lemma e_preserves_inert : forall G e eG,
 Proof.
   introv Hi He. induction He; try assumption.
   apply IHHe. constructor; try assumption.
-  apply (precise_inert_typ H1).
+  apply (precise_inert_typ H0). auto. 
 Qed.
 
 Lemma e_preserves_typing : forall G e t et T eG,
-    e[t] == et ->
+    e {{ t }} == et ->
     G |- et : T ->
     e[[G]] == eG ->
     exists U, eG |- t : U.
@@ -102,12 +59,14 @@ Inductive normal_form: trm -> Prop :=
 | nf_val: forall v, normal_form (trm_val v)
 | nf_let: forall v n, normal_form n -> normal_form (trm_let v n).
 
+Hint Constructors normal_form.
+
 Lemma progress_induction : forall e eG t T et,
   (* inert G -> *)
   e[[empty]] == eG ->
   eG |- t : T ->
-  e[t] == et ->
-  (normal_form et \/ exists t' et', (et => et' /\ e[t'] == et')).
+  e {{ t }} == et ->
+  (normal_form et \/ exists t' et', (et |=> et' /\ e {{ t' }} == et')).
 Proof.
   introv HeG Ht Het.
 
@@ -172,22 +131,44 @@ Admitted.
 
 Lemma progress : forall t T,
   empty |- t : T ->
-  (normal_form t \/ exists t', t => t').
+  (normal_form t \/ exists t', t |=> t').
 Proof.
   intros.
-  assert (normal_form t \/ exists t' et', (t => et' /\ e_empty[t'] == et')). {
+  assert (normal_form t \/ exists t' et', (t |=> et' /\ e_empty {{ t' }} == et')). {
     apply progress_induction with (eG := empty) (t := t) (T := T); 
       try constructor; try assumption.
   }
   destruct H0. 
   - left. assumption.
-  - destruct H0 as (t' & et & ? & _). right. exists et. assumption.
+  - destruct H0 as (t' & et & ? & _). (* [t' [et [? _]]].  *)right. exists et. assumption.
 Qed.
+
+(* Lemma open_subst_test: forall e t x y u, *)
+(*     e {{ t }} == (open_trm x u) -> *)
+(*     y \notin ((fv_ec e) \u (fv_trm u)) -> *)
+(*     x \notin ((fv_ec e) \u (fv_trm u)) -> *)
+(*     e {{ t }} == (open_trm y u). *)
+(* Proof. *)
+(*   intros. rewrite subst_intro_trm with (x:=x); auto. *)
+
+(*  dependent induction H. *)
+(*   - constructor. *)
+
+
+(* Lemma test: forall e t t' x u u', *)
+(*     e {{ t }} == (open_trm x u) -> *)
+(*     e {{ t' }} == (open_trm x u') -> *)
+(*     t |=> t' -> *)
+(*     u |=> u'. *)
+(* Proof. *)
+(*   introv Ht Ht' Hred. dependent induction Hred. *)
+(*   - inversions Ht. inversions Ht'. dependent induction Hred. *)
+(*     + eapply IHHred; eauto. *)
 
 Lemma preservation : forall G t T t',
   inert G ->
   G |- t : T ->
-  t => t' ->
+  t |=> t' ->
   G |- t' : T.
 Proof.
   introv Hin Ht Htt'. gen t'. 
@@ -212,7 +193,61 @@ Proof.
     + inversions H. inversions H0. eapply IHHtt'; eauto.
     + inversions H1. inversions H0.
     + inversions H1.
-  - (* clear IHHt H0. *) 
+  - destruct t. 
+    + pose proof (var_typing_implies_avar_f Ht) as [x A]. subst.
+      dependent induction Htt'.
+      * destruct e; inversions H1; inversions H2.
+        { eapply IHHtt'; eauto. }
+        {
+          eapply (proj41 open_fresh_trm_val_def_defs_injective) in H4; auto.
+          subst. apply_fresh ty_let as z; auto.
+        }
+      * inversions H3.
+      * inversions H1.
+      * clear H0 IHHt. pick_fresh y. 
+        rewrite subst_intro_trm with (x:=y); auto.
+        rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
+        eapply subst_ty_trm. 
+        { apply~ H. }
+        { constructor~. apply~ inert_ok. }
+        { auto. }
+        { rewrite~ subst_fresh_typ. }
+    + destruct v; (* pose proof (val_typing Ht) as (T' & Htp & Hsub). *)
+      dependent induction Htt'.
+      * destruct e; inversions H1; inversions H2.
+        { eapply IHHtt'; eauto. }
+        {
+          apply_fresh ty_let as z; eauto.
+          eapply H0; eauto.
+          - admit.
+          - eapply red_term'; eauto.
+            + rewrite subst_intro_trm with (x:=v); auto.
+            
+        }
+        {
+          eapply (proj41 open_fresh_trm_val_def_defs_injective) in H4; auto.
+          subst. apply_fresh ty_let as z; eauto.
+        }
+      * inversions H1. inversions H3. apply_fresh ty_let as z; eauto.
+        
+
+dependent induction e.
+        { inversions H1. inversions H2. eapply IHHtt'; eauto. }
+        { inversions H2. inversions H1. eapply IHe; eauto.
+          - constructor.
+
+eapply ty_let; eauto.
+
+(* dependent induction Htt'.  *)
+(*     + dependent induction e. *)
+(*       * inversions H1. inversions H2. eapply IHHtt'; eauto. *)
+(*       * inversions H1. inversions H2. eapply IHe; eauto. *)
+(*         { apply ec_val. } *)
+(*         { admit. } *)
+(*       * inversions H1. inversions H2. admit. *)
+(*     +  *)
+
+    (* clear IHHt H0. *) 
     (* dependent induction Htt'. *)
     (* + inversions H1; inversions H2. *)
     (*   * eapply IHHtt'; eauto. *)
