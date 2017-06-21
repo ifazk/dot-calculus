@@ -160,14 +160,16 @@ Proof.
         apply precise_to_tight in Hp. destruct Hp as [Hp _].
         apply* norm_path_t.
       }
-      apply (invertible_lemma Hi H) in Hn.
-      apply ty_let with (t:=t) (T:=U') (L:=dom G). apply* weaken_ty_trm.
-      intros y Hy. unfold open_trm. simpl. case_if.
-      inversions Hn.
+      apply (invertible_lemma Hi H) in Hn. inversions Hn.
       destruct (precise_flow_lemma Hxm) as [T1 Pf1].
       destruct (precise_flow_lemma H0) as [T2 Pf2].
       lets Heq: (pf_inert_bnd_U Hi Pf2). subst.
-      apply (p_bound_unique Hi Pf1) in Pf2. subst.
+      apply (p_bound_unique Hi Pf1) in Pf2. subst. inversions H8. inversions H1.
+      + apply (pf_inert_lambda_U Hi) in Pf1. inversion Pf1.
+      + apply (pf_inert_bnd_U Hi) in Pf1. inversions Pf1. apply* ty_let. apply* weaken_ty_trm.
+        intros y Hy. unfold open_trm. simpl. case_if.
+
+      + apply (pf_sngl_U Hi) in Pf1. inversions Pf1.
 
 
 
