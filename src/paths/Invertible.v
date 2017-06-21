@@ -46,6 +46,25 @@ Proof.
     exists V strong. split*.
 Qed.
 
+Lemma invertible_to_precise_rec: forall G p T,
+    inert G ->
+    G |-## p: typ_bnd T ->
+    exists U, G |-! trm_path p: typ_bnd U /\ G |-# U <: T.
+Proof.
+  introv Hi Ht. inversions Ht.
+  - exists*.
+  - assert (record_type T) as Hr by admit.
+    destruct Hr as [ls Hr]. unfold open_typ in H2. inversions Hr.
+    *  destruct D; simpls. apply (invertible_to_precise_typ_dec Hi) in H2.
+       destruct H2 as [T [Hp Hs]]. exists (typ_rcd {t >: T <: T}). admit.
+       apply (invertible_to_precise_trm_dec Hi) in H2. admit.
+    *  simpl in H2. inversions H2.
+       exists (typ_and T0 (typ_rcd D)). split.
+       admit. auto. admit.
+
+Qed.
+
+
 Lemma invertible_to_precise_typ_all: forall G p S T,
     inert G ->
     G |-## p : typ_all S T ->
@@ -126,7 +145,7 @@ Proof.
  - introv Hp Hn. destruct a as [b | x]. inversion Hn.
    dependent induction Hp; eauto.
    * specialize (IHHp _ Hi eq_refl Hn). inversions IHHp.
-     apply ty_rec_elim_p in H. apply* ty_path_i. rewrite* <- open_var_path_typ_eq.
+     apply ty_rec_elim_p in H0. apply* ty_path_i. rewrite* <- open_var_path_typ_eq.
    * subst. specialize (IHHp _ Hi eq_refl Hn). apply* invertible_sub_closure.
  - specialize (IHp Hi).
    introv Ht Hn.
@@ -136,7 +155,7 @@ Proof.
      destruct (invertible_to_precise_trm_dec Hi IHp2) as [V [m [Hp [_ Hs]]]].
      destruct (p_rcd_unique Hi H Hp). subst. apply ty_fld_elim_p in H; auto.
      apply ty_path_i in Hp. apply* invertible_sub_closure.
-   * inversions IHHt. apply ty_rec_elim_p in H. apply* ty_path_i.
+   * inversions IHHt. apply ty_rec_elim_p in H0. apply* ty_path_i.
    * apply* invertible_sub_closure.
 Qed.
 

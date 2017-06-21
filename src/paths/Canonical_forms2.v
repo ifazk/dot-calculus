@@ -159,7 +159,7 @@ Proof.
   apply rules_mutind; intros; subst; eauto.
   - destruct (classicT (x0=x)); subst.
     * apply binds_middle_eq_inv in b. subst. rewrite open_var_path_typ_eq. apply ty_rec_elim. constructor.
-      apply binds_middle_eq. apply (ok_middle_inv_r H). assumption.
+      apply binds_middle_eq. apply (ok_middle_inv_r H). eapply norm_var. apply binds_middle_eq. apply ok_middle_inv_r in H. assumption. assumption.
     * constructor. apply binds_remove in b. apply* binds_weaken. apply* ok_middle_change.
       auto.
   - (* ty_all_intro *)

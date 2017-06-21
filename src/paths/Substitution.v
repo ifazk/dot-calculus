@@ -402,7 +402,7 @@ Proof.
   - (* ty_rec_elim *)
     rewrite subst_open_commute_typ_p.
     apply ty_rec_elim.
-    apply H; eauto.
+    apply* H. apply* H0.
   - (* ty_and_intro *)
     apply ty_and_intro; eauto.
   - (* ty_sngl_intro *)

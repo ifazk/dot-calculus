@@ -35,7 +35,7 @@ Qed.
 Lemma rec_elim_terms: forall G t T,
     inert G ->
     G |- t: typ_bnd T ->
-    G |- t: *)
+    G |- t:
 
 Lemma red_unique: forall t s t1 s1 t2 s2,
     t / s ⇒ t1 / s1 ->
@@ -43,7 +43,7 @@ Lemma red_unique: forall t s t1 s1 t2 s2,
     t1 = t2 /\ s1 = s2.
 Proof.
   introv R1 R2. induction R1.
-  - inversions R2. Admitted.
+  - inversions R2. Admitted.*)
 
 Lemma safety: forall G s t T,
     G ~~ s ->
@@ -145,6 +145,10 @@ Proof.
     specialize (IHty_trm Hwf Hi).
     destruct IHty_trm as [Hn | [s' [t' [G' [G'' [Hb [Heq [Ht Hwf']]]]]]]]; auto.
     right. exists s' t' G' G''. split. assumption. split. assumption. split; auto.
+    inversions Hb.
+    * apply (general_to_tight_typing Hi) in H. apply (general_to_tight_norm Hi) in H0.
+      apply (invertible_lemma Hi) in H; auto.
+
 
 
   - (* ty_and *)

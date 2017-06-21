@@ -138,7 +138,7 @@ Proof.
     apply ty_rec_intro. simpl in H. rewrite subst_open_commute_typ in H. unfold subst_fvar in H. apply* H.
   - (* ty_rec_elim. *)
     rewrite subst_open_commute_typ_p. apply ty_rec_elim. unfold subst_typ in H.
-    apply* H.
+    apply* H. apply* H0.
   - (* ty_def_trm *)
     apply ty_def_trm.
     replace (rename_ctx x y G & rename_var x y x0 ~ subst_typ x y U) with (rename_ctx x y (G & x0 ~ U)).
