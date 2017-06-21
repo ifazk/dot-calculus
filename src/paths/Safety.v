@@ -145,9 +145,20 @@ Proof.
     specialize (IHty_trm Hwf Hi).
     destruct IHty_trm as [Hn | [s' [t' [G' [G'' [Hb [Heq [Ht Hwf']]]]]]]]; auto.
     right. exists s' t' G' G''. split. assumption. split. assumption. split; auto.
-    inversions Hb.
-    * apply (general_to_tight_typing Hi) in H. apply (general_to_tight_norm Hi) in H0.
-      apply (invertible_lemma Hi) in H; auto.
+    inversion Hb.
+    * rename t into a. inversions H0. inversions H9. inversions H11.
+      destruct (canonical_forms_2 Hi Hwf H7) as [V [ds' [t [Hb' [Hds Ht']]]]].
+      apply (general_to_tight_typing Hi) in H7. apply (general_to_tight_norm Hi) in H9.
+      apply (invertible_lemma Hi) in H7; auto.
+      destruct (invertible_to_precise_trm_dec Hi H7) as [U' [m' [Hp [Heq _]]]].
+      specialize (Heq eq_refl). destruct Heq. subst.
+      lets Hxm: (ty_fld_elim_p Hp H8).
+      apply (binds_func H2) in Hb'. inversions Hb'.
+      unfolds defs_has. simpls. rewrite Hds in H3. inversions H3.
+      apply ty_let with (t:=a) (T:=U') (L:=dom G). apply* weaken_ty_trm.
+      intros y Hy. unfold open_trm. simpl. case_if.
+
+
 
 
 
