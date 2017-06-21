@@ -155,9 +155,19 @@ Proof.
       lets Hxm: (ty_fld_elim_p Hp H8).
       apply (binds_func H2) in Hb'. inversions Hb'.
       unfolds defs_has. simpls. rewrite Hds in H3. inversions H3.
-
+      apply (general_to_tight_typing Hi) in H.
+      assert (G |-# p_sel (p_var (avar_f x)) m \||/) as Hn. {
+        apply precise_to_tight in Hp. destruct Hp as [Hp _].
+        apply* norm_path_t.
+      }
+      apply (invertible_lemma Hi H) in Hn.
       apply ty_let with (t:=t) (T:=U') (L:=dom G). apply* weaken_ty_trm.
       intros y Hy. unfold open_trm. simpl. case_if.
+      inversions Hn.
+      destruct (precise_flow_lemma Hxm) as [T1 Pf1].
+      destruct (precise_flow_lemma H0) as [T2 Pf2].
+      lets Heq: (pf_inert_bnd_U Hi Pf2). subst.
+      apply (p_bound_unique Hi Pf1) in Pf2. subst.
 
 
 
