@@ -149,35 +149,35 @@ Qed.
 
 Lemma precise_to_tight: forall G t T,
     G |-! t : T ->
-    G |-# t : T.
+    G |-# t : T /\ (forall p, t = trm_path p -> G |-# p \||/).
 Proof.
-  introv Hp. induction Hp; eauto.
+  introv Ht. induction Ht; split; intros; try (inversions H0); eauto;
+               try (destruct IHHt as [Hp IHHt]; specialize (IHHt _ eq_refl)); eauto;
+               inversions H; assumption.
+Qed.
+
+Lemma precise_to_norm: forall G p T,
+    G |-! trm_path p: T ->
+    G |-# p \||/.
+Proof.
+  introv Hp. apply* precise_to_tight.
 Qed.
 
 Lemma precise_to_general: forall G t T,
     G |-! t : T ->
-    G |- t : T.
+    G |- t : T /\ (forall p, t = trm_path p -> G |- p \||/).
 Proof.
-  introv Hp. induction Hp; eauto.
-Qed.
-  (*
-Lemma precise_to_tight:
-  (forall G t T, G |-! t : T ->
-            G |-# t : T) /\
-  (forall G p, norm_p G p ->
-          norm_t G p).
-Proof.
-  apply ts_mutind_p; intros; eauto.
+  introv Ht. induction Ht; split; intros; try (inversions H0); eauto;
+               try (destruct IHHt as [Hp IHHt]; specialize (IHHt _ eq_refl)); eauto;
+               inversions H; assumption.
 Qed.
 
-Lemma precise_to_general:
-  (forall G t T, G |-! t : T ->
-            G |- t : T) /\
-  (forall G p, norm_p G p ->
-          norm G p).
+Lemma precise_to_general_typ: forall G t T,
+    G |-! t : T ->
+    G |- t : T.
 Proof.
-  apply ts_mutind_p; intros; eauto.
-Qed. *)
+  apply* precise_to_general.
+Qed.
 
 Lemma tight_to_general:
   (forall G t T,
@@ -187,10 +187,10 @@ Lemma tight_to_general:
      G |-# S <: U ->
      G |- S <: U) /\
   (forall G p,
-     norm_t G p ->
-     norm G p).
+     G |-# p \||/ ->
+     G |- p \||/).
 Proof.
-  apply ts_mutind_ts; intros; subst; eauto; apply precise_to_general in t; eauto.
+  apply ts_mutind_ts; intros; subst; eauto; apply precise_to_general_typ in t; eauto.
 Qed.
 
 (* ###################################################################### *)

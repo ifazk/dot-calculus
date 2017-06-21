@@ -68,3 +68,11 @@ Lemma general_to_tight_typing: forall G t T,
 Proof.
   intros. apply* general_to_tight.
 Qed.
+
+Lemma general_to_tight_norm: forall G p,
+    inert G ->
+    G |- p \||/ ->
+    G |-# p \||/.
+Proof.
+  intros. apply* general_to_tight.
+Qed.
