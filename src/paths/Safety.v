@@ -32,7 +32,17 @@ Proof.
   false (IHHt _ eq_refl).
 Qed.
 
-Lemma paths_equiv_typing: forall G p p' T,
+Lemma paths_equiv_typing: forall G p p' T U,
+    inert G ->
+    precise_flow p G T U ->
+    precise_flow p' G T U ->
+    G |-# open_typ_p p T <: open_typ_p p' T.
+Proof.
+  introv Hi Hp Hp'.
+  gen p p'. induction T; intros p1 Hp1 p2 Hp2; auto.
+  - destruct d. Admitted. (* maybe we need to prove this instead of the next lemma? *)
+
+Lemma paths_equiv_typing_bnd: forall G p p' T,
     inert G ->
     G |-! trm_path p: typ_bnd T ->
     G |-! trm_path p': typ_bnd T ->
@@ -44,7 +54,9 @@ Proof.
     apply* pf_inert_rcd_bnd_U.
   }
   gen p p'. induction T; intros p1 Hp1 p2 Hp2; auto.
-  - admit.
+  - destruct d. inversions Hr. inversions H. inversions H1.
+    unfold open_typ_p. simpl.
+
   - inversion Hr. inversions H. assert (record_type T1) as Ht1 by (unfold record_type; exists* ls).
     lets Hp1t1: (ty_rec_elim_p Hp1). unfold open_typ_p in Hp1t1. simpl in Hp1t1.
     apply ty_and1_p in Hp1t1. Admitted.
