@@ -445,7 +445,7 @@ Proof.
 Qed.
 
 Lemma empty_typing_var: forall x T,
-    empty |- trm_var (avar_f x) : T -> False.
+    empty |- trm_var x : T -> False.
 Proof.
   intros. dependent induction H.
   - apply* binds_empty_inv.
