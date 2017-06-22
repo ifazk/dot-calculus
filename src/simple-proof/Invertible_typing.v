@@ -53,7 +53,7 @@ Proof.
   - lets Hb: (inert_unique_tight_bounds Hgd H H5). subst*.
 Qed.
 
-Lemma invertible_typing_lemma_ invertible_typing_lemma_v : forall G v T,
+Lemma invertible_typing_lemma_v : forall G v T,
     inert G ->
     G |-# trm_val v : T ->
     G |-##v v : T.

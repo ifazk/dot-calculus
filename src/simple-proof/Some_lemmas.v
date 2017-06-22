@@ -194,6 +194,25 @@ Proof.
     subst~.
 Qed.
 
+Lemma open_fresh_ec_injective : forall e e' z,
+    z \notin fv_ec e ->
+    z \notin fv_ec e' ->
+    open_ec z e = open_ec z e' ->
+    e = e'.
+Proof.
+  intros. dependent induction e; destruct e'; inversions H1.
+  - reflexivity.
+  - simpl in *. 
+    apply (proj42 open_fresh_trm_val_def_defs_injective) in H4; auto.
+    assert (e = e'). {
+      eapply IHe; auto.
+    }
+    subst. reflexivity.
+  - simpl in *.
+    apply (proj41 open_fresh_trm_val_def_defs_injective) in H4; auto.
+    subst. reflexivity.
+Qed.
+
 (* ###################################################################### *)
 
 (* ###################################################################### *)
@@ -423,4 +442,15 @@ Proof.
   intros.
   pose proof (precise_to_general H) as H'.
   pose proof (typing_implies_bound H'). assumption.
+Qed.
+
+Lemma empty_typing_var: forall x T,
+    empty |- trm_var x : T -> False.
+Proof.
+  intros. dependent induction H.
+  - apply* binds_empty_inv.
+  - eapply IHty_trm; eauto.
+  - eapply IHty_trm; eauto.
+  - eapply IHty_trm2; eauto.
+  - eapply IHty_trm; eauto.
 Qed.
