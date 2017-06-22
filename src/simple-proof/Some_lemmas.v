@@ -443,3 +443,14 @@ Proof.
   pose proof (precise_to_general H) as H'.
   pose proof (typing_implies_bound H'). assumption.
 Qed.
+
+Lemma empty_typing_var: forall x T,
+    empty |- trm_var (avar_f x) : T -> False.
+Proof.
+  intros. dependent induction H.
+  - apply* binds_empty_inv.
+  - eapply IHty_trm; eauto.
+  - eapply IHty_trm; eauto.
+  - eapply IHty_trm2; eauto.
+  - eapply IHty_trm; eauto.
+Qed.
