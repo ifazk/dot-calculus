@@ -5,6 +5,17 @@ Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Some_lemmas.
 
+Lemma precise_inert_typ : forall G v T,
+    G |-! trm_val v : T ->
+    inert_typ T.
+Proof.
+  introv Ht. inversions Ht; constructor; rename T0 into T.
+  pick_fresh z. assert (Hz: z \notin L) by auto. specialize (H1 z Hz). clear Hz.
+  pose proof (ty_defs_record_type H1).
+  assert (Hz: z \notin fv_typ T) by auto.
+  apply* record_type_open.
+Qed.
+
 (*
 Definition (Precise flow of a variable)
 
@@ -57,20 +68,6 @@ Qed.
 
 (* ###################################################################### *)
 (** ** Inert types *)
-
-(* Definition (Inert context)
-
-A context is inert if it is of the form
-  {}
-  G, x : T where G is a inert context and T is a inert type *)
-
-Inductive inert : ctx -> Prop :=
-  | inert_empty : inert empty
-  | inert_all : forall pre x T,
-      inert pre ->
-      inert_typ T ->
-      x # pre ->
-      inert (pre & x ~ T).
 
 (* Inert contexts bind inert:
 If G |- x : T and G is a inert context then T is a inert type. *)

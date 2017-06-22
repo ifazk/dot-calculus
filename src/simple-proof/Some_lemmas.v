@@ -11,7 +11,7 @@ Require Import Weakening.
 
 (* Misc helper lemma used later in this file *)
 Lemma hasnt_notin : forall G ds ls t U,
-    G /- ds :: U -> 
+    G /- ds :: U ->
     record_typ U ls ->
     defs_hasnt ds t ->
     t \notin ls.
@@ -33,17 +33,17 @@ Lemma open_fresh_avar_injective : forall x y k z,
     z \notin fv_avar y ->
     open_rec_avar k z x = open_rec_avar k z y ->
     x = y.
-Proof. 
+Proof.
   intros. destruct x, y; inversion H1.
   - case_if.
     + case_if. subst. reflexivity.
     + case_if. assumption.
   - case_if. simpl in H0. inversions H3. false* notin_same.
   - case_if. simpl in H. inversions H3. false* notin_same.
-  - reflexivity. 
+  - reflexivity.
 Qed.
 
-Lemma open_fresh_typ_dec_injective: 
+Lemma open_fresh_typ_dec_injective:
   (forall T T' k x,
     x \notin fv_typ T ->
     x \notin fv_typ T' ->
@@ -54,26 +54,26 @@ Lemma open_fresh_typ_dec_injective:
     x \notin fv_dec D' ->
     open_rec_dec k x D = open_rec_dec k x D' ->
     D = D').
-Proof. 
-  apply typ_mutind; intros. 
+Proof.
+  apply typ_mutind; intros.
   - destruct T'; inversions H1. reflexivity.
   - destruct T'; inversions H1. reflexivity.
-  - destruct T'; inversions H2. apply f_equal. apply* (H d0 k x). 
-  - destruct T'; inversions H3. 
-    assert (t = T'1). { 
-      apply (H T'1 k x). 
+  - destruct T'; inversions H2. apply f_equal. apply* (H d0 k x).
+  - destruct T'; inversions H3.
+    assert (t = T'1). {
+      apply (H T'1 k x).
       - simpl in H1. auto.
       - simpl in H2. auto.
       - assumption.
-    } 
-    assert (t0 = T'2). { 
-      apply (H0 T'2 k x). 
+    }
+    assert (t0 = T'2). {
+      apply (H0 T'2 k x).
       - simpl in H1. auto.
       - simpl in H2. auto.
       - assumption.
-    } 
+    }
     subst*.
-  - destruct T'; inversions H1. 
+  - destruct T'; inversions H1.
     simpl in H. simpl in H0. pose proof (open_fresh_avar_injective a a0 k H H0 H3).
     subst*.
   - destruct T'; inversions H2.
@@ -82,20 +82,20 @@ Proof.
     + simpl in H0. assumption.
     + assumption.
   - destruct T'; inversions H3.
-    assert (t = T'1). { 
-      apply (H T'1 k x). 
+    assert (t = T'1). {
+      apply (H T'1 k x).
       - simpl in H1. auto.
       - simpl in H2. auto.
       - assumption.
-    } 
-    assert (t0 = T'2). { 
-      apply (H0 T'2 (S k) x). 
+    }
+    assert (t0 = T'2). {
+      apply (H0 T'2 (S k) x).
       - simpl in H1. auto.
       - simpl in H2. auto.
       - assumption.
-    } 
-    subst*. 
-  - destruct D'; inversions H3. 
+    }
+    subst*.
+  - destruct D'; inversions H3.
     assert (t0 = t3). {
       apply (H t3 k x).
       - simpl in H1. auto.
@@ -109,14 +109,14 @@ Proof.
       - assumption.
     }
     subst*.
-  - destruct D'; inversions H2. 
+  - destruct D'; inversions H2.
     apply f_equal. apply (H t2 k x).
     + simpl in H0. assumption.
     + simpl in H1. assumption.
     + assumption.
 Qed.
 
-Lemma open_fresh_trm_val_def_defs_injective: 
+Lemma open_fresh_trm_val_def_defs_injective:
   (forall t t' k x,
       x \notin fv_trm t ->
       x \notin fv_trm t' ->
@@ -146,13 +146,13 @@ Proof.
   - destruct t'; inversions H1.
     apply (open_fresh_avar_injective _ _ _ H H0) in H3. subst~.
   - destruct t'; inversions H1. simpl in *.
-    assert (a = a1). { 
-      eapply open_fresh_avar_injective; eauto. 
+    assert (a = a1). {
+      eapply open_fresh_avar_injective; eauto.
     }
-    assert (a0 = a2). { 
-      eapply open_fresh_avar_injective; eauto. 
+    assert (a0 = a2). {
+      eapply open_fresh_avar_injective; eauto.
     }
-    subst~. 
+    subst~.
   - destruct t'; inversions H3. simpl in *.
     assert (t = t'1). {
       eapply H; eauto.
@@ -181,7 +181,7 @@ Proof.
     apply ((proj21 open_fresh_typ_dec_injective) _ _ _ _ H H0) in H4.
     subst~.
   - destruct d'; inversions H2. simpl in *.
-    specialize (H _ _ _ H0 H1 H5). 
+    specialize (H _ _ _ H0 H1 H5).
     subst~.
   - destruct ds'; inversions H1. reflexivity.
   - destruct ds'; inversions H3. simpl in *.
@@ -236,16 +236,16 @@ Lemma ty_defs_record_type : forall G ds T,
     G /- ds :: T ->
     record_type T.
 Proof.
-  intros. 
-  dependent induction H. 
-  - destruct D. 
+  intros.
+  dependent induction H.
+  - destruct D.
     + inversions H. exists \{ label_typ t }. constructor*. constructor.
     + exists \{ label_trm t }. constructor*. constructor.
-  - destruct IHty_defs. destruct D. 
+  - destruct IHty_defs. destruct D.
     + exists (x \u \{ label_typ t }). constructor*.
-      * inversions H0. constructor. 
+      * inversions H0. constructor.
       * inversions H0. simpl in H1. apply (hasnt_notin H H2 H1).
-    + exists (x \u \{ label_trm t }). constructor*. 
+    + exists (x \u \{ label_trm t }). constructor*.
       * constructor.
       * inversions H0. simpl in H1. apply (hasnt_notin H H2 H1).
 Qed.
@@ -256,10 +256,10 @@ Lemma opening_preserves_labels : forall z T ls ls',
     ls = ls'.
 Proof.
   introv Ht Hopen. gen ls'.
-  dependent induction Ht; intros. 
+  dependent induction Ht; intros.
   - inversions Hopen. rewrite* <- open_dec_preserves_label.
   - inversions Hopen. rewrite* <- open_dec_preserves_label.
-    specialize (IHHt ls0 H4). rewrite* IHHt. 
+    specialize (IHHt ls0 H4). rewrite* IHHt.
 Qed.
 
 Lemma record_type_open : forall z T,
@@ -280,21 +280,21 @@ Proof.
         { subst. constructor. }
         { simpl in Hz; auto. }
         { simpl in Hz; auto. }
-      * constructor. 
+      * constructor.
   - destruct T; inversions x. simpl in Hz.
     assert (Hz': z \notin fv_typ T1) by auto.
     destruct (IHrecord_typ T1 z Hz' eq_refl) as [ls' ?]. clear Hz'.
     destruct T2; inversions H5.
     destruct d; inversions H0.
     + exists (ls' \u \{ label_typ t }). apply (proj21 open_fresh_typ_dec_injective) in H6.
-      * subst. constructor*. 
+      * subst. constructor*.
         { constructor. }
-        { 
-          simpl in H2. pose proof (opening_preserves_labels z H1 H). 
+        {
+          simpl in H2. pose proof (opening_preserves_labels z H1 H).
           rewrite* H0.
         }
-      * simpl in Hz; auto. 
-      * simpl in Hz; auto. 
+      * simpl in Hz; auto.
+      * simpl in Hz; auto.
     + exists (ls' \u \{ label_trm t }). constructor*.
       * constructor.
       * simpl in H2. pose proof (opening_preserves_labels z H1 H).
@@ -424,4 +424,3 @@ Proof.
   pose proof (precise_to_general H) as H'.
   pose proof (typing_implies_bound H'). assumption.
 Qed.
-

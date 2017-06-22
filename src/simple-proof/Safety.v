@@ -12,6 +12,7 @@ Require Import Canonical_forms1.
 Require Import Canonical_forms2.
 Require Import Inert_types.
 Require Import General_to_tight.
+Require Import Invertible_typing.
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -83,12 +84,15 @@ Proof.
       apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto.
       rewrite subst_fresh_typ. assumption. eauto. eauto. eauto. eauto.
     + pick_fresh x. assert (x \notin L) as FrL by auto. specialize (H0 x FrL).
-      exists (s & x ~ v) (open_trm x u) (G & x ~ T) (x ~ T).
+      lets Hv: (val_typing H). destruct Hv as [V [Hv Hs]].
+      exists (s & x ~ v) (open_trm x u) (G & x ~ V) (x ~ V).
       split.
       apply red_let. eauto.
-      split. reflexivity. split. assumption. apply* wf_sto_push.
+      split. reflexivity. split. eapply narrow_typing. eapply H0. apply* subenv_last.
+      apply* ok_push. split. apply* wf_sto_push. apply* precise_to_general.
+      constructor*. apply* precise_inert_typ.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
-      destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
+      destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3 [Hwf' Hi']]]]]]]].
       exists s' (trm_let t' u) G' G''.
       split. apply red_let_tgt. assumption.
       split. assumption. split.
@@ -98,7 +102,7 @@ Proof.
       rewrite IH2.
       rewrite <- IH2. eauto.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
-      destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
+      destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3 [Hwf' Hi]]]]]]]].
       exists s' (trm_let t' u) G' G''.
       split. apply red_let_tgt. assumption.
       split. assumption. split.
@@ -108,7 +112,7 @@ Proof.
       rewrite IH2.
       rewrite <- IH2. eauto.
     + specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto. inversion IH.
-      destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
+      destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3 [Hwf' Hi]]]]]]]].
       exists s' (trm_let t' u) G' G''.
       split. apply red_let_tgt. assumption.
       split. assumption. split.
@@ -118,11 +122,11 @@ Proof.
       rewrite IH2.
       rewrite <- IH2. eauto.
   - specialize (IHty_trm Hwf). destruct IHty_trm as [IH | IH]; auto.
-    right. destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3]]]]]]].
+    right. destruct IH as [s' [t' [G' [G'' [IH1 [IH2 [IH3 [Hwf' Hi]]]]]]]].
     exists s' t' G' G''.
     split; try split; try split; try assumption.
     apply ty_sub with (T:=T).
     assumption.
     rewrite IH2. apply weaken_subtyp. assumption.
-    rewrite <- IH2. eapply wf_sto_to_ok_G. eassumption.
+    rewrite <- IH2. eapply wf_sto_to_ok_G. eassumption. split*.
 Qed.

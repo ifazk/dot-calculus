@@ -293,6 +293,20 @@ Inductive inert_typ : typ -> Prop :=
       record_type T ->
       inert_typ (typ_bnd T). (* rec(x:T) *)
 
+(* Definition (Inert context)
+
+A context is inert if it is of the form
+  {}
+  G, x : T where G is a inert context and T is a inert type *)
+
+Inductive inert : ctx -> Prop :=
+  | inert_empty : inert empty
+  | inert_all : forall pre x T,
+      inert pre ->
+      inert_typ T ->
+      x # pre ->
+      inert (pre & x ~ T).
+
 (* ###################################################################### *)
 (** ** Operational Semantics *)
 
@@ -816,11 +830,8 @@ Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
 
 Hint Constructors
      ty_trm ty_def ty_defs subtyp ty_trm_t subtyp_t ty_trm_p
-     norm norm_t ty_path_inv ty_val_inv.
-
-Hint Constructors wf_sto.
-
-Hint Constructors record_has.
+     norm norm_t ty_path_inv ty_val_inv inert_sngl inert_typ inert
+     wf_sto record_has.
 
 Lemma fresh_push_eq_inv: forall A x a (E: env A),
   x # (E & x ~ a) -> False.
