@@ -45,6 +45,23 @@ Proof.
   introv R1 R2. induction R1.
   - inversions R2. Admitted.*)
 
+Lemma paths_equiv_typing: forall G p p' T,
+    inert G ->
+    G |-! trm_path p: typ_bnd T ->
+    G |-! trm_path p': typ_bnd T ->
+    G |-# open_typ_p p T <: open_typ_p p' T.
+Proof.
+  introv Hi Hp Hp'.
+  assert (record_type T) as Hr. {
+    destruct (precise_flow_lemma Hp) as [U Pf].
+    apply* pf_inert_rcd_bnd_U.
+  }
+  gen p p'. induction T; intros p1 Hp1 p2 Hp2; auto.
+  - admit.
+  - inversion Hr. inversions H. assert (record_type T1) as Ht1 by (unfold record_type; exists* ls).
+    lets Hp1t1: (ty_rec_elim_p Hp1). unfold open_typ_p in Hp1t1. simpl in Hp1t1.
+    apply ty_and1_p in Hp1t1. Admitted.
+
 Lemma safety: forall G s t T,
     G ~~ s ->
     inert G ->
@@ -166,8 +183,17 @@ Proof.
       lets Heq: (pf_inert_bnd_U Hi Pf2). subst.
       apply (p_bound_unique Hi Pf1) in Pf2. subst. inversions H8. inversions H1.
       + apply (pf_inert_lambda_U Hi) in Pf1. inversion Pf1.
-      + apply (pf_inert_bnd_U Hi) in Pf1. inversions Pf1. apply* ty_let. apply* weaken_ty_trm.
+      + apply (pf_inert_bnd_U Hi) in Pf1. inversions Pf1.
+        apply ty_let with (L:=dom(G & G'')) (T:=typ_bnd T0). apply* weaken_ty_trm.
         intros y Hy. unfold open_trm. simpl. case_if.
+        assert (G & G'' & y ~ typ_bnd T0 |-! trm_path (p_var (avar_f y)): typ_bnd T0)
+          as Hty by auto.
+        assert (G & G'' & y ~ typ_bnd T0 |-!
+                            trm_path (p_sel (p_var (avar_f x)) m) : typ_bnd T0) as Hxm'. {
+          apply wf_sto_to_ok_G in Hwf'.
+          apply weaken_ty_trm_p; auto. apply weaken_ty_trm_p; assumption.
+        }
+        lets Hpet: (paths_equiv_typing Hi Hty H0).
 
       + apply (pf_sngl_U Hi) in Pf1. inversions Pf1.
 

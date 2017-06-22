@@ -38,7 +38,7 @@ Lemma safety: forall G s t T,
     G ~~ s ->
     inert G ->
     G |- t : T ->
-    (normal_form t \/ (exists s' t' G' G'', t / s => t' / s' /\ G' = G & G'' /\ G' |- t' : T /\ G' ~~ s')).
+    (normal_form t \/ (exists s' t' G' G'', t / s => t' / s' /\ G' = G & G'' /\ G' |- t' : T /\ G' ~~ s' /\ inert G')).
 Proof.
   introv Hwf Hg H. dependent induction H; try solve [left; eauto].
   - (* All-E *) right.
@@ -65,7 +65,7 @@ Proof.
     + apply red_sel with (T:=S) (ds:=ds); assumption.
     + split.
       * rewrite concat_empty_r. reflexivity.
-      * split; assumption.
+      * split*.
   - (* Let *) right.
     destruct t.
     + (* var *)
