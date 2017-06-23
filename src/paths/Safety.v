@@ -32,15 +32,15 @@ Proof.
   false (IHHt _ eq_refl).
 Qed.
 
-Lemma paths_equiv_typing: forall G p p' T U,
+Lemma paths_equiv_typing: forall T G p p' U,
     inert G ->
     precise_flow p G T U ->
     precise_flow p' G T U ->
     G |-# open_typ_p p T <: open_typ_p p' T.
 Proof.
-  introv Hi Hp Hp'.
-  gen p p'. induction T; intros p1 Hp1 p2 Hp2; auto.
-  - destruct d. Admitted. (* maybe we need to prove this instead of the next lemma? *)
+  intro. induction T; introv Hi Hp1 Hp2; auto; lets His: (pf_inert_sngl_T Hi Hp1);
+           inversions His; try inversions H.
+  - Admitted.
 
 Lemma paths_equiv_typing_bnd: forall G p p' T,
     inert G ->
@@ -54,12 +54,9 @@ Proof.
     apply* pf_inert_rcd_bnd_U.
   }
   gen p p'. induction T; intros p1 Hp1 p2 Hp2; auto.
-  - destruct d. inversions Hr. inversions H. inversions H1.
-    unfold open_typ_p. simpl.
-
-  - inversion Hr. inversions H. assert (record_type T1) as Ht1 by (unfold record_type; exists* ls).
-    lets Hp1t1: (ty_rec_elim_p Hp1). unfold open_typ_p in Hp1t1. simpl in Hp1t1.
-    apply ty_and1_p in Hp1t1. Admitted.
+  - destruct d as [A S U | a m t]. assert (S = U) as Ht01 by admit. subst.
+    unfold open_typ_p. simpl. eapply subtyp_typ_t.
+    apply ty_rec_elim_p in Hp1. apply ty_rec_elim_p in Hp2. Abort.
 
 Lemma safety: forall G s t T,
     G ~~ s ->
@@ -195,13 +192,13 @@ Proof.
           apply wf_sto_to_ok_G in Hwf'.
           apply weaken_ty_trm_p; auto. apply weaken_ty_trm_p; assumption.
         }
-        assert (inert (G & G'' & y ~ typ_bnd T0)) as Hi'' by auto.
+        assert (inert (G & G'' & y ~ typ_bnd T0)) as Hi'' by auto. admit. (*
         lets Hpet: (paths_equiv_typing Hi'' Hty Hxm').
         apply ty_sub with (T:=open_typ_p (p_var (avar_f y)) T0).
         apply ty_rec_elim. constructor*. apply* norm_var. apply tight_to_general in Hpet.
-        apply Hpet.
+        apply Hpet. *)
       + apply (pf_sngl_U Hi) in Pf1. inversions Pf1.
-    * admit.
+    * inversions H2.
   - (* ty_and *)
     right.
 (*
