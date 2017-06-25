@@ -12,6 +12,10 @@ Lemma weaken_rules:
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
     G1 & G2 & G3 |- t : T) /\
+  (forall G p T, G |-\||/ p: T -> forall G1 G2 G3,
+    G = G1 & G3 ->
+    ok (G1 & G2 & G3) ->
+    G1 & G2 & G3 |-\||/ p: T) /\
   (forall G x T d D, G && x ~ T |- d : D -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3 & x ~ T) ->
