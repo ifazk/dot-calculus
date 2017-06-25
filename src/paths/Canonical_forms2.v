@@ -139,6 +139,10 @@ Lemma unfold_rec:
     ok G ->
     G = G1 & x ~ open_typ x U & G2 ->
     G1 & x ~ typ_bnd U & G2 |- t: T) /\
+  (forall G p T, G |-\||/ p: T -> forall G1 G2 x U,
+    ok G ->
+    G = G1 & x ~ open_typ x U & G2 ->
+    G1 & x ~ typ_bnd U & G2 |-\||/ p: T) /\
   (forall G z V d D, G && z ~ V |- d: D -> forall G1 G2 x U,
     ok (G & z ~ V) ->
     G = G1 & x ~ open_typ x U & G2 ->
@@ -158,8 +162,9 @@ Lemma unfold_rec:
 Proof.
   apply rules_mutind; intros; subst; eauto.
   - destruct (classicT (x0=x)); subst.
-    * apply binds_middle_eq_inv in b. subst. rewrite open_var_path_typ_eq. apply ty_rec_elim. constructor.
-      apply binds_middle_eq. apply (ok_middle_inv_r H). eapply norm_var. apply binds_middle_eq. apply ok_middle_inv_r in H. assumption. assumption.
+    * apply binds_middle_eq_inv in b. subst.
+      apply ty_rec_elim. constructor.
+      apply binds_middle_eq. apply (ok_middle_inv_r H). assumption.
     * constructor. apply binds_remove in b. apply* binds_weaken. apply* ok_middle_change.
       auto.
   - (* ty_all_intro *)
@@ -210,7 +215,7 @@ Proof.
       apply wf_sto_to_ok_G in Hwf. rewrite <- concat_empty_r in *.
       apply* ok_middle_change.
   }
-  inversion Htd; subst.
+  inversions Htd.
   - exists t. split*. apply* weaken_ty_trm.
     lets Hur: ((proj41 unfold_rec) _ _ _ H5 G' empty x S Hok).
     rewrite concat_empty_r in Hur. specialize (Hur eq_refl). rewrite concat_empty_r in Hur.

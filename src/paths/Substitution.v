@@ -301,6 +301,12 @@ Lemma subst_rules: forall y S,
     x \notin fv_ctx_types G1 ->
     G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) : subst_typ x y S ->
     G1 & (subst_ctx x y G2) |- subst_trm x y t : subst_typ x y T) /\
+  (forall G p T, G |-\||/ p: T -> forall G1 G2 x,
+    G = G1 & x ~ S & G2 ->
+    ok (G1 & x ~ S & G2) ->
+    x \notin fv_ctx_types G2 ->
+    G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) : subst_typ x y S ->
+    G1 & (subst_ctx x y G2) |-\||/ subst_path x y p : subst_typ x y T) /\
   (forall G z T d D, G && z ~ T |- d : D -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2 & z ~ T) ->
@@ -371,8 +377,7 @@ Proof.
       unfold subst_ctx. rewrite map_concat. rewrite map_single. reflexivity.
     }
     apply H; eauto.
-  - (* ty_fld_elim *)
-    apply* ty_fld_elim.
+  - (* ty_fld_elim *) simpls. apply* ty_fld_elim.
   - (* ty_let *)
     apply_fresh ty_let as z; eauto.
     assert (subst_ctx x y G2 & z ~ subst_typ x y T = subst_ctx x y (G2 & z ~ T)) as B. {
@@ -400,7 +405,7 @@ Proof.
     }
     rewrite B. apply* H.
   - (* ty_rec_elim *)
-    rewrite subst_open_commute_typ_p.
+     Admitted. (*rewrite subst_open_commute_typ_p.
     apply ty_rec_elim.
     apply* H. apply* H0.
   - (* ty_and_intro *)
@@ -493,7 +498,7 @@ Proof.
     rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
     apply ok_push. apply ok_concat_map. eauto. unfold subst_ctx. eauto.
 Qed.
-
+*)
 Lemma subst_ty_trm: forall y S G x t T,
     G & x ~ S |- t : T ->
     ok (G & x ~ S) ->
@@ -518,7 +523,7 @@ Lemma subst_ty_defs: forall y S G x ds z U T,
     G |- trm_path (p_var (avar_f y)) : subst_typ x y S ->
     G && z ~ subst_typ x y U |- subst_defs x y ds :: subst_typ x y T.
 Proof.
-  intros.
+  intros. Admitted. (*
   apply (proj53 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H.
   unfold subst_ctx in H. rewrite map_empty in H. rewrite concat_empty_r in H.
   apply H.
@@ -527,3 +532,4 @@ Proof.
   assumption.
   unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption.
 Qed.
+*)

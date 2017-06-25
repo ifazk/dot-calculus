@@ -316,7 +316,7 @@ Inductive red : trm -> sto -> trm -> sto -> Prop :=
 | red_sel : forall x m s t T ds,
     binds x (val_new T ds) s ->
     defs_has (ds |||^ x) (def_trm m t) ->
-    trm_path (p_sel (p_var (avar_f x)) m) / s ⇒ trm_let t (trm_path (p_var (avar_b 0))) / s
+    trm_path (p_sel (p_var (avar_f x)) m) / s ⇒ t / s
 | red_path : forall q m' m s,
     trm_path (p_sel (p_sel q m') m) / s ⇒ trm_let (trm_path (p_sel q m')) (trm_path (p_sel (p_var (avar_b 0)) m)) / s
 | red_app : forall f a s T t,
@@ -417,7 +417,8 @@ with ty_def : ctx -> var -> typ -> def -> dec -> Prop := (* Γ; z: U |- d: T U *
     G & x ~ U |- t : T ->
     G && x ~ U |- def_trm a t : { a [gen] T }
 | ty_def_path : forall x G a p U T,
-    G |-\||/ p : T ->
+    G |- trm_path p : T ->
+    G |- p \||/ ->
     G && x ~ U |- def_trm a (trm_path p) : { a [strong] T }
 | ty_def_val : forall G x U v T a,
     G & x ~ U |- trm_val v : T ->
@@ -440,7 +441,8 @@ with norm : ctx -> path -> Prop :=
     binds x T G ->
     G |- p_var (avar_f x) \||/
 | norm_path : forall p U a G,
-    G |-\||/ p : typ_rcd { a [strong] U } ->
+    G |- trm_path p : typ_rcd { a [strong] U } ->
+    G |- p \||/ ->
     inert_sngl U ->
     G |- p_sel p a \||/
 where "G '|-' p '\||/'" := (norm G p)
@@ -473,16 +475,20 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     G |- typ_rcd { A >: S1 <: T1 } <: typ_rcd { A >: S2 <: T2 }
 | subtyp_sel2: forall G p A S T,
     G |-\||/ p : typ_rcd { A >: S <: T } ->
+    G |- p \||/ ->
     G |- S <: typ_path p A
 | subtyp_sel1: forall G p A S T,
     G |-\||/ p : typ_rcd { A >: S <: T } ->
+    G |- p \||/ ->
     G |- typ_path p A <: T
 | subtyp_sngl_sel1: forall G p q A S U,
     G |-\||/ p: typ_sngl q ->
+    G |- p \||/ ->
     G |- trm_path q: typ_rcd { A >: S <: U } ->
     G |- typ_path p A <: typ_path q A
 | subtyp_sngl_sel2: forall G p q A S U,
     G |-\||/ p: typ_sngl q ->
+    G |- p \||/ ->
     G |- trm_path q: typ_rcd { A >: S <: U } ->
     G |- typ_path q A <: typ_path p A
 | subtyp_all: forall L G S1 T1 S2 T2,
@@ -544,7 +550,7 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     (forall x, x \notin L ->
       G && x ~ T ||^ x |- ds |||^ x :: T ||^ x) ->
     G |-# trm_val (val_new T ds) : typ_bnd T
-| ty_fld_elimt : forall G p a T,
+| ty_fld_elim_t : forall G p a T,
     G |-# trm_path p : typ_rcd { a [gen] T } ->
     G |-# trm_path (p_sel p a) : T
 | ty_let_t : forall L G t u T U,
@@ -596,7 +602,8 @@ with norm_t : ctx -> path -> Prop :=
     binds x T G ->
     G |-# p_var (avar_f x) \||/
 | norm_path_t : forall p U a G,
-    G |-#\||/ p : typ_rcd { a [strong] U } ->
+    G |-# trm_path p : typ_rcd { a [strong] U } ->
+    G |-# p \||/ ->
     inert_sngl U ->
     G |-# p_sel p a \||/
 where "G '|-#' p '\||/'" := (norm_t G p)

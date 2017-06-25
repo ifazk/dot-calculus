@@ -52,6 +52,8 @@ Proof.
     rewrite <- concat_assoc. apply H;rewrite concat_assoc. reflexivity. assumption.
   + apply ty_def_val. rewrite <- concat_assoc. apply H; rewrite concat_assoc. reflexivity. assumption.
   + apply* norm_var. eapply binds_weaken; eassumption.
+  + apply* subtyp_sngl_sel1.
+  + apply* subtyp_sngl_sel2.
   + apply_fresh subtyp_all as z.
     auto.
     assert (zL: z \notin L) by auto.

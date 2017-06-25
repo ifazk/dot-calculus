@@ -88,6 +88,8 @@ Proof.
   - (* norm_var *)
     unfold subenv in H0. destruct (H0 x T b) as [Hb | [T1 [Hb Hs]]];
     apply* norm_var.
+  - apply* subtyp_sngl_sel1.
+  - apply* subtyp_sngl_sel2.
   - (* subtyp_all *)
     subst.
     apply_fresh subtyp_all as y; eauto.

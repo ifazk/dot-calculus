@@ -46,25 +46,6 @@ Proof.
     exists V strong. split*.
 Qed.
 
-Lemma invertible_to_precise_rec: forall G p T,
-    inert G ->
-    G |-## p: typ_bnd T ->
-    exists U, G |-! trm_path p: typ_bnd U /\ G |-# U <: T.
-Proof.
-  introv Hi Ht. inversions Ht.
-  - exists*.
-  - assert (record_type T) as Hr by admit.
-    destruct Hr as [ls Hr]. unfold open_typ in H2. inversions Hr.
-    *  destruct D; simpls. apply (invertible_to_precise_typ_dec Hi) in H2.
-       destruct H2 as [T [Hp Hs]]. exists (typ_rcd {t >: T <: T}). admit.
-       apply (invertible_to_precise_trm_dec Hi) in H2. admit.
-    *  simpl in H2. inversions H2.
-       exists (typ_and T0 (typ_rcd D)). split.
-       admit. auto. admit.
-
-Qed.
-
-
 Lemma invertible_to_precise_typ_all: forall G p S T,
     inert G ->
     G |-## p : typ_all S T ->
@@ -148,40 +129,6 @@ Qed.
 
 Lemma invertible_lemma: forall G p T,
     inert G ->
-    G |-#\||/ p: T ->
-    G |-## p: T.
-Proof.
-  introv Hi Hp. gen T. dependent induction p; introv Hp.
- - destruct a as [b | x]. lets Hn: (path_typing_norm Hp). inversion Hn.
-   dependent induction Hp; eauto.
-   * apply* invertible_lemma_var.
-   * specialize (IHHp _ Hi eq_refl). inversions IHHp; auto. rewrite* <- open_var_path_typ_eq.
-   * specialize (IHHp _ Hi eq_refl). inversions IHHp; auto. apply ty_and1_p in H.
-     constructor*.
-   * specialize (IHHp _ Hi eq_refl). inversions IHHp; auto. apply ty_and2_p in H.
-     constructor*.
- - dependent induction Hp; eauto.
-   *
-
-
-     specialize (IHHp _ Hi eq_refl Hn). inversions IHHp.
-     apply ty_rec_elim_p in H. apply* ty_path_i. rewrite* open_var_path_typ_eq.
-     assumption.
-   * subst. specialize (IHHp _ Hi eq_refl Hn). apply* invertible_sub_closure.
- - specialize (IHp Hi).
-   introv Ht Hn.
-   dependent induction Ht; try specialize (IHHt p t IHp Hi eq_refl Hn); eauto.
-   * inversions Hn. lets Hn: (path_typing_norm H2).
-     lets IHp2: (IHp _ Ht Hn). specialize (IHp _ H2 H3). inversions IHp.
-     destruct (invertible_to_precise_trm_dec Hi IHp2) as [V [m [Hp [_ Hs]]]].
-     destruct (p_rcd_unique Hi H Hp). subst. apply ty_fld_elim_p in H; auto.
-     apply ty_path_i in Hp. apply* invertible_sub_closure.
-   * inversions IHHt. apply ty_rec_elim_p in H0. apply* ty_path_i.
-   * apply* invertible_sub_closure.
-Qed.
-
-Lemma invertible_lemma: forall G p T,
-    inert G ->
     G |-# trm_path p: T ->
     G |-# p \||/ ->
     G |-## p: T.
@@ -196,13 +143,26 @@ Proof.
  - specialize (IHp Hi).
    introv Ht Hn.
    dependent induction Ht; try specialize (IHHt p t IHp Hi eq_refl Hn); eauto.
-   * inversions Hn. lets Hn: (path_typing_norm H2).
-     lets IHp2: (IHp _ Ht Hn). specialize (IHp _ H2 H3). inversions IHp.
+   * inversions Hn.
+     lets IHp2: (IHp _ Ht H3). specialize (IHp _ H1 H3). inversions IHp.
      destruct (invertible_to_precise_trm_dec Hi IHp2) as [V [m [Hp [_ Hs]]]].
      destruct (p_rcd_unique Hi H Hp). subst. apply ty_fld_elim_p in H; auto.
      apply ty_path_i in Hp. apply* invertible_sub_closure.
-   * inversions IHHt. apply ty_rec_elim_p in H0. apply* ty_path_i.
    * apply* invertible_sub_closure.
+Qed.
+
+Lemma invertible_lemma_p: forall G p T,
+    inert G ->
+    G |-#\||/ p: T ->
+    G |-# p \||/ ->
+    G |-## p: T.
+Proof.
+  introv Hi Hp Hn. induction Hp.
+  - apply* invertible_lemma.
+  - specialize (IHHp Hi Hn). inversions IHHp; auto. rewrite* <- open_var_path_typ_eq.
+  - specialize (IHHp Hi Hn). inversions IHHp; auto. apply ty_and1_p in H. constructor*.
+  - specialize (IHHp Hi Hn). inversions IHHp; auto. apply ty_and2_p in H. constructor*.
+  - inversions Hn. specialize (IHHp Hi H4). inversions IHHp. apply ty_fld_elim_p in H0; auto.
 Qed.
 
 Lemma invertible_sub_closure_v: forall G v T U,

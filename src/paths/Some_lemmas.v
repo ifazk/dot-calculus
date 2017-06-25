@@ -5,13 +5,6 @@ Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Weakening.
 
-Lemma path_typing_norm: forall G p T,
-    G |-#\||/ p: T ->
-    G |-# p \||/.
-Proof.
-  introv Hp. induction Hp; eauto.
-Qed.
-
 Lemma open_var_eq_p_typ_dec_path: forall x,
     (forall T : typ, forall n : nat,
           open_rec_typ n x T = open_rec_typ_p n (p_var (avar_f x)) T) /\

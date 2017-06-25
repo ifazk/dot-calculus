@@ -89,6 +89,10 @@ Lemma renaming_gen: forall x y,
     ok G ->
     y # G ->
     rename_ctx x y G |- subst_trm x y t: subst_typ x y T) /\
+  (forall G p T, G |-\||/ p: T ->
+    ok G ->
+    y # G ->
+    rename_ctx x y G |-\||/ subst_path x y p: subst_typ x y T) /\
   (forall G z U d D, G && z ~ U |- d: D ->
     ok (G & z ~ U) ->
     y # (G & z ~ U) ->
@@ -108,6 +112,7 @@ Lemma renaming_gen: forall x y,
     rename_ctx x y G |- subst_typ x y T <: subst_typ x y U).
 Proof.
   intros. apply rules_mutind; intros; subst; simpl; try (econstructor; apply* H); eauto.
+  Admitted. (*
   - (* ty_var *)
     constructor. unfold rename_ctx. unfold subst_ctx.
     destruct (binds_destruct b) as [G' [G'' HG]]. case_if. subst. rewrite* binds_map_keys.
@@ -181,7 +186,7 @@ Proof.
     apply_fresh subtyp_all as z; auto. specialize (H0 z). assert (Hzx: z <> x) by auto.
     rewrite rename_ctx_other_var; auto. repeat rewrite subst_open_commute_typ in H0.
     unfold subst_fvar in H0. case_if. apply* H0.
-Qed.
+Qed.*)
 
 Lemma renaming_def: forall G z U ds T y,
   ty_defs G z U ds T ->
@@ -197,10 +202,11 @@ Proof.
   assert (Hrg: G = rename_ctx z y G). {
     unfold rename_ctx. rewrite <- HG'. assumption.
   }
-  lets Hr: (proj53 (renaming_gen z y)). specialize (Hr G z U ds T Hds Hok Hy).
+  lets Hr: (proj53 (renaming_gen z y)).  Admitted. (*specialize (Hr G z U ds T Hds Hok Hy).
   rewrite Hrg.
   assert (Hyz: y = (rename_var z y z)). {
     unfold rename_var. case_if. reflexivity.
   }
   rewrite <- Hyz in Hr. assumption.
 Qed.
+*)
