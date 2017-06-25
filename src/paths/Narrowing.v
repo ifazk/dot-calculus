@@ -47,6 +47,10 @@ Lemma narrow_rules:
     ok G' ->
     subenv G' G ->
     G' |- t : T)
+/\ (forall G p T, G |-\||/ p: T -> forall G',
+    ok G' ->
+    subenv G' G ->
+    G' |-\||/ p : T)
 /\ (forall G z U d D, G && z ~ U |- d : D -> forall G',
     ok (G' & z ~ U) ->
     subenv G' G ->
@@ -84,10 +88,6 @@ Proof.
   - (* norm_var *)
     unfold subenv in H0. destruct (H0 x T b) as [Hb | [T1 [Hb Hs]]];
     apply* norm_var.
-  - (* subtyp_sngl_sel1 *)
-    apply* subtyp_sngl_sel1.
-  - (* subtyp_sngl_sel2 *)
-    apply* subtyp_sngl_sel2.
   - (* subtyp_all *)
     subst.
     apply_fresh subtyp_all as y; eauto.

@@ -404,6 +404,10 @@ with ty_path : ctx -> path -> typ -> Prop :=
 | ty_p_and_elim_2 : forall G p T U,
     G |-\||/ p: typ_and T U ->
     G |-\||/ p: U
+| ty_p_fld_elim : forall G p a T,
+    G |-\||/ p: typ_rcd {a [strong] T} ->
+    inert_sngl T ->
+    G |-\||/ p_sel p a : T
 where "G '|-\||/' p ':' T" := (ty_path G p T)
 
 with ty_def : ctx -> var -> typ -> def -> dec -> Prop := (* Γ; z: U |- d: T U *)
@@ -437,6 +441,7 @@ with norm : ctx -> path -> Prop :=
     G |- p_var (avar_f x) \||/
 | norm_path : forall p U a G,
     G |-\||/ p : typ_rcd { a [strong] U } ->
+    inert_sngl U ->
     G |- p_sel p a \||/
 where "G '|-' p '\||/'" := (norm G p)
 
@@ -490,7 +495,6 @@ with subtyp : ctx -> typ -> typ -> Prop :=
 where "G '|-' T '<:' U" := (subtyp G T U).
 
 Reserved Notation "G '|-!' t ':' T" (at level 40, t at level 59).
-Reserved Notation "G '|-!' p '\||/'" (at level 40, p at level 59).
 
 Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
 | ty_var_p : forall G x T,
@@ -507,20 +511,17 @@ Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
 | ty_rec_elim_p : forall G p T,
     G |-! trm_path p : typ_bnd T ->
     G |-! trm_path p : open_typ_p p T
-|ty_fld_elim_p : forall G p a T,
-    G |-! trm_path p : typ_rcd { a [strong] T } ->
-    inert_sngl T ->
-    G |-! trm_path (p_sel p a) : T
 | ty_and1_p : forall G p T U,
     G |-! trm_path p : typ_and T U ->
     G |-! trm_path p : T
 | ty_and2_p : forall G p T U,
     G |-! trm_path p : typ_and T U ->
     G |-! trm_path p : U
+| ty_fld_elim_p : forall G p a T,
+    G |-! trm_path p: typ_rcd {a [strong] T} ->
+    inert_sngl T ->
+    G |-! trm_path (p_sel p a): T
 where "G '|-!' t ':' T" := (ty_trm_p G t T).
-
-
-(* tight typing relation *)
 
 Reserved Notation "G '|-#' t ':' T" (at level 40, t at level 59).
 Reserved Notation "G '|-#' T '<:' U" (at level 40, T at level 59).
@@ -543,7 +544,7 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     (forall x, x \notin L ->
       G && x ~ T ||^ x |- ds |||^ x :: T ||^ x) ->
     G |-# trm_val (val_new T ds) : typ_bnd T
-| ty_fld_elim_t : forall G p a T,
+| ty_fld_elimt : forall G p a T,
     G |-# trm_path p : typ_rcd { a [gen] T } ->
     G |-# trm_path (p_sel p a) : T
 | ty_let_t : forall L G t u T U,
@@ -584,6 +585,10 @@ with ty_path_t : ctx -> path -> typ -> Prop :=
 | ty_p_and_elim_2_t : forall G p T U,
     G |-#\||/ p: typ_and T U ->
     G |-#\||/ p: U
+| ty_p_fld_elim_t : forall G p a T,
+    G |-#\||/ p: typ_rcd {a [strong] T} ->
+    inert_sngl T ->
+    G |-#\||/ p_sel p a : T
 where "G '|-#\||/' p ':' T" := (ty_path_t G p T)
 
 with norm_t : ctx -> path -> Prop :=
@@ -591,8 +596,8 @@ with norm_t : ctx -> path -> Prop :=
     binds x T G ->
     G |-# p_var (avar_f x) \||/
 | norm_path_t : forall p U a G,
-    G |-# trm_path p : typ_rcd { a [strong] U } ->
-    G |-# p \||/ ->
+    G |-#\||/ p : typ_rcd { a [strong] U } ->
+    inert_sngl U ->
     G |-# p_sel p a \||/
 where "G '|-#' p '\||/'" := (norm_t G p)
 
@@ -797,13 +802,15 @@ with   ts_norm        := Induction for norm      Sort Prop.
 Combined Scheme ts_mutind from ts_ty_trm_mut, ts_path, ts_subtyp, ts_norm.
 
 Scheme ts_ty_trm_mut_ts  := Induction for ty_trm_t    Sort Prop
+with   ts_path_ts        := Induction for ty_path_t   Sort Prop
 with   ts_subtyp_ts      := Induction for subtyp_t    Sort Prop
 with   ts_norm_ts        := Induction for norm_t      Sort Prop.
-Combined Scheme ts_mutind_ts from ts_ty_trm_mut_ts, ts_subtyp_ts, ts_norm_ts.
+Combined Scheme ts_mutind_ts from ts_ty_trm_mut_ts, ts_path_ts, ts_subtyp_ts, ts_norm_ts.
 
 Scheme ts_ty_trm_mut_t  := Induction for ty_trm_t    Sort Prop
+with   ts_path_t        := Induction for ty_path_t   Sort Prop
 with   ts_norm_t        := Induction for norm_t      Sort Prop.
-Combined Scheme ts_mutind_t from ts_ty_trm_mut_t, ts_norm_t.
+Combined Scheme ts_mutind_t from ts_ty_trm_mut_t, ts_path_t, ts_norm_t.
 
 Scheme rules_trm_mut    := Induction for ty_trm    Sort Prop
 with   rules_path_mut   := Induction for ty_path   Sort Prop

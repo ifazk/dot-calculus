@@ -5,9 +5,12 @@ Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Weakening.
 
-(* ###################################################################### *)
-(* ###################################################################### *)
-(** ** Some Lemmas *)
+Lemma path_typing_norm: forall G p T,
+    G |-#\||/ p: T ->
+    G |-# p \||/.
+Proof.
+  introv Hp. induction Hp; eauto.
+Qed.
 
 Lemma open_var_eq_p_typ_dec_path: forall x,
     (forall T : typ, forall n : nat,
@@ -297,12 +300,18 @@ Qed.
 (* ###################################################################### *)
 (** *** Lemmas to upcast to general typing *)
 
-Lemma precise_to_tight: forall G t T,
-    G |-! t : T ->
-    G |-# t : T /\ (forall p, t = trm_path p -> G |-# p \||/).
+(*
+Lemma precise_to_tight: forall G p T,
+    G |-! trm_path p: T ->
+    G |-# trm_path p: T /\ G |-# p \||/.
 Proof.
-  introv Ht. induction Ht; split; intros; try (inversions H0); eauto;
-               try (destruct IHHt as [Hp IHHt]; specialize (IHHt _ eq_refl)); eauto;
+  introv Ht. dependent induction Ht. eauto.
+  - specialize (IHHt _ eq_refl). destruct IHHt as [Hp Hn]. split.
+
+  induction Ht; split; intros; try (inversions H0); eauto;
+               try (destruct IHHt as [Hp IHHt]; specialize (IHHt _ eq_refl)); eauto.
+  -
+  apply ty_rec_elim_t in Hp.
                inversions H; assumption.
 Qed.
 
@@ -313,13 +322,14 @@ Proof.
   introv Hp. apply* precise_to_tight.
 Qed.
 
+
 Lemma precise_to_general: forall G t T,
     G |-! t : T ->
     G |- t : T /\ (forall p, t = trm_path p -> G |- p \||/).
 Proof.
   introv Ht. induction Ht; split; intros; try (inversions H0); eauto;
-               try (destruct IHHt as [Hp IHHt]; specialize (IHHt _ eq_refl)); eauto;
-               inversions H; assumption.
+               try (destruct IHHt as [Hp IHHt]; specialize (IHHt _ eq_refl)); eauto.
+  -
 Qed.
 
 Lemma precise_to_general_typ: forall G t T,
@@ -328,11 +338,22 @@ Lemma precise_to_general_typ: forall G t T,
 Proof.
   apply* precise_to_general.
 Qed.
+ *)
+
+Lemma precise_to_path_typing: forall G p T,
+    G |-! trm_path p : T ->
+    G |-\||/ p : T.
+Proof.
+  introv Hp. dependent induction Hp; eauto.
+Qed.
 
 Lemma tight_to_general:
   (forall G t T,
      G |-# t : T ->
      G |- t : T) /\
+  (forall G p T,
+     G |-#\||/ p: T ->
+     G |-\||/ p: T) /\
   (forall G S U,
      G |-# S <: U ->
      G |- S <: U) /\
@@ -340,7 +361,11 @@ Lemma tight_to_general:
      G |-# p \||/ ->
      G |- p \||/).
 Proof.
-  apply ts_mutind_ts; intros; subst; eauto; apply precise_to_general_typ in t; eauto.
+  apply ts_mutind_ts; intros; subst; eauto.
+  - apply* subtyp_sel2. apply* precise_to_path_typing.
+  - apply* subtyp_sel1. apply* precise_to_path_typing.
+  - apply* subtyp_sngl_sel1. apply* precise_to_path_typing.
+  - apply* subtyp_sngl_sel2. apply* precise_to_path_typing.
 Qed.
 
 (* ###################################################################### *)
@@ -351,7 +376,7 @@ Lemma var_typing_implies_avar_f: forall G a T,
   exists x, a = avar_f x.
 Proof.
   intros. dependent induction H; try solve [eexists; reflexivity].
-  apply* IHty_trm. apply* IHty_trm2. apply* IHty_trm.
+  apply* IHty_trm.
 Qed.
 
 Lemma val_typing: forall G v T,
@@ -382,7 +407,7 @@ Lemma typing_implies_bound_p: forall G x T,
   G |-! trm_path (p_var (avar_f x)) : T ->
   exists S, binds x S G.
 Proof.
-  intros. eapply typing_implies_bound. apply* precise_to_general.
+  introv Hp. dependent induction Hp; eauto.
 Qed.
 
 Lemma binds_destruct: forall {A} x (v:A) E,
