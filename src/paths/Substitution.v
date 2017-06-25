@@ -304,7 +304,7 @@ Lemma subst_rules: forall y S,
   (forall G p T, G |-\||/ p: T -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
-    x \notin fv_ctx_types G2 ->
+    x \notin fv_ctx_types G1 ->
     G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) : subst_typ x y S ->
     G1 & (subst_ctx x y G2) |-\||/ subst_path x y p : subst_typ x y T) /\
   (forall G z T d D, G && z ~ T |- d : D -> forall G1 G2 x,
@@ -405,15 +405,18 @@ Proof.
     }
     rewrite B. apply* H.
   - (* ty_rec_elim *)
-     Admitted. (*rewrite subst_open_commute_typ_p.
-    apply ty_rec_elim.
-    apply* H. apply* H0.
+    rewrite subst_open_commute_typ. apply* ty_rec_elim.
   - (* ty_and_intro *)
     apply ty_and_intro; eauto.
   - (* ty_sngl_intro *)
     apply* ty_sngl_intro.
   - (* ty_sub *)
     apply* ty_sub.
+  - apply* ty_p_intro.
+  - simpls. rewrite subst_open_commute_typ_p. apply* ty_p_rec_elim.
+  - apply* ty_p_and_elim1.
+  - apply* ty_p_and_elim_2.
+  - simpls. apply* ty_p_fld_elim. apply* inert_sngl_subst.
   - (* ty_def_trm *)
     apply ty_def_trm.
     assert (G1 & subst_ctx x0 y G2 & x ~ subst_typ x0 y U = G1 & subst_ctx x0 y (G2 & x ~ U)) as Hs. {
@@ -498,7 +501,7 @@ Proof.
     rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
     apply ok_push. apply ok_concat_map. eauto. unfold subst_ctx. eauto.
 Qed.
-*)
+
 Lemma subst_ty_trm: forall y S G x t T,
     G & x ~ S |- t : T ->
     ok (G & x ~ S) ->
@@ -523,13 +526,10 @@ Lemma subst_ty_defs: forall y S G x ds z U T,
     G |- trm_path (p_var (avar_f y)) : subst_typ x y S ->
     G && z ~ subst_typ x y U |- subst_defs x y ds :: subst_typ x y T.
 Proof.
-  intros. Admitted. (*
-  apply (proj53 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H.
-  unfold subst_ctx in H. rewrite map_empty in H. rewrite concat_empty_r in H.
-  apply H.
-  rewrite concat_empty_r. reflexivity.
-  rewrite concat_empty_r. assumption.
-  assumption.
-  unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption.
+  intros.
+  assert (G & subst_ctx x y empty && z ~ subst_typ x y U |- subst_defs x y ds :: subst_typ x y T) as Hs. {
+    apply* subst_rules; try rewrite* concat_empty_r. unfold subst_ctx. rewrite map_empty.
+    rewrite* concat_empty_r.
+  }
+  unfold subst_ctx in Hs. rewrite map_empty in Hs. rewrite* concat_empty_r in Hs.
 Qed.
-*)
