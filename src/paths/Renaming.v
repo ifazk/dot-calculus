@@ -171,18 +171,13 @@ Proof.
         simpl_dom. repeat rewrite notin_union in H0. destruct* H0 as [[_ Hy] _].
       * unfold rename_var. case_if*.
   - (* norm_path *)
-    specialize (H H1 H2). eapply norm_path with (U:=subst_typ x y U); auto.
-    destruct U; inversions i; try inversions H3. simpl. apply is_inert. apply inert_typ_bnd.
-    lets Hrs: (subst_record_type x y H5). assumption. simpl. constructor. constructor.
-    apply is_sngl.
-  - (* subtyp_sel2 *)
-    apply subtyp_sel2 with (T:=(subst_typ x y T)); auto.
-  - (* subtyp_sel1 *)
-    apply subtyp_sel1 with (S:=(subst_typ x y S)); auto.
+    specialize (H H0 H1). eapply norm_path with (U:=subst_typ x y U); auto.
+    destruct U; inversions i; try inversions H2. constructor. apply* inert_subst.
+    constructor. apply* inert_subst. apply is_sngl.
   - (* subtyp_sngl_sel1 *)
-    specialize (H1 H2 H3). simpls. apply* subtyp_sngl_sel1.
+    specialize (H0 H1 H2). simpls. apply* subtyp_sngl_sel1.
   - (* subtyp_sngl_sel2 *)
-    specialize (H1 H2 H3). simpls. apply* subtyp_sngl_sel2.
+    specialize (H0 H1 H2). simpls. apply* subtyp_sngl_sel2.
   - (* subtyp_all *)
     apply_fresh subtyp_all as z; auto. specialize (H0 z). assert (Hzx: z <> x) by auto.
     rewrite rename_ctx_other_var; auto. repeat rewrite subst_open_commute_typ in H0.
