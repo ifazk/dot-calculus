@@ -240,7 +240,7 @@ Proof.
   assert (G |-# p_var (avar_f x) \||/) as Hn. {
     destruct (typing_implies_bound Hty). apply* norm_var_t.
   }
-  lets Hinv: (invertible_lemma Hi Hty' Hn).
+  lets Hinv: (tight_to_invertible Hi Hty' Hn).
   destruct (invertible_to_precise_trm_dec Hi Hinv) as [T' [m' [Hx [Heq Hs]]]].
   destruct (corresponding_types Hwf Hi Bi)
     as [[L [U [V [S1 [V1 [t [Hb [Ht [Heq' [Hs1 Hs2]]]]]]]]]] | [U [ds [Hb [Ht Heq']]]]];

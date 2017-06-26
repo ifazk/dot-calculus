@@ -203,34 +203,24 @@ Proof.
   - exists \{ l }. destruct T; inversions x. constructor.
     + destruct d; inversions H.
       * apply (proj21 open_fresh_typ_dec_injective) in H3.
-        { subst. constructor. }
-        { simpl in Hz; auto. }
-        { simpl in Hz; auto. }
+        subst. constructor. simpls*. simpls*.
       * constructor.
     + destruct d; inversions H.
       * apply (proj21 open_fresh_typ_dec_injective) in H3.
-        { subst. constructor. }
-        { simpl in Hz; auto. }
-        { simpl in Hz; auto. }
+        subst. constructor. simpls*. simpls*.
       * constructor.
   - destruct T; inversions x. simpl in Hz.
     assert (Hz': z \notin fv_typ T1) by auto.
     destruct (IHrecord_typ T1 z Hz' eq_refl) as [ls' ?]. clear Hz'.
     destruct T2; inversions H5.
     destruct d; inversions H0.
-    + exists (ls' \u \{ label_typ t }). apply (proj21 open_fresh_typ_dec_injective) in H6.
-      * subst. constructor*.
-        { constructor. }
-        {
-          simpl in H2. pose proof (opening_preserves_labels z H1 H).
-          rewrite* H0.
-        }
-      * simpl in Hz; auto.
-      * simpl in Hz; auto.
-    + exists (ls' \u \{ label_trm t }). constructor*.
-      * constructor.
-      * simpl in H2. pose proof (opening_preserves_labels z H1 H).
-        rewrite* H0.
+    + exists (ls' \u \{ label_typ t }).
+      apply (proj21 open_fresh_typ_dec_injective) in H6; simpls*.
+      subst. constructor*. constructor.
+      simpl in H2. pose proof (opening_preserves_labels z H1 H). rewrite* H0.
+    + exists (ls' \u \{ label_trm t }). constructor*. constructor.
+      simpl in H2. pose proof (opening_preserves_labels z H1 H).
+      rewrite* H0.
 Qed.
 
 (* ###################################################################### *)
@@ -290,54 +280,11 @@ Proof.
   - inversions H5. inversions* H9.
 Qed.
 
-(* ###################################################################### *)
-(** *** Lemmas to upcast to general typing *)
-
-(*
-Lemma precise_to_tight: forall G p T,
-    G |-! trm_path p: T ->
-    G |-# trm_path p: T /\ G |-# p \||/.
-Proof.
-  introv Ht. dependent induction Ht. eauto.
-  - specialize (IHHt _ eq_refl). destruct IHHt as [Hp Hn]. split.
-
-  induction Ht; split; intros; try (inversions H0); eauto;
-               try (destruct IHHt as [Hp IHHt]; specialize (IHHt _ eq_refl)); eauto.
-  -
-  apply ty_rec_elim_t in Hp.
-               inversions H; assumption.
-Qed.
-
-Lemma precise_to_norm: forall G p T,
-    G |-! trm_path p: T ->
-    G |-# p \||/.
-Proof.
-  introv Hp. apply* precise_to_tight.
-Qed.
-
-
-Lemma precise_to_general: forall G t T,
-    G |-! t : T ->
-    G |- t : T /\ (forall p, t = trm_path p -> G |- p \||/).
-Proof.
-  introv Ht. induction Ht; split; intros; try (inversions H0); eauto;
-               try (destruct IHHt as [Hp IHHt]; specialize (IHHt _ eq_refl)); eauto.
-  -
-Qed.
-
-Lemma precise_to_general_typ: forall G t T,
-    G |-! t : T ->
-    G |- t : T.
-Proof.
-  apply* precise_to_general.
-Qed.
- *)
-
 Lemma precise_to_path_typing: forall G p T,
-    G |-! trm_path p : T ->
-    G |-\||/ p : T.
+    G |-! trm_path p: T ->
+    G |- p \||/ /\ G |-\||/ p: T.
 Proof.
-  introv Hp. dependent induction Hp; eauto.
+  introv Hp. dependent induction Hp; eauto; specialize (IHHp _ eq_refl); destruct* IHHp.
 Qed.
 
 Lemma tight_to_general:
@@ -359,6 +306,31 @@ Proof.
   - apply* subtyp_sel1. apply* precise_to_path_typing.
   - apply* subtyp_sngl_sel1. apply* precise_to_path_typing.
   - apply* subtyp_sngl_sel2. apply* precise_to_path_typing.
+Qed.
+
+Lemma typing_implies_bound: forall G x T,
+  G |- trm_path (p_var (avar_f x)) : T ->
+  exists S, binds x S G.
+Proof.
+  intros. remember (trm_path (p_var (avar_f x))) as t.
+  induction H; inversion Heqt;
+    try solve [apply* IHty_trm];
+    try solve [apply* IHty_trm1]; subst*.
+Qed.
+
+Lemma typing_implies_bound_p: forall G x T,
+  G |-! trm_path (p_var (avar_f x)) : T ->
+  exists S, binds x S G.
+Proof.
+  introv Hp. dependent induction Hp; eauto.
+Qed.
+
+Lemma path_typing_norm_tight: forall G p T,
+    G |-#\||/ p: T ->
+    G |-# p \||/.
+Proof.
+  introv Hp. dependent induction Hp; eauto. apply tight_to_general in H.
+  apply typing_implies_bound in H. destruct H. apply* norm_var_t.
 Qed.
 
 (* ###################################################################### *)
@@ -384,23 +356,6 @@ Proof.
     apply ty_new_intro_p with (L:=L); eauto. apply subtyp_refl.
   - specialize (IHty_trm v eq_refl). destruct IHty_trm as [T' [Hty Hsub]].
     exists T'. split; eauto.
-Qed.
-
-Lemma typing_implies_bound: forall G x T,
-  G |- trm_path (p_var (avar_f x)) : T ->
-  exists S, binds x S G.
-Proof.
-  intros. remember (trm_path (p_var (avar_f x))) as t.
-  induction H; inversion Heqt;
-    try solve [apply* IHty_trm];
-    try solve [apply* IHty_trm1]; subst*.
-Qed.
-
-Lemma typing_implies_bound_p: forall G x T,
-  G |-! trm_path (p_var (avar_f x)) : T ->
-  exists S, binds x S G.
-Proof.
-  introv Hp. dependent induction Hp; eauto.
 Qed.
 
 Lemma binds_destruct: forall {A} x (v:A) E,

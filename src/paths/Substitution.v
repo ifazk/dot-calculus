@@ -417,6 +417,7 @@ Proof.
   - apply* ty_p_and_elim1.
   - apply* ty_p_and_elim_2.
   - simpls. apply* ty_p_fld_elim. apply* inert_sngl_subst.
+  - apply* ty_p_sub.
   - (* ty_def_trm *)
     apply ty_def_trm.
     assert (G1 & subst_ctx x0 y G2 & x ~ subst_typ x0 y U = G1 & subst_ctx x0 y (G2 & x ~ U)) as Hs. {
@@ -467,7 +468,7 @@ Proof.
         eapply binds_concat_left. eassumption.
         unfold notin. intro. unfolds subst_ctx. simpl_dom. false.
   - (* norm_path *)
-    specialize (H _ _ _ eq_refl H2 H3 H4). simpl in H.  apply* norm_path.
+    specialize (H _ _ _ eq_refl H1 H2 H3). simpl in H.  apply* norm_path.
     apply* inert_sngl_subst.
   - (* subtyp_trans *)
     eapply subtyp_trans; eauto.
@@ -478,10 +479,10 @@ Proof.
     eapply subtyp_sel1; eauto.
     eapply H; eauto.
   - (* subtyp_sngl_sel1 *)
-    specialize (H1 _ _ _ eq_refl H3 H4 H5). simpl in H1.
+    specialize (H0 _ _ _ eq_refl H2 H3 H4). simpl in H0.
     apply* subtyp_sngl_sel1.
   - (* subtyp_sngl_sel2 *)
-    specialize (H1 _ _ _ eq_refl H3 H4 H5). simpl in H1.
+    specialize (H0 _ _ _ eq_refl H2 H3 H4). simpl in H0.
     apply* subtyp_sngl_sel2.
   - (* subtyp_all *)
     apply_fresh subtyp_all as z; eauto.
