@@ -401,6 +401,17 @@ Qed.
 (* ###################################################################### *)
 (** *** Misc Lemmas *)
 
+Lemma defs_has_inv: forall ds m t t',
+    defs_has ds (def_trm m t) ->
+    defs_has ds (def_trm m t') ->
+    t = t'.
+Proof. 
+  intros. unfold defs_has in *.
+  inversions H. inversions H0. 
+  rewrite H1 in H2. inversions H2.
+  reflexivity.
+Qed.
+
 Lemma var_typing_implies_avar_f: forall G a T,
   G |- trm_var a : T ->
   exists x, a = avar_f x.

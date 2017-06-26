@@ -84,6 +84,22 @@ Proof.
     (apply* subst_fresh_avar || apply* subst_fresh_typ_dec).
 Qed.
 
+Lemma fv_ctx_types_push: forall x z T G,
+    x \notin fv_typ T ->
+    x \notin fv_ctx_types G ->
+    x \notin fv_ctx_types (G & z ~ T).
+Proof. 
+  intros.
+  unfold fv_ctx_types in *.
+  unfold fv_in_values in *.
+  rewrite <- cons_to_push in *.
+  rewrite values_def in *.
+  unfold LibList.map in *.
+  do 2 rewrite LibList.fold_right_cons in *.
+  simpl in *.
+  apply notin_union. split~.
+Qed.
+  
 Lemma invert_fv_ctx_types_push: forall x z T G,
   x \notin fv_ctx_types (G & z ~ T) -> x \notin fv_typ T /\ x \notin (fv_ctx_types G).
 Proof.

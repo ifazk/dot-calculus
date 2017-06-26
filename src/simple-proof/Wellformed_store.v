@@ -13,6 +13,13 @@ Require Import Narrowing.
 (* ###################################################################### *)
 (** ** Well-formed store *)
 
+Lemma wf_sto_notin_dom: forall G s x,
+    G ~~ s ->
+    x # s -> x # G.
+Proof.
+  intros. induction H; auto.
+Qed.
+
 Lemma wf_sto_to_ok_G: forall s G,
     G ~~ s -> ok G.
 Proof. intros. induction H; jauto. Qed.

@@ -62,6 +62,8 @@ Inductive inert : ctx -> Prop :=
       x # pre ->
       inert (pre & x ~ T).
 
+Hint Constructors inert_typ inert.
+
 Lemma precise_inert_typ : forall G v T,
     G |-! trm_val v : T ->
     inert_typ T.
