@@ -163,6 +163,7 @@ Proof.
   - specialize (IHHp Hi Hn). inversions IHHp; auto. apply ty_and1_p in H. constructor*.
   - specialize (IHHp Hi Hn). inversions IHHp; auto. apply ty_and2_p in H. constructor*.
   - inversions Hn. specialize (IHHp Hi H4). inversions IHHp. apply ty_fld_elim_p in H0; auto.
+  - specialize (IHHp Hi Hn). apply* invertible_sub_closure.
 Qed.
 
 Lemma invertible_sub_closure_v: forall G v T U,

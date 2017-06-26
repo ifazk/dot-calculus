@@ -417,6 +417,7 @@ Proof.
   - apply* ty_p_and_elim1.
   - apply* ty_p_and_elim_2.
   - simpls. apply* ty_p_fld_elim. apply* inert_sngl_subst.
+  - apply* ty_p_sub.
   - (* ty_def_trm *)
     apply ty_def_trm.
     assert (G1 & subst_ctx x0 y G2 & x ~ subst_typ x0 y U = G1 & subst_ctx x0 y (G2 & x ~ U)) as Hs. {

@@ -408,6 +408,10 @@ with ty_path : ctx -> path -> typ -> Prop :=
     G |-\||/ p: typ_rcd {a [strong] T} ->
     inert_sngl T ->
     G |-\||/ p_sel p a : T
+| ty_p_sub : forall G p T U,
+    G |-\||/ p: T ->
+    G |- T <: U ->
+    G |-\||/ p: U
 where "G '|-\||/' p ':' T" := (ty_path G p T)
 
 with ty_def : ctx -> var -> typ -> def -> dec -> Prop := (* Γ; z: U |- d: T U *)
@@ -595,6 +599,10 @@ with ty_path_t : ctx -> path -> typ -> Prop :=
     G |-#\||/ p: typ_rcd {a [strong] T} ->
     inert_sngl T ->
     G |-#\||/ p_sel p a : T
+| ty_p_sub_t : forall G p T U,
+    G |-#\||/ p: T ->
+    G |-# T <: U ->
+    G |-#\||/ p: U
 where "G '|-#\||/' p ':' T" := (ty_path_t G p T)
 
 with norm_t : ctx -> path -> Prop :=
