@@ -405,6 +405,7 @@ with ty_path : ctx -> path -> typ -> Prop :=
     G |-\||/ p: U
 | ty_p_fld_elim : forall G p a T,
     G |-\||/ p: typ_rcd {a [strong] T} ->
+    G |- p \||/ ->
     inert_sngl T ->
     G |-\||/ p_sel p a : T
 | ty_p_sub : forall G p T U,
@@ -444,8 +445,7 @@ with norm : ctx -> path -> Prop :=
     binds x T G ->
     G |- p_var (avar_f x) \||/
 | norm_path : forall p U a G,
-    G |- trm_path p : typ_rcd { a [strong] U } ->
-    G |- p \||/ ->
+    G |-\||/ p : typ_rcd { a [strong] U } ->
     inert_sngl U ->
     G |- p_sel p a \||/
 where "G '|-' p '\||/'" := (norm G p)
@@ -478,20 +478,16 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     G |- typ_rcd { A >: S1 <: T1 } <: typ_rcd { A >: S2 <: T2 }
 | subtyp_sel2: forall G p A S T,
     G |-\||/ p : typ_rcd { A >: S <: T } ->
-    G |- p \||/ ->
     G |- S <: typ_path p A
 | subtyp_sel1: forall G p A S T,
     G |-\||/ p : typ_rcd { A >: S <: T } ->
-    G |- p \||/ ->
     G |- typ_path p A <: T
 | subtyp_sngl_sel1: forall G p q A S U,
     G |-\||/ p: typ_sngl q ->
-    G |- p \||/ ->
     G |- trm_path q: typ_rcd { A >: S <: U } ->
     G |- typ_path p A <: typ_path q A
 | subtyp_sngl_sel2: forall G p q A S U,
     G |-\||/ p: typ_sngl q ->
-    G |- p \||/ ->
     G |- trm_path q: typ_rcd { A >: S <: U } ->
     G |- typ_path q A <: typ_path p A
 | subtyp_all: forall L G S1 T1 S2 T2,
@@ -595,6 +591,7 @@ with ty_path_t : ctx -> path -> typ -> Prop :=
     G |-#\||/ p: U
 | ty_p_fld_elim_t : forall G p a T,
     G |-#\||/ p: typ_rcd {a [strong] T} ->
+    G |-# p \||/ ->
     inert_sngl T ->
     G |-#\||/ p_sel p a : T
 | ty_p_sub_t : forall G p T U,
@@ -608,8 +605,7 @@ with norm_t : ctx -> path -> Prop :=
     binds x T G ->
     G |-# p_var (avar_f x) \||/
 | norm_path_t : forall p U a G,
-    G |-# trm_path p : typ_rcd { a [strong] U } ->
-    G |-# p \||/ ->
+    G |-#\||/ p : typ_rcd { a [strong] U } ->
     inert_sngl U ->
     G |-# p_sel p a \||/
 where "G '|-#' p '\||/'" := (norm_t G p)
@@ -646,7 +642,6 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
     G |-# T <: typ_path p A
 | subtyp_sel1_t: forall G p A T,
     G |-! trm_path p : typ_rcd { A >: T <: T } ->
-    G |-# p \||/ ->
     G |-# typ_path p A <: T
 | subtyp_all_t: forall L G S1 T1 S2 T2,
     G |-# S2 <: S1 ->
@@ -655,12 +650,10 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
     G |-# typ_all S1 T1 <: typ_all S2 T2
 | subtyp_sngl_sel1_t: forall G p q A S U,
     G |-! trm_path p: typ_sngl q ->
-    G |-# p \||/ ->
     G |-# trm_path q: typ_rcd { A >: S <: U } ->
     G |-# typ_path p A <: typ_path q A
 | subtyp_sngl_sel2_t: forall G p q A S U,
     G |-! trm_path p: typ_sngl q ->
-    G |-# p \||/ ->
     G |-# trm_path q: typ_rcd { A >: S <: U } ->
     G |-# typ_path q A <: typ_path p A
 | subtyp_path_t: forall G a T,
