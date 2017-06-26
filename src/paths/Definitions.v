@@ -391,10 +391,9 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
 where "G '|-' t ':' T" := (ty_trm G t T)
 
 with ty_path : ctx -> path -> typ -> Prop :=
-| ty_p_intro: forall G p T,
-    G |- trm_path p: T ->
-    G |- p \||/ ->
-    G |-\||/ p: T
+| ty_p_intro: forall G x T,
+    G |- trm_path (p_var (avar_f x)): T ->
+    G |-\||/ p_var (avar_f x): T
 | ty_p_rec_elim : forall G p T,
     G |-\||/ p : typ_bnd T ->
     G |-\||/ p : open_typ_p p T
@@ -582,10 +581,9 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
 where "G '|-#' t ':' T" := (ty_trm_t G t T)
 
 with ty_path_t : ctx -> path -> typ -> Prop :=
-| ty_p_intro_t: forall G p T,
-    G |-# trm_path p: T ->
-    G |-# p \||/ ->
-    G |-#\||/ p: T
+| ty_p_intro_t: forall G x T,
+    G |-# trm_path (p_var (avar_f x)): T ->
+    G |-#\||/ p_var (avar_f x) : T
 | ty_p_rec_elim_t : forall G p T,
     G |-#\||/ p : typ_bnd T ->
     G |-#\||/ p : open_typ_p p T
