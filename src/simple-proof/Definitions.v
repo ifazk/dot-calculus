@@ -33,9 +33,6 @@ with dec : Set :=
   | dec_typ  : typ_label -> typ -> typ -> dec (* A: S..U *)
   | dec_trm  : trm_label -> typ -> dec (* a: T *).
 
-Notation "'{' a ':' T '}'" := (dec_trm a T).
-Notation "'{' A '>:' S '<:' T '}'" := (dec_typ A S T) (S at level 58).
-
 Inductive trm : Set :=
   | trm_var  : avar -> trm
   | trm_val  : val -> trm
@@ -72,8 +69,8 @@ Definition label_of_def(d: def): label := match d with
 end.
 
 Definition label_of_dec(D: dec): label := match D with
-| { L >: _ <: _ } => label_typ L
-| { m : _ }       => label_trm m
+| dec_typ L _ _ => label_typ L
+| dec_trm m _   => label_trm m
 end.
 
 Fixpoint get_def(l: label)(ds: defs): option def :=
@@ -109,8 +106,8 @@ Fixpoint open_rec_typ (k: nat) (u: var) (T: typ): typ :=
   end
 with open_rec_dec (k: nat) (u: var) (D: dec): dec :=
   match D with
-  | { L >: T <: U } => dec_typ L (open_rec_typ k u T) (open_rec_typ k u U)
-  | { m : T }       => dec_trm m (open_rec_typ k u T)
+  | dec_typ L T U => dec_typ L (open_rec_typ k u T) (open_rec_typ k u U)
+  | dec_trm m T   => dec_trm m (open_rec_typ k u T)
   end.
 
 Fixpoint open_rec_trm (k: nat) (u: var) (t: trm): trm :=
@@ -156,7 +153,7 @@ Fixpoint open_ec (u: var) (e: ec): ec :=
 (** ** Record types *)
 
 Inductive record_dec : dec -> Prop :=
-| rd_typ : forall A T, record_dec { A >: T <: T }
+| rd_typ : forall A T, record_dec (dec_typ A T T)
 | rd_trm : forall a T, record_dec (dec_trm a T).
 
 Inductive record_typ : typ -> fset label -> Prop :=
@@ -354,7 +351,7 @@ where "G '|-' t ':' T" := (ty_trm G t T)
 
 with ty_def : ctx -> def -> dec -> Prop :=
 | ty_def_typ : forall G A T,
-    G /- def_typ A T : { A >: T <: T }
+    G /- def_typ A T : dec_typ A T T
 | ty_def_trm : forall G a t T,
     G |- t : T ->
     G /- def_trm a t : dec_trm a T
