@@ -10,7 +10,7 @@ Require Import Some_lemmas.
 Require Import Inert_types.
 Require Import General_to_tight.
 Require Import Renaming.
-Require Import Invertible.
+Require Import Invertible_typing.
 
 Lemma defs_has_hasnt_neq: forall ds d1 d2,
   defs_has ds d1 ->

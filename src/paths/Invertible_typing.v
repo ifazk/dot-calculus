@@ -130,16 +130,16 @@ Qed.
 Lemma tight_to_invertible_p: forall G p T,
     inert G ->
     G |-#\||/ p: T ->
-    G |-# p \||/ ->
     G |-## p: T.
 Proof.
-  introv Hi Hp Hn. induction Hp.
+  introv Hi Hp. lets Hn: (path_typing_norm_tight Hp).
+  induction Hp; try (specialize (IHHp Hi Hn)).
   - apply* invertible_lemma_var.
-  - specialize (IHHp Hi Hn). inversions IHHp; auto. rewrite* <- open_var_path_typ_eq.
-  - specialize (IHHp Hi Hn). inversions IHHp; auto. apply ty_and1_p in H. constructor*.
-  - specialize (IHHp Hi Hn). inversions IHHp; auto. apply ty_and2_p in H. constructor*.
+  - inversions IHHp; auto. rewrite* <- open_var_path_typ_eq.
+  - inversions IHHp; auto. apply ty_and1_p in H. constructor*.
+  - inversions IHHp; auto. apply ty_and2_p in H. constructor*.
   - inversions Hn. specialize (IHHp Hi H). inversions IHHp. apply ty_fld_elim_p in H1; auto.
-  - specialize (IHHp Hi Hn). apply* invertible_sub_closure.
+  - apply* invertible_sub_closure.
 Qed.
 
 Lemma tight_to_invertible: forall G p T,
@@ -162,7 +162,7 @@ Proof.
      lets IHp2: (IHp _ Ht Hn). apply (tight_to_invertible_p Hi) in H2.
      inversions H2. destruct (invertible_to_precise_trm_dec Hi IHp2) as [V [m [Hp [_ Hs]]]].
      destruct (p_rcd_unique Hi H Hp). subst. apply ty_fld_elim_p in H; auto.
-     apply ty_path_i in Hp. apply* invertible_sub_closure. assumption.
+     apply ty_path_i in Hp. apply* invertible_sub_closure.
    * apply* invertible_sub_closure.
 Qed.
 

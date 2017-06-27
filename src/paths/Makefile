@@ -9,7 +9,7 @@ PROOFS= \
     Precise_flow.v \
     Has_member.v \
     Inert_types.v \
-    Invertible.v \
+    Invertible_typing.v \
     Tight_bound_completeness.v \
     Substitution.v \
     Narrowing.v \
