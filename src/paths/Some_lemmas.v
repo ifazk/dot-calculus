@@ -282,9 +282,9 @@ Qed.
 
 Lemma precise_to_path_typing: forall G p T,
     G |-! trm_path p: T ->
-    G |- p \||/ /\ G |-\||/ p: T.
+    G |-\||/ p: T.
 Proof.
-  introv Hp. dependent induction Hp; eauto; specialize (IHHp _ eq_refl); destruct* IHHp.
+  introv Hp. dependent induction Hp; eauto.
 Qed.
 
 Lemma tight_to_general:
@@ -296,10 +296,7 @@ Lemma tight_to_general:
      G |-\||/ p: T) /\
   (forall G S U,
      G |-# S <: U ->
-     G |- S <: U) /\
-  (forall G p,
-     G |-# p \||/ ->
-     G |- p \||/).
+     G |- S <: U).
 Proof.
   apply ts_mutind_ts; intros; subst; eauto.
   - apply* subtyp_sel2. apply* precise_to_path_typing.
@@ -323,14 +320,6 @@ Lemma typing_implies_bound_p: forall G x T,
   exists S, binds x S G.
 Proof.
   introv Hp. dependent induction Hp; eauto.
-Qed.
-
-Lemma path_typing_norm_tight: forall G p T,
-    G |-#\||/ p: T ->
-    G |-# p \||/.
-Proof.
-  introv Hp. dependent induction Hp; eauto. apply tight_to_general in H.
-  apply typing_implies_bound in H. destruct H. apply* norm_var_t.
 Qed.
 
 (* ###################################################################### *)

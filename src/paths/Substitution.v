@@ -319,12 +319,6 @@ Lemma subst_rules: forall y S,
     x \notin fv_ctx_types G1 ->
     G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) : subst_typ x y S ->
     G1 & (subst_ctx x y G2) && z ~ subst_typ x y T |- subst_defs x y ds :: subst_typ x y U) /\
-  (forall G p, norm G p -> forall G1 G2 x,
-    G = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2) ->
-    x \notin fv_ctx_types G1 ->
-    G1 & (subst_ctx x y G2) |- trm_path (p_var (avar_f y)) : subst_typ x y S ->
-    norm (G1 & (subst_ctx x y G2)) (subst_path x y p)) /\
   (forall G T U, G |- T <: U -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
@@ -458,18 +452,6 @@ Proof.
     + unfold subst_ctx. rewrite map_concat. rewrite concat_assoc. rewrite* map_single.
   - (* ty_defs_cons *)
     apply* ty_defs_cons. rewrite <- subst_label_of_def. apply subst_defs_hasnt. assumption.
-  - (* norm_var *)
-    destruct (typing_implies_bound H2) as [U Hb].
-    simpl. case_if.
-    * apply* norm_var.
-    * destruct (binds_concat_inv b) as [b' | [Hx  b']]; clear b.
-      + unfold subst_ctx. apply* norm_var.
-      + lets Hp: (binds_push_neq_inv b' C). apply* norm_var.
-        eapply binds_concat_left. eassumption.
-        unfold notin. intro. unfolds subst_ctx. simpl_dom. false.
-  - (* norm_path *)
-    specialize (H _ _ _ eq_refl H1 H2 H3). simpl in H.  apply* norm_path.
-    apply* inert_sngl_subst.
   - (* subtyp_trans *)
     eapply subtyp_trans; eauto.
   - (* subtyp_sel2 *)

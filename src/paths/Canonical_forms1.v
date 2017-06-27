@@ -20,10 +20,7 @@ Lemma canonical_forms_1: forall G s x T U,
 Proof.
   introv Hwf Hi Hty.
   lets Hti: (general_to_tight_typing Hi Hty).
-  assert (G |-# p_var (avar_f x) \||/) as Hn. {
-    destruct (typing_implies_bound Hty). apply* norm_var_t.
-  }
-  lets Hinv: (tight_to_invertible Hi Hti Hn).
+  lets Hinv: (tight_to_invertible_var Hi Hti).
   pose proof (invertible_to_precise_typ_all Hi Hinv) as [S' [T' [L' [Hpt [HSsub HTsub]]]]].
   pose proof (inert_precise_all_inv Hi Hpt) as Bi.
   pose proof (corresponding_types Hwf Hi Bi)
@@ -31,7 +28,7 @@ Proof.
   subst. inversion Heq; subst. inversions Ht.
   - exists (L \u L' \u L0 \u dom G) S t.
     split; auto.
-    pose proof (tight_to_invertible Hi Hti Hn) as Htp.
+    pose proof (tight_to_invertible_var Hi Hti) as Htp.
     assert (forall y W, y # G -> ok (G & y ~ W)) as Hok by (intros; apply* ok_push).
     inversion Htp; subst.
     + apply (inert_precise_all_inv Hi) in Hpt.

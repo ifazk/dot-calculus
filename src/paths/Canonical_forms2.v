@@ -151,10 +151,6 @@ Lemma unfold_rec:
     ok (G & z ~ V) ->
     G = G1 & x ~ open_typ x U & G2 ->
     G1 & x ~ typ_bnd U & G2 && z ~ V |- ds :: T) /\
-  (forall G p, norm G p -> forall G1 G2 x U,
-    ok G ->
-    G = G1 & x ~ open_typ x U & G2 ->
-    norm (G1 & x ~ typ_bnd U & G2) p) /\
   (forall G T V, G |- T <: V -> forall G1 G2 x U,
     ok G ->
     G = G1 & x ~ open_typ x U & G2 ->
@@ -183,12 +179,6 @@ Proof.
   - (* ty_def_val *)
     constructor. specialize (H G1 (G2 & x ~ U) x0 U0). repeat rewrite concat_assoc in H.
     apply* H.
-  - (* norm_var *)
-    destruct (classicT (x0=x)); subst.
-    + apply norm_var with (T:=(typ_bnd U)). apply binds_middle_eq.
-      apply (ok_middle_inv_r H).
-    + apply norm_var with (T:=T). apply binds_remove in b. apply* binds_weaken.
-      apply* ok_middle_change. auto.
   - apply_fresh subtyp_all as z; auto. assert (z \notin L) as Lz by auto.
     specialize (H0 z Lz G1 (G2 & z ~ S2) x U). repeat rewrite concat_assoc in H0.
     apply* H0.
@@ -237,10 +227,7 @@ Proof.
   introv Hi Hwf Hty.
   destruct (typing_implies_bound Hty) as [S Bi].
   lets Hty': (general_to_tight_typing Hi Hty).
-  assert (G |-# p_var (avar_f x) \||/) as Hn. {
-    destruct (typing_implies_bound Hty). apply* norm_var_t.
-  }
-  lets Hinv: (tight_to_invertible Hi Hty' Hn).
+  lets Hinv: (tight_to_invertible_var Hi Hty').
   destruct (invertible_to_precise_trm_dec Hi Hinv) as [T' [m' [Hx [Heq Hs]]]].
   destruct (corresponding_types Hwf Hi Bi)
     as [[L [U [V [S1 [V1 [t [Hb [Ht [Heq' [Hs1 Hs2]]]]]]]]]] | [U [ds [Hb [Ht Heq']]]]];

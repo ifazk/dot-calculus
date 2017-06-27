@@ -109,14 +109,14 @@ Proof.
   - (* subtyp_sngl_sel2_t *)
     inversions HT.
     + false* precise_psel_false.
-    + lets Hs: (subtyp_sel_i H3 H6 H7).
+    + lets Hs: (subtyp_sel_i H5 H6).
       destruct (classicT (p = q)) as [Heq | Hneq].
       * subst*.
       * apply* subtyp_sngl_i.
     + destruct (classicT (p = q)) as [Heq | Hneq]. subst*. apply* subtyp_sngl_i.
 Qed.
 
-Lemma invertible_lemma_var: forall G x T,
+Lemma tight_to_invertible_var: forall G x T,
     inert G ->
     G |-# trm_path (p_var (avar_f x)): T ->
     G |-## p_var (avar_f x) : T.
@@ -132,38 +132,14 @@ Lemma tight_to_invertible_p: forall G p T,
     G |-#\||/ p: T ->
     G |-## p: T.
 Proof.
-  introv Hi Hp. lets Hn: (path_typing_norm_tight Hp).
-  induction Hp; try (specialize (IHHp Hi Hn)).
-  - apply* invertible_lemma_var.
+  introv Hi Hp.
+  induction Hp; try (specialize (IHHp Hi)).
+  - apply* tight_to_invertible_var.
   - inversions IHHp; auto. rewrite* <- open_var_path_typ_eq.
   - inversions IHHp; auto. apply ty_and1_p in H. constructor*.
   - inversions IHHp; auto. apply ty_and2_p in H. constructor*.
-  - inversions Hn. specialize (IHHp Hi H). inversions IHHp. apply ty_fld_elim_p in H1; auto.
+  - inversions IHHp. apply ty_fld_elim_p in H0; auto.
   - apply* invertible_sub_closure.
-Qed.
-
-Lemma tight_to_invertible: forall G p T,
-    inert G ->
-    G |-# trm_path p: T ->
-    G |-# p \||/ ->
-    G |-## p: T.
-Proof.
- introv Hi Hp. gen T. dependent induction p.
- - introv Hp Hn. destruct a as [b | x]. inversion Hn.
-   dependent induction Hp; eauto.
-   * specialize (IHHp _ Hi eq_refl Hn). inversions IHHp.
-     apply ty_rec_elim_p in H. apply* ty_path_i. rewrite* open_var_path_typ_eq.
-     assumption.
-   * subst. specialize (IHHp _ Hi eq_refl Hn). apply* invertible_sub_closure.
- - specialize (IHp Hi).
-   introv Ht Hn.
-   dependent induction Ht; try specialize (IHHt p t IHp Hi eq_refl Hn); eauto.
-   * inversions Hn. lets Hn: (path_typing_norm_tight H2).
-     lets IHp2: (IHp _ Ht Hn). apply (tight_to_invertible_p Hi) in H2.
-     inversions H2. destruct (invertible_to_precise_trm_dec Hi IHp2) as [V [m [Hp [_ Hs]]]].
-     destruct (p_rcd_unique Hi H Hp). subst. apply ty_fld_elim_p in H; auto.
-     apply ty_path_i in Hp. apply* invertible_sub_closure.
-   * apply* invertible_sub_closure.
 Qed.
 
 Lemma invertible_sub_closure_v: forall G v T U,

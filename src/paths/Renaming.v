@@ -102,10 +102,6 @@ Lemma renaming_gen: forall x y,
     ok (G & z ~ U) ->
     y # (G & z ~ U) ->
     rename_ctx x y G && rename_var x y z ~ subst_typ x y U |- subst_defs x y ds :: subst_typ x y T) /\
-  (forall G p, norm G p ->
-    ok G ->
-    y # G ->
-    norm (rename_ctx x y G) (subst_path x y p)) /\
   (forall G T U, G |- T <: U ->
     ok G ->
     y # G ->
@@ -159,21 +155,6 @@ Proof.
       unfold subst_ctx. apply map_push.
   - (* ty_defs_cons *)
     apply* ty_defs_cons. apply subst_defs_hasnt. rewrite <- subst_label_of_def. assumption.
-  - (* norm_var *)
-    eapply norm_var with (T:=(subst_typ x y T)). auto.
-    unfold rename_ctx. unfold subst_ctx.
-    apply binds_map. destruct (binds_destruct b) as [G' [G'' HG]]. subst.
-    destruct (ok_middle_inv H) as [Hl Hr]. case_if.
-    + subst. rewrite* binds_map_keys.
-    + repeat rewrite map_keys_concat. rewrite map_keys_single.
-      replace (rename_var x y x0) with x0.
-      * apply binds_middle_eq. apply* map_other_keys.
-        simpl_dom. repeat rewrite notin_union in H0. destruct* H0 as [[_ Hy] _].
-      * unfold rename_var. case_if*.
-  - (* norm_path *)
-    specialize (H H0 H1). eapply norm_path with (U:=subst_typ x y U); auto.
-    destruct U; inversions i; try inversions H2. constructor. apply* inert_subst.
-    constructor. apply* inert_subst. apply is_sngl.
   - (* subtyp_sngl_sel1 *)
     specialize (H0 H1 H2). simpls. apply* subtyp_sngl_sel1.
   - (* subtyp_sngl_sel2 *)

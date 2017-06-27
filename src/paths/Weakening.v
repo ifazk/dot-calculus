@@ -24,10 +24,6 @@ Lemma weaken_rules:
     G = G1 & G3 ->
     ok (G1 & G2 & G3 & x ~ U) ->
     G1 & G2 & G3 && x ~ U |- ds :: T) /\
-  (forall G p, norm G p -> forall G1 G2 G3,
-    G = G1 & G3 ->
-    ok (G1 & G2 & G3) ->
-    norm (G1 & G2 & G3) p) /\
   (forall G T U, G |- T <: U -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
@@ -51,7 +47,6 @@ Proof.
   + apply ty_def_trm.
     rewrite <- concat_assoc. apply H;rewrite concat_assoc. reflexivity. assumption.
   + apply ty_def_val. rewrite <- concat_assoc. apply H; rewrite concat_assoc. reflexivity. assumption.
-  + apply* norm_var. eapply binds_weaken; eassumption.
   + apply_fresh subtyp_all as z.
     auto.
     assert (zL: z \notin L) by auto.
@@ -86,17 +81,6 @@ Proof.
   rewrite EqG. apply* weaken_rules.
   rewrite concat_empty_r. reflexivity.
   rewrite <- EqG. assumption.
-Qed.
-
-Lemma weaken_norm: forall G G' p,
-  norm G p ->
-  ok (G & G') ->
-  norm (G & G') p.
-Proof.
-  introv Hn Hok.
-  assert (G & G' = G & G' & empty) as EqG by (rewrite* concat_empty_r).
-  rewrite EqG. apply* weaken_rules.
-  rewrite concat_empty_r. reflexivity. rewrite <- EqG. assumption.
 Qed.
 
 Lemma weaken_rules_p: forall G t T G1 G2 G3,
