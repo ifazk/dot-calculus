@@ -10,6 +10,25 @@ Require Import Inert_types.
 Require Import Substitution.
 Require Import Narrowing.
 
+(** TODO: find appropriate place for definition *)
+Fixpoint ec_of_trm (t : trm) : (ec * trm) :=
+  match t with
+  | (trm_var x) => (e_empty, (trm_var x))
+  | (trm_val v) => (e_empty, (trm_val v))
+  | (trm_sel x a) => (e_empty, (trm_sel x a))
+  | (trm_app x y) => (e_empty, (trm_app x y))
+  | (trm_let t1 t2) =>
+    match t1 with
+    | (trm_val v) =>
+      let (e, t') := ec_of_trm t2 in
+      let x : var := var_gen ((fv_ec e) \u (fv_trm t') \u (fv_val v)) in
+      ((e_let_val x v (open_ec x e)), (open_trm x t'))
+    | _ =>
+      let x : var := var_gen ((fv_trm t1) \u (fv_trm t2)) in
+      ((e_let_trm x (open_trm x t2)), t1)
+    end
+  end.
+
 (* (** NB **)  *)
 (* Hypothesis var_dec : forall x y: var, {x = y} + {x <> y}. *)
 
@@ -20,7 +39,7 @@ Require Import Narrowing.
 (*   | e_let_trm y t => None *)
 (*   end. *)
 
-(** TODO: move to definitions and update notation **) 
+(** TODO: move to definitions and update notation **)
 
 Reserved Notation "e '[[' G ']]' '==' G'" (at level 10).
 Inductive eg_app : ec -> ctx -> ctx -> Prop :=
@@ -40,7 +59,7 @@ Lemma e_preserves_inert : forall G e eG,
 Proof.
   introv Hi He. induction He; try assumption.
   apply IHHe. constructor; try assumption.
-  apply (precise_inert_typ H0). auto. 
+  apply (precise_inert_typ H0). auto.
 Qed.
 
 Lemma e_preserves_typing : forall G e t et T eG,
@@ -72,10 +91,10 @@ Proof.
   introv HeG Ht Het.
   dependent induction e.
   - inversions Het. inversions HeG. dependent induction Ht; try solve [left; constructor]; try solve [false* empty_typing_var].
-    + clear H0. specialize (IHHt JMeq_refl) as [? | ?]. 
+    + clear H0. specialize (IHHt JMeq_refl) as [? | ?].
       * induction H0.
         { false* empty_typing_var. }
-        { 
+        {
           induction u.
           - left. constructor~.
           - left. constructor~.
@@ -84,10 +103,10 @@ Proof.
             + admit.
           - right. admit.
           - admit.
-        } 
-        { 
+        }
+        {
           right. exists (trm_let (trm_val v) (trm_let n u)) (trm_let (trm_val v) (trm_let n u)).
-          split. 
+          split.
           - apply red_let_let'.
           - constructor.
         }
@@ -101,7 +120,7 @@ Proof.
     + admit.
     + admit.
 Qed.
-  
+
 (**********************)
 
   (* induction Ht. (* ; try solve [left; eauto]. *) *)
@@ -121,7 +140,7 @@ Qed.
   (*     right. exists (trm_var (avar_f x0)) (trm_let (trm_val v) t). split. *)
   (*     * admit. *)
   (*     * constructor*. *)
-      
+
 
 (*       pose proof (e_preserves_inert Hin' HeG). *)
 (*       (* assert (inert (G & x ~ T)). { *) *)
@@ -141,10 +160,10 @@ Lemma progress : forall t T,
 Proof.
   intros.
   assert (normal_form t \/ exists t' et', (t |=> et' /\ e_empty {{ t' }} == et')). {
-    apply progress_induction with (eG := empty) (t := t) (T := T); 
+    apply progress_induction with (eG := empty) (t := t) (T := T);
       try constructor; try assumption.
   }
-  destruct H0. 
+  destruct H0.
   - left. assumption.
   - destruct H0 as (t' & et & ? & _). (* [t' [et [? _]]].  *)right. exists et. assumption.
 Qed.
@@ -187,22 +206,22 @@ Lemma preservation : forall G t T t',
   t |=> t' ->
   G |- t' : T.
 Proof.
-  introv Hin Ht Htt'. gen t'. 
+  introv Hin Ht Htt'. gen t'.
   induction Ht; intros.
-  - dependent induction Htt'. 
+  - dependent induction Htt'.
     + inversions H1. inversions H0. eapply IHHtt'; eauto.
-    + inversions H1. inversions H0. 
-    + inversions H1. 
-  - clear H H0. dependent induction Htt'. 
+    + inversions H1. inversions H0.
+    + inversions H1.
+  - clear H H0. dependent induction Htt'.
     + inversions H. inversions H0. eapply IHHtt'; eauto.
-    + inversions H1. inversions H0. 
-    + inversions H1. 
+    + inversions H1. inversions H0.
+    + inversions H1.
   - dependent induction Htt'.
     + inversions H. inversions H0. eapply IHHtt'; eauto.
     + inversions H1. inversions H0.
     + inversions H1.
   - clear H. dependent induction Htt'.
-    + inversions H. inversions H0. eapply IHHtt'; eauto. 
+    + inversions H. inversions H0. eapply IHHtt'; eauto.
     + inversions H1. inversions H0.
     + inversions H1.
   - clear Ht. dependent induction Htt'.
@@ -220,10 +239,10 @@ Proof.
         }
       * inversions H3.
       * inversions H1.
-      * clear H0 IHHt. pick_fresh z. 
+      * clear H0 IHHt. pick_fresh z.
         rewrite subst_intro_trm with (x:=z); auto.
         rewrite <- subst_fresh_typ with (x:=z) (y:=y); auto.
-        eapply subst_ty_trm. 
+        eapply subst_ty_trm.
         { apply~ H. }
         { constructor~. apply~ inert_ok. }
         { auto. }
@@ -241,7 +260,7 @@ Proof.
           (* - admit. *)
           (* - eapply red_term'; eauto. *)
           (*   + rewrite subst_intro_trm with (x:=v); auto. *)
-            
+
         }
         {
           eapply (proj41 open_fresh_trm_val_def_defs_injective) in H4; auto.
@@ -260,29 +279,29 @@ Proof.
         { eapply IHHtt'; eauto. }
         {
           apply (proj41 open_fresh_trm_val_def_defs_injective) in H4; auto.
-          subst. apply_fresh ty_let as z; eauto. 
+          subst. apply_fresh ty_let as z; eauto.
         }
-      * inversions H3. 
-      * inversions H1. 
+      * inversions H3.
+      * inversions H1.
     + dependent induction Htt'.
       * destruct e; inversions H1; inversions H2.
         { eapply IHHtt'; eauto. }
         {
           apply (proj41 open_fresh_trm_val_def_defs_injective) in H4; auto.
-          subst. apply_fresh ty_let as z; eauto. 
+          subst. apply_fresh ty_let as z; eauto.
         }
-      * inversions H3. 
-      * inversions H1. 
+      * inversions H3.
+      * inversions H1.
     + dependent induction Htt'.
       * destruct e; inversions H1; inversions H2.
         { eapply IHHtt'; eauto. }
         {
           apply (proj41 open_fresh_trm_val_def_defs_injective) in H4; auto.
-          subst. apply_fresh ty_let as z; eauto. 
+          subst. apply_fresh ty_let as z; eauto.
         }
-      * inversions H3. 
-      * inversions H1. 
-      * dependent induction Ht. 
+      * inversions H3.
+      * inversions H1.
+      * dependent induction Ht.
         { apply_fresh ty_let as z; eauto. clear H0 IHHt.
           assert (forall x : var, x \notin L -> G & z ~ U0 & x ~ T |- open_trm x (open_rec_trm 1 z u) : U) by admit.
           assert (z \notin L0) by auto.
@@ -297,8 +316,8 @@ Proof.
           - admit.
           - admit.
         }
-          
-          
+
+
   - clear Ht. dependent induction Htt'.
     + inversions H. inversions H0. eapply IHHtt'; eauto.
     + inversions H1. inversions H0.
