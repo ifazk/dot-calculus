@@ -81,6 +81,7 @@ Proof.
     constructor. apply H; auto. apply subenv_push. assumption. assumption.
   - (* ty_def_val *)
     constructor. apply H; auto. apply subenv_push. assumption. assumption.
+  - constructor. apply H; auto. apply subenv_push. assumption. assumption.
   - (* subtyp_all *)
     subst.
     apply_fresh subtyp_all as y; eauto.

@@ -439,7 +439,15 @@ Proof.
     rewrite <- concat_assoc. rewrite Hsu. apply ok_concat_map. rewrite <- concat_assoc in H1.
     apply ok_remove in H1. assumption.
   - (* ty_def_path *)
-    apply* ty_def_path.
+    apply ty_def_path. specialize (H G1 (G2 & x ~ U) x0).
+    replace (G1 & subst_ctx x0 y G2 & x ~ subst_typ x0 y U) with (G1 & subst_ctx x0 y (G2 & x ~ U)).
+     + apply H; auto; try rewrite* concat_assoc. unfold subst_ctx. rewrite map_concat.
+      rewrite concat_assoc. unfold subst_ctx in H3. apply* weaken_ty_trm.
+      apply ok_concat_map. rewrite <- concat_assoc in H1.
+      apply ok_remove in H1. rewrite concat_assoc in H1. apply ok_push.
+      * apply* ok_concat_map.
+      * apply ok_push_inv in H1. destruct* H1.
+    + unfold subst_ctx. rewrite map_concat. rewrite concat_assoc. rewrite* map_single.
   - (* ty_def_val *)
     apply ty_def_val. specialize (H G1 (G2 & x ~ U) x0).
     replace (G1 & subst_ctx x0 y G2 & x ~ subst_typ x0 y U) with (G1 & subst_ctx x0 y (G2 & x ~ U)).

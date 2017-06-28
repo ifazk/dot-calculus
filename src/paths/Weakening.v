@@ -46,6 +46,7 @@ Proof.
       apply* H0.
   + apply ty_def_trm.
     rewrite <- concat_assoc. apply H;rewrite concat_assoc. reflexivity. assumption.
+  + apply ty_def_path. rewrite <- concat_assoc. apply H; rewrite concat_assoc. reflexivity. assumption.
   + apply ty_def_val. rewrite <- concat_assoc. apply H; rewrite concat_assoc. reflexivity. assumption.
   + apply_fresh subtyp_all as z.
     auto.

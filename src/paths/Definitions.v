@@ -419,7 +419,7 @@ with ty_def : ctx -> var -> typ -> def -> dec -> Prop := (* Γ; z: U |- d: T U *
     G & x ~ U |- t : T ->
     G && x ~ U |- def_trm a t : { a [gen] T }
 | ty_def_path : forall x G a p U T,
-    G |- trm_path p : T ->
+    G & x ~ U |- trm_path p : T ->
     G && x ~ U |- def_trm a (trm_path p) : { a [strong] T }
 | ty_def_val : forall G x U v T a,
     G & x ~ U |- trm_val v : T ->

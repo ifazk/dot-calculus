@@ -147,12 +147,18 @@ Proof.
     + apply* H.
     + unfold rename_ctx. rewrite map_keys_concat. rewrite map_keys_single.
       unfold subst_ctx. apply map_push.
+  -  apply ty_def_path.
+     replace (rename_ctx x y G & rename_var x y x0 ~ subst_typ x y U) with (rename_ctx x y (G & x0 ~ U)).
+    + apply* H.
+    + unfold rename_ctx. rewrite map_keys_concat. rewrite map_keys_single.
+      unfold subst_ctx. apply map_push.
   - (* ty_def val *)
     apply ty_def_val.
      replace (rename_ctx x y G & rename_var x y x0 ~ subst_typ x y U) with (rename_ctx x y (G & x0 ~ U)).
     + apply* H.
     + unfold rename_ctx. rewrite map_keys_concat. rewrite map_keys_single.
       unfold subst_ctx. apply map_push.
+
   - (* ty_defs_cons *)
     apply* ty_defs_cons. apply subst_defs_hasnt. rewrite <- subst_label_of_def. assumption.
   - (* subtyp_sngl_sel1 *)
