@@ -414,35 +414,33 @@ Proof.
   - apply* ty_p_sub.
   - (* ty_def_trm *)
     apply ty_def_trm.
-    assert (G1 & subst_ctx x0 y G2 & x ~ subst_typ x0 y U = G1 & subst_ctx x0 y (G2 & x ~ U)) as Hs. {
+    assert (G1 & subst_ctx x y G2 & z ~ subst_typ x y U = G1 & subst_ctx x y (G2 & z ~ U)) as Hs. {
       unfold subst_ctx. rewrite map_concat. rewrite map_single. rewrite concat_assoc.
       reflexivity.
     }
     rewrite Hs.
-    assert (x <> x0) as Hn. {
+    assert (z <> x) as Hn. {
       rewrite <- concat_assoc in H1.
       apply ok_middle_inv_r in H1. unfold not. intro Hx. subst. unfold notin in H1.
       unfold not in H1. simpl_dom.
-      assert (x0 \in \{ x0} \u dom G2) as Hx. {
+      assert (x \in \{ x} \u dom G2) as Hx. {
         rewrite in_union. left. rewrite in_singleton. reflexivity.
       }
       apply H1 in Hx. false.
     }
     apply H; auto. rewrite concat_assoc. reflexivity. rewrite concat_assoc.
     assumption.
-    assert (subst_ctx x0 y (G2 & x ~ U) = (subst_ctx x0 y G2) & x ~ (subst_typ x0 y U)). {
+    assert (subst_ctx x y (G2 & z ~ U) = (subst_ctx x y G2) & z ~ (subst_typ x y U)). {
       unfold subst_ctx. rewrite map_concat. rewrite map_single. reflexivity.
     }
     rewrite H0. rewrite concat_assoc. apply weaken_ty_trm.
     apply H3.
-    assert (subst_ctx x0 y G2 & x ~ subst_typ x0 y U = subst_ctx x0 y (G2 & x ~ U)) as Hsu by auto.
+    assert (subst_ctx x y G2 & z ~ subst_typ x y U = subst_ctx x y (G2 & z ~ U)) as Hsu by auto.
     rewrite <- concat_assoc. rewrite Hsu. apply ok_concat_map. rewrite <- concat_assoc in H1.
     apply ok_remove in H1. assumption.
-  - (* ty_def_path *)
-    apply* ty_def_path.
   - (* ty_def_val *)
-    apply ty_def_val. specialize (H G1 (G2 & x ~ U) x0).
-    replace (G1 & subst_ctx x0 y G2 & x ~ subst_typ x0 y U) with (G1 & subst_ctx x0 y (G2 & x ~ U)).
+    apply ty_def_val. specialize (H G1 (G2 & z ~ U) x).
+    replace (G1 & subst_ctx x y G2 & z ~ subst_typ x y U) with (G1 & subst_ctx x y (G2 & z ~ U)).
     + apply H; auto; try rewrite* concat_assoc. unfold subst_ctx. rewrite map_concat.
       rewrite concat_assoc. unfold subst_ctx in H3. apply* weaken_ty_trm.
       apply ok_concat_map. rewrite <- concat_assoc in H1.

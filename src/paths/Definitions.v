@@ -313,23 +313,24 @@ Inductive inert : ctx -> Prop :=
 Reserved Notation "t1 '/' st1 '⇒' t2 '/' st2" (at level 40, t2 at level 39).
 
 Inductive red : trm -> sto -> trm -> sto -> Prop :=
-| red_sel : forall x m s t T ds,
+| red_sel : forall x a s t T ds,
     binds x (val_new T ds) s ->
-    defs_has (ds |||^ x) (def_trm m t) ->
-    trm_path (p_sel (p_var (avar_f x)) m) / s ⇒ t / s
-| red_path : forall q m' m s,
-    trm_path (p_sel (p_sel q m') m) / s ⇒ trm_let (trm_path (p_sel q m')) (trm_path (p_sel (p_var (avar_b 0)) m)) / s
-| red_app : forall f a s T t,
-    binds f (val_lambda T t) s ->
-    trm_app (avar_f f) (avar_f a) / s ⇒ t |^ a / s
+    defs_has (ds |||^ x) (def_trm a t) ->
+    trm_path (p_sel (p_var (avar_f x)) a) / s ⇒ t / s
+| red_path : forall p a b s,
+    trm_path (p_sel (p_sel p a) b) / s ⇒
+             trm_let (trm_path (p_sel p a)) (trm_path (p_sel (p_var (avar_b 0)) b)) / s
+| red_app : forall x y s T t,
+    binds x (val_lambda T t) s ->
+    trm_app (avar_f x) (avar_f y) / s ⇒ t |^ y / s
 | red_let : forall v t s x,
     x # s ->
     trm_let (trm_val v) t / s ⇒ t |^ x / s & x ~ v
 | red_let_var : forall t s x,
     trm_let (trm_path (p_var (avar_f x))) t / s ⇒ t |^ x / s
-| red_let_tgt : forall t0 t s t0' s',
-    t0 / s ⇒ t0' / s' ->
-    trm_let t0 t / s ⇒ trm_let t0' t / s'
+| red_let_tgt : forall t u s t' s',
+    t / s ⇒ t' / s' ->
+    trm_let t u / s ⇒ trm_let t' u / s'
 where "t1 '/' st1 '⇒' t2 '/' st2" := (red t1 st1 t2 st2).
 
 (* ###################################################################### *)
@@ -354,16 +355,16 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     (forall x, x \notin L ->
       G & x ~ T |- t |^ x : U ||^ x) ->
     G |- trm_val (val_lambda T t) : typ_all T U
-| ty_all_elim : forall G x z S T,
+| ty_all_elim : forall G x y S T,
     G |- trm_path (p_var (avar_f x)) : typ_all S T ->
-    G |- trm_path (p_var (avar_f z)) : S ->
-    G |- trm_app (avar_f x) (avar_f z) : T ||^ z
+    G |- trm_path (p_var (avar_f y)) : S ->
+    G |- trm_app (avar_f x) (avar_f y) : T ||^ y
 | ty_new_intro : forall L G T ds,
     (forall x, x \notin L ->
       G && x ~ T ||^ x |- ds |||^ x :: T ||^ x) ->
     G |- trm_val (val_new T ds) : typ_bnd T
-| ty_fld_elim : forall G p a m T,
-    G |- trm_path p : typ_rcd { a [m] T } ->
+| ty_fld_elim : forall G p a T,
+    G |- trm_path p : typ_rcd { a [gen] T } ->
     G |- trm_path (p_sel p a) : T
 | ty_let : forall L G t u T U,
     G |- t : T ->
@@ -413,28 +414,28 @@ with ty_path : ctx -> path -> typ -> Prop :=
 where "G '|-\||/' p ':' T" := (ty_path G p T)
 
 with ty_def : ctx -> var -> typ -> def -> dec -> Prop := (* Γ; z: U |- d: T U *)
-| ty_def_typ : forall x G A T U,
-    G && x ~ U |- def_typ A T : { A >: T <: T }
-| ty_def_trm : forall x G a t T U,
-    G & x ~ U |- t : T ->
-    G && x ~ U |- def_trm a t : { a [gen] T }
-| ty_def_path : forall x G a p U T,
-    G |- trm_path p : T ->
-    G && x ~ U |- def_trm a (trm_path p) : { a [strong] T }
-| ty_def_val : forall G x U v T a,
-    G & x ~ U |- trm_val v : T ->
-    G && x ~ U |- def_trm a (trm_val v) : { a [strong] T }
+| ty_def_typ : forall z G A T U,
+    G && z ~ U |- def_typ A T : { A >: T <: T }
+| ty_def_trm : forall z G a t T U,
+    G & z ~ U |- t : T ->
+    G && z ~ U |- def_trm a t : { a [gen] T }
+| ty_def_path : forall z G a p U T,
+    G |-\||/ p : T ->
+    G && z ~ U |- def_trm a (trm_path p) : { a [strong] T }
+| ty_def_val : forall G z U v T a,
+    G & z ~ U |- trm_val v : T ->
+    G && z ~ U |- def_trm a (trm_val v) : { a [strong] T }
 where "G '&&' z '~' T '|-' d ':' D" := (ty_def G z T d D)
 
 with ty_defs : ctx -> var -> typ -> defs -> typ -> Prop :=
-| ty_defs_one : forall x G d D U,
-    G && x ~ U |- d : D ->
-    G && x ~ U |- defs_cons defs_nil d :: typ_rcd D
-| ty_defs_cons : forall G ds d x T U D,
-    G && x ~ U |- ds :: T ->
-    G && x ~ U |- d : D ->
+| ty_defs_one : forall z G d D U,
+    G && z ~ U |- d : D ->
+    G && z ~ U |- defs_cons defs_nil d :: typ_rcd D
+| ty_defs_cons : forall G ds d z T U D,
+    G && z ~ U |- ds :: T ->
+    G && z ~ U |- d : D ->
     defs_hasnt ds (label_of_def d) ->
-    G && x ~ U |- defs_cons ds d :: typ_and T (typ_rcd D)
+    G && z ~ U |- defs_cons ds d :: typ_and T (typ_rcd D)
 where "G '&&' z '~' T '|-' ds '::' U" := (ty_defs G z T ds U)
 
 with subtyp : ctx -> typ -> typ -> Prop :=

@@ -49,10 +49,6 @@ Lemma general_to_tight: forall G0, inert G0 ->
 Proof.
   intros G0 Hi.
   apply ts_mutind; intros; subst; eauto; specialize (H eq_refl).
-  - destruct m.
-    assert (G0 |-# typ_rcd {a [strong] T} <: typ_rcd {a [gen] T}) as Hsg by auto.
-    lets Hs: (ty_sub_t). specialize (Hs _ _ _ _ H Hsg). apply* ty_fld_elim_t.
-    apply* ty_fld_elim_t.
   - apply* sel_replacement.
   - apply* sel_replacement.
   - apply* sngl_replacement.

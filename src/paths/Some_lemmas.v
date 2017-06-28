@@ -382,10 +382,10 @@ Proof.
     + inversions H. exists \{ label_typ t }. constructor*. constructor.
     + exists \{ label_trm t }. constructor*. constructor.
   - destruct IHty_defs. destruct D.
-    + unfold record_type. exists (x0 \u \{ label_typ t }). constructor*.
+    + unfold record_type. exists (x \u \{ label_typ t }). constructor*.
       * inversions H0. constructor.
       * inversions H0. simpl in H1. apply (hasnt_notin H H2 H1).
-    + exists (x0 \u \{ label_trm t }). constructor*.
+    + exists (x \u \{ label_trm t }). constructor*.
       * constructor.
       * inversions H0; simpl in H1; apply (hasnt_notin H H2 H1).
 Qed.
