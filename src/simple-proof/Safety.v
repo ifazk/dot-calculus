@@ -74,7 +74,8 @@ Proof.
         eapply subst_ty_trm; eauto. 
         { eapply weaken_rules; eauto. }
         { apply~ fv_ctx_types_push. }
-        { rewrite~ subst_fresh_typ. 
+        { 
+          rewrite~ subst_fresh_typ. 
           pose proof (ty_var (binds_tail x V G)).
           apply (ty_sub H3). apply (weaken_subtyp Hs); eauto. 
         }

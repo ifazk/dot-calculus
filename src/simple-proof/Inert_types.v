@@ -399,6 +399,8 @@ Proof.
   apply* ok_push.
 Qed.
 
+Hint Resolve inert_ok.
+
 Lemma pf_dec_typ_inv : forall G x T A S U,
     inert G ->
     precise_flow x G T (typ_rcd (dec_typ A S U)) ->
