@@ -12,7 +12,7 @@ Require Import Canonical_forms1.
 Require Import Canonical_forms2.
 Require Import Inert_types.
 Require Import General_to_tight.
-Require Import Invertible.
+Require Import Invertible_typing.
 
 (* ###################################################################### *)
 (** * Safety *)

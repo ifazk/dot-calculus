@@ -59,10 +59,6 @@ Lemma narrow_rules:
     ok (G' & z ~ U) ->
     subenv G' G ->
     G' && z ~ U |- ds :: T)
-/\ (forall G p, norm G p -> forall G',
-    ok G' ->
-    subenv G' G ->
-    norm G' p)
 /\ (forall G S U, G |- S <: U -> forall G',
     ok G' ->
     subenv G' G ->
@@ -85,9 +81,6 @@ Proof.
     constructor. apply H; auto. apply subenv_push. assumption. assumption.
   - (* ty_def_val *)
     constructor. apply H; auto. apply subenv_push. assumption. assumption.
-  - (* norm_var *)
-    unfold subenv in H0. destruct (H0 x T b) as [Hb | [T1 [Hb Hs]]];
-    apply* norm_var.
   - (* subtyp_all *)
     subst.
     apply_fresh subtyp_all as y; eauto.

@@ -7,7 +7,7 @@ Require Import Weakening.
 Require Import Some_lemmas.
 Require Import Inert_types.
 Require Import General_to_tight.
-Require Import Invertible.
+Require Import Invertible_typing.
 Require Import Narrowing.
 
 (* ###################################################################### *)

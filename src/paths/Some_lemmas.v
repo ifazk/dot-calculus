@@ -282,9 +282,9 @@ Qed.
 
 Lemma precise_to_path_typing: forall G p T,
     G |-! trm_path p: T ->
-    G |- p \||/ /\ G |-\||/ p: T.
+    G |-\||/ p: T.
 Proof.
-  introv Hp. dependent induction Hp; eauto; specialize (IHHp _ eq_refl); destruct* IHHp.
+  introv Hp. dependent induction Hp; eauto.
 Qed.
 
 Lemma tight_to_general:
@@ -296,10 +296,7 @@ Lemma tight_to_general:
      G |-\||/ p: T) /\
   (forall G S U,
      G |-# S <: U ->
-     G |- S <: U) /\
-  (forall G p,
-     G |-# p \||/ ->
-     G |- p \||/).
+     G |- S <: U).
 Proof.
   apply ts_mutind_ts; intros; subst; eauto.
   - apply* subtyp_sel2. apply* precise_to_path_typing.
@@ -323,14 +320,6 @@ Lemma typing_implies_bound_p: forall G x T,
   exists S, binds x S G.
 Proof.
   introv Hp. dependent induction Hp; eauto.
-Qed.
-
-Lemma path_typing_norm_tight: forall G p T,
-    G |-#\||/ p: T ->
-    G |-# p \||/.
-Proof.
-  introv Hp. dependent induction Hp; eauto. apply tight_to_general in H.
-  apply typing_implies_bound in H. destruct H. apply* norm_var_t.
 Qed.
 
 (* ###################################################################### *)
@@ -393,10 +382,10 @@ Proof.
     + inversions H. exists \{ label_typ t }. constructor*. constructor.
     + exists \{ label_trm t }. constructor*. constructor.
   - destruct IHty_defs. destruct D.
-    + unfold record_type. exists (x0 \u \{ label_typ t }). constructor*.
+    + unfold record_type. exists (x \u \{ label_typ t }). constructor*.
       * inversions H0. constructor.
       * inversions H0. simpl in H1. apply (hasnt_notin H H2 H1).
-    + exists (x0 \u \{ label_trm t }). constructor*.
+    + exists (x \u \{ label_trm t }). constructor*.
       * constructor.
       * inversions H0; simpl in H1; apply (hasnt_notin H H2 H1).
 Qed.
