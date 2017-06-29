@@ -9,6 +9,55 @@ Require Import Invertible_typing.
 Require Import Inert_types.
 Require Import Substitution.
 Require Import Narrowing.
+Require Import Weakening.
+
+Module ec.
+
+Inductive ec : Type :=
+| e_hole : sto -> ec
+| e_term : sto -> trm -> ec.
+
+Inductive app_ec : ec -> ec -> ec -> Prop :=
+| app_hole_hole : forall s s',
+    app_ec (e_hole s) (e_hole s') (e_hole (s & s'))
+| app_hole_term : forall s s' t',
+    app_ec (e_hole s) (e_term s' t') (e_term (s & s') t')
+| app_term_empty : forall s t,
+    app_ec (e_term s t) (e_hole (@empty val)) (e_term s t).
+
+Inductive red : ec -> trm -> ec -> trm -> Prop :=
+| red_term : forall e e' e'' t t',
+    red e t e t' ->
+    app_ec e' e e'' ->
+    red e'' t e'' t'
+| red_apply_hole : forall x T t s y,
+    red (e_hole ((x ~ (val_lambda T t)) & s)) 
+        (trm_app (avar_f x) (avar_f y))
+        (e_hole ((x ~ (val_lambda T t)) & s))
+        (open_trm y t)
+| red_apply_term : forall x T t s u y,
+    red (e_term ((x ~ (val_lambda T t)) & s) u) 
+        (trm_app (avar_f x) (avar_f y))
+        (e_term ((x ~ (val_lambda T t)) & s) u)
+        (open_trm y t)
+| red_project_hole : forall x T ds a t s,
+    defs_has (open_defs x ds) (def_trm a t) ->
+    red (e_hole ((x ~ (val_new T ds)) & s))
+        (trm_sel (avar_f x) a)
+        (e_hole ((x ~ (val_new T ds)) & s))
+        t
+| red_project_term : forall x T ds a t s u,
+    defs_has (open_defs x ds) (def_trm a t) ->
+    red (e_term ((x ~ (val_new T ds)) & s) u)
+        (trm_sel (avar_f x) a)
+        (e_term ((x ~ (val_new T ds)) & s) u)
+        t
+| red_let_var : forall e x t,
+    red e (trm_let (trm_var (avar_f x)) t) e (open_trm x t)
+| red_let_let : forall e s t u,
+    red e (trm_let (trm_let s t) u) e (trm_let s (trm_let t u)).
+
+End ec. 
 
 (** TODO: find appropriate place for definition *)
 Fixpoint ec_of_trm (t : trm) : (ec * trm) :=
@@ -29,58 +78,189 @@ Fixpoint ec_of_trm (t : trm) : (ec * trm) :=
     end
   end.
 
-(* (** NB **)  *)
-(* Hypothesis var_dec : forall x y: var, {x = y} + {x <> y}. *)
+Inductive binds_ec : var -> val -> ec -> Prop :=
+| binds_ec_single: forall x v e, binds_ec x v (e_let_val x v e)
+| binds_ec_push: forall x v x' v' e, 
+    binds_ec x v e -> (** TODO: conditions on x' ? **)
+    binds_ec x v (e_let_val x' v' e).
+Hint Constructors binds_ec.
 
-(* Fixpoint binds_ec (x : var) (e : ec) : option val := *)
-(*   match e with *)
-(*   | e_empty => None *)
-(*   | e_let_val y v e => if var_dec x y then Some v else binds_ec x e *)
-(*   | e_let_trm y t => None *)
-(*   end. *)
+Lemma test: forall x v, 
+    binds_ec x v (e_let_val x v e_empty).
+Proof.
+  intros. constructor.
+Qed.
+
+Lemma test2: forall x v,
+    binds_ec x v e_empty -> False.
+Proof.
+  intros. inversion H.
+Qed.
+
+Lemma test3: forall x v x' t,
+    binds_ec x v (e_let_trm x' t) -> False.
+Proof.
+  intros. inversion H.
+Qed.
+
+Inductive ec_red' : ec -> trm -> ec -> trm -> Prop :=
+| red_apply'' : forall f a T t e,
+    binds_ec f (val_lambda T t) e ->
+    ec_red' e (trm_app (avar_f f) (avar_f a)) e (open_trm a t)
+| red_project'' : forall x m e t T ds,
+    binds_ec x (val_new T ds) e ->
+    defs_has (open_defs x ds) (def_trm m t) ->
+    ec_red' e (trm_sel (avar_f x) m) e t
+| red_trm_something
+| red_let_val'' : forall v t e x,
+    x \notin (fv_ec e) ->
+    ec_red' e (trm_let (trm_val v) t) (e_let_val x v e) (open_trm x t)
+| red_let_var'' : forall x t e,
+    ec_red' e (trm_let (trm_var (avar_f x)) t) e (open_trm x t)
+| red_let_let'' : forall s t u e,
+    ec_red' e (trm_let (trm_let s t) u) e (trm_let s (trm_let t u)).
 
 (** TODO: move to definitions and update notation **)
 
-Reserved Notation "e '[[' G ']]' '==' G'" (at level 10).
+(* Reserved Notation "e '[[' G ']]' '==' G'" (at level 10). *)
 Inductive eg_app : ec -> ctx -> ctx -> Prop :=
-| eg_empty : forall G, e_empty [[G]] == G
+| eg_empty : forall G, eg_app e_empty G G
 | eg_val : forall G x e (v: val) T G',
     x \notin ((fv_ec e) \u (dom G) \u (fv_ctx_types G) \u (fv_typ T) \u (fv_val v)) ->
     G |-! trm_val v : T ->
-    e[[G & x ~ T]] == G' ->
-    (e_let_val x v e) [[G]] == G'
-| eg_trm : forall G x u, (e_let_trm x u) [[G]] == G
-where "e '[[' G ']]' '==' G'" := (eg_app e G G').
+    eg_app e (G & x ~ T) G' ->
+    eg_app (e_let_val x v e) G G'
+| eg_trm : forall G x u, eg_app (e_let_trm x u) G G
+(* where "e '[[' G ']]' '==' G'" := (eg_app e G G') *).
 
-Lemma e_preserves_inert : forall G e eG,
-    inert G ->
-    e[[G]] == eG ->
-    inert eG.
-Proof.
-  introv Hi He. induction He; try assumption.
-  apply IHHe. constructor; try assumption.
-  apply (precise_inert_typ H0). auto.
-Qed.
+(* Lemma e_preserves_inert : forall G e eG, *)
+(*     inert G -> *)
+(*     e[[G]] == eG -> *)
+(*     inert eG. *)
+(* Proof. *)
+(*   introv Hi He. induction He; try assumption. *)
+(*   apply IHHe. constructor; try assumption. *)
+(*   apply (precise_inert_typ H0). auto. *)
+(* Qed. *)
 
-Lemma e_preserves_typing : forall G e t et T eG,
-    e {{ t }} == et ->
-    G |- et : T ->
-    e[[G]] == eG ->
-    exists U, eG |- t : U.
-Proof.
-  (* Hint: The proof follows the same general structure as parts of the safety proof in Safety.v.
-           Those parts might not be in safety itself, but could be hidden in Some_lemmas that the
-           safety proof invokes. *)
-  (* Hint: I believe this proof uses val_new_typing somewhere. *)
-Admitted.
+(* Lemma e_preserves_typing : forall G e t et T eG, *)
+(*     e {{ t }} == et -> *)
+(*     G |- et : T -> *)
+(*     e[[G]] == eG -> *)
+(*     exists U, eG |- t : U. *)
+(* Proof. *)
+(*   (* Hint: The proof follows the same general structure as parts of the safety proof in Safety.v. *)
+(*            Those parts might not be in safety itself, but could be hidden in Some_lemmas that the *)
+(*            safety proof invokes. *) *)
+(*   (* Hint: I believe this proof uses val_new_typing somewhere. *) *)
+(* Admitted. *)
 
 Inductive normal_form: trm -> Prop :=
 | nf_var: forall x, normal_form (trm_var x)
 | nf_val: forall v, normal_form (trm_val v)
 | nf_let: forall v n, normal_form n -> normal_form (trm_let (trm_val v) n).
-
 Hint Constructors normal_form.
 
+Inductive ty_ec_trm: ctx -> ec -> trm -> typ -> Prop :=
+| ty_empty: forall G t T,
+    G |- t : T ->
+    ty_ec_trm G e_empty t T
+| ty_let_val: forall G G' x v e t T,
+    x \notin ((dom G) \u (fv_ctx_types G) \u (dom G') \u (fv_ctx_types G') \u (fv_ec e) \u (fv_trm t) \u (fv_typ T)) ->
+    eg_app (e_let_val x v e_empty) G G' ->
+    ty_ec_trm G' e t T ->
+    ty_ec_trm G (e_let_val x v e) t T
+| ty_let_trm: forall G x t u T,
+    G |- (trm_let t u) : T ->
+    x \notin ((dom G) \u (fv_ctx_types G) \u (fv_trm t) \u (fv_trm u) \u (fv_typ T)) ->
+    ty_ec_trm G (e_let_trm x u) t T.
+
+Lemma preservation': forall e t e' t' T,
+    ec_red' e t e' t' ->
+    ty_ec_trm empty e t T ->
+    ty_ec_trm empty e' t' T.
+Proof.
+  introv Hred Ht. gen e' t'.
+  dependent induction Ht; intros.
+  - dependent induction H; inversions Hred; admit.
+  - induction Hred.
+    +
+
+Lemma preservation: forall G e t e' t' T,
+    eg_app e empty G ->
+    inert G ->
+    ec_red' e t e' t' ->
+    G |- t : T ->
+    exists G', inert G' /\
+          eg_app e' empty (G & G') /\
+          G & G' |- t' : T.
+Proof.
+  introv Hg Hin Hred Ht.
+  gen t'.
+  dependent induction Ht; intros; try solve [inversions Hred].
+  - admit.
+  - admit.
+  - destruct t.
+    + inversions Hred. 
+      pick_fresh y.
+      exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+      rewrite subst_intro_trm with (x:=y); auto.
+      rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
+      eapply subst_ty_trm; auto. rewrite~ subst_fresh_typ.
+    + inversions Hred.
+      (* pose proof some kind of x # G *)
+      pose proof (val_typing Ht) as [V [Hv Hs]].
+      pick_fresh y. assert (y \notin L) by auto.
+      specialize (H y H1). exists (x ~ V). repeat split.
+      * rewrite <- concat_empty_l. constructor~.
+        apply (precise_inert_typ Hv).
+      * admit. (* eapply eg_val. *)
+      * rewrite subst_intro_trm with (x:=y); auto.
+        rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
+        eapply subst_ty_trm; auto.
+        { 
+          eapply weaken_rules; eauto.
+          admit.
+        }
+        { admit. }
+        { apply~ fv_ctx_types_push. }
+        {
+          rewrite~ subst_fresh_typ.
+          pose proof (ty_var (binds_tail x V G)).
+          apply (ty_sub H2). apply (weaken_subtyp Hs). admit.
+        }
+    + inversions Hred.
+    + inversions Hred.
+    + inversions Hred. admit.
+      (* specialize (IHHt Hg Hin). *)
+      (* exists ( *)
+  - specialize (IHHt Hg Hin t' Hred) as [G' [Hin' [Hgg' Ht']]].
+    exists G'. repeat split; auto.
+    apply weaken_subtyp with (G2:=G') in H.
+    + apply (ty_sub Ht' H).
+    + admit.
+Qed.
+
+Lemma progress: forall G e t T, 
+    eg_app e empty G ->
+    inert G ->
+    G |- t : T ->
+    (normal_form t \/ exists e' t', ec_red' e t e' t').
+Proof.
+  introv Hg Hin Ht. dependent induction Ht; try solve [left; auto].
+  - admit.
+  - admit.
+  - right. destruct t.
+    + pose proof (var_typing_implies_avar_f Ht) as [x A]. subst.
+      exists e (open_trm x u).
+      apply red_let_var''.
+    + pick_fresh x.
+      exists (e_let_val x v e) (open_trm x u).
+      apply~ red_let_val''.
+    + specialize (IHHt Hg Hin) as [IH | [e' [t' Hred]]].
+      * inversion IH.
+      * inversions Hred.
+    
 Lemma progress_induction : forall e eG t T et,
   (* inert G -> *)
   e[[empty]] == eG ->
