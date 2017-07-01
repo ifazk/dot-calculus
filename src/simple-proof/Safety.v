@@ -11,8 +11,6 @@ Require Import Some_lemmas.
 Require Import Canonical_forms1.
 Require Import Canonical_forms2.
 Require Import Inert_types.
-Require Import General_to_tight.
-Require Import Invertible_typing.
 
 (* ###################################################################### *)
 (* ###################################################################### *)
@@ -40,13 +38,13 @@ Proof.
   gen t'.
   dependent induction Ht; intros; try solve [inversions Hred].
   - pose proof (canonical_forms_1 Hwf Hin Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
-    inversions Hred. 
+    inversions Hred.
     apply (binds_func H4) in Bis. inversions Bis.
     exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
     pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
-    rewrite subst_intro_typ with (x:=y); auto. 
+    rewrite subst_intro_typ with (x:=y); auto.
     rewrite subst_intro_trm with (x:=y); auto.
-    eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ. 
+    eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
   - pose proof (canonical_forms_2 Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
     inversions Hred.
     apply (binds_func H1) in Bis. inversions Bis.
@@ -54,7 +52,7 @@ Proof.
     rewrite <- (defs_has_inv Has H5). assumption.
   - destruct t.
     + inversions Hred; try solve [inversion H6].
-      pick_fresh y. 
+      pick_fresh y.
       exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
       rewrite subst_intro_trm with (x:=y); auto.
       rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
@@ -64,35 +62,35 @@ Proof.
       pose proof (val_typing Ht) as [V [Hv Hs]].
       pick_fresh y. assert (y \notin L) by auto.
       specialize (H y H2).
-      exists (x ~ V). repeat split. 
+      exists (x ~ V). repeat split.
       * rewrite <- concat_empty_l. constructor~.
         apply (precise_inert_typ Hv).
-      * constructor~. 
+      * constructor~.
         apply (precise_to_general Hv).
       * rewrite subst_intro_trm with (x:=y); auto.
         rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
-        eapply subst_ty_trm; eauto. 
+        eapply subst_ty_trm; eauto.
         { eapply weaken_rules; eauto. }
         { apply~ fv_ctx_types_push. }
-        { 
-          rewrite~ subst_fresh_typ. 
+        {
+          rewrite~ subst_fresh_typ.
           pose proof (ty_var (binds_tail x V G)).
-          apply (ty_sub H3). apply (weaken_subtyp Hs); eauto. 
+          apply (ty_sub H3). apply (weaken_subtyp Hs); eauto.
         }
-    + inversions Hred. 
+    + inversions Hred.
       specialize (IHHt Hwf Hin t0' H6) as [G' [Hin' [Hwf' Ht']]].
       exists G'. repeat split; auto.
-      apply_fresh ty_let as z; eauto. 
+      apply_fresh ty_let as z; eauto.
       eapply weaken_rules; eauto.
-    + inversions Hred. 
+    + inversions Hred.
       specialize (IHHt Hwf Hin t0' H6) as [G' [Hin' [Hwf' Ht']]].
       exists G'. repeat split; auto.
-      apply_fresh ty_let as z; eauto. 
+      apply_fresh ty_let as z; eauto.
       eapply weaken_rules; eauto.
-    + inversions Hred. 
+    + inversions Hred.
       specialize (IHHt Hwf Hin t0' H6) as [G' [Hin' [Hwf' Ht']]].
       exists G'. repeat split; auto.
-      apply_fresh ty_let as z; eauto. 
+      apply_fresh ty_let as z; eauto.
       eapply weaken_rules; eauto.
   - specialize (IHHt Hwf Hin t' Hred) as [G' [Hin' [Hwf' Ht']]].
     exists G'. repeat split; auto.
@@ -159,7 +157,7 @@ Proof.
     eapply subst_ty_trm. eapply Hty.
     apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto.
     rewrite subst_fresh_typ.
-    assumption. 
+    assumption.
     eauto. eauto. eauto. eauto.
   - (* Fld-E *) right.
     pose proof (canonical_forms_2 Hg Hwf H) as [S [ds [t [Bis [Has Ty]]]]].

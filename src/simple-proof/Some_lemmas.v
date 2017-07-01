@@ -202,7 +202,7 @@ Lemma open_fresh_ec_injective : forall e e' z,
 Proof.
   intros. dependent induction e; destruct e'; inversions H1.
   - reflexivity.
-  - simpl in *. 
+  - simpl in *.
     apply (proj42 open_fresh_trm_val_def_defs_injective) in H4; auto.
     assert (e = e'). {
       eapply IHe; auto.
@@ -405,9 +405,9 @@ Lemma defs_has_inv: forall ds m t t',
     defs_has ds (def_trm m t) ->
     defs_has ds (def_trm m t') ->
     t = t'.
-Proof. 
+Proof.
   intros. unfold defs_has in *.
-  inversions H. inversions H0. 
+  inversions H. inversions H0.
   rewrite H1 in H2. inversions H2.
   reflexivity.
 Qed.

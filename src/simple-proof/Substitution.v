@@ -1,7 +1,6 @@
 Set Implicit Arguments.
 
 Require Import LibLN.
-Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Weakening.
 
@@ -88,7 +87,7 @@ Lemma fv_ctx_types_push: forall x z T G,
     x \notin fv_typ T ->
     x \notin fv_ctx_types G ->
     x \notin fv_ctx_types (G & z ~ T).
-Proof. 
+Proof.
   intros.
   unfold fv_ctx_types in *.
   unfold fv_in_values in *.
@@ -99,7 +98,7 @@ Proof.
   simpl in *.
   apply notin_union. split~.
 Qed.
-  
+
 Lemma invert_fv_ctx_types_push: forall x z T G,
   x \notin fv_ctx_types (G & z ~ T) -> x \notin fv_typ T /\ x \notin (fv_ctx_types G).
 Proof.

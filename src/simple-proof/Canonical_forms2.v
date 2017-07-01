@@ -1,7 +1,6 @@
 Set Implicit Arguments.
 
 Require Import LibLN.
-Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Weakening.
 Require Import Wellformed_store.
@@ -36,14 +35,14 @@ Proof.
     + unfold defs_has. simpl. rewrite If_l; reflexivity.
     + assumption.
   - inversion Hhas; subst.
-    + destruct (IHHdefs H4) as [d' [H1 H2]]. 
+    + destruct (IHHdefs H4) as [d' [H1 H2]].
       exists d'. split.
       * unfold defs_has. simpl. rewrite If_r. apply H1.
         apply not_eq_sym. eapply defs_has_hasnt_neq; eauto.
       * assumption.
     + exists d. split.
       * unfold defs_has. simpl. rewrite If_l; reflexivity.
-      * inversions* H4. 
+      * inversions* H4.
 Qed.
 
 Lemma new_ty_defs: forall G s x T ds,
@@ -78,9 +77,9 @@ Lemma corresponding_types_ty_trms: forall G s ds x S,
 Proof.
   introv Hwf Hg Bi Bis Hty.
   pose proof (new_ty_defs Hwf Hg Bis) as Htds.
-  destruct (precise_flow_lemma Hty) as [U Hpf]. 
+  destruct (precise_flow_lemma Hty) as [U Hpf].
   pose proof (inert_typ_bnd_record Hg Bi) as Hrec.
-  pose proof (pf_binds Hpf). 
+  pose proof (pf_binds Hpf).
   pose proof (binds_func Bi H); subst.
   pose proof (precise_flow_record_has Hg Hpf) as Hrh.
   pose proof (record_has_ty_defs Htds Hrh) as [d [Hds Htd]].

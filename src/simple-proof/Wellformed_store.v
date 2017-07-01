@@ -49,7 +49,7 @@ Proof.
     exists (L \u L' \u dom G) S1 T1. split. assumption. split. apply subtyp_trans with (T:=S0).
     apply* tight_to_general. assumption. intros.
     assert (ok (G & y ~ S)) as Hok. {
-      apply* ok_push. 
+      apply* ok_push.
     }
     apply subtyp_trans with (T:=open_typ y T0).
     eapply narrow_subtyping. apply* Hst. apply subenv_last. apply* tight_to_general.

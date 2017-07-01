@@ -1,7 +1,6 @@
 Set Implicit Arguments.
 
 Require Import LibLN.
-Require Import Coq.Program.Equality.
 Require Import Definitions.
 
 (* ###################################################################### *)
@@ -78,8 +77,8 @@ Proof.
   rewrite <- EqG. assumption.
 Qed.
 
-Lemma weaken_rules_p: forall G t T, 
-    G |-! t : T -> 
+Lemma weaken_rules_p: forall G t T,
+    G |-! t : T ->
     forall G1 G2 G3,
       G = G1 & G3 ->
       ok (G1 & G2 & G3) ->
@@ -89,7 +88,7 @@ Proof.
   - apply ty_var_p. apply* binds_weaken. subst*.
   - apply_fresh ty_all_intro_p as z.
     assert (zL: z \notin L) by auto.
-    specialize (H z zL). 
+    specialize (H z zL).
     assert (Hz: G & z ~ T = G1 & G3 & z ~ T) by rewrite* H0.
     assert(Hok: ok (G1 & G2 & G3 & z ~ T)) by auto.
     rewrite <- concat_assoc.
@@ -99,7 +98,7 @@ Proof.
     + rewrite concat_assoc. subst*.
   - apply_fresh ty_new_intro_p as z.
     assert (zL: z \notin L) by auto.
-    specialize (H z zL). 
+    specialize (H z zL).
     assert (Hz: G & z ~ open_typ z T = G1 & G3 & z ~ open_typ z T) by rewrite* H0.
     assert(Hok: ok (G1 & G2 & G3 & z ~ open_typ z T)) by auto.
     rewrite <- concat_assoc.

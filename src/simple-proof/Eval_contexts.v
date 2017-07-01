@@ -1,7 +1,6 @@
 Set Implicit Arguments.
 
 Require Import LibLN.
-Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Some_lemmas.
 Require Import General_to_tight.
@@ -31,12 +30,12 @@ Inductive red : ec -> trm -> ec -> trm -> Prop :=
     app_ec e' e e'' ->
     red e'' t e'' t'
 | red_apply_hole : forall x T t s y,
-    red (e_hole ((x ~ (val_lambda T t)) & s)) 
+    red (e_hole ((x ~ (val_lambda T t)) & s))
         (trm_app (avar_f x) (avar_f y))
         (e_hole ((x ~ (val_lambda T t)) & s))
         (open_trm y t)
 | red_apply_term : forall x T t s u y,
-    red (e_term ((x ~ (val_lambda T t)) & s) u) 
+    red (e_term ((x ~ (val_lambda T t)) & s) u)
         (trm_app (avar_f x) (avar_f y))
         (e_term ((x ~ (val_lambda T t)) & s) u)
         (open_trm y t)
@@ -57,7 +56,7 @@ Inductive red : ec -> trm -> ec -> trm -> Prop :=
 | red_let_let : forall e s t u,
     red e (trm_let (trm_let s t) u) e (trm_let s (trm_let t u)).
 
-End ec. 
+End ec.
 
 (** TODO: find appropriate place for definition *)
 Fixpoint ec_of_trm (t : trm) : (ec * trm) :=
@@ -80,12 +79,12 @@ Fixpoint ec_of_trm (t : trm) : (ec * trm) :=
 
 Inductive binds_ec : var -> val -> ec -> Prop :=
 | binds_ec_single: forall x v e, binds_ec x v (e_let_val x v e)
-| binds_ec_push: forall x v x' v' e, 
+| binds_ec_push: forall x v x' v' e,
     binds_ec x v e -> (** TODO: conditions on x' ? **)
     binds_ec x v (e_let_val x' v' e).
 Hint Constructors binds_ec.
 
-Lemma test: forall x v, 
+Lemma test: forall x v,
     binds_ec x v (e_let_val x v e_empty).
 Proof.
   intros. constructor.
@@ -201,7 +200,7 @@ Proof.
   - admit.
   - admit.
   - destruct t.
-    + inversions Hred. 
+    + inversions Hred.
       pick_fresh y.
       exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
       rewrite subst_intro_trm with (x:=y); auto.
@@ -218,7 +217,7 @@ Proof.
       * rewrite subst_intro_trm with (x:=y); auto.
         rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
         eapply subst_ty_trm; auto.
-        { 
+        {
           eapply weaken_rules; eauto.
           admit.
         }
@@ -241,7 +240,7 @@ Proof.
     + admit.
 Qed.
 
-Lemma progress: forall G e t T, 
+Lemma progress: forall G e t T,
     eg_app e empty G ->
     inert G ->
     G |- t : T ->
@@ -260,7 +259,7 @@ Proof.
     + specialize (IHHt Hg Hin) as [IH | [e' [t' Hred]]].
       * inversion IH.
       * inversions Hred.
-    
+
 Lemma progress_induction : forall e eG t T et,
   (* inert G -> *)
   e[[empty]] == eG ->

@@ -32,7 +32,7 @@ Lemma precise_flow_lemma : forall U G x,
     G |-! trm_var (avar_f x) : U ->
     exists T, precise_flow x G T U.
 Proof.
-  introv H. dependent induction H; try (destruct* (IHty_trm _ eq_refl)); 
+  introv H. dependent induction H; try (destruct* (IHty_trm _ eq_refl));
               try (destruct* (IHty_trm_p _ eq_refl)); eauto.
 Qed.
 
@@ -139,9 +139,9 @@ Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf). inversions HT; dependent induction Pf; auto.
   - destruct U0; inversions x.
-    apply precise_flow_all_inv in Pf. inversion* Pf. 
-  - apply precise_flow_all_inv in Pf. inversion Pf. 
-  - apply precise_flow_all_inv in Pf. inversion Pf. 
+    apply precise_flow_all_inv in Pf. inversion* Pf.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. inversion Pf.
   - specialize (IHPf U0 Hi T0 eq_refl eq_refl H).
     destruct (pf_inert_or_rcd Hi Pf) as [Heq | Hr].
     * inversions Heq. destruct T0; inversions x. inversion H. inversion H0.
@@ -163,7 +163,7 @@ Proof.
   lets HT: (pf_inert_T Hi Pf). inversions HT; dependent induction Pf; auto.
   - apply precise_flow_all_inv in Pf. inversion Pf.
   - apply precise_flow_all_inv in Pf. inversion Pf.
-  - apply precise_flow_all_inv in Pf. inversion Pf. 
+  - apply precise_flow_all_inv in Pf. inversion Pf.
   - apply (pf_inert_bnd_U Hi) in Pf. exists* U.
   - exists* T0.
   - exists* T0.
@@ -180,7 +180,7 @@ Proof.
   - inversion Hr. inversion H0.
   - apply precise_flow_all_inv in Pf. inversion Pf.
   - apply precise_flow_all_inv in Pf. inversion Pf.
-  - apply precise_flow_all_inv in Pf. inversion Pf. 
+  - apply precise_flow_all_inv in Pf. inversion Pf.
   - inversion Hr. inversion H1.
   - apply (pf_inert_bnd_U Hi) in Pf. exists* U.
   - apply* IHPf. destruct (pf_inert_or_rcd Hi Pf) as [H1 | H1]. inversion H1. assumption.

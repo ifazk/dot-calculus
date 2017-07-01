@@ -1,7 +1,6 @@
 Set Implicit Arguments.
 
 Require Import LibLN.
-Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Wellformed_store.
 Require Import Some_lemmas.
@@ -9,7 +8,6 @@ Require Import Narrowing.
 Require Import Invertible_typing.
 Require Import Inert_types.
 Require Import General_to_tight.
-Require Import Substitution.
 
 (*
 Lemma (Canonical forms 1)
