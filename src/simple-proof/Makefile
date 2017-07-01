@@ -37,7 +37,7 @@ clean:
 	$(MAKE) -f $(PROOFMAKEFILE) cleanall
 
 doc:
-	$(MAKE) -f $(PROOFMAKEFILE) html
+	$(MAKE) -f $(PROOFMAKEFILE) html 
 
 %.vo:
 	$(MAKE) -f $(PROOFMAKEFILE) $@
