@@ -174,10 +174,10 @@ Proof.
     apply_fresh ty_let as z; auto. assert (z \notin L) as Lz by auto.
     specialize (H0 z Lz G1 (G2 & z ~ T) x U0). repeat rewrite concat_assoc in H0. apply* H0.
   - (* ty_def_trm *)
-    constructor. specialize (H G1 (G2 & x ~ U) x0 U0). repeat rewrite concat_assoc in H.
+    constructor. specialize (H G1 (G2 & z ~ U) x U0). repeat rewrite concat_assoc in H.
     apply* H.
   - (* ty_def_val *)
-    constructor. specialize (H G1 (G2 & x ~ U) x0 U0). repeat rewrite concat_assoc in H.
+    constructor. specialize (H G1 (G2 & z ~ U) x U0). repeat rewrite concat_assoc in H.
     apply* H.
   - apply_fresh subtyp_all as z; auto. assert (z \notin L) as Lz by auto.
     specialize (H0 z Lz G1 (G2 & z ~ S2) x U). repeat rewrite concat_assoc in H0.
@@ -211,7 +211,7 @@ Proof.
     rewrite concat_empty_r in Hur. specialize (Hur eq_refl). rewrite concat_empty_r in Hur.
     assumption.
   - exists (trm_path p). split*. apply* weaken_ty_trm.
-    apply* weaken_ty_trm.
+    apply* weaken_ty_trm. admit.
   - exists (trm_val v). split*. apply* weaken_ty_trm.
     lets Hur: ((proj41 unfold_rec) _ _ _ H5 G' empty x S Hok).
     rewrite concat_empty_r in Hur. specialize (Hur eq_refl). rewrite concat_empty_r in Hur.

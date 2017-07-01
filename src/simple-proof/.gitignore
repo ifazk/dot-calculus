@@ -1,3 +1,6 @@
 _CoqProject
 Makefile.coq
 .DS_Store
+*.html
+html
+*.css

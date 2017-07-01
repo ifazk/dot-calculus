@@ -97,7 +97,6 @@ Proof.
   - specialize (IHHty _ Hgd eq_refl).
     eapply ty_bnd_inv.
     apply IHHty.
-    reflexivity.
   - specialize (IHHty _ Hgd eq_refl).
     inversion IHHty; subst; auto.
   - apply ty_and_inv; auto.
