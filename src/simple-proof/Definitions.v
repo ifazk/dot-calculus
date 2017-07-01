@@ -15,7 +15,8 @@
 (** printing mu     %\mu%            #&mu;#                  *)
 (** printing nu     %\nu%            #&nu;#                  *)
 (** printing Gamma  %\Gamma%         #&Gamma;#               *)
-
+(** printing top    %\top%           #&#8868;#               *)
+(** printing bottom %\bot%           #&perp;#                *)
 
 (** * Definitions *)
 
@@ -46,8 +47,8 @@ Inductive label: Set :=
 
 (** *** Types
     Types ([typ], [S], [T], [U]) and type declarations ([dec], [D]):
-    - [typ_top] represents top (#&#8868;#);
-    - [typ_bot] represents bottom (#&perp;#);
+    - [typ_top] represents [top];
+    - [typ_bot] represents [bottom];
     - [typ_rcd d] represents a record type [d], where [d] is either a type or field declaration;
     - [typ_and T U] represents an intersection type [T /\ U];
     - [typ_sel x A] represents type selection [x.A];
@@ -416,6 +417,12 @@ with ty_defs : ctx -> defs -> typ -> Prop :=
 | ty_defs_one : forall G d D,
     G /- d : D ->
     G /- defs_cons defs_nil d :: typ_rcd D
+
+(** G |- ds :: T            #<br># *)
+(** G |- d: D               #<br>  *)
+(** d \notin ds                    *)
+(** ----------------------         *)
+(** G |- ds ++ d : T /\ D          *)
 | ty_defs_cons : forall G ds d T D,
     G /- ds :: T ->
     G /- d : D ->
@@ -423,11 +430,17 @@ with ty_defs : ctx -> defs -> typ -> Prop :=
     G /- defs_cons ds d :: typ_and T (typ_rcd D)
 where "G '/-' ds '::' T" := (ty_defs G ds T)
 
+(** ** Subtyping [G |- T <: U] *)
 with subtyp : ctx -> typ -> typ -> Prop :=
+(** [G |- T <: top] *)
 | subtyp_top: forall G T,
     G |- T <: typ_top
+
+(** [G |- T <: bottom] *)
 | subtyp_bot: forall G T,
     G |- typ_bot <: T
+
+(** [G |- T <: T] *)
 | subtyp_refl: forall G T,
     G |- T <: T
 | subtyp_trans: forall G S T U,
