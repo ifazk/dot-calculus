@@ -5,11 +5,8 @@ Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Weakening.
 
-(* ###################################################################### *)
-(* ###################################################################### *)
-(** ** Some Lemmas *)
+(** This file defines various helper lemmas which are used throughout the proof. *)
 
-(* Misc helper lemma used later in this file *)
 Lemma hasnt_notin : forall G ds ls t U,
     G /- ds :: U ->
     record_typ U ls ->
@@ -24,9 +21,7 @@ Proof.
     + inversions Hds. inversions H8; simpl in *; case_if; apply* notin_singleton.
 Qed.
 
-
-(* ###################################################################### *)
-(** *** Lemmas about opening *)
+(** * Lemmas Related to Opening *)
 
 Lemma open_fresh_avar_injective : forall x y k z,
     z \notin fv_avar x ->
@@ -140,58 +135,31 @@ Lemma open_fresh_trm_val_def_defs_injective:
 Proof.
   apply trm_mutind; intros; simpl in *.
   - destruct t'; inversions H1.
-    apply (open_fresh_avar_injective _ _ _ H H0) in H3. subst~.
+    apply (open_fresh_avar_injective _ _ _ H H0) in H3. subst*.
   - destruct t'; inversions H2.
-    specialize (H _ _ _ H0 H1 H4). subst~.
+    specialize (H _ _ _ H0 H1 H4). subst*.
   - destruct t'; inversions H1.
-    apply (open_fresh_avar_injective _ _ _ H H0) in H3. subst~.
-  - destruct t'; inversions H1. simpl in *.
-    assert (a = a1). {
-      eapply open_fresh_avar_injective; eauto.
-    }
-    assert (a0 = a2). {
-      eapply open_fresh_avar_injective; eauto.
-    }
-    subst~.
-  - destruct t'; inversions H3. simpl in *.
-    assert (t = t'1). {
-      eapply H; eauto.
-    }
-    assert (t0 = t'2). {
-      eapply H0; eauto.
-    }
-    subst~.
+    apply (open_fresh_avar_injective _ _ _ H H0) in H3. subst*.
+  - destruct t'; inversions H1. simpls.
+    assert (a = a1) by (apply* open_fresh_avar_injective).
+    assert (a0 = a2) by (apply* open_fresh_avar_injective). subst*.
+  - destruct t'; inversions H3. simpls.
+    assert (t = t'1) by (apply* H).
+    assert (t0 = t'2) by (apply* H0). subst*.
+  - destruct v'; inversions H2. simpls.
+    assert (t = t0) by (apply* open_fresh_typ_dec_injective).
+    assert (d = d0) by (apply* H). subst~.
   - destruct v'; inversions H2. simpl in *.
-    assert (t = t0). {
-      eapply (proj21 open_fresh_typ_dec_injective); eauto.
-    }
-    assert (d = d0). {
-      eapply H; eauto.
-    }
-    subst~.
-  - destruct v'; inversions H2. simpl in *.
-    assert (t = t1). {
-      eapply (proj21 open_fresh_typ_dec_injective); eauto.
-    }
-    assert (t0 = t2). {
-      eapply H; eauto.
-    }
-    subst~.
-  - destruct d'; inversions H1. simpl in *.
-    apply ((proj21 open_fresh_typ_dec_injective) _ _ _ _ H H0) in H4.
-    subst~.
-  - destruct d'; inversions H2. simpl in *.
-    specialize (H _ _ _ H0 H1 H5).
-    subst~.
-  - destruct ds'; inversions H1. reflexivity.
-  - destruct ds'; inversions H3. simpl in *.
-    assert (d = ds'). {
-      eapply H; eauto.
-    }
-    assert (d0 = d1). {
-      eapply H0; eauto.
-    }
-    subst~.
+    assert (t = t1) by (apply* open_fresh_typ_dec_injective).
+    assert (t0 = t2) by (apply* H). subst*.
+  - destruct d'; inversions H1. simpls.
+    apply ((proj21 open_fresh_typ_dec_injective) _ _ _ _ H H0) in H4. subst~.
+  - destruct d'; inversions H2. simpls.
+    specialize (H _ _ _ H0 H1 H5). subst~.
+  - destruct ds'; inversion* H1.
+  - destruct ds'; inversions H3. simpls.
+    assert (d = ds') by (apply* H).
+    assert (d0 = d1) by (apply* H0). subst*.
 Qed.
 
 Lemma open_fresh_ec_injective : forall e e' z,
@@ -200,20 +168,11 @@ Lemma open_fresh_ec_injective : forall e e' z,
     open_ec z e = open_ec z e' ->
     e = e'.
 Proof.
-  intros. dependent induction e; destruct e'; inversions H1.
-  - reflexivity.
-  - simpl in *.
-    apply (proj42 open_fresh_trm_val_def_defs_injective) in H4; auto.
-    assert (e = e'). {
-      eapply IHe; auto.
-    }
-    subst. reflexivity.
-  - simpl in *.
-    apply (proj41 open_fresh_trm_val_def_defs_injective) in H4; auto.
-    subst. reflexivity.
+  intros. dependent induction e; destruct e'; inversions H1; simpls; auto.
+  - apply (proj42 open_fresh_trm_val_def_defs_injective) in H4; auto.
+    assert (e = e') by (apply* IHe). subst*.
+  - apply (proj41 open_fresh_trm_val_def_defs_injective) in H4; auto. subst*.
 Qed.
-
-(* ###################################################################### *)
 
 (* ###################################################################### *)
 (** *** Lemmas about Record types *)
