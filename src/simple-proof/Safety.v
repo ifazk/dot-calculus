@@ -10,7 +10,7 @@ Require Import Narrowing.
 Require Import Some_lemmas.
 Require Import Canonical_forms1.
 Require Import Canonical_forms2.
-Require Import Inert_types.
+Require Import Precise_types.
 
 (* ###################################################################### *)
 (* ###################################################################### *)

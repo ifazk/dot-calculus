@@ -6,7 +6,7 @@ Require Import Weakening.
 Require Import Wellformed_store.
 Require Import Substitution.
 Require Import Some_lemmas.
-Require Import Inert_types.
+Require Import Precise_types.
 Require Import General_to_tight.
 Require Import Invertible_typing.
 

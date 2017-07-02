@@ -3,26 +3,9 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import Inert_types.
+Require Import Precise_types.
 Require Import Some_lemmas.
 Require Import Narrowing.
-
-Lemma invertible_to_precise_typ_dec: forall G x A S U,
-  inert G ->
-  G |-## x : typ_rcd (dec_typ A S U) ->
-  exists T,
-    G |-! trm_var (avar_f x) : typ_rcd (dec_typ A T T) /\
-    G |-# T <: U /\
-    G |-# S <: T.
-Proof.
-  introv HG Hinv.
-  dependent induction Hinv.
-  - lets Hp: (precise_dec_typ_inv HG H). subst.
-    exists U. split*.
-  - specialize (IHHinv A T U0 HG eq_refl).
-    destruct IHHinv as [V [Hx [Hs1 Hs2]]].
-    exists V. split*.
-Qed.
 
 Lemma invertible_to_precise_trm_dec: forall G x a T,
   inert G ->

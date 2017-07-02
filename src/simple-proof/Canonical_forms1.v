@@ -6,7 +6,7 @@ Require Import Wellformed_store.
 Require Import Some_lemmas.
 Require Import Narrowing.
 Require Import Invertible_typing.
-Require Import Inert_types.
+Require Import Precise_types.
 Require Import General_to_tight.
 
 (*

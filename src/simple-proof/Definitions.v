@@ -10,13 +10,14 @@
 (** printing /\     %\wedge%         #&and;#                       *)
 (** printing \/     %\vee%           #&or;#                        *)
 (** printing forall %\forall%        #&forall;#                    *)
-(** printing exists %\exists%        #&exists;#                    *)
+(** printing exists %\exists%        #&exist;#                     *)
 (** printing lambda %\lambda%        #&lambda;#                    *)
 (** printing mu     %\mu%            #&mu;#                        *)
 (** printing nu     %\nu%            #&nu;#                        *)
 (** printing Gamma  %\Gamma%         #&Gamma;#                     *)
 (** printing top    %\top%           #&#8868;#                     *)
 (** printing bottom %\bot%           #&perp;#                      *)
+(** printing <>     %\ne%            #&ne;#                        *)
 
 (** * Definitions *)
 
@@ -523,6 +524,21 @@ where "G '|-' T '<:' U" := (subtyp G T U).
 Reserved Notation "G '|-!' t ':' T" (at level 40, t at level 59).
 
 (** ** Precise typing [Gamma |-! t: T] *)
+(** Precise typing is used to reason about the types of variables and values.
+    Precise typing does not ``modify'' a variable's or value's type through subtyping.
+    - For values, precise typing allows to only retrieve the ``immediate'' type of the value.
+      It types objects with recursive types, and functions with dependent-function types. #<br>#
+      For example, if a value is the object [nu(x: {a: T}){a = x.a}], the only way to type
+      the object through precise typing is [Gamma |- nu(x: {a: T}){a = x.a}: mu(x: {a: T})].
+    - For variables, we start out with a type [T=Gamma(x)] (the type to which the variable is
+      bound in [Gamma]). Then we use precise typing to additionally deconstruct [T]
+      by using recursion elimination and intersection (and) elimination.
+      For example, if [Gamma(x)=mu(x: {a: T} /\ {B: S..U})], then we can derive the following
+      precise types for [x]:                   #<br>#
+      [Gamma |-! x: mu(x: {a: T} /\ {B: S..U})] #<br>#
+      [Gamma |-! x: {a: T} /\ {B: S..U}]        #<br>#
+      [Gamma |-! x: {a: T}]                    #<br>#
+      [Gamma |-! x: {B: S..U}]. *)
 
 Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
 
@@ -959,6 +975,71 @@ Inductive wf_sto: ctx -> sto -> Prop :=
     G & x ~ T ~~ s & x ~ v
 where "G '~~' s" := (wf_sto G s).
 
+(** ** Record types *)
+(** In the proof, it will be useful to be able to distinguish record types from
+    other types. A record type is a concatenation of type declarations with equal
+    bounds [{A: T..T}] and field declarations [{a: T}]. *)
+
+Inductive record_dec : dec -> Prop :=
+| rd_typ : forall A T, record_dec (dec_typ A T T)
+| rd_trm : forall a T, record_dec (dec_trm a T).
+
+Inductive record_typ : typ -> fset label -> Prop :=
+| rt_one : forall D l,
+  record_dec D ->
+  l = label_of_dec D ->
+  record_typ (typ_rcd D) \{l}
+| rt_cons: forall T ls D l,
+  record_typ T ls ->
+  record_dec D ->
+  l = label_of_dec D ->
+  l \notin ls ->
+  record_typ (typ_and T (typ_rcd D)) (union ls \{l}).
+
+Definition record_type T := exists ls, record_typ T ls.
+
+(** Given a type [T = D1 /\ D2 /\ ... /\ Dn] and member declaration [D], [record_has T D] tells whether
+    [D] is contained in the intersection of [Di]'s. *)
+Inductive record_has: typ -> dec -> Prop :=
+| rh_one : forall D,
+    record_has (typ_rcd D) D
+| rh_andl : forall T U D,
+    record_has T D ->
+    record_has (typ_and T U) D
+| rh_andr : forall T U D,
+    record_has U D ->
+    record_has (typ_and T U) D.
+
+(** ** Inert types
+       A type is inert if it is either a dependent function type, or a recursive type
+       whose type declarations have equal bounds (enforced through [record_type]). #<br>#
+       For example, the following types are inert:
+       - [lambda(x: S)T]
+       - [mu(x: {a: T} /\ {B: U..U})]
+       - [mu(x: {C: {A: T..U}..{A: T..U}})]
+       And the following types are not inert:
+       - [{a: T}]
+       - [{B: U..U}]
+       - [top]
+       - [x.A]
+       - [mu(x: {B: S..T})], where [S <> T]. *)
+Inductive inert_typ : typ -> Prop :=
+  | inert_typ_all : forall S T, inert_typ (typ_all S T)
+  | inert_typ_bnd : forall T,
+      record_type T ->
+      inert_typ (typ_bnd T).
+
+(** An inert context is a typing context whose range consists only of inert types. *)
+Inductive inert : ctx -> Prop :=
+  | inert_empty : inert empty
+  | inert_all : forall pre x T,
+      inert pre ->
+      inert_typ T ->
+      x # pre ->
+      inert (pre & x ~ T).
+
+Hint Constructors inert_typ inert.
+
 (** * Infrastructure *)
 
 (** ** Mutual Induction Principles *)
@@ -1009,41 +1090,6 @@ Ltac pick_fresh x :=
 
 Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
   apply_fresh_base T gather_vars x.
-
-(** ** Record types *)
-(** In the proof, it will be useful to be able to distinguish record types from
-    other types. A record type is a concatenation of type declarations with equal
-    bounds [{A: T..T}] and field declarations [{a: T}]. *)
-
-Inductive record_dec : dec -> Prop :=
-| rd_typ : forall A T, record_dec (dec_typ A T T)
-| rd_trm : forall a T, record_dec (dec_trm a T).
-
-Inductive record_typ : typ -> fset label -> Prop :=
-| rt_one : forall D l,
-  record_dec D ->
-  l = label_of_dec D ->
-  record_typ (typ_rcd D) \{l}
-| rt_cons: forall T ls D l,
-  record_typ T ls ->
-  record_dec D ->
-  l = label_of_dec D ->
-  l \notin ls ->
-  record_typ (typ_and T (typ_rcd D)) (union ls \{l}).
-
-Definition record_type T := exists ls, record_typ T ls.
-
-(** Given a type [T = D1 /\ D2 /\ ... /\ Dn] and member declaration [D], [record_has T D] tells whether
-    [D] is contained in the intersection of [Di]'s. *)
-Inductive record_has: typ -> dec -> Prop :=
-| rh_one : forall D,
-    record_has (typ_rcd D) D
-| rh_andl : forall T U D,
-    record_has T D ->
-    record_has (typ_and T U) D
-| rh_andr : forall T U D,
-    record_has U D ->
-    record_has (typ_and T U) D.
 
 Hint Constructors
      ty_trm ty_def ty_defs subtyp ty_trm_p

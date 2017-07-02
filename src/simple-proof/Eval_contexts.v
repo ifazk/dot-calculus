@@ -5,7 +5,7 @@ Require Import Definitions.
 Require Import Some_lemmas.
 Require Import General_to_tight.
 Require Import Invertible_typing.
-Require Import Inert_types.
+Require Import Precise_types.
 Require Import Substitution.
 Require Import Narrowing.
 Require Import Weakening.
