@@ -36,7 +36,8 @@ Parameter trm_label: Set.
 (** * Abstract Syntax *)
 
 (** *** Variables ([x], [y], [z])
-    This proof uses the #<a href="http://www.chargueraud.org/softs/ln/">locally nameless representation</a># for variables.
+    The proof represents variables using the
+    #<a href="http://www.chargueraud.org/softs/ln/">locally nameless representation</a>#:
     - [avar_b n] represents a variable using the de Bruijn index [n];
     - [avar_f x] represents a free variable with name [x].
     de Bruijn-indexed variables represent bound variables, whereas named variables represent free variables
@@ -534,10 +535,10 @@ Reserved Notation "G '|-!' t ':' T" (at level 40, t at level 59).
     - For values, precise typing allows to only retrieve the ``immediate'' type of the value.
       It types objects with recursive types, and functions with dependent-function types. #<br>#
       For example, if a value is the object [nu(x: {a: T}){a = x.a}], the only way to type
-      the object through precise typing is [Gamma |- nu(x: {a: T}){a = x.a}: mu(x: {a: T})].
+      the object through precise typing is [Gamma |-! nu(x: {a: T}){a = x.a}: mu(x: {a: T})].
     - For variables, we start out with a type [T=Gamma(x)] (the type to which the variable is
       bound in [Gamma]). Then we use precise typing to additionally deconstruct [T]
-      by using recursion elimination and intersection (and) elimination.
+      by using recursion elimination and intersection elimination. #<br>#
       For example, if [Gamma(x)=mu(x: {a: T} /\ {B: S..U})], then we can derive the following
       precise types for [x]:                   #<br>#
       [Gamma |-! x: mu(x: {a: T} /\ {B: S..U})] #<br>#
@@ -605,7 +606,7 @@ Reserved Notation "G '|-#' T '<:' U" (at level 40, T at level 59).
     all occurrences of [|-] with [|-#], except for the following:
     - in the type selection subtyping rules Sel-<: and <:-Sel ([subtyp_sel1] and [subtyp_sel2]),
       the premise is precise typing of a type declaration with equal bounds;
-    - whenever a typing judgement in a premise extends the environment (for example, [ty_all_intro_t])
+    - whenever a typing judgement in a premise extends the environment (for example, [ty_all_intro_t]),
       it is typed under general typing [|-] and not tight typing [|-#]. *)
 
 Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
