@@ -18,8 +18,8 @@
 (** printing top    %\top%           #&#8868;#                     *)
 (** printing bottom %\bot%           #&perp;#                      *)
 (** printing <>     %\ne%            #&ne;#                        *)
-
-(** * Definitions *)
+(** printing notin  %\notin%         #&notin;#                     *)
+(** printing isin   %\in%            #&isin;#                      *)
 
 Set Implicit Arguments.
 
@@ -28,7 +28,7 @@ Require Import LibLN.
 Parameter typ_label: Set.
 Parameter trm_label: Set.
 
-(** ** Abstract Syntax *)
+(** * Abstract Syntax *)
 
 (** *** Variables ([x], [y], [z])
     This proof uses the #<a href="http://www.chargueraud.org/softs/ln/">locally nameless representation</a># for variables.
@@ -980,10 +980,16 @@ where "G '~~' s" := (wf_sto G s).
     other types. A record type is a concatenation of type declarations with equal
     bounds [{A: T..T}] and field declarations [{a: T}]. *)
 
+(** A record declaration is either a type declaration with equal bounds,
+    or a field declaration.*)
 Inductive record_dec : dec -> Prop :=
 | rd_typ : forall A T, record_dec (dec_typ A T T)
 | rd_trm : forall a T, record_dec (dec_trm a T).
 
+(** Given a record declaration, a [record_typ] keeps track of the declaration's
+    field member labels (i.e. names of fields) and type member labels
+    (i.e. names of abstract type members). [record_typ] also requires that the
+    labels are distinct.  *)
 Inductive record_typ : typ -> fset label -> Prop :=
 | rt_one : forall D l,
   record_dec D ->
@@ -996,6 +1002,8 @@ Inductive record_typ : typ -> fset label -> Prop :=
   l \notin ls ->
   record_typ (typ_and T (typ_rcd D)) (union ls \{l}).
 
+(** A [record_type] is a [record_typ] with an unspecified set of labels. The meaning
+    of [record_type] is: an intersection of type/field declarations with distinct labels. *)
 Definition record_type T := exists ls, record_typ T ls.
 
 (** Given a type [T = D1 /\ D2 /\ ... /\ Dn] and member declaration [D], [record_has T D] tells whether

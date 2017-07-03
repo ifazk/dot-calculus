@@ -18,6 +18,8 @@
 (** printing top    %\top%           #&#8868;#                     *)
 (** printing bottom %\bot%           #&perp;#                      *)
 (** printing <>     %\ne%            #&ne;#                        *)
+(** printing notin  %\notin%         #&notin;#                     *)
+(** printing isin   %\in%            #&isin;#                      *)
 
 (** This module reasons about the precise types of variables in inert contexts. *)
 
