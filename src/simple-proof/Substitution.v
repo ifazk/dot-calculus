@@ -513,7 +513,8 @@ Proof.
     apply ok_push. apply ok_concat_map. auto. unfold subst_ctx. auto.
 Qed.
 
-(** The substitution lemma for term typing. *)
+(** The substitution lemma for term typing.
+    This lemma corresponds to Lemma 3.14 in the paper. *)
 Lemma subst_ty_trm: forall y S G x t T,
     G & x ~ S |- t : T ->
     ok (G & x ~ S) ->

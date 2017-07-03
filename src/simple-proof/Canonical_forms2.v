@@ -96,7 +96,7 @@ Proof.
   introv Hg Hwf Hty.
   pose proof (typing_implies_bound Hty) as [S Bi].
   pose proof (general_to_tight_typing Hg Hty) as Hty'.
-  pose proof (invertible_typing_lemma Hg Hty') as Hinv.
+  pose proof (tight_to_invertible Hg Hty') as Hinv.
   pose proof (invertible_to_precise_trm_dec Hg Hinv) as [T' [Hx Hs]].
   pose proof (corresponding_types Hwf Hg Bi)
     as [[L [U [V [S1 [V1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [U [ds [Hb [Ht Heq]]]]].
@@ -110,13 +110,9 @@ Proof.
     }
     destruct H as [T0 [Hrt Hsubst]]; subst S; rename T0 into S.
     inversion Hsubst.
-  + subst.
-    exists U ds.
+  + subst. exists U ds.
     pose proof (new_ty_defs Hwf Hg Hb) as Htd.
     pose proof (corresponding_types_ty_trms Hwf Hg Bi Hb Hx) as [t [H1 H2]].
-    exists t.
-    split; auto.
-    split; auto.
-    apply tight_to_general in Hs; auto.
-    apply ty_sub with (T:=T'); auto.
+    exists t. split; auto. split; auto.
+    apply tight_to_general in Hs; auto. apply* ty_sub.
 Qed.

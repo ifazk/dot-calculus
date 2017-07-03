@@ -7,6 +7,15 @@ Require Import Precise_types.
 Require Import Helper_lemmas.
 Require Import Narrowing.
 
+(** This module contains lemmas related to invertible typing
+    ([ty_var_inv], [|-##] and [ty_val_inv], [|-##v]). *)
+
+(** Invertible-to-precise typing for field declarations: #<br>#
+    [inert Gamma]                     #<br>#
+    [Gamma |-## x: {a: T}]
+    ----------------------
+    [exists T'. Gamma |-! x: {a: T'}]      #<br>#
+    [Gamma |-# T' <: T]. *)
 Lemma invertible_to_precise_trm_dec: forall G x a T,
   inert G ->
   G |-## x : typ_rcd (dec_trm a T) ->
@@ -22,6 +31,13 @@ Proof.
     eapply subtyp_trans_t; eassumption.
 Qed.
 
+(** Invertible-to-precise typing for function types: #<br>#
+    [inert Gamma]                     #<br>#
+    [Gamma |-## x: forall(S)T]
+    ----------------------
+    [exists S', T'. Gamma |-! x: forall(S')T']  #<br>#
+    [Gamma |-# S <: S']               #<br>#
+    [Gamma |-# T'^y <: T^y], where [y] is fresh. *)
 Lemma invertible_to_precise_typ_all: forall G x S T,
   inert G ->
   G |-## x : typ_all S T ->
@@ -51,6 +67,9 @@ Proof.
       eauto.
 Qed.
 
+(** * Invertible Variable Typing *)
+
+(** Invertible typing is closed under tight subtyping. *)
 Lemma invertible_typing_closure_tight: forall G x T U,
   inert G ->
   G |-## x : T ->
@@ -68,7 +87,15 @@ Proof.
     + pose proof (inert_unique_tight_bounds Hgd H H5) as Hu. subst. assumption.
 Qed.
 
-Lemma invertible_typing_lemma :
+(** ** Tight-to-Invertible Lemma for Variables
+
+       This lemma corresponds to Theorem 3.6 in the paper.
+
+       [inert Gamma]            #<br>#
+       [Gamma |-# x: U]
+       -----------------
+       [Gamma |-## x: U] *)
+Lemma tight_to_invertible :
   forall G U x,
     inert G ->
     G |-# trm_var (avar_f x) : U ->
@@ -86,6 +113,9 @@ Proof.
   - eapply invertible_typing_closure_tight; auto.
 Qed.
 
+(** * Invertible Value Typing *)
+
+(** Invertible value typing is closed under tight subtyping. *)
 Lemma invertible_typing_closure_tight_v: forall G v T U,
   inert G ->
   G |-##v v : T ->
@@ -98,7 +128,13 @@ Proof.
   - lets Hb: (inert_unique_tight_bounds Hgd H H5). subst*.
 Qed.
 
-Lemma invertible_typing_lemma_v : forall G v T,
+(** ** Tight-to-Invertible Lemma for Values
+
+       [inert Gamma]            #<br>#
+       [Gamma |-# v: T]
+       -----------------
+       [Gamma |-##v v: T] *)
+Lemma tight_to_invertible_v : forall G v T,
     inert G ->
     G |-# trm_val v : T ->
     G |-##v v : T.

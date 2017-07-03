@@ -22,6 +22,10 @@
 (** printing isin   %\in%            #&isin;#                      *)
 (** remove printing ~ *)
 
+(** This proof uses the
+    #<a href="http://www.chargueraud.org/softs/tlc/">TLC</a>#
+    Coq library by Arthur Chargueraud. *)
+
 Set Implicit Arguments.
 
 Require Import LibLN.
@@ -781,7 +785,7 @@ where "G '|-#' T '<:' U" := (subtyp_t G T U).
 
 Reserved Notation "G '|-##' x ':' T" (at level 40, x at level 59).
 
-Inductive ty_trm_inv : ctx -> var -> typ -> Prop :=
+Inductive ty_var_inv : ctx -> var -> typ -> Prop :=
 
 (** [Gamma |-! x: T]  *)
 (** ----------------- *)
@@ -854,13 +858,13 @@ Inductive ty_trm_inv : ctx -> var -> typ -> Prop :=
 | ty_top_inv : forall G x T,
   G |-## x : T ->
   G |-## x : typ_top
-where "G '|-##' x ':' T" := (ty_trm_inv G x T).
+where "G '|-##' x ':' T" := (ty_var_inv G x T).
 
 (** *** Invertible typing of values [G |-##v v: T] *)
 
 Reserved Notation "G '|-##v' v ':' T" (at level 40, v at level 59).
 
-Inductive ty_trm_inv_v : ctx -> val -> typ -> Prop :=
+Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
 
 (** [Gamma |-! v: T]  *)
 (** ------------- *)
@@ -906,7 +910,7 @@ Inductive ty_trm_inv_v : ctx -> val -> typ -> Prop :=
 | ty_top_inv_v : forall G v T,
   G |-##v v : T ->
   G |-##v v : typ_top
-where "G '|-##v' v ':' T" := (ty_trm_inv_v G v T).
+where "G '|-##v' v ':' T" := (ty_val_inv G v T).
 
 (** TODO: move **)
 
@@ -1102,4 +1106,4 @@ Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
 
 Hint Constructors
      ty_trm ty_def ty_defs subtyp ty_trm_p
-     ty_trm_t subtyp_t ty_trm_inv ty_trm_inv_v wf_sto record_has.
+     ty_trm_t subtyp_t ty_var_inv ty_val_inv wf_sto record_has.
