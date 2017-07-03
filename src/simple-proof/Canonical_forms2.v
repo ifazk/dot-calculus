@@ -57,12 +57,9 @@ Proof.
   - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H1 y FrL).
     rewrite subst_intro_defs with (x:=y) by auto.
     rewrite subst_intro_typ with (x:=y) by auto.
-    eapply subst_ty_defs.
-    + apply H1.
-    + eauto.
-    + auto.
-    + rewrite <- subst_intro_typ with (x:=y) by auto.
-      eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
+    eapply subst_ty_defs; eauto.
+    rewrite <- subst_intro_typ with (x:=y) by auto.
+    eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
 Qed.
 
 Lemma corresponding_types_ty_trms: forall G s ds x S,
