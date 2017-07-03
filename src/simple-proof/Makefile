@@ -5,7 +5,7 @@ PROOFS= \
     Definitions.v \
     Wellformed_store.v \
     Weakening.v \
-    Some_lemmas.v \
+    Helper_lemmas.v \
     Precise_types.v \
     Invertible_typing.v \
     Substitution.v \

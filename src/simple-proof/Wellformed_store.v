@@ -4,7 +4,7 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Weakening.
-Require Import Some_lemmas.
+Require Import Helper_lemmas.
 Require Import Precise_types.
 Require Import General_to_tight.
 Require Import Invertible_typing.
@@ -116,7 +116,7 @@ Proof.
       * right. exists T0. exists ds. split*. split*.
         apply* weaken_ty_trm_p.
       * apply general_to_tight_typing in H2.
-        lets Hpt: (invertible_typing_lemma_v Hg H2).
+        lets Hpt: (tight_to_invertible_v Hg H2).
         assert (inert_typ T) as HgT. {
           inversions Hgd. false* empty_push_inv. destruct (eq_push_inv H5) as [Hx [Hv HG]]. subst*.
         }
@@ -180,7 +180,7 @@ Proof.
       apply binds_push_eq_inv in Bi. subst.
       clear IHHwf Hg Bis H H0 Hwf.
       apply general_to_tight_typing in H1; auto.
-      apply invertible_typing_lemma_v in H1; auto.
+      apply tight_to_invertible_v in H1; auto.
       inversions H1; try solve [inversion HT].
       * apply* precise_obj_typ.
       * false* invertible_val_obj_all.

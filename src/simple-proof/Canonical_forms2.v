@@ -5,7 +5,7 @@ Require Import Definitions.
 Require Import Weakening.
 Require Import Wellformed_store.
 Require Import Substitution.
-Require Import Some_lemmas.
+Require Import Helper_lemmas.
 Require Import Precise_types.
 Require Import General_to_tight.
 Require Import Invertible_typing.
@@ -57,12 +57,9 @@ Proof.
   - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H1 y FrL).
     rewrite subst_intro_defs with (x:=y) by auto.
     rewrite subst_intro_typ with (x:=y) by auto.
-    eapply subst_ty_defs.
-    + apply H1.
-    + eauto.
-    + auto.
-    + rewrite <- subst_intro_typ with (x:=y) by auto.
-      eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
+    eapply subst_ty_defs; eauto.
+    rewrite <- subst_intro_typ with (x:=y) by auto.
+    eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
 Qed.
 
 Lemma corresponding_types_ty_trms: forall G s ds x S,
@@ -96,7 +93,7 @@ Proof.
   introv Hg Hwf Hty.
   pose proof (typing_implies_bound Hty) as [S Bi].
   pose proof (general_to_tight_typing Hg Hty) as Hty'.
-  pose proof (invertible_typing_lemma Hg Hty') as Hinv.
+  pose proof (tight_to_invertible Hg Hty') as Hinv.
   pose proof (invertible_to_precise_trm_dec Hg Hinv) as [T' [Hx Hs]].
   pose proof (corresponding_types Hwf Hg Bi)
     as [[L [U [V [S1 [V1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [U [ds [Hb [Ht Heq]]]]].
@@ -110,13 +107,9 @@ Proof.
     }
     destruct H as [T0 [Hrt Hsubst]]; subst S; rename T0 into S.
     inversion Hsubst.
-  + subst.
-    exists U ds.
+  + subst. exists U ds.
     pose proof (new_ty_defs Hwf Hg Hb) as Htd.
     pose proof (corresponding_types_ty_trms Hwf Hg Bi Hb Hx) as [t [H1 H2]].
-    exists t.
-    split; auto.
-    split; auto.
-    apply tight_to_general in Hs; auto.
-    apply ty_sub with (T:=T'); auto.
+    exists t. split; auto. split; auto.
+    apply tight_to_general in Hs; auto. apply* ty_sub.
 Qed.

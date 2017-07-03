@@ -3,9 +3,29 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Definitions.
 
-(* ###################################################################### *)
-(** ** Weakening *)
+(** * Weakening Lemma *)
+(** Weakening states that typing is preserved in extended environments. *)
+(** [Gamma1, Gamma3 |- t: T]           #<br>#
+    [ok(Gamma1, Gamma2, Gamm3)]
+    -------------------------------
+    [Gamma1, Gamma2, Gamma3 |- t: T]   #<br>
+    and                               #<br>#
+    [Gamma1, Gamma3 |- d: D]           #<br>#
+    [ok(Gamma1, Gamma2, Gamm3)]
+    -------------------------------
+    [Gamma1, Gamma2, Gamma3 |- d: D]   #<br>
+    and                               #<br>#
+    [Gamma1, Gamma3 |- ds: T]          #<br>#
+    [ok(Gamma1, Gamma2, Gamm3)]
+    -------------------------------
+    [Gamma1, Gamma2, Gamma3 |- ds: T]  #<br>
+    and                               #<br>#
+    [Gamma1, Gamma3 |- T <: U]         #<br>#
+    [ok(Gamma1, Gamma2, Gamm3)]
+    -------------------------------
+    [Gamma1, Gamma2, Gamma3 |- T <: U] #<br>#
 
+    The proof is by mutual induction on term typing, definition typing, and subtyping. *)
 Lemma weaken_rules:
   (forall G t T, G |- t : T -> forall G1 G2 G3,
     G = G1 & G3 ->
@@ -49,6 +69,7 @@ Proof.
       apply* H0.
 Qed.
 
+(** Weakening lemma specialized to term typing. *)
 Lemma weaken_ty_trm: forall G1 G2 t T,
     G1 |- t : T ->
     ok (G1 & G2) ->
@@ -63,6 +84,7 @@ Proof.
   rewrite <- EqG. assumption.
 Qed.
 
+(** Weakening lemma specialized to subtyping. *)
 Lemma weaken_subtyp: forall G1 G2 S U,
   G1 |- S <: U ->
   ok (G1 & G2) ->
@@ -77,6 +99,8 @@ Proof.
   rewrite <- EqG. assumption.
 Qed.
 
+(** Weakening lemma for precise typing.
+    The first formulation is more general (required for a useful induction hypothesis). *)
 Lemma weaken_rules_p: forall G t T,
     G |-! t : T ->
     forall G1 G2 G3,
@@ -108,6 +132,8 @@ Proof.
     + rewrite concat_assoc. subst*.
 Qed.
 
+(** Weakening lemma for precise typing
+    (this version is used in the proof). *)
 Lemma weaken_ty_trm_p: forall G1 G2 t T,
     G1 |-! t : T ->
     ok (G1 & G2) ->

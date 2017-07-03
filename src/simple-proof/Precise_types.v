@@ -18,6 +18,9 @@
 (** printing top    %\top%           #&#8868;#                     *)
 (** printing bottom %\bot%           #&perp;#                      *)
 (** printing <>     %\ne%            #&ne;#                        *)
+(** printing notin  %\notin%         #&notin;#                     *)
+(** printing isin   %\in%            #&isin;#                      *)
+(** remove printing ~ *)
 
 (** This module reasons about the precise types of variables in inert contexts. *)
 
@@ -26,7 +29,7 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import Some_lemmas.
+Require Import Helper_lemmas.
 
 (** * Precise Flow *)
 (** Given a variable [x] is bound to type [T] in an inert environment [Gamma],

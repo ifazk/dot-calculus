@@ -7,7 +7,7 @@ Require Import Weakening.
 Require Import Wellformed_store.
 Require Import Substitution.
 Require Import Narrowing.
-Require Import Some_lemmas.
+Require Import Helper_lemmas.
 Require Import Canonical_forms1.
 Require Import Canonical_forms2.
 Require Import Precise_types.

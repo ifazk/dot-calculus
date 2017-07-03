@@ -18,6 +18,9 @@
 (** printing top    %\top%           #&#8868;#                     *)
 (** printing bottom %\bot%           #&perp;#                      *)
 (** printing <>     %\ne%            #&ne;#                        *)
+(** printing notin  %\notin%         #&notin;#                     *)
+(** printing isin   %\in%            #&isin;#                      *)
+(** remove printing ~ *)
 
 Set Implicit Arguments.
 
@@ -68,7 +71,7 @@ Lemma sel_replacement: forall G x A S U,
      G |-# S <: typ_sel (avar_f x) A).
 Proof.
   introv HG Hty.
-  pose proof (invertible_typing_lemma HG Hty) as Hinv.
+  pose proof (tight_to_invertible HG Hty) as Hinv.
   pose proof (sel_premise HG Hinv) as [T [Ht [Hs1 Hs2]]].
   split.
   - apply subtyp_sel1_t in Ht. apply subtyp_trans_t with (T:=T); auto.
@@ -105,7 +108,8 @@ Proof.
   apply ts_mutind; intros; subst; try solve [eapply sel_replacement; auto]; eauto.
 Qed.
 
-(** Like the previous lemma, but specialized to typing, for convenience. *)
+(** The general-to-tight lemma formulated for term typing.
+    This lemma corresponds to Theorem 3.3 in the paper. *)
 Lemma general_to_tight_typing: forall G t T,
   inert G ->
   G |- t : T ->

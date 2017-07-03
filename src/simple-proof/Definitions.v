@@ -18,8 +18,13 @@
 (** printing top    %\top%           #&#8868;#                     *)
 (** printing bottom %\bot%           #&perp;#                      *)
 (** printing <>     %\ne%            #&ne;#                        *)
+(** printing notin  %\notin%         #&notin;#                     *)
+(** printing isin   %\in%            #&isin;#                      *)
+(** remove printing ~ *)
 
-(** * Definitions *)
+(** This proof uses the
+    #<a href="http://www.chargueraud.org/softs/tlc/">TLC</a>#
+    Coq library by Arthur Chargueraud. *)
 
 Set Implicit Arguments.
 
@@ -28,10 +33,11 @@ Require Import LibLN.
 Parameter typ_label: Set.
 Parameter trm_label: Set.
 
-(** ** Abstract Syntax *)
+(** * Abstract Syntax *)
 
 (** *** Variables ([x], [y], [z])
-    This proof uses the #<a href="http://www.chargueraud.org/softs/ln/">locally nameless representation</a># for variables.
+    The proof represents variables using the
+    #<a href="http://www.chargueraud.org/softs/ln/">locally nameless representation</a>#:
     - [avar_b n] represents a variable using the de Bruijn index [n];
     - [avar_f x] represents a free variable with name [x].
     de Bruijn-indexed variables represent bound variables, whereas named variables represent free variables
@@ -529,10 +535,10 @@ Reserved Notation "G '|-!' t ':' T" (at level 40, t at level 59).
     - For values, precise typing allows to only retrieve the ``immediate'' type of the value.
       It types objects with recursive types, and functions with dependent-function types. #<br>#
       For example, if a value is the object [nu(x: {a: T}){a = x.a}], the only way to type
-      the object through precise typing is [Gamma |- nu(x: {a: T}){a = x.a}: mu(x: {a: T})].
+      the object through precise typing is [Gamma |-! nu(x: {a: T}){a = x.a}: mu(x: {a: T})].
     - For variables, we start out with a type [T=Gamma(x)] (the type to which the variable is
       bound in [Gamma]). Then we use precise typing to additionally deconstruct [T]
-      by using recursion elimination and intersection (and) elimination.
+      by using recursion elimination and intersection elimination. #<br>#
       For example, if [Gamma(x)=mu(x: {a: T} /\ {B: S..U})], then we can derive the following
       precise types for [x]:                   #<br>#
       [Gamma |-! x: mu(x: {a: T} /\ {B: S..U})] #<br>#
@@ -600,7 +606,7 @@ Reserved Notation "G '|-#' T '<:' U" (at level 40, T at level 59).
     all occurrences of [|-] with [|-#], except for the following:
     - in the type selection subtyping rules Sel-<: and <:-Sel ([subtyp_sel1] and [subtyp_sel2]),
       the premise is precise typing of a type declaration with equal bounds;
-    - whenever a typing judgement in a premise extends the environment (for example, [ty_all_intro_t])
+    - whenever a typing judgement in a premise extends the environment (for example, [ty_all_intro_t]),
       it is typed under general typing [|-] and not tight typing [|-#]. *)
 
 Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
@@ -780,7 +786,7 @@ where "G '|-#' T '<:' U" := (subtyp_t G T U).
 
 Reserved Notation "G '|-##' x ':' T" (at level 40, x at level 59).
 
-Inductive ty_trm_inv : ctx -> var -> typ -> Prop :=
+Inductive ty_var_inv : ctx -> var -> typ -> Prop :=
 
 (** [Gamma |-! x: T]  *)
 (** ----------------- *)
@@ -853,13 +859,13 @@ Inductive ty_trm_inv : ctx -> var -> typ -> Prop :=
 | ty_top_inv : forall G x T,
   G |-## x : T ->
   G |-## x : typ_top
-where "G '|-##' x ':' T" := (ty_trm_inv G x T).
+where "G '|-##' x ':' T" := (ty_var_inv G x T).
 
 (** *** Invertible typing of values [G |-##v v: T] *)
 
 Reserved Notation "G '|-##v' v ':' T" (at level 40, v at level 59).
 
-Inductive ty_trm_inv_v : ctx -> val -> typ -> Prop :=
+Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
 
 (** [Gamma |-! v: T]  *)
 (** ------------- *)
@@ -905,7 +911,7 @@ Inductive ty_trm_inv_v : ctx -> val -> typ -> Prop :=
 | ty_top_inv_v : forall G v T,
   G |-##v v : T ->
   G |-##v v : typ_top
-where "G '|-##v' v ':' T" := (ty_trm_inv_v G v T).
+where "G '|-##v' v ':' T" := (ty_val_inv G v T).
 
 (** TODO: move **)
 
@@ -980,10 +986,16 @@ where "G '~~' s" := (wf_sto G s).
     other types. A record type is a concatenation of type declarations with equal
     bounds [{A: T..T}] and field declarations [{a: T}]. *)
 
+(** A record declaration is either a type declaration with equal bounds,
+    or a field declaration.*)
 Inductive record_dec : dec -> Prop :=
 | rd_typ : forall A T, record_dec (dec_typ A T T)
 | rd_trm : forall a T, record_dec (dec_trm a T).
 
+(** Given a record declaration, a [record_typ] keeps track of the declaration's
+    field member labels (i.e. names of fields) and type member labels
+    (i.e. names of abstract type members). [record_typ] also requires that the
+    labels are distinct.  *)
 Inductive record_typ : typ -> fset label -> Prop :=
 | rt_one : forall D l,
   record_dec D ->
@@ -996,6 +1008,8 @@ Inductive record_typ : typ -> fset label -> Prop :=
   l \notin ls ->
   record_typ (typ_and T (typ_rcd D)) (union ls \{l}).
 
+(** A [record_type] is a [record_typ] with an unspecified set of labels. The meaning
+    of [record_type] is: an intersection of type/field declarations with distinct labels. *)
 Definition record_type T := exists ls, record_typ T ls.
 
 (** Given a type [T = D1 /\ D2 /\ ... /\ Dn] and member declaration [D], [record_has T D] tells whether
@@ -1093,4 +1107,4 @@ Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
 
 Hint Constructors
      ty_trm ty_def ty_defs subtyp ty_trm_p
-     ty_trm_t subtyp_t ty_trm_inv ty_trm_inv_v wf_sto record_has.
+     ty_trm_t subtyp_t ty_var_inv ty_val_inv wf_sto record_has.
