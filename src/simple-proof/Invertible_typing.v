@@ -4,7 +4,7 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Precise_types.
-Require Import Some_lemmas.
+Require Import Helper_lemmas.
 Require Import Narrowing.
 
 Lemma invertible_to_precise_trm_dec: forall G x a T,

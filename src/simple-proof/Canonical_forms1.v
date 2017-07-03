@@ -3,7 +3,7 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Definitions.
 Require Import Wellformed_store.
-Require Import Some_lemmas.
+Require Import Helper_lemmas.
 Require Import Narrowing.
 Require Import Invertible_typing.
 Require Import Precise_types.

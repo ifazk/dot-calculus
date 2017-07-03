@@ -28,7 +28,7 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import Some_lemmas.
+Require Import Helper_lemmas.
 
 (** * Precise Flow *)
 (** Given a variable [x] is bound to type [T] in an inert environment [Gamma],
