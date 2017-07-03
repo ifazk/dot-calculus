@@ -20,6 +20,7 @@
 (** printing <>     %\ne%            #&ne;#                        *)
 (** printing notin  %\notin%         #&notin;#                     *)
 (** printing isin   %\in%            #&isin;#                      *)
+(** remove printing ~ *)
 
 (** This module reasons about the precise types of variables in inert contexts. *)
 

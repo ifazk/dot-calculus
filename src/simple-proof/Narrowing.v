@@ -24,6 +24,7 @@
 (** printing notin  %\notin%         #&notin;#                     *)
 (** printing isin   %\in%            #&isin;#                      *)
 (** printing subG   %\prec:%         #&#8826;:#                    *)
+(** remove printing ~ *)
 
 Set Implicit Arguments.
 
