@@ -6,7 +6,7 @@
 (** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** printing ->     %\rightarrow%    #&rarr;#                      *)
 (** printing =>     %\Rightarrow%    #&rArr;#                      *)
-(** printing ~~     %\~%             #~#                           *)
+(** printing ~~     %\~\~%           #~~#                          *)
 (** printing /\     %\wedge%         #&and;#                       *)
 (** printing \/     %\vee%           #&or;#                        *)
 (** printing forall %\forall%        #&forall;#                    *)
