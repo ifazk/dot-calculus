@@ -15,11 +15,16 @@
 (** printing mu     %\mu%            #&mu;#                        *)
 (** printing nu     %\nu%            #&nu;#                        *)
 (** printing Gamma  %\Gamma%         #&Gamma;#                     *)
+(** printing Gamma' %\Gamma'%        #&Gamma;'#                    *)
+(** printing Gamma1 %\Gamma_1%       #&Gamma;<sub>1</sub>#         *)
+(** printing Gamma2 %\Gamma_2%       #&Gamma;<sub>2</sub>#         *)
+(** printing Gamma3 %\Gamma_3%       #&Gamma;<sub>3</sub>#         *)
 (** printing top    %\top%           #&#8868;#                     *)
 (** printing bottom %\bot%           #&perp;#                      *)
 (** printing <>     %\ne%            #&ne;#                        *)
 (** printing notin  %\notin%         #&notin;#                     *)
 (** printing isin   %\in%            #&isin;#                      *)
+(** printing subG   %\prec:%         #&#8826;:#                    *)
 (** remove printing ~ *)
 
 Set Implicit Arguments.
@@ -29,25 +34,26 @@ Require Import Definitions.
 
 (** * Weakening Lemma *)
 (** Weakening states that typing is preserved in extended environments. *)
-(** [Gamma1, Gamma3 |- t: T]           #<br>#
-    [ok(Gamma1, Gamma2, Gamm3)]
+
+(** [Gamma1, Gamma3 |- t: T]            #<br>#
+    [ok(Gamma1, Gamma2, Gamma3)]
     -------------------------------
-    [Gamma1, Gamma2, Gamma3 |- t: T]   #<br>#
-    and                               #<br>#
-    [Gamma1, Gamma3 |- d: D]           #<br>#
-    [ok(Gamma1, Gamma2, Gamm3)]
+    [Gamma1, Gamma2, Gamma3 |- t: T]    #<br>#
+    and                                #<br>#
+    [Gamma1, Gamma3 |- d: D]            #<br>#
+    [ok(Gamma1, Gamma2, Gamma3)]
     -------------------------------
-    [Gamma1, Gamma2, Gamma3 |- d: D]   #<br>#
-    and                               #<br>#
-    [Gamma1, Gamma3 |- ds: T]          #<br>#
-    [ok(Gamma1, Gamma2, Gamm3)]
+    [Gamma1, Gamma2, Gamma3 |- d: D]    #<br>#
+    and                                #<br>#
+    [Gamma1, Gamma3 |- ds :: T]         #<br>#
+    [ok(Gamma1, Gamma2, Gamma3)]
     -------------------------------
-    [Gamma1, Gamma2, Gamma3 |- ds: T]  #<br>#
-    and                               #<br>#
-    [Gamma1, Gamma3 |- T <: U]         #<br>#
-    [ok(Gamma1, Gamma2, Gamm3)]
+    [Gamma1, Gamma2, Gamma3 |- ds :: T] #<br>#
+    and                                #<br>#
+    [Gamma1, Gamma3 |- T <: U]          #<br>#
+    [ok(Gamma1, Gamma2, Gamma3)]
     -------------------------------
-    [Gamma1, Gamma2, Gamma3 |- T <: U] #<br>#
+    [Gamma1, Gamma2, Gamma3 |- T <: U]  #<br>#
 
     The proof is by mutual induction on term typing, definition typing, and subtyping. *)
 Lemma weaken_rules:

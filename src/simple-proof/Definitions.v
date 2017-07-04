@@ -6,7 +6,7 @@
 (** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** printing ->     %\rightarrow%    #&rarr;#                      *)
 (** printing =>     %\Rightarrow%    #&rArr;#                      *)
-(** printing ~~     %\~\~%           #~~#                          *)
+(** printing ~~     %\~%             #~#                           *)
 (** printing /\     %\wedge%         #&and;#                       *)
 (** printing \/     %\vee%           #&or;#                        *)
 (** printing forall %\forall%        #&forall;#                    *)
@@ -15,11 +15,15 @@
 (** printing mu     %\mu%            #&mu;#                        *)
 (** printing nu     %\nu%            #&nu;#                        *)
 (** printing Gamma  %\Gamma%         #&Gamma;#                     *)
+(** printing Gamma' %\Gamma'%        #&Gamma;'#                    *)
+(** printing Gamma1 %\Gamma_1%       #&Gamma;<sub>1</sub>#         *)
+(** printing Gamma2 %\Gamma_2%       #&Gamma;<sub>2</sub>#         *)
 (** printing top    %\top%           #&#8868;#                     *)
 (** printing bottom %\bot%           #&perp;#                      *)
 (** printing <>     %\ne%            #&ne;#                        *)
 (** printing notin  %\notin%         #&notin;#                     *)
 (** printing isin   %\in%            #&isin;#                      *)
+(** printing subG   %\prec:%         #&#8826;:#                    *)
 (** remove printing ~ *)
 
 (** This proof uses the
@@ -601,7 +605,7 @@ where "G '|-!' t ':' T" := (ty_trm_p G t T).
 Reserved Notation "G '|-#' t ':' T" (at level 40, t at level 59).
 Reserved Notation "G '|-#' T '<:' U" (at level 40, T at level 59).
 
-(** *** Tight term typing [G |-# t: T] *)
+(** *** Tight term typing [Gamma |-# t: T] *)
 (** Tight typing is very similar to general typing, and could be obtained by replacing
     all occurrences of [|-] with [|-#], except for the following:
     - in the type selection subtyping rules Sel-<: and <:-Sel ([subtyp_sel1] and [subtyp_sel2]),
@@ -861,7 +865,7 @@ Inductive ty_var_inv : ctx -> var -> typ -> Prop :=
   G |-## x : typ_top
 where "G '|-##' x ':' T" := (ty_var_inv G x T).
 
-(** *** Invertible typing of values [G |-##v v: T] *)
+(** *** Invertible typing of values [Gamma |-##v v: T] *)
 
 Reserved Notation "G '|-##v' v ':' T" (at level 40, v at level 59).
 
