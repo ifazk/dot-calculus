@@ -32,8 +32,10 @@ Require Import Definitions.
 Require Import Helper_lemmas.
 
 (** * Precise Flow *)
-(** Given a variable [x] is bound to type [T] in an inert environment [Gamma],
-    the [precise_flow] relation describes all the types [U] that [x] can
+(** We use the precise flow relation to reason about the relations between
+    the precise type of a variable [Gamma |-! x: T] and the type that the variable
+    is bound to in the context [Γamma(x)=T'].#<br>#
+    If [Gamma(x) = T], the [precise_flow] relation describes all the types [U] that [x] can
     derive through precise typing ([|-!], see [ty_trm_p]).
     If [precise_flow x Gamma T U], then [Gamma(x) = T] and [Gamma |-! x: U].   #<br>#
     For example, if [Gamma(x) = mu(x: {a: T} /\ {B: S..U})], then we can derive the following
