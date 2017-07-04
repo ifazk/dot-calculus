@@ -30,7 +30,6 @@ Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Weakening.
 
-Lemma hasnt_notin : forall G ds ls t U,
 (** [Gamma |- ds :: Ds]                     #<br>#
     [Ds] is a record type with labels [ls] #<br>#
     [ds] are definitions with label [ls']  #<br>#
