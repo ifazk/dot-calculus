@@ -35,35 +35,33 @@ Require Import Narrowing.
     ([ty_var_inv], [|-##] and [ty_val_inv], [|-##v]). *)
 
 (** Invertible-to-precise typing for field declarations: #<br>#
-    [inert Gamma]                     #<br>#
     [Gamma |-## x: {a: T}]
     ----------------------
     [exists T'. Gamma |-! x: {a: T'}]      #<br>#
     [Gamma |-# T' <: T]. *)
 Lemma invertible_to_precise_trm_dec: forall G x a T,
-  inert G ->
   G |-## x : typ_rcd (dec_trm a T) ->
   exists T',
     G |-! trm_var (avar_f x) : typ_rcd (dec_trm a T') /\
     G |-# T' <: T.
 Proof.
-  introv Hgd Hinv.
+  introv Hinv.
   dependent induction Hinv.
   - exists T. auto.
-  - specialize (IHHinv _ _ Hgd eq_refl). destruct IHHinv as [V [Hx Hs]].
+  - specialize (IHHinv _ _ eq_refl). destruct IHHinv as [V [Hx Hs]].
     exists V. split; auto.
     eapply subtyp_trans_t; eassumption.
 Qed.
 
 (** Invertible-to-precise typing for function types: #<br>#
-    [inert Gamma]                     #<br>#
+    [ok Gamma]                        #<br>#
     [Gamma |-## x: forall(S)T]
     ----------------------
     [exists S', T'. Gamma |-! x: forall(S')T']  #<br>#
     [Gamma |-# S <: S']               #<br>#
     [Gamma |-# T'^y <: T^y], where [y] is fresh. *)
 Lemma invertible_to_precise_typ_all: forall G x S T,
-  inert G ->
+  ok G ->
   G |-## x : typ_all S T ->
   exists S' T' L,
     G |-! trm_var (avar_f x) : typ_all S' T' /\
@@ -84,7 +82,7 @@ Proof.
     split.
     + eapply subtyp_trans_t; eauto.
     + intros y Fr.
-      assert (Hok: ok (G & y ~ S)) by auto using ok_push, inert_ok.
+      assert (Hok: ok (G & y ~ S)) by auto using ok_push.
       apply tight_to_general in H; auto.
       assert (Hnarrow: G & y ~ S |- open_typ y T' <: open_typ y T0).
       { eapply narrow_subtyping; auto using subenv_last. }
