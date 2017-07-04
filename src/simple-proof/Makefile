@@ -42,10 +42,11 @@ doc:
 %.vo:
 	$(MAKE) -f $(PROOFMAKEFILE) $@
 
-all clean: $(PROOFMAKEFILE)
+all doc clean: $(PROOFMAKEFILE)
 %vo: $(PROOFMAKEFILE)
 
 all: $(LIBLN)
+doc: $(LIBLN)
 %vo: $(LIBLN)
 
 ##############
