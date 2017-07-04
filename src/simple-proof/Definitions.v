@@ -348,10 +348,10 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     G |- trm_var (avar_f z) : S ->
     G |- trm_app (avar_f x) (avar_f z) : open_typ z T
 
-(** [Gamma, x: T^x |- ds^x: T^x] #<br># *)
-(** [x fresh]                          *)
-(** -----------------------            *)
-(** [Gamma |- nu(T)ds: mu(T)]           *)
+(** [Gamma, x: T^x |- ds^x :: T^x]  #<br># *)
+(** [x fresh]                             *)
+(** -----------------------------         *)
+(** [Gamma |- nu(T)ds :: mu(T)]            *)
 | ty_new_intro : forall L G T ds,
     (forall x, x \notin L ->
       G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
@@ -450,7 +450,7 @@ with subtyp : ctx -> typ -> typ -> Prop :=
 | subtyp_top: forall G T,
     G |- T <: typ_top
 
-(** [Gamma |- T <: bottom] *)
+(** [Gamma |- bottom <: T] *)
 | subtyp_bot: forall G T,
     G |- typ_bot <: T
 
@@ -571,7 +571,7 @@ Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
 (** [Gamma, x: T^x |- ds^x :: T^x]   #<br># *)
 (** [x fresh]                              *)
 (** -----------------------------          *)
-(** [Gamma |-! nu(T)ds: mu(T)]             *)
+(** [Gamma |-! nu(T)ds :: mu(T)]           *)
 | ty_new_intro_p : forall L G T ds,
     (forall x, x \notin L ->
       G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
@@ -640,10 +640,10 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     G |-# trm_var (avar_f z) : S ->
     G |-# trm_app (avar_f x) (avar_f z) : open_typ z T
 
-(** [Gamma, x: T^x |- ds^x: T^x]    #<br># *)
-(** [x fresh]                             *)
-(** ------------------------              *)
-(** [Gamma |-# nu(T)ds: mu(T)]            *)
+(** [Gamma, x: T^x |- ds^x :: T^x]    #<br># *)
+(** [x fresh]                               *)
+(** -----------------------------           *)
+(** [Gamma |-# nu(T)ds :: mu(T)]            *)
 | ty_new_intro_t : forall L G T ds,
     (forall x, x \notin L ->
       G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
@@ -707,7 +707,7 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
 | subtyp_top_t: forall G T,
     G |-# T <: typ_top
 
-(** [Gamma |-# T <: bottom] *)
+(** [Gamma |-# bottom <: T] *)
 | subtyp_bot_t: forall G T,
     G |-# typ_bot <: T
 
@@ -800,13 +800,13 @@ Inductive ty_var_inv : ctx -> var -> typ -> Prop :=
   G |-## x : T
 
 (** [Gamma |-## x: {a: T}]    #<br># *)
-(** [Gamma |-# T <: T']              *)
+(** [Gamma |-# T <: U]              *)
 (** -----------------------          *)
-(** [Gamma |-## x: {a: T'}]          *)
-| ty_dec_trm_inv : forall G x a T T',
+(** [Gamma |-## x: {a: U}]          *)
+| ty_dec_trm_inv : forall G x a T U,
   G |-## x : typ_rcd (dec_trm a T) ->
-  G |-# T <: T' ->
-  G |-## x : typ_rcd (dec_trm a T')
+  G |-# T <: U ->
+  G |-## x : typ_rcd (dec_trm a U)
 
 (** [Gamma |-## x: {A: T..U}]     #<br># *)
 (** [Gamma |-# T' <: T]           #<br># *)
@@ -819,12 +819,12 @@ Inductive ty_var_inv : ctx -> var -> typ -> Prop :=
   G |-# U <: U' ->
   G |-## x : typ_rcd (dec_typ A T' U')
 
-(** [Gamma |-## x: S^x]   *)
+(** [Gamma |-## x: T^x]   *)
 (** --------------------- *)
-(** [Gamma |-## x: mu(S)] *)
-| ty_bnd_inv : forall G x S,
-  G |-## x : open_typ x S ->
-  G |-## x : typ_bnd S
+(** [Gamma |-## x: mu(T)] *)
+| ty_bnd_inv : forall G x T,
+  G |-## x : open_typ x T ->
+  G |-## x : typ_bnd T
 
 (** [Gamma |-## x: forall(S)T]          #<br># *)
 (** [Gamma |-# S' <: S]            #<br># *)
@@ -839,10 +839,10 @@ Inductive ty_var_inv : ctx -> var -> typ -> Prop :=
    G & y ~ S' |- open_typ y T <: open_typ y T') ->
   G |-## x : typ_all S' T'
 
-(** [Gamma |-## x : S1]        #<br># *)
-(** [Gamma |-## x : S2]               *)
+(** [Gamma |-## x : T]        #<br># *)
+(** [Gamma |-## x : U]               *)
 (** --------------------              *)
-(** [Gamma |-## x : S1 /\ S2]          *)
+(** [Gamma |-## x : T /\ U]          *)
 | ty_and_inv : forall G x S1 S2,
   G |-## x : S1 ->
   G |-## x : S2 ->
@@ -900,10 +900,10 @@ Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
   G |-! trm_var y : typ_rcd (dec_typ A S S) ->
   G |-##v v : typ_sel y A
 
-(** [Gamma |-##v v : S1]        #<br># *)
-(** [Gamma |-##v v : S2]               *)
+(** [Gamma |-##v v : T]        #<br># *)
+(** [Gamma |-##v v : U]               *)
 (** -------------------------          *)
-(** [Gamma |-##v v : S1 /\ S2]          *)
+(** [Gamma |-##v v : T /\ U]          *)
 | ty_and_inv_v : forall G v T U,
   G |-##v v : T ->
   G |-##v v : U ->
@@ -1050,11 +1050,11 @@ Inductive inert_typ : typ -> Prop :=
 (** An inert context is a typing context whose range consists only of inert types. *)
 Inductive inert : ctx -> Prop :=
   | inert_empty : inert empty
-  | inert_all : forall pre x T,
-      inert pre ->
+  | inert_all : forall G x T,
+      inert G ->
       inert_typ T ->
-      x # pre ->
-      inert (pre & x ~ T).
+      x # G ->
+      inert (G & x ~ T).
 
 Hint Constructors inert_typ inert.
 
