@@ -33,6 +33,7 @@
 Set Implicit Arguments.
 
 Require Import LibLN.
+Require Import String.
 
 Parameter typ_label: Set.
 Parameter trm_label: Set.
@@ -289,6 +290,56 @@ Fixpoint fv_ec (e: ec) : vars :=
 
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
 
+(** ** Tactics *)
+
+(** Tactics for generating fresh variables. *)
+
+Ltac gather_vars :=
+  let A := gather_vars_with (fun x : vars      => x         ) in
+  let B := gather_vars_with (fun x : var       => \{ x }    ) in
+  let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_ctx_types x)) in
+  let D := gather_vars_with (fun x : sto       => dom x     ) in
+  let E := gather_vars_with (fun x : avar      => fv_avar  x) in
+  let F := gather_vars_with (fun x : trm       => fv_trm   x) in
+  let G := gather_vars_with (fun x : val       => fv_val   x) in
+  let H := gather_vars_with (fun x : def       => fv_def   x) in
+  let I := gather_vars_with (fun x : defs      => fv_defs  x) in
+  let J := gather_vars_with (fun x : typ       => fv_typ   x) in
+  let K := gather_vars_with (fun x : ec        => fv_ec    x) in
+  constr:(A \u B \u C \u D \u E \u F \u G \u H \u I \u J \u K).
+
+Ltac pick_fresh x :=
+  let L := gather_vars in (pick_fresh_gen L x).
+
+Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
+  apply_fresh_base T gather_vars x.
+
+(** Tactics for naming cases in case analysis. *)
+
+Open Scope string_scope.
+
+Ltac move_to_top x :=
+  match reverse goal with
+  | H : _ |- _ => try move x after H
+  end.
+
+Tactic Notation "assert_eq" ident(x) constr(v) :=
+  let H := fresh in
+  assert (x = v) as H by reflexivity;
+  clear H.
+
+Tactic Notation "Case_aux" ident(x) constr(name) :=
+  first [
+    set (x := name); move_to_top x
+  | assert_eq x name; move_to_top x
+  | fail 1 "because we are working on a different case" ].
+
+Tactic Notation "Case" constr(name) := Case_aux Case name.
+Tactic Notation "SCase" constr(name) := Case_aux SCase name.
+Tactic Notation "SSCase" constr(name) := Case_aux SSCase name.
+Tactic Notation "SSSCase" constr(name) := Case_aux SSSCase name.
+Tactic Notation "SSSSCase" constr(name) := Case_aux SSSSCase name.
+Tactic Notation "SSSSSCase" constr(name) := Case_aux SSSSSCase name.
 
 (** * Operational Semantics *)
 
@@ -1056,9 +1107,12 @@ Inductive inert : ctx -> Prop :=
       x # G ->
       inert (G & x ~ T).
 
-Hint Constructors inert_typ inert.
-
 (** * Infrastructure *)
+
+Hint Constructors
+     inert_typ inert wf_sto record_has
+     ty_trm ty_def ty_defs subtyp ty_trm_p
+     ty_trm_t subtyp_t ty_var_inv ty_val_inv.
 
 (** ** Mutual Induction Principles *)
 
@@ -1085,30 +1139,3 @@ with   rules_def_mut    := Induction for ty_def Sort Prop
 with   rules_defs_mut   := Induction for ty_defs Sort Prop
 with   rules_subtyp     := Induction for subtyp Sort Prop.
 Combined Scheme rules_mutind from rules_trm_mut, rules_def_mut, rules_defs_mut, rules_subtyp.
-
-(** ** Tactics
-       Some useful tactics for generating fresh variables. *)
-
-Ltac gather_vars :=
-  let A := gather_vars_with (fun x : vars      => x         ) in
-  let B := gather_vars_with (fun x : var       => \{ x }    ) in
-  let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_ctx_types x)) in
-  let D := gather_vars_with (fun x : sto       => dom x     ) in
-  let E := gather_vars_with (fun x : avar      => fv_avar  x) in
-  let F := gather_vars_with (fun x : trm       => fv_trm   x) in
-  let G := gather_vars_with (fun x : val       => fv_val   x) in
-  let H := gather_vars_with (fun x : def       => fv_def   x) in
-  let I := gather_vars_with (fun x : defs      => fv_defs  x) in
-  let J := gather_vars_with (fun x : typ       => fv_typ   x) in
-  let K := gather_vars_with (fun x : ec        => fv_ec    x) in
-  constr:(A \u B \u C \u D \u E \u F \u G \u H \u I \u J \u K).
-
-Ltac pick_fresh x :=
-  let L := gather_vars in (pick_fresh_gen L x).
-
-Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
-  apply_fresh_base T gather_vars x.
-
-Hint Constructors
-     ty_trm ty_def ty_defs subtyp ty_trm_p
-     ty_trm_t subtyp_t ty_var_inv ty_val_inv wf_sto record_has.

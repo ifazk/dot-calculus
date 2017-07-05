@@ -361,17 +361,16 @@ Lemma subst_rules: forall y S,
     G1 & (subst_ctx x y G2) |- trm_var (avar_f y) : subst_typ x y S ->
     G1 & (subst_ctx x y G2) |- subst_typ x y T <: subst_typ x y U).
 Proof.
-  intros y S. apply rules_mutind; intros; subst.
-  - (* ty_var *)
-    simpl. cases_if.
+  intros y S. apply rules_mutind; intros; subst; simpl; try solve [constructor; eauto].
+  - Case "ty_var".
+    cases_if.
     + apply binds_middle_eq_inv in b; subst; assumption.
     + apply subst_fresh_ctx with (y:=y) in H1.
       apply binds_subst in b; auto.
       apply ty_var. rewrite <- H1.
       unfold subst_ctx. rewrite <- map_concat.
       apply binds_map; auto.
-  - (* ty_all_intro *)
-    simpl.
+  - Case "ty_all_intro".
     apply_fresh ty_all_intro as z; auto.
     assert (z \notin L) as FrL by auto.
     assert (subst_fvar x y z = z) as A. {
@@ -389,14 +388,13 @@ Proof.
     rewrite concat_assoc. apply ok_push. assumption. auto.
     rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
     apply ok_push. apply ok_concat_map. auto. unfold subst_ctx. auto.
-  - (* ty_all_elim *)
-    simpl. rewrite subst_open_distr_typ.
+  - Case "ty_all_elim".
+    rewrite subst_open_distr_typ.
     eapply ty_all_elim.
     simpl in H.
     apply H; auto.
     apply H0; auto.
-  - (* ty_new_intro *)
-    simpl.
+  - Case "ty_new_intro".
     apply_fresh ty_new_intro as z; auto.
     assert (z \notin L) as FrL by auto.
     assert (subst_fvar x y z = z) as A. {
@@ -414,12 +412,8 @@ Proof.
     rewrite concat_assoc. apply ok_push. assumption. auto.
     rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
     apply ok_push. apply ok_concat_map. auto. unfold subst_ctx. auto.
-  - (* ty_new_elim *)
-    simpl. apply ty_new_elim.
-    apply H; auto.
-  - (* ty_let *)
-    simpl.
-    apply_fresh ty_let as z; auto.
+  - Case "ty_let".
+    simpl. apply_fresh ty_let as z; auto.
     assert (subst_ctx x y G2 & z ~ subst_typ x y T
                                = subst_ctx x y (G2 & z ~ T)) as B. {
       unfold subst_ctx. rewrite map_concat. rewrite map_single. reflexivity.
@@ -434,8 +428,8 @@ Proof.
     rewrite concat_assoc. apply ok_push. assumption. auto.
     rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
     apply ok_push. apply ok_concat_map. auto. unfold subst_ctx. auto.
-  - (* ty_rec_intro *)
-    simpl. apply ty_rec_intro.
+  - Case "ty_rec_intro".
+    apply ty_rec_intro.
     assert (trm_var (avar_f (If x = x0 then y else x))
             = subst_trm x0 y (trm_var (avar_f x))) as A. {
       simpl. reflexivity.
@@ -447,54 +441,24 @@ Proof.
     }
     rewrite B.
     apply H; auto.
-  - (* ty_rec_elim *)
-    simpl. rewrite subst_open_distr_typ.
+  - Case "ty_rec_elim".
+    rewrite subst_open_distr_typ.
     apply ty_rec_elim.
     apply H; auto.
-  - (* ty_and_intro *)
-    simpl.
-    assert (trm_var (avar_f (If x = x0 then y else x))
-            = subst_trm x0 y (trm_var (avar_f x))) as A by auto.
-    rewrite A.
-    apply ty_and_intro; eauto 3.
-  - (* ty_sub *)
+  - Case "ty_sub".
     eapply ty_sub; eauto.
-  - (* ty_def_typ *)
-    simpl. apply ty_def_typ; auto.
-  - (* ty_def_trm *)
-    simpl. apply ty_def_trm; auto.
-  - (* ty_defs_one *)
-    simpl. apply ty_defs_one; auto.
-  - (* ty_defs_cons *)
+  - Case "ty_defs_cons".
     simpl. apply ty_defs_cons; auto.
     rewrite <- subst_label_of_def.
     apply subst_defs_hasnt. assumption.
-  - (* subtyp_top *)
-    apply subtyp_top.
-  - (* subtyp_bot *)
-    apply subtyp_bot.
-  - (* subtyp_refl *)
-    apply subtyp_refl.
-  - (* subtyp_trans *)
+  - Case "subtyp_trans".
     eapply subtyp_trans; auto 5.
-  - (* subtyp_and11 *)
-    apply subtyp_and11; auto.
-  - (* subtyp_and12 *)
-    apply subtyp_and12; auto.
-  - (* subtyp_and2 *)
-    apply subtyp_and2; auto.
-  - (* subtyp_fld *)
-    apply subtyp_fld; auto.
-  - (* subtyp_typ *)
-    apply subtyp_typ; auto.
-  - (* subtyp_sel2 *)
-    eapply subtyp_sel2.
-    apply H; auto.
-  - (* subtyp_sel1 *)
-    eapply subtyp_sel1.
-    apply H; auto.
-  - (* subtyp_all *)
-    simpl. apply_fresh subtyp_all as z; auto.
+  - Case "subtyp_sel2".
+    eapply subtyp_sel2. apply H; auto.
+  - Case "subtyp_sel1".
+    eapply subtyp_sel1. apply H; auto.
+  - Case "subtyp_all".
+    apply_fresh subtyp_all as z; auto.
     assert (z \notin L) as FrL by auto.
     assert (subst_fvar x y z = z) as A. {
       unfold subst_fvar. rewrite If_r. reflexivity. auto.

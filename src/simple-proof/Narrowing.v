@@ -131,22 +131,22 @@ Lemma narrow_rules:
     G' |- S <: U).
 Proof.
   apply rules_mutind; intros; eauto 4.
-  - (* ty_var *)
+  - Case "ty_var"
     subst. unfold subenv in H0. specialize (H0 x T b).
     destruct H0.
     + eauto.
     + destruct H0 as [T' [Bi Hsub]].
       eapply ty_sub; eauto.
-  - (* ty_all_intro *)
+  - Case "ty_all_intro".
     subst.
     apply_fresh ty_all_intro as y; eauto using subenv_push.
-  - (* ty_new_intro *)
+  - Case "ty_new_intro".
     subst.
     apply_fresh ty_new_intro as y; eauto using subenv_push.
-  - (* ty_let *)
+  - Case "ty_let".
     subst.
     apply_fresh ty_let as y; eauto using subenv_push.
-  - (* subtyp_all *)
+  - Case "subtyp_all".
     subst.
     apply_fresh subtyp_all as y.
     + eauto.
