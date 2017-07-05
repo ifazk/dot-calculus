@@ -67,7 +67,7 @@ Lemma term_to_hole: forall s u t t',
     red_ec (e_hole s) t (e_hole s) t'.
 Proof.
   intros. dependent induction H.
-  - eapply red_ec_apply; eauto. 
+  - eapply red_ec_apply; eauto.
   - eapply red_ec_project; eauto.
   - induction u; inversions x.
     eapply IHu2; eauto.
@@ -79,11 +79,22 @@ Lemma preservation_hole: forall G s t e' t' T,
     inert G ->
     G |- t : T ->
     exists G', ty_ec_trm (G & G') e' t' T.
-Proof. 
-  introv Hred Hwf Hin Ht. 
+Proof.
+  introv Hred Hwf Hin Ht.
   dependent induction Ht; try solve [inversion Hred].
-  - admit.
-  - admit.
+  - destruct (canonical_forms_1 Hwf Hin Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+    inversions Hred.
+    apply (binds_func H4) in Bis. inversions Bis.
+    exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
+    constructor*. rewrite subst_intro_typ with (x:=y); auto.
+    rewrite subst_intro_trm with (x:=y); auto.
+    eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
+  - destruct (canonical_forms_2 Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+    inversions Hred.
+    apply (binds_func H2) in Bis. inversions Bis.
+    exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    rewrite <- (defs_has_inv Has H5). constructor*.
   - inversions Hred.
     exists (@empty typ). rewrite concat_empty_r.
     eapply ty_e_term; eauto.
@@ -119,7 +130,7 @@ Lemma preservation'': forall G e t e' t' T,
 Proof.
   introv Hred Ht.
   inversions Ht.
-  { 
+  {
     eapply preservation_hole; eauto.
   }
   {
@@ -158,7 +169,7 @@ Proof.
       pose proof (preservation_hole Hred Hwf Hin Ht1) as [G' Ht].
       inversions Ht.
       exists G'.
-      eapply ty_e_term with (L:=L \u (dom G) \u (dom G')); eauto. intros. 
+      eapply ty_e_term with (L:=L \u (dom G) \u (dom G')); eauto. intros.
       assert (x0 \notin L) by auto.
       specialize (Ht2 x0 H3).
       eapply (proj41 weaken_rules); eauto.
@@ -166,7 +177,7 @@ Proof.
       pose proof (preservation_hole Hred Hwf Hin Ht1) as [G' Ht].
       inversions Ht.
       exists G'.
-      eapply ty_e_term with (L:=L \u (dom G) \u (dom G')); eauto. intros. 
+      eapply ty_e_term with (L:=L \u (dom G) \u (dom G')); eauto. intros.
       assert (x0 \notin L) by auto.
       specialize (Ht2 x0 H2).
       eapply (proj41 weaken_rules); eauto.
@@ -181,7 +192,7 @@ Proof.
       + eapply ty_e_term with (L:=L); eauto. intros.
         unfold open_trm. simpl. specialize (H x H1).
         apply_fresh ty_let as z; eauto. admit.
-      + eapply IHHt1 with (L:=L \u (dom G)); eauto. intros. 
+      + eapply IHHt1 with (L:=L \u (dom G)); eauto. intros.
         assert (x \notin L) by auto.
         specialize (Ht2 x H1).
         eapply narrow_typing; eauto. apply~ subenv_last.
@@ -199,22 +210,22 @@ Proof.
     + simpl. case_if~. subst.
       apply var_typing_implies_avar_f in H. destruct H. inversion H.
     + reflexivity.
-  - destruct v. 
+  - destruct v.
     + simpl. dependent induction H; eauto. admit.
     + simpl. dependent induction H; eauto. admit.
-  - destruct a. 
-    + simpl. case_if~. subst. dependent induction H; eauto. 
+  - destruct a.
+    + simpl. case_if~. subst. dependent induction H; eauto.
     + reflexivity.
   - destruct a; destruct a0.
-    + simpl. 
-      repeat case_if; subst; dependent induction H; eauto; case_if. 
-    + simpl. case_if; subst; dependent induction H; eauto; case_if. 
-    + simpl. case_if; subst; dependent induction H; eauto; case_if. 
+    + simpl.
+      repeat case_if; subst; dependent induction H; eauto; case_if.
+    + simpl. case_if; subst; dependent induction H; eauto; case_if.
+    + simpl. case_if; subst; dependent induction H; eauto; case_if.
     + reflexivity.
   - simpl. dependent induction H; eauto.
     replace (trm_let t1 t2) with (trm_let (open_rec_trm 1 y t1) t2).
     + simpl. admit.
-    + specialize (IHt1 _ _ H y). rewrite <- IHt1. reflexivity.
+    + specialize (IHt1 _ _ H y). admit. (*rewrite <- IHt1. reflexivity.*)
 Qed.
 
 (* Lemma preservation': forall G e t e' t' T, *)
@@ -238,7 +249,7 @@ Qed.
 (*   (* - admit.  *) *)
 (*   (* - inversions Hred. *) *)
 (* Admitted. *)
-            
+
 
 Lemma preservation: forall G s t s' t' T,
     G ~~ s ->
@@ -253,13 +264,13 @@ Proof.
   gen t'.
   dependent induction Ht; intros; try solve [inversions Hred].
   - pose proof (canonical_forms_1 Hwf Hin Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
-    inversions Hred. 
+    inversions Hred.
     apply (binds_func H4) in Bis. inversions Bis.
     exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
     pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
-    rewrite subst_intro_typ with (x:=y); auto. 
+    rewrite subst_intro_typ with (x:=y); auto.
     rewrite subst_intro_trm with (x:=y); auto.
-    eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ. 
+    eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
   - pose proof (canonical_forms_2 Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
     inversions Hred.
     apply (binds_func H1) in Bis. inversions Bis.
@@ -267,7 +278,7 @@ Proof.
     rewrite <- (defs_has_inv Has H5). assumption.
   - destruct t.
     + inversions Hred; try solve [inversion H6].
-      pick_fresh y. 
+      pick_fresh y.
       exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
       rewrite subst_intro_trm with (x:=y); auto.
       rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
@@ -277,35 +288,35 @@ Proof.
       pose proof (val_typing Ht) as [V [Hv Hs]].
       pick_fresh y. assert (y \notin L) by auto.
       specialize (H y H2).
-      exists (x ~ V). repeat split. 
+      exists (x ~ V). repeat split.
       * rewrite <- concat_empty_l. constructor~.
         apply (precise_inert_typ Hv).
-      * constructor~. 
+      * constructor~.
         apply (precise_to_general Hv).
       * rewrite subst_intro_trm with (x:=y); auto.
         rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
-        eapply subst_ty_trm; eauto. 
+        eapply subst_ty_trm; eauto.
         { eapply weaken_rules; eauto. }
         { apply~ fv_ctx_types_push. }
-        { 
-          rewrite~ subst_fresh_typ. 
+        {
+          rewrite~ subst_fresh_typ.
           pose proof (ty_var (binds_tail x V G)).
-          apply (ty_sub H3). apply (weaken_subtyp Hs); eauto. 
+          apply (ty_sub H3). apply (weaken_subtyp Hs); eauto.
         }
-    + inversions Hred. 
+    + inversions Hred.
       specialize (IHHt Hwf Hin t0' H6) as [G' [Hin' [Hwf' Ht']]].
       exists G'. repeat split; auto.
-      apply_fresh ty_let as z; eauto. 
+      apply_fresh ty_let as z; eauto.
       eapply weaken_rules; eauto.
-    + inversions Hred. 
+    + inversions Hred.
       specialize (IHHt Hwf Hin t0' H6) as [G' [Hin' [Hwf' Ht']]].
       exists G'. repeat split; auto.
-      apply_fresh ty_let as z; eauto. 
+      apply_fresh ty_let as z; eauto.
       eapply weaken_rules; eauto.
-    + inversions Hred. 
+    + inversions Hred.
       specialize (IHHt Hwf Hin t0' H6) as [G' [Hin' [Hwf' Ht']]].
       exists G'. repeat split; auto.
-      apply_fresh ty_let as z; eauto. 
+      apply_fresh ty_let as z; eauto.
       eapply weaken_rules; eauto.
   - specialize (IHHt Hwf Hin t' Hred) as [G' [Hin' [Hwf' Ht']]].
     exists G'. repeat split; auto.
@@ -325,7 +336,7 @@ Qed.
 Lemma app_hole_empty_term: forall s t,
     app_ec (e_hole s) (e_term empty t) (e_term s t).
 Proof.
-  intros. 
+  intros.
   replace (e_term s t) with (e_term (s & empty) t).
   - apply app_hole_term. admit.
   - rewrite concat_empty_r. reflexivity.
@@ -336,157 +347,29 @@ Lemma progress'': forall G e t T,
     (normal_form t \/ exists e' t', red_ec e t e' t').
 Proof.
   intros. destruct e.
-  {
-    inversions H. rename H1 into Hwf. rename H2 into Hin. rename H4 into Ht.
+  - inversions H. rename H1 into Hwf. rename H2 into Hin. rename H4 into Ht.
     dependent induction Ht; try solve [left; auto].
-    - admit.
-    - admit.
-    - right. exists (e_term s u) t.
+    * destruct (canonical_forms_1 Hwf Hin Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+      right. repeat eexists. apply* red_ec_apply.
+    * destruct (canonical_forms_2 Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+      right. repeat eexists. apply* red_ec_project.
+    * right. exists (e_term s u) t.
       apply red_ec_hole_to_term.
-      (* destruct t. *)
-      (* + pose proof (var_typing_implies_avar_f Ht) as [x A]. subst. *)
-      (*   exists (e_term s u) (trm_var (avar_f x)). *)
-      (*   apply red_ec_hole_to_term. *)
-      (* + pick_fresh x. *)
-      (*   exists (e_term s u) (trm_val v). *)
-      (*   apply red_ec_hole_to_term. *)
-      (* + specialize (IHHt Hwf Hin) as [IH | [e' [t' Hred]]]. *)
-      (*   * inversion IH. *)
-      (*   * exists (e_term s u) (trm_sel a t). *)
-      (*     apply red_ec_hole_to_term.  *)
-      (* + specialize (IHHt Hwf Hin) as [IH | [e' [t' Hred]]]. *)
-      (*   * inversion IH. *)
-      (*   * exists (e_term s u) (trm_app a a0). *)
-      (*     apply red_ec_hole_to_term.  *)
-      (* + specialize (IHHt Hwf Hin) as [IH | [e' [t' Hred]]]. *)
-      (*   * inversion IH. *)
-      (*   * exists (e_term s u) (trm_let t1 t2). *)
-      (*     apply red_ec_hole_to_term.  *)
-    - specialize (IHHt Hwf Hin) as [IH | [t' [s' Hred]]].
+    * specialize (IHHt Hwf Hin) as [IH | [t' [s' Hred]]].
       + left. assumption.
       + right. exists t' s'. assumption.
-  }
-  {
-    inversions H. 
+  - inversions H.
     rename H2 into Hwf. rename H3 into Hin. rename H5 into Ht. clear H8.
     dependent induction Ht; try solve [left; auto].
-    - right. admit.
-    - right. admit.
-    - right. exists (e_term s (trm_let u t0)) t.
+    * destruct (canonical_forms_1 Hwf Hin Ht1) as [L' [T' [t [Bis [Hsub Hty]]]]].
+      right. repeat eexists. apply* red_ec_apply.
+    * destruct (canonical_forms_2 Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+      right. repeat eexists. apply* red_ec_project.
+    * right. exists (e_term s (trm_let u t0)) t.
       eapply red_ec_let_let.
-      (* destruct t. *)
-      (* + pose proof (var_typing_implies_avar_f Ht) as [x A]. subst. *)
-      (*   pose proof (app_hole_empty_term s t0). *)
-      (*   pose proof (app_hole_empty_term s (trm_let u t0)). *)
-      (*   exists (e_term s (trm_let u t0)) (trm_var (avar_f x)). *)
-      (*   eapply (red_ec_term (red_ec_let_let (trm_var (avar_f x)) u t0) H1 H2). *)
-      (* + pick_fresh x. *)
-      (*   pose proof (app_hole_empty_term s t0). *)
-      (*   pose proof (app_hole_empty_term s (trm_let u t0)). *)
-      (*   exists (e_term s (trm_let u t0)) (trm_val v). *)
-      (*   eapply (red_ec_term (red_ec_let_let (trm_val v) u t0) H1 H2). *)
-      (* + specialize (IHHt Hwf Hin) as [IH | [e' [t' Hred]]]. *)
-      (*   * inversion IH. *)
-      (*   * exists (e_term s (trm_let u t0)) (trm_sel a t). *)
-      (*     pose proof (app_hole_empty_term s t0). *)
-      (*     pose proof (app_hole_empty_term s (trm_let u t0)). *)
-      (*     apply (red_ec_term (red_ec_let_let (trm_sel a t) u t0) H1 H2). *)
-      (* + specialize (IHHt Hwf Hin) as [IH | [e' [t' Hred]]]. *)
-      (*   * inversion IH. *)
-      (*   * exists (e_term s (trm_let u t0)) (trm_app a a0). *)
-      (*     pose proof (app_hole_empty_term s t0). *)
-      (*     pose proof (app_hole_empty_term s (trm_let u t0)). *)
-      (*     eapply (red_ec_term (red_ec_let_let (trm_app a a0) u t0) H1 H2). *)
-      (* + specialize (IHHt Hwf Hin) as [IH | [e' [t' Hred]]]. *)
-      (*   * inversion IH. *)
-      (*   * exists (e_term s (trm_let u t0)) (trm_let t1 t2). *)
-      (*     pose proof (app_hole_empty_term s t0). *)
-      (*     pose proof (app_hole_empty_term s (trm_let u t0)). *)
-      (*     eapply (red_ec_term (red_ec_let_let (trm_let t1 t2) u t0) H1 H2). *)
-    - specialize (IHHt Hwf Hin) as [IH | [t' [s' Hred]]].
+    * specialize (IHHt Hwf Hin) as [IH | [t' [s' Hred]]].
       + left. assumption.
       + right. exists t' s'. assumption.
-  }
-Qed.
-
-
-Lemma progress': forall G t e T,
-    G ~~ (ec_sto e) ->
-    inert G ->
-    G |- t : T ->
-    (normal_form t \/ exists e' t', red_ec e t e' t').
-Proof.
-  introv Hwf Hin Ht. dependent induction Ht; try solve [left; auto].
-  - right. admit.
-  - right. admit.
-  - right. destruct t.
-    + pose proof (var_typing_implies_avar_f Ht) as [x A]. subst.
-      destruct e.
-      {
-        exists (e_term s u) (trm_var (avar_f x)).
-        apply red_ec_hole_to_term.
-      }
-      {
-        pose proof (app_hole_empty_term s t).
-        pose proof (app_hole_empty_term s (trm_let u t)).
-        exists (e_term s (trm_let u t)) (trm_var (avar_f x)).
-        eapply (red_ec_term (red_ec_let_let (trm_var (avar_f x)) u t) H1 H2).
-      } 
-    + pick_fresh x.
-      destruct e.
-      {
-        exists (e_term s u) (trm_val v).
-        apply red_ec_hole_to_term.
-      }
-      {
-        pose proof (app_hole_empty_term s t).
-        pose proof (app_hole_empty_term s (trm_let u t)).
-        exists (e_term s (trm_let u t)) (trm_val v).
-        eapply (red_ec_term (red_ec_let_let (trm_val v) u t) H1 H2).
-      }
-    + specialize (IHHt Hwf Hin) as [IH | [e' [t' Hred]]].
-      * inversion IH.
-      * destruct e.
-        { 
-          exists (e_term s u) (trm_sel a t).
-          apply red_ec_hole_to_term. 
-        }
-        {
-          exists (e_term s (trm_let u t0)) (trm_sel a t).
-          (* TODO: change to lemma *)
-          pose proof (app_hole_empty_term s t0).
-          pose proof (app_hole_empty_term s (trm_let u t0)).
-          apply (red_ec_term (red_ec_let_let (trm_sel a t) u t0) H1 H2).
-        } 
-    + specialize (IHHt Hwf Hin) as [IH | [e' [t' Hred]]].
-      * inversion IH.
-      * destruct e.
-        { 
-          exists (e_term s u) (trm_app a a0).
-          apply red_ec_hole_to_term. 
-        }
-        {
-          exists (e_term s (trm_let u t)) (trm_app a a0).
-          pose proof (app_hole_empty_term s t).
-          pose proof (app_hole_empty_term s (trm_let u t)).
-          eapply (red_ec_term (red_ec_let_let (trm_app a a0) u t) H1 H2).
-        } 
-    + specialize (IHHt Hwf Hin) as [IH | [e' [t' Hred]]].
-      * inversion IH.
-      * destruct e.
-        {
-          exists (e_term s u) (trm_let t1 t2).
-          apply red_ec_hole_to_term. 
-        }
-        {
-          exists (e_term s (trm_let u t)) (trm_let t1 t2).
-          pose proof (app_hole_empty_term s t).
-          pose proof (app_hole_empty_term s (trm_let u t)).
-          eapply (red_ec_term (red_ec_let_let (trm_let t1 t2) u t) H1 H2).
-        } 
-  - specialize (IHHt Hwf Hin) as [IH | [t' [s' Hred]]].
-    + left. assumption.
-    + right. exists t' s'. assumption.
 Qed.
 
 Lemma progress: forall G t s T,
@@ -547,7 +430,7 @@ Proof.
     eapply subst_ty_trm. eapply Hty.
     apply ok_push. eapply wf_sto_to_ok_G. eassumption. eauto. eauto.
     rewrite subst_fresh_typ.
-    assumption. 
+    assumption.
     eauto. eauto. eauto. eauto.
   - (* Fld-E *) right.
     pose proof (canonical_forms_2 Hg Hwf H) as [S [ds [t [Bis [Has Ty]]]]].
