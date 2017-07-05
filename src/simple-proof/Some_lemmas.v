@@ -213,6 +213,12 @@ Qed.
 (*     subst. reflexivity. *)
 (* Qed. *)
 
+Lemma lc_opening : forall t n x,
+    lc_trm t ->
+    open_rec_trm n x t = t.
+Proof.
+  Admitted.
+
 (* ###################################################################### *)
 
 (* ###################################################################### *)
@@ -405,9 +411,9 @@ Lemma defs_has_inv: forall ds m t t',
     defs_has ds (def_trm m t) ->
     defs_has ds (def_trm m t') ->
     t = t'.
-Proof. 
+Proof.
   intros. unfold defs_has in *.
-  inversions H. inversions H0. 
+  inversions H. inversions H0.
   rewrite H1 in H2. inversions H2.
   reflexivity.
 Qed.

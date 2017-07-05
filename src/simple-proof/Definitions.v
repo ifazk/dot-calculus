@@ -203,6 +203,101 @@ Inductive record_has: typ -> dec -> Prop :=
     record_has U D ->
     record_has (typ_and T U) D.
 
+(** * Locally Closed *)
+
+Inductive lc_var : avar -> Prop :=
+| lc_var_x : forall x,
+    lc_var (avar_f x).
+
+Inductive lc_typ : typ -> Prop :=
+| lc_typ_top : lc_typ typ_top
+| lc_typ_bot : lc_typ typ_bot
+| lc_typ_rcd : forall D,
+    lc_dec D ->
+    lc_typ (typ_rcd D)
+| lc_typ_and : forall T1 T2,
+    lc_typ T1 ->
+    lc_typ T2 ->
+    lc_typ (typ_and T1 T2)
+| lc_typ_sel : forall x L,
+    lc_var x ->
+    lc_typ (typ_sel x L)
+| lc_typ_bnd : forall x T,
+    lc_typ (open_typ x T) ->
+    lc_typ (typ_bnd T)
+| lc_typ_all : forall x T1 T2,
+    lc_typ (open_typ x T2) ->
+    lc_typ T1 ->
+    lc_typ (typ_all T1 T2)
+with lc_dec : dec -> Prop :=
+     | lc_dec_typ : forall L T U,
+         lc_typ T ->
+         lc_typ U ->
+         lc_dec (dec_typ L T U)
+     | lc_dec_trm : forall a T,
+         lc_typ T ->
+         lc_dec (dec_trm a T).
+
+Inductive lc_trm : trm -> Prop :=
+| lc_trm_var : forall a,
+    lc_var a ->
+    lc_trm (trm_var a)
+| lc_trm_val : forall v,
+    lc_val v ->
+    lc_trm (trm_val v)
+| lc_trm_sel : forall x a,
+    lc_var x ->
+    lc_trm (trm_sel x a)
+| lc_trm_app : forall f a,
+    lc_var f ->
+    lc_var a ->
+    lc_trm (trm_app f a)
+| lc_trm_let : forall x t1 t2,
+    lc_trm t1 ->
+    lc_trm (open_trm x t2) ->
+    lc_trm (trm_let t1 t2)
+with lc_val : val -> Prop :=
+     | lc_val_new : forall x T ds,
+         lc_typ (open_typ x T) ->
+         lc_defs (open_defs x ds) ->
+         lc_val (val_new T ds)
+     | lc_val_lam : forall x T t,
+         lc_typ T ->
+         lc_trm (open_trm x t) ->
+         lc_val (val_lambda T t)
+with lc_def : def -> Prop :=
+     | lc_def_typ : forall L T,
+         lc_typ T ->
+         lc_def (def_typ L T)
+     | lc_def_trm : forall a t,
+         lc_trm t ->
+         lc_def (def_trm a t)
+with lc_defs : defs -> Prop :=
+     | lc_defs_nil : lc_defs defs_nil
+     | lc_defs_cons : forall ds d,
+         lc_defs ds ->
+         lc_def d ->
+         lc_defs (defs_cons ds d).
+
+Inductive lc_sto : sto -> Prop :=
+| lc_sto_empty : lc_sto empty
+| lc_sto_cons : forall x v s,
+    lc_sto s ->
+    lc_val v ->
+    lc_sto (s & x ~ v).
+
+Inductive lc_ec : ec -> Prop :=
+| lc_ec_hole : forall s,
+    lc_sto s ->
+    lc_ec (e_hole s)
+| lc_ec_term : forall s x t,
+    lc_sto s ->
+    lc_trm (open_trm x t) ->
+    lc_ec (e_term s t).
+
+Definition lc_term (e : ec) (t : trm) : Prop :=
+  lc_ec e /\ lc_trm t.
+
 (* ###################################################################### *)
 (** ** Free variables *)
 
@@ -330,7 +425,7 @@ Inductive red : trm -> sto -> trm -> sto -> Prop :=
     trm_let t0 t / s => trm_let t0' t / s'
 where "t1 '/' st1 '=>' t2 '/' st2" := (red t1 st1 t2 st2).
 
-(** TODO: rename to red **) 
+(** TODO: rename to red **)
 
 Inductive red_ec : ec -> trm -> ec -> trm -> Prop :=
 (* | red_ec_term : forall e e' e'' t t', *)
@@ -361,7 +456,7 @@ Inductive red_ec : ec -> trm -> ec -> trm -> Prop :=
     red_ec (e_term s t) (trm_var (avar_f x)) (e_hole s) (open_trm x t)
 | red_ec_hole_to_term : forall s t u, (* s | [let t in u] -> s | let [t] in u *)
     red_ec (e_hole s) (trm_let t u) (e_term s u) t.
-    
+
 
 (* ###################################################################### *)
 (** ** Typing *)

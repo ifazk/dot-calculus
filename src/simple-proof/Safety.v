@@ -23,7 +23,8 @@ Require Import Invertible_typing.
 
 Inductive normal_form: trm -> Prop :=
 | nf_var: forall x, normal_form (trm_var x)
-| nf_val: forall v, normal_form (trm_val v).
+| nf_val: forall v, normal_form (trm_val v)
+.
 
 Hint Constructors normal_form.
 
@@ -62,6 +63,14 @@ Qed.
 (*   - admit. *)
 (* Qed. *)
 
+Lemma red_preserves_lc :
+  forall e t e' t',
+    red_ec e t e' t' ->
+    lc_term e t ->
+    lc_term e' t'.
+Proof.
+  Admitted.
+
 Lemma term_to_hole: forall s u t t',
     red_ec (e_term s u) t (e_term s u) t' ->
     red_ec (e_hole s) t (e_hole s) t'.
@@ -74,11 +83,14 @@ Proof.
 Qed.
 
 Lemma preservation_hole: forall G s t e' t' T,
+    lc_term e t ->
     red_ec (e_hole s) t e' t' ->
     G ~~ s ->
     inert G ->
     G |- t : T ->
-    exists G', ty_ec_trm (G & G') e' t' T.
+    exists G',
+      ty_ec_trm (G & G') e' t' T /\
+      lc_term e' t'.
 Proof.
   introv Hred Hwf Hin Ht.
   dependent induction Ht; try solve [inversion Hred].
@@ -342,9 +354,14 @@ Proof.
   - rewrite concat_empty_r. reflexivity.
 Qed.
 
+
 Lemma progress'': forall G e t T,
+    lc_term e t ->
     ty_ec_trm G e t T ->
-    (normal_form t \/ exists e' t', red_ec e t e' t').
+    (normal_form t \/
+     exists e' t',
+       (red_ec e t e' t') /\
+       (lc_term e' t')).
 Proof.
   intros. destruct e.
   - inversions H. rename H1 into Hwf. rename H2 into Hin. rename H4 into Ht.
