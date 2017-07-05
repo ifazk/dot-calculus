@@ -25,37 +25,44 @@ Inductive app_ec : ec -> ec -> ec -> Prop :=
 | app_term_empty : forall s t,
     app_ec (e_term s t) (e_hole (@empty val)) (e_term s t).
 
-Inductive red : ec -> trm -> ec -> trm -> Prop :=
-| red_term : forall e e' e'' t t',
-    red e t e t' ->
+Inductive red_ec : ec -> trm -> ec -> trm -> Prop :=
+| red_ec_term : forall e e' e'' t t',
+    red_ec e t e t' ->
     app_ec e' e e'' ->
-    red e'' t e'' t'
-| red_apply_hole : forall x T t s y,
-    red (e_hole ((x ~ (val_lambda T t)) & s)) 
-        (trm_app (avar_f x) (avar_f y))
-        (e_hole ((x ~ (val_lambda T t)) & s))
-        (open_trm y t)
-| red_apply_term : forall x T t s u y,
-    red (e_term ((x ~ (val_lambda T t)) & s) u) 
-        (trm_app (avar_f x) (avar_f y))
-        (e_term ((x ~ (val_lambda T t)) & s) u)
-        (open_trm y t)
-| red_project_hole : forall x T ds a t s,
+    red_ec e'' t e'' t'
+| red_ec_apply_hole : forall x y e e' T t,
+    app_ec (e_hole (x ~ (val_lambda T t))) e' e ->
+    red_ec e (trm_app (avar_f x) (avar_f y)) e (open_trm y t)
+(* | red_ec_apply_hole : forall x T t s y, *)
+(*     red_ec (e_hole ((x ~ (val_lambda T t)) & s))  *)
+(*         (trm_app (avar_f x) (avar_f y)) *)
+(*         (e_hole ((x ~ (val_lambda T t)) & s)) *)
+(*         (open_trm y t) *)
+(* | red_ec_apply_term : forall x T t s u y, *)
+(*     red_ec (e_term ((x ~ (val_lambda T t)) & s) u)  *)
+(*         (trm_app (avar_f x) (avar_f y)) *)
+(*         (e_term ((x ~ (val_lambda T t)) & s) u) *)
+(*         (open_trm y t) *)
+| red_ec_project_hole : forall x a e e' T ds t,
+    app_ec (e_hole (x ~ (val_new T ds))) e' e ->
     defs_has (open_defs x ds) (def_trm a t) ->
-    red (e_hole ((x ~ (val_new T ds)) & s))
-        (trm_sel (avar_f x) a)
-        (e_hole ((x ~ (val_new T ds)) & s))
-        t
-| red_project_term : forall x T ds a t s u,
-    defs_has (open_defs x ds) (def_trm a t) ->
-    red (e_term ((x ~ (val_new T ds)) & s) u)
-        (trm_sel (avar_f x) a)
-        (e_term ((x ~ (val_new T ds)) & s) u)
-        t
-| red_let_var : forall e x t,
-    red e (trm_let (trm_var (avar_f x)) t) e (open_trm x t)
-| red_let_let : forall e s t u,
-    red e (trm_let (trm_let s t) u) e (trm_let s (trm_let t u)).
+    red_ec e (trm_sel (avar_f x) a) e t
+(* | red_ec_project_hole : forall x T ds a t s, *)
+(*     defs_has (open_defs x ds) (def_trm a t) -> *)
+(*     red_ec (e_hole ((x ~ (val_new T ds)) & s)) *)
+(*         (trm_sel (avar_f x) a) *)
+(*         (e_hole ((x ~ (val_new T ds)) & s)) *)
+(*         t *)
+(* | red_ec_project_term : forall x T ds a t s u, *)
+(*     defs_has (open_defs x ds) (def_trm a t) -> *)
+(*     red_ec (e_term ((x ~ (val_new T ds)) & s) u) *)
+(*         (trm_sel (avar_f x) a) *)
+(*         (e_term ((x ~ (val_new T ds)) & s) u) *)
+(*         t *)
+| red_ec_let_var : forall x t,
+    red_ec (e_hole (@empty val)) (trm_let (trm_var (avar_f x)) t) (e_hole (@empty val)) (open_trm x t)
+| red_ec_let_let : forall s t u,
+    red_ec (e_hole (@empty val)) (trm_let (trm_let s t) u) (e_hole (@empty val)) (trm_let s (trm_let t u)).
 
 End ec. 
 
