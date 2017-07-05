@@ -131,7 +131,7 @@ Lemma narrow_rules:
     G' |- S <: U).
 Proof.
   apply rules_mutind; intros; eauto 4.
-  - Case "ty_var"
+  - Case "ty_var".
     subst. unfold subenv in H0. specialize (H0 x T b).
     destruct H0.
     + eauto.

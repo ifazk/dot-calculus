@@ -29,8 +29,10 @@ PROOFMAKEFILE=Makefile.coq
 # Main Rules #
 ##############
 
-.PHONY: all clean
-all: doc
+.PHONY: all doc proofs clean
+all: proofs doc
+
+proofs:
 	$(MAKE) -f $(PROOFMAKEFILE) $(OBJECTS)
 
 clean:
@@ -47,6 +49,7 @@ all doc clean: $(PROOFMAKEFILE)
 
 all: $(LIBLN)
 doc: $(LIBLN)
+proofs: $(LIBLN)
 %vo: $(LIBLN)
 
 ##############
