@@ -194,30 +194,76 @@ Proof.
     subst~.
 Qed.
 
-(* Lemma open_fresh_ec_injective : forall e e' z, *)
-(*     z \notin fv_ec e -> *)
-(*     z \notin fv_ec e' -> *)
-(*     open_ec z e = open_ec z e' -> *)
-(*     e = e'. *)
-(* Proof. *)
-(*   intros. dependent induction e; destruct e'; inversions H1. *)
-(*   - reflexivity. *)
-(*   - simpl in *.  *)
-(*     apply (proj42 open_fresh_trm_val_def_defs_injective) in H4; auto. *)
-(*     assert (e = e'). { *)
-(*       eapply IHe; auto. *)
-(*     } *)
-(*     subst. reflexivity. *)
-(*   - simpl in *. *)
-(*     apply (proj41 open_fresh_trm_val_def_defs_injective) in H4; auto. *)
-(*     subst. reflexivity. *)
-(* Qed. *)
+Lemma lc_open_rec_open_avar: forall n x y z,
+    lc_var z ->
+    open_rec_avar n x (open_avar y z) = open_avar y z.
+Proof.
+  introv Hl. destruct z as [a | z]; simpls*. case_if*. inversion Hl.
+Qed.
+
+Lemma lc_open_rec_open_typ_dec: forall x y,
+    (forall T n, open_rec_typ n x (open_typ y T) = open_typ y T ->
+          open_rec_typ n x T = T) /\
+    (forall D n, open_rec_dec n x (open_dec y D) = open_dec y D ->
+          open_rec_dec n x D = D).
+Proof.
+  introv. apply typ_mutind; intros; simpls; auto. Admitted. (* here *)
+
+Lemma lc_open_rec_open_val_def_defs: forall x y,
+    (forall t n, open_rec_trm n x (open_trm y t) = open_trm y t ->
+          open_rec_trm n x t = t) /\
+    (forall v n, open_rec_val n x (open_val y v) = open_val y v ->
+          open_rec_val n x v = v) /\
+    (forall d n, open_rec_def n x (open_def y d) = open_def y d ->
+          open_rec_def n x d = d) /\
+    (forall ds n, open_rec_defs n x (open_defs y ds) = open_defs y ds ->
+          open_rec_defs n x ds = ds).
+Proof.
+  introv. apply trm_mutind; intros; simpls; auto.
+ Admitted. (* here *)
+
+Lemma lc_opening_avar: forall n x y,
+    lc_var y ->
+    open_rec_avar n x y = y.
+Proof.
+  introv Hl. destruct y as [b | y]. inversion Hl. simpls*.
+Qed.
+
+Lemma lc_opening_typ_dec: forall x,
+    (forall T, lc_typ T -> forall n, open_rec_typ n x T = T) /\
+    (forall D, lc_dec D -> forall n, open_rec_dec n x D = D).
+Proof.
+  intros. apply lc_typ_mutind; intros; simpls; f_equal*.
+  - apply* lc_opening_avar.
+  - specialize (H x (S n)). apply* lc_open_rec_open_typ_dec.
+    Admitted.
+
+Lemma lc_opening_val_def_defs: forall x,
+  (forall t, lc_trm t -> forall n, open_rec_trm n x t = t) /\
+  (forall v, lc_val v -> forall n, open_rec_val n x v = v) /\
+  (forall d, lc_def d -> forall n, open_rec_def n x d = d) /\
+  (forall ds, lc_defs ds -> forall n, open_rec_defs n x ds = ds).
+Proof.
+  introv. apply lc_mutind; intros; simpls; f_equal*; try (apply* lc_opening_avar).
+  -
+
+
+    inversions H. f_equal. apply* lc_opening_avar.
+  - inversions H0. f_equal*.
+  - inversions H. f_equal*. apply* lc_opening_avar.
+  - inversions H. f_equal*; apply* lc_opening_avar.
+  - inversions H1. specialize (H n H4). rewrite H. f_equal*. apply* H0.
 
 Lemma lc_opening : forall t n x,
     lc_trm t ->
     open_rec_trm n x t = t.
 Proof.
-  Admitted.
+  introv Hl. induction Hl.
+  - destruct a as [b | y]. inversion H. simpls*.
+  - induction H; simpl.
+    *
+    destruct H; simpl.
+    * apply f_equal.
 
 (* ###################################################################### *)
 

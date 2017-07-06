@@ -844,6 +844,16 @@ with   rules_defs_mut   := Induction for ty_defs Sort Prop
 with   rules_subtyp     := Induction for subtyp Sort Prop.
 Combined Scheme rules_mutind from rules_trm_mut, rules_def_mut, rules_defs_mut, rules_subtyp.
 
+Scheme lc_trm_mut  := Induction for lc_trm Sort Prop
+with   lc_val_mut  := Induction for lc_val Sort Prop
+with   lc_def_mut  := Induction for lc_def Sort Prop
+with   lc_defs_mut := Induction for lc_defs Sort Prop.
+Combined Scheme lc_mutind from lc_trm_mut, lc_val_mut, lc_def_mut, lc_defs_mut.
+
+Scheme lc_typ_mut := Induction for lc_typ Sort Prop
+with   lc_dec_mut := Induction for lc_dec Sort Prop.
+Combined Scheme lc_typ_mutind from lc_typ_mut, lc_dec_mut.
+
 Hint Constructors
   ty_trm ty_def ty_defs subtyp
   ty_trm_p
