@@ -150,6 +150,9 @@ Definition defs_has(ds: defs)(d: def) := get_def (label_of_def d) ds = Some d.
 
 Definition defs_hasnt(ds: defs)(l: label) := get_def l ds = None.
 
+(** Typing environment ([Gamma], referred to in the proof as [G]) *)
+Definition ctx := env typ.
+
 (** ** Evaluation Contexts
 
 The paper defines an evaluation context with the following context-free grammar:
@@ -183,9 +186,6 @@ Definition ec_sto (e : ec) :=
   | e_hole s   => s
   | e_term s t => s
   end.
-
-(** Typing environment ([Gamma], referred to in the proof as [G]) *)
-Definition ctx := env typ.
 
 (** * Opening, Free Variables, Local Closure *)
 
@@ -525,7 +525,7 @@ that the evaluation context [e] to contains the subterm [let x = v in e2]:
 ------------------------------
 [binds x v e]
 
-The reduction rules become:
+The (Apply) and (Project) reduction rules become:
 
 [e(x) = lambda(z: T).t]
 ------------------------------
