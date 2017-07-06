@@ -1,278 +1,314 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><title>Simple DOT Proof | Artifact Guide</title><style></style></head><body id="preview">
-<h1><a id="A_Simple_Soundness_Proof_for_Dependent_Object_Types_0"></a>A Simple Soundness Proof for Dependent Object Types</h1>
-<h2><a id="Artifact_2"></a>Artifact Guide</h2>
-<p>Our <a href="paper.pdf">paper</a> presents a simplified type-safety proof for the
-<a href="https://infoscience.epfl.ch/record/215280">version of DOT</a>
-presented at Wadlerfest 2016.
-This artifact contains a formalization of the simple proof in Coq.
-The definitions of the abstract syntax and several lemmas are based on the
-<a href="https://github.com/samuelgruetter/dot-calculus/blob/master/dev/lf/dot_top_bot.v">original</a>
-Coq proof that comes with Wadlerfest DOT paper.</p>
-<h3><a id="Getting_Started_12"></a>Getting Started</h3>
-<p><em>TODO</em></p>
-<h3><a id="StepbyStep_Instructions_16"></a>Step-by-Step Instructions</h3>
-<p><em>TODO</em></p>
-<h3><a id="Description_of_the_Artifact_20"></a>Description of the Artifact</h3>
-<p>This artifact presents a Coq formalization of the DOT calculus and DOT's type safety proof
-using the method presented in the paper. The artifact also provides proofs for Properties 1 (Inert Context Guarantee)
-and 2 (Tight Typing Guarantee), which are not part of the safety proof,
-but are discussed in the paper.</p>
-<p>The type-safety proof can be found in <em>TODO</em>.
-The proof of the properties can be found in <em>TODO</em>.</p>
-<p>Below, we present a table that shows how the definitions and lemmas in the paper correspond
-to the artifact. However, before comparing the correspondence, we recommend reading
-through <em>TODO</em> (Definitions.v). That file not only presents the definitions of the abstract
-syntax and type system of DOT, but also presents some of the tactics, functions, and inductive definitions
-that are used in the proof.</p>
-<h4><a id="PaperArtifact_Correspondence_37"></a>Paper-Artifact Correspondence</h4>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8"><title>Simple DOT Proof | Artifact Guide</title><style></style>
+        <style type="text/css">
+         @media only screen and (min-width : 1224px) {
+             body {
+                 margin: auto;
+                 max-width : 1224px;
+             }
+         }
+        </style>
+        <style type="text/css">
+         .tg  {margin:auto;}
+         .tg  {border-collapse:collapse;border-spacing:0;border-color:#ccc;}
+         .tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#ccc;color:#333;background-color:#fff;border-top-width:1px;border-bottom-width:1px;}
+         .tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#ccc;color:#333;background-color:#f0f0f0;border-top-width:1px;border-bottom-width:1px;}
+         .tg .tg-bq60{font-weight:bold;font-size:100%;font-family:Arial, Helvetica, sans-serif !important;;vertical-align:top}
+         .tg .tg-rkwu{font-family:"Courier New", Courier, monospace !important;;vertical-align:top}
+         .tg .tg-8fc1{font-weight:bold;font-family:Arial, Helvetica, sans-serif !important;;vertical-align:top}
+         .tg .tg-yw4l{vertical-align:top}
+        </style>
+    </head>
+    <body id="preview">
+        <h1><a id="A_Simple_Soundness_Proof_for_Dependent_Object_Types_0"></a>A Simple Soundness Proof for Dependent Object Types</h1>
+        <h2><a id="Artifact_2"></a>Artifact Guide</h2>
+        <p>Our <a href="paper.pdf">paper</a> presents a simplified type-safety proof for the
+            <a href="https://infoscience.epfl.ch/record/215280">version of DOT</a>
+            presented at Wadlerfest 2016.
+            This artifact contains a formalization of the simple proof in Coq.
+            The definitions of the abstract syntax and several lemmas are based on the
+            <a href="https://github.com/samuelgruetter/dot-calculus/blob/master/dev/lf/dot_top_bot.v">original</a>
+            Coq proof that comes with Wadlerfest DOT paper.</p>
+        <h3><a id="Getting_Started_12"></a>Getting Started</h3>
+        <p><em>TODO finish this</em></p>
+        <div>
+            <h3>Requirements</h3>
+            <p>
+                To compile the proof, we require <code>coq 8.6</code> and related tooling
+                to be run in a unix-like environment. In particular we require
+                the following tools (all version 8.6) in the <code>PATH</code>
+                enviroment variable:
+                <ul>
+                    <li><code>coqc</code></li>
+                    <li><code>coqtop</code></li>
+                    <li><code>coqdep</code></li>
+                    <li><code>coqdoc</code></li>
+                    <li><code>coqmakefile</code></li>
+                </ul>
 
-<style type="text/css">
-.tg  {border-collapse:collapse;border-spacing:0;border-color:#ccc;}
-.tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#ccc;color:#333;background-color:#fff;border-top-width:1px;border-bottom-width:1px;}
-.tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#ccc;color:#333;background-color:#f0f0f0;border-top-width:1px;border-bottom-width:1px;}
-.tg .tg-bq60{font-weight:bold;font-size:100%;font-family:Arial, Helvetica, sans-serif !important;;vertical-align:top}
-.tg .tg-rkwu{font-family:"Courier New", Courier, monospace !important;;vertical-align:top}
-.tg .tg-8fc1{font-weight:bold;font-family:Arial, Helvetica, sans-serif !important;;vertical-align:top}
-.tg .tg-yw4l{vertical-align:top}
-</style>
-<table class="tg">
-  <tr>
-    <th class="tg-bq60" colspan="3">Paper<br></th>
-    <th class="tg-8fc1" colspan="3">Coq Proof<br></th>
-  </tr>
-  <tr>
-    <td class="tg-8fc1">Item</td>
-    <td class="tg-8fc1">Description</td>
-    <td class="tg-8fc1">Subitems</td>
-    <td class="tg-8fc1">File</td>
-    <td class="tg-8fc1">Name</td>
-    <td class="tg-8fc1">Notation</td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l" rowspan="7">Figure 1<br></td>
-    <td class="tg-yw4l" rowspan="7">DOT abstract syntax<br></td>
-    <td class="tg-yw4l">variable</td>
-    <td class="tg-yw4l" rowspan="7">Definitions.v</td>
-    <td class="tg-rkwu">avar</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">term member<br></td>
-    <td class="tg-rkwu">trm_label</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">type label<br></td>
-    <td class="tg-rkwu">typ_label</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">term</td>
-    <td class="tg-rkwu">trm</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">value</td>
-    <td class="tg-rkwu">val</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">definition</td>
-    <td class="tg-rkwu">def</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">type</td>
-    <td class="tg-rkwu">typ</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l" rowspan="2">Figure 2<br></td>
-    <td class="tg-yw4l" rowspan="2">Tight typing rules<br></td>
-    <td class="tg-yw4l">term typing<br></td>
-    <td class="tg-yw4l" rowspan="2">Definitions.v</td>
-    <td class="tg-rkwu">ty_trm_t</td>
-    <td class="tg-rkwu">G ⊢ t : T</td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">subtyping<br></td>
-    <td class="tg-rkwu">subtyp_t</td>
-    <td class="tg-rkwu">G ⊢ T &lt;: U</td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l" rowspan="2">Figure 3<br></td>
-    <td class="tg-yw4l" rowspan="2">Definition typing rules<br></td>
-    <td class="tg-yw4l" rowspan="2"></td>
-    <td class="tg-yw4l" rowspan="2">Definitions.v</td>
-    <td class="tg-rkwu">ty_def</td>
-    <td class="tg-rkwu">G ⊢ d : D</td>
-  </tr>
-  <tr>
-    <td class="tg-rkwu">ty_defs</td>
-    <td class="tg-rkwu">G ⊢ ds :: T</td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Definition 3.1<br></td>
-    <td class="tg-yw4l">Inert context<br></td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">Definitions.v</td>
-    <td class="tg-rkwu">inert_typ</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Definition 3.2<br></td>
-    <td class="tg-yw4l">Inert type<br></td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">Definitions.v</td>
-    <td class="tg-rkwu">inert</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Property 1<br></td>
-    <td class="tg-yw4l">Inert context guarantee<br></td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">TODO</td>
-    <td class="tg-rkwu"></td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Figure 4<br></td>
-    <td class="tg-yw4l">Precise typing rules<br></td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">Definitions.v</td>
-    <td class="tg-rkwu">ty_trm_p</td>
-    <td class="tg-rkwu">G ⊢! t : T</td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Property 2<br></td>
-    <td class="tg-yw4l">Tight typing guarantee<br></td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">TODO</td>
-    <td class="tg-rkwu"></td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Theorem 3.3<br></td>
-    <td class="tg-yw4l">General-to-tight typing (⊢ to ⊢#)</td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">General_to_tight.v</td>
-    <td class="tg-rkwu">general_to_tight</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Lemma 3.4<br></td>
-    <td class="tg-yw4l">Sel-&lt;: replacement</td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">General_to_tight.v<br></td>
-    <td class="tg-rkwu">sel_replacement</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Lemma 3.5<br></td>
-    <td class="tg-yw4l">Sel-&lt;:# premise<br></td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">General_to_tight.v</td>
-    <td class="tg-rkwu">sel_premise</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l" rowspan="2">Figure 5<br></td>
-    <td class="tg-yw4l" rowspan="2">Invertible typing rules<br></td>
-    <td class="tg-yw4l">for variables<br></td>
-    <td class="tg-yw4l" rowspan="2">Definitions.v</td>
-    <td class="tg-rkwu">ty_var_inv</td>
-    <td class="tg-rkwu">G ⊢## x : T</td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">for values<br></td>
-    <td class="tg-rkwu">ty_var_inv</td>
-    <td class="tg-rkwu">G ⊢##v v : T</td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l" rowspan="2">Theorem 3.6<br></td>
-    <td class="tg-yw4l" rowspan="2">Tight-to-invertible typing (⊢#-to-⊢##)</td>
-    <td class="tg-yw4l">for variables<br></td>
-    <td class="tg-yw4l" rowspan="2">Invertible_typing.v</td>
-    <td class="tg-rkwu">tight_to_invertible</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">for values<br></td>
-    <td class="tg-rkwu">tight_to_invertible_v</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Lemma 3.7<br></td>
-    <td class="tg-yw4l">∀ to Γ(x)</td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">TODO</td>
-    <td class="tg-rkwu"></td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Lemma 3.8<br></td>
-    <td class="tg-yw4l">∀ to λ</td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">TODO</td>
-    <td class="tg-rkwu"></td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Lemma 3.9<br></td>
-    <td class="tg-yw4l">μ to Γ(x)</td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">TODO</td>
-    <td class="tg-rkwu"></td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Lemma 3.10<br></td>
-    <td class="tg-yw4l">μ to ν</td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">TODO</td>
-    <td class="tg-rkwu"></td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Lemma 3.11<br></td>
-    <td class="tg-yw4l">Narrowing</td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">Narrowing.v</td>
-    <td class="tg-rkwu">narrow_rules<br></td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Figure 6<br></td>
-    <td class="tg-yw4l">Operational semantics<br></td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">Definitions.v</td>
-    <td class="tg-rkwu">TODO</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Theorem 3.12<br></td>
-    <td class="tg-yw4l">Soundness</td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">TODO</td>
-    <td class="tg-rkwu"></td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Lemma 3.13<br></td>
-    <td class="tg-yw4l">Precise value typing<br></td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">Helper_lemmas.v</td>
-    <td class="tg-rkwu">val_typing</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-  <tr>
-    <td class="tg-yw4l">Lemma 3.14<br></td>
-    <td class="tg-yw4l">Substitution</td>
-    <td class="tg-yw4l"></td>
-    <td class="tg-yw4l">Substitution.v</td>
-    <td class="tg-rkwu">subst_ty_trm</td>
-    <td class="tg-rkwu"></td>
-  </tr>
-</table>
+                Other requirements are.
+                <ul>
+                    <li>make</li>
+                </ul>
+            </p>
+        </div>
+        <h3><a id="StepbyStep_Instructions_16"></a>Step-by-Step Instructions</h3>
+        <p><em>TODO</em></p>
+        <h3><a id="Description_of_the_Artifact_20"></a>Description of the Artifact</h3>
+        <p>This artifact presents a Coq formalization of the DOT calculus and DOT's type safety proof
+            using the method presented in the paper. The artifact also provides proofs for Properties 1 (Inert Context Guarantee)
+            and 2 (Tight Typing Guarantee), which are not part of the safety proof,
+            but are discussed in the paper.</p>
+        <p>The type-safety proof can be found in <em>TODO</em>.
+            The proof of the properties can be found in <em>TODO</em>.</p>
+        <p>Below, we present a table that shows how the definitions and lemmas in the paper correspond
+            to the artifact. However, before comparing the correspondence, we recommend reading
+            through <em>TODO</em> (Definitions.v). That file not only presents the definitions of the abstract
+            syntax and type system of DOT, but also presents some of the tactics, functions, and inductive definitions
+            that are used in the proof.</p>
+        <h4><a id="PaperArtifact_Correspondence_37"></a>Paper-Artifact Correspondence</h4>
 
-</body></html>
+        <table class="tg">
+            <tr>
+                <th class="tg-bq60" colspan="3">Paper<br></th>
+                <th class="tg-8fc1" colspan="3">Coq Proof<br></th>
+            </tr>
+            <tr>
+                <td class="tg-8fc1">Item</td>
+                <td class="tg-8fc1">Description</td>
+                <td class="tg-8fc1">Subitems</td>
+                <td class="tg-8fc1">File</td>
+                <td class="tg-8fc1">Name</td>
+                <td class="tg-8fc1">Notation</td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l" rowspan="7">Figure 1<br></td>
+                <td class="tg-yw4l" rowspan="7">DOT abstract syntax<br></td>
+                <td class="tg-yw4l">variable</td>
+                <td class="tg-yw4l" rowspan="7">Definitions.v</td>
+                <td class="tg-rkwu">avar</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">term member<br></td>
+                <td class="tg-rkwu">trm_label</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">type label<br></td>
+                <td class="tg-rkwu">typ_label</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">term</td>
+                <td class="tg-rkwu">trm</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">value</td>
+                <td class="tg-rkwu">val</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">definition</td>
+                <td class="tg-rkwu">def</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">type</td>
+                <td class="tg-rkwu">typ</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l" rowspan="2">Figure 2<br></td>
+                <td class="tg-yw4l" rowspan="2">Tight typing rules<br></td>
+                <td class="tg-yw4l">term typing<br></td>
+                <td class="tg-yw4l" rowspan="2">Definitions.v</td>
+                <td class="tg-rkwu">ty_trm_t</td>
+                <td class="tg-rkwu">G ⊢ t : T</td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">subtyping<br></td>
+                <td class="tg-rkwu">subtyp_t</td>
+                <td class="tg-rkwu">G ⊢ T &lt;: U</td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l" rowspan="2">Figure 3<br></td>
+                <td class="tg-yw4l" rowspan="2">Definition typing rules<br></td>
+                <td class="tg-yw4l" rowspan="2"></td>
+                <td class="tg-yw4l" rowspan="2">Definitions.v</td>
+                <td class="tg-rkwu">ty_def</td>
+                <td class="tg-rkwu">G ⊢ d : D</td>
+            </tr>
+            <tr>
+                <td class="tg-rkwu">ty_defs</td>
+                <td class="tg-rkwu">G ⊢ ds :: T</td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Definition 3.1<br></td>
+                <td class="tg-yw4l">Inert context<br></td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">Definitions.v</td>
+                <td class="tg-rkwu">inert_typ</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Definition 3.2<br></td>
+                <td class="tg-yw4l">Inert type<br></td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">Definitions.v</td>
+                <td class="tg-rkwu">inert</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Property 1<br></td>
+                <td class="tg-yw4l">Inert context guarantee<br></td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">TODO</td>
+                <td class="tg-rkwu"></td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Figure 4<br></td>
+                <td class="tg-yw4l">Precise typing rules<br></td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">Definitions.v</td>
+                <td class="tg-rkwu">ty_trm_p</td>
+                <td class="tg-rkwu">G ⊢! t : T</td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Property 2<br></td>
+                <td class="tg-yw4l">Tight typing guarantee<br></td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">TODO</td>
+                <td class="tg-rkwu"></td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Theorem 3.3<br></td>
+                <td class="tg-yw4l">General-to-tight typing (⊢ to ⊢#)</td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">General_to_tight.v</td>
+                <td class="tg-rkwu">general_to_tight</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Lemma 3.4<br></td>
+                <td class="tg-yw4l">Sel-&lt;: replacement</td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">General_to_tight.v<br></td>
+                <td class="tg-rkwu">sel_replacement</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Lemma 3.5<br></td>
+                <td class="tg-yw4l">Sel-&lt;:# premise<br></td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">General_to_tight.v</td>
+                <td class="tg-rkwu">sel_premise</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l" rowspan="2">Figure 5<br></td>
+                <td class="tg-yw4l" rowspan="2">Invertible typing rules<br></td>
+                <td class="tg-yw4l">for variables<br></td>
+                <td class="tg-yw4l" rowspan="2">Definitions.v</td>
+                <td class="tg-rkwu">ty_var_inv</td>
+                <td class="tg-rkwu">G ⊢## x : T</td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">for values<br></td>
+                <td class="tg-rkwu">ty_var_inv</td>
+                <td class="tg-rkwu">G ⊢##v v : T</td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l" rowspan="2">Theorem 3.6<br></td>
+                <td class="tg-yw4l" rowspan="2">Tight-to-invertible typing (⊢#-to-⊢##)</td>
+                <td class="tg-yw4l">for variables<br></td>
+                <td class="tg-yw4l" rowspan="2">Invertible_typing.v</td>
+                <td class="tg-rkwu">tight_to_invertible</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">for values<br></td>
+                <td class="tg-rkwu">tight_to_invertible_v</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Lemma 3.7<br></td>
+                <td class="tg-yw4l">∀ to Γ(x)</td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">TODO</td>
+                <td class="tg-rkwu"></td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Lemma 3.8<br></td>
+                <td class="tg-yw4l">∀ to λ</td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">TODO</td>
+                <td class="tg-rkwu"></td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Lemma 3.9<br></td>
+                <td class="tg-yw4l">μ to Γ(x)</td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">TODO</td>
+                <td class="tg-rkwu"></td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Lemma 3.10<br></td>
+                <td class="tg-yw4l">μ to ν</td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">TODO</td>
+                <td class="tg-rkwu"></td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Lemma 3.11<br></td>
+                <td class="tg-yw4l">Narrowing</td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">Narrowing.v</td>
+                <td class="tg-rkwu">narrow_rules<br></td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Figure 6<br></td>
+                <td class="tg-yw4l">Operational semantics<br></td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">Definitions.v</td>
+                <td class="tg-rkwu">TODO</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Theorem 3.12<br></td>
+                <td class="tg-yw4l">Soundness</td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">TODO</td>
+                <td class="tg-rkwu"></td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Lemma 3.13<br></td>
+                <td class="tg-yw4l">Precise value typing<br></td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">Helper_lemmas.v</td>
+                <td class="tg-rkwu">val_typing</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Lemma 3.14<br></td>
+                <td class="tg-yw4l">Substitution</td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l">Substitution.v</td>
+                <td class="tg-rkwu">subst_ty_trm</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+        </table>
+
+    </body>
+</html>
