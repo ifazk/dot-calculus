@@ -70,18 +70,6 @@ $(LIBLN):
 # Forced Rebuilds #
 ###################
 
-.PHONY: init
-init: $(PROOFMAKEFILE) _CoqProject
-
-$(PROOFMAKEFILE): .FORCE
-	@$(COQMAKEFILE) $(COQINCLUDE) -install none $(PROOFS) > $@
-
-_CoqProject: .FORCE
-	@echo $(COQINCLUDE) > $@
-
-.FORCE:
-
-
 graph.png: $(PROOFS)
 	coqdep -dumpgraph graph.dot *.v
 	dot -Tpng graph.dot > graph.png
