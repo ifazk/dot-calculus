@@ -202,12 +202,22 @@ Proof.
 Qed.
 
 Lemma lc_open_rec_open_typ_dec: forall x y,
-    (forall T n, open_rec_typ n x (open_typ y T) = open_typ y T ->
-          open_rec_typ n x T = T) /\
-    (forall D n, open_rec_dec n x (open_dec y D) = open_dec y D ->
-          open_rec_dec n x D = D).
+    (forall T n m, 
+        n <> m ->
+        open_rec_typ n x (open_typ y T) = open_rec_typ m y T ->
+        open_rec_typ n x T = T) /\
+    (forall D n m, 
+        n <> m -> 
+        open_rec_dec n x (open_dec y D) = open_rec_dec m y D ->
+        open_rec_dec n x D = D).
 Proof.
-  introv. apply typ_mutind; intros; simpls; auto. Admitted. (* here *)
+  introv. apply typ_mutind; intros; simpls; auto. 
+  - inversions H1. erewrite~ H. 
+  - inversions H1. rewrite~ H. rewrite~ H0.
+  - inversions H. destruct a; simpl; auto. 
+    case_if; simpls; case_if; subst; simpl. simpl in *.
+    case_if; subst; auto.
+Qed.
 
 Lemma lc_open_rec_open_val_def_defs: forall x y,
     (forall t n, open_rec_trm n x (open_trm y t) = open_trm y t ->

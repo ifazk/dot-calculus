@@ -62,26 +62,11 @@ Inductive ec : Type :=
 | e_hole : sto -> ec
 | e_term : sto -> trm -> ec.
 
-(* Inductive ec : Set := *)
-(* | e_empty     : ec              (* [] *) *)
-(* | e_let_val   : var -> val -> ec -> ec  (* let x = v in e *) *)
-(* | e_let_trm   : var -> trm -> ec.      (* let x = [] in t *) *)
-
 Definition ec_sto (e : ec) :=
   match e with
   | e_hole s   => s
   | e_term s t => s
   end.
-
-Inductive app_ec : ec -> ec -> ec -> Prop :=
-| app_hole_hole : forall s s',
-    ok (s & s') ->
-    app_ec (e_hole s) (e_hole s') (e_hole (s & s'))
-| app_hole_term : forall s s' t',
-    ok (s & s') ->
-    app_ec (e_hole s) (e_term s' t') (e_term (s & s') t')
-| app_term_empty : forall s t,
-    app_ec (e_term s t) (e_hole (@empty val)) (e_term s t).
 
 (* ###################################################################### *)
 (** ** Definition list membership *)
@@ -429,25 +414,13 @@ where "t1 '/' st1 '=>' t2 '/' st2" := (red t1 st1 t2 st2).
 (** TODO: rename to red **)
 
 Inductive red_ec : ec -> trm -> ec -> trm -> Prop :=
-(* | red_ec_term : forall e e' e'' t t', *)
-(*     red_ec e t e t' -> *)
-(*     app_ec e' e e'' -> *)
-(*     app_ec e' e e'' -> *)
-(*     red_ec e'' t e'' t' *)
 | red_ec_apply : forall x y e T t,
     binds x (val_lambda T t) (ec_sto e) ->
-    (* app_ec (e_hole (x ~ (val_lambda T t))) e' e -> *)
     red_ec e (trm_app (avar_f x) (avar_f y)) e (open_trm y t)
 | red_ec_project : forall x a e T ds t,
     binds x (val_new T ds) (ec_sto e) ->
-    (* app_ec (e_hole (x ~ (val_new T ds))) e' e -> *)
     defs_has (open_defs x ds) (def_trm a t) ->
     red_ec e (trm_sel (avar_f x) a) e t
-(* | red_ec_let_val : forall x v t e e', (* e = empty? *) *)
-(*     app_ec e (e_hole (x ~ v)) e' -> *)
-(*     red_ec e (trm_let (trm_val v) t) e' (open_trm x t) *)
-(* | red_ec_let_var : forall x t, *)
-(*     red_ec (e_hole (@empty val)) (trm_let (trm_var (avar_f x)) t) (e_hole (@empty val)) (open_trm x t) *)
 | red_ec_let_let : forall s t1 t2 t3,
     red_ec (e_term s t1) (trm_let t2 t3) (e_term s (trm_let t3 t1)) t2
 | red_ec_term_to_hole_val : forall s x v t, (* s | let [v] in t -> s, (x ~ v) | [t^x] *)
