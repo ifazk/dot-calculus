@@ -52,13 +52,13 @@ Lemma new_ty_defs: forall G s x T ds,
 Proof.
   introv Hwf Hg Bis.
   lets Htyv: (val_new_typing Hwf Hg Bis).
-  inversion Htyv; subst.
-  - pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H1 y FrL).
-    rewrite subst_intro_defs with (x:=y) by auto.
-    rewrite subst_intro_typ with (x:=y) by auto.
-    eapply subst_ty_defs; eauto.
-    rewrite <- subst_intro_typ with (x:=y) by auto.
-    eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
+  inversions Htyv.
+  pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H1 y FrL).
+  rewrite subst_intro_defs with (x:=y) by auto.
+  rewrite subst_intro_typ with (x:=y) by auto.
+  eapply subst_ty_defs; eauto.
+  rewrite <- subst_intro_typ with (x:=y) by auto.
+  eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
 Qed.
 
 Lemma corresponding_types_ty_trms: forall G s ds x S,
@@ -82,6 +82,21 @@ Proof.
   inversion Htd; subst.
   exists t. auto.
 Qed.
+
+Lemma var_typ_rcd_to_binds: forall G x a T,
+    inert G ->
+    G |- trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
+    (exists S T',
+        binds x (typ_bnd S) G /\
+        record_has S (dec_trm a T') /\
+        G |- T' <: T).
+Proof.
+  introv Hin Ht.
+  destruct (typing_implies_bound Ht) as [S BiG].
+  lets Htt: (general_to_tight_typing Hin Ht).
+  lets Hinv: (tight_to_invertible Hin Htt).
+  destruct (invertible_to_precise_trm_dec Hinv) as [T' [Htp Hs]].
+Admitted.
 
 Lemma canonical_forms_2: forall G s x a T,
   inert G ->
