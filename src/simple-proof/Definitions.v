@@ -612,15 +612,15 @@ Inductive red : ec -> trm -> ec -> trm -> Prop :=
     binds x (val_new T ds) (ec_sto e) ->
     defs_has (open_defs x ds) (def_trm a t) ->
     e / trm_sel (avar_f x) a |-> e / t
+| red_let_var : forall x t s, (* s | let [x] in t -> s | [t^x] *)
+    e_term s t / trm_var (avar_f x) |-> e_hole s / open_trm x t
 | red_let_let : forall s t1 t2 t3,
     e_term s t1 / trm_let t2 t3 |-> e_term s (trm_let t3 t1) / t2
-| red_term_to_hole_val : forall s x v t, (* s | let [v] in t -> s, (x ~ v) | [t^x] *)
+| red_congruence_let : forall s t u, (* s | [let t in u] -> s | let [t] in u *)
+    e_hole s / trm_let t u |-> e_term s u / t
+| red_congruence_val: forall s x v t, (* s | let [v] in t -> s, (x ~ v) | [t^x] *)
     x # s ->
     e_term s t / trm_val v |-> e_hole (s & (x ~ v)) / open_trm x t
-| red_term_to_hole_var : forall x t s, (* s | let [x] in t -> s | [t^x] *)
-    e_term s t / trm_var (avar_f x) |-> e_hole s / open_trm x t
-| red_hole_to_term : forall s t u, (* s | [let t in u] -> s | let [t] in u *)
-    e_hole s / trm_let t u |-> e_term s u / t
 where "t1 '/' st1 '|->' t2 '/' st2" := (red t1 st1 t2 st2).
 
 (** * Typing Rules *)

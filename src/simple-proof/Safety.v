@@ -328,7 +328,7 @@ Proof.
     * destruct (canonical_forms_2 Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
       right. repeat eexists. apply* red_project.
     * right. exists (e_term s u) t.
-      apply red_hole_to_term.
+      apply red_congruence_let.
     * specialize (IHHt Hwf Hin) as [IH | [t' [s' Hred]]].
       + left. assumption.
       + right. exists t' s'. assumption.
