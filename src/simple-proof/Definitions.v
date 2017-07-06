@@ -203,6 +203,7 @@ Inductive record_has: typ -> dec -> Prop :=
     record_has U D ->
     record_has (typ_and T U) D.
 
+(* ###################################################################### *)
 (** * Locally Closed *)
 
 Inductive lc_var : avar -> Prop :=
@@ -852,6 +853,8 @@ Hint Constructors
 Hint Constructors wf_sto.
 
 Hint Constructors record_has.
+
+Hint Constructors lc_var lc_typ lc_dec lc_trm lc_val lc_dec lc_defs lc_sto lc_ec.
 
 Lemma fresh_push_eq_inv: forall A x a (E: env A),
   x # (E & x ~ a) -> False.
