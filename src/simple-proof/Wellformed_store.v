@@ -4,8 +4,8 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Weakening.
-Require Import Helper_lemmas.
 Require Import Narrowing.
+Require Import Helper_lemmas.
 Require Import Precise_types.
 Require Import Invertible_typing.
 Require Import General_to_tight.
