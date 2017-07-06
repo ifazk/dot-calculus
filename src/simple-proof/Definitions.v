@@ -150,13 +150,6 @@ Definition open_val  u v := open_rec_val   0 u v.
 Definition open_def  u d := open_rec_def   0 u d.
 Definition open_defs u l := open_rec_defs  0 u l.
 
-(* Fixpoint open_ec (u: var) (e: ec): ec := *)
-(*   match e with *)
-(*   | e_empty => e_empty *)
-(*   | e_let_val x v e => e_let_val x (open_val u v) (open_ec u e) *)
-(*   | e_let_trm x t => e_let_trm x (open_trm u t) *)
-(*   end. *)
-
 (* ###################################################################### *)
 (** ** Record types *)
 
@@ -216,13 +209,13 @@ Inductive lc_typ : typ -> Prop :=
     lc_typ T1 ->
     lc_typ (typ_all T1 T2)
 with lc_dec : dec -> Prop :=
-     | lc_dec_typ : forall L T U,
-         lc_typ T ->
-         lc_typ U ->
-         lc_dec (dec_typ L T U)
-     | lc_dec_trm : forall a T,
-         lc_typ T ->
-         lc_dec (dec_trm a T).
+| lc_dec_typ : forall L T U,
+    lc_typ T ->
+    lc_typ U ->
+    lc_dec (dec_typ L T U)
+| lc_dec_trm : forall a T,
+    lc_typ T ->
+    lc_dec (dec_trm a T).
 
 Inductive lc_trm : trm -> Prop :=
 | lc_trm_var : forall a,
@@ -243,27 +236,27 @@ Inductive lc_trm : trm -> Prop :=
     (forall x, lc_trm (open_trm x t2)) ->
     lc_trm (trm_let t1 t2)
 with lc_val : val -> Prop :=
-     | lc_val_new : forall T ds,
-         (forall x, lc_typ (open_typ x T)) ->
-         (forall x, lc_defs (open_defs x ds)) ->
-         lc_val (val_new T ds)
-     | lc_val_lam : forall T t,
-         lc_typ T ->
-         (forall x, lc_trm (open_trm x t)) ->
-         lc_val (val_lambda T t)
+| lc_val_new : forall T ds,
+    (forall x, lc_typ (open_typ x T)) ->
+    (forall x, lc_defs (open_defs x ds)) ->
+    lc_val (val_new T ds)
+| lc_val_lam : forall T t,
+    lc_typ T ->
+    (forall x, lc_trm (open_trm x t)) ->
+    lc_val (val_lambda T t)
 with lc_def : def -> Prop :=
-     | lc_def_typ : forall L T,
-         lc_typ T ->
-         lc_def (def_typ L T)
-     | lc_def_trm : forall a t,
-         lc_trm t ->
-         lc_def (def_trm a t)
+| lc_def_typ : forall L T,
+    lc_typ T ->
+    lc_def (def_typ L T)
+| lc_def_trm : forall a t,
+    lc_trm t ->
+    lc_def (def_trm a t)
 with lc_defs : defs -> Prop :=
-     | lc_defs_nil : lc_defs defs_nil
-     | lc_defs_cons : forall ds d,
-         lc_defs ds ->
-         lc_def d ->
-         lc_defs (defs_cons ds d).
+| lc_defs_nil : lc_defs defs_nil
+| lc_defs_cons : forall ds d,
+    lc_defs ds ->
+    lc_def d ->
+    lc_defs (defs_cons ds d).
 
 Inductive lc_sto : sto -> Prop :=
 | lc_sto_empty : lc_sto empty
@@ -339,13 +332,6 @@ Fixpoint fv_ec (e: ec) : vars :=
   | e_term s t => dom s \u (fv_trm t)
   end.
 
-(* Fixpoint fv_ec (e: ec) : vars := *)
-(*   match e with *)
-(*   | e_empty => \{} *)
-(*   | e_let_val x v e => \{x} \u (fv_val v) \u (fv_ec e) *)
-(*   | e_let_trm x t => \{x} \u (fv_trm t) *)
-(*   end. *)
-
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
 
 
@@ -391,45 +377,26 @@ Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
 (* ###################################################################### *)
 (** ** Operational Semantics *)
 
-Reserved Notation "t1 '/' st1 '=>' t2 '/' st2" (at level 40, t2 at level 39).
+Reserved Notation "e1 '/' t1 '=>' e2 '/' t2" (at level 40, e2 at level 39).
 
-Inductive red : trm -> sto -> trm -> sto -> Prop :=
-| red_sel : forall x m s t T ds,
-    binds x (val_new T ds) s ->
-    defs_has (open_defs x ds) (def_trm m t) ->
-    trm_sel (avar_f x) m / s => t / s
-| red_app : forall f a s T t,
-    binds f (val_lambda T t) s ->
-    trm_app (avar_f f) (avar_f a) / s => open_trm a t / s
-| red_let : forall v t s x,
-    x # s ->
-    trm_let (trm_val v) t / s => open_trm x t / s & x ~ v
-| red_let_var : forall t s x,
-    trm_let (trm_var (avar_f x)) t / s => open_trm x t / s
-| red_let_tgt : forall t0 t s t0' s',
-    t0 / s => t0' / s' ->
-    trm_let t0 t / s => trm_let t0' t / s'
-where "t1 '/' st1 '=>' t2 '/' st2" := (red t1 st1 t2 st2).
-
-(** TODO: rename to red **)
-
-Inductive red_ec : ec -> trm -> ec -> trm -> Prop :=
-| red_ec_apply : forall x y e T t,
+Inductive red : ec -> trm -> ec -> trm -> Prop :=
+| red_apply : forall x y e T t,
     binds x (val_lambda T t) (ec_sto e) ->
-    red_ec e (trm_app (avar_f x) (avar_f y)) e (open_trm y t)
-| red_ec_project : forall x a e T ds t,
+    e / trm_app (avar_f x) (avar_f y) => e / open_trm y t
+| red_project : forall x a e T ds t,
     binds x (val_new T ds) (ec_sto e) ->
     defs_has (open_defs x ds) (def_trm a t) ->
-    red_ec e (trm_sel (avar_f x) a) e t
-| red_ec_let_let : forall s t1 t2 t3,
-    red_ec (e_term s t1) (trm_let t2 t3) (e_term s (trm_let t3 t1)) t2
-| red_ec_term_to_hole_val : forall s x v t, (* s | let [v] in t -> s, (x ~ v) | [t^x] *)
+    e / trm_sel (avar_f x) a => e / t
+| red_let_let : forall s t1 t2 t3,
+    e_term s t1 / trm_let t2 t3 => e_term s (trm_let t3 t1) / t2
+| red_term_to_hole_val : forall s x v t, (* s | let [v] in t -> s, (x ~ v) | [t^x] *)
     x # s ->
-    red_ec (e_term s t) (trm_val v) (e_hole (s & (x ~ v))) (open_trm x t)
-| red_ec_term_to_hole_var : forall x t s, (* s | let [x] in t -> s | [t^x] *)
-    red_ec (e_term s t) (trm_var (avar_f x)) (e_hole s) (open_trm x t)
-| red_ec_hole_to_term : forall s t u, (* s | [let t in u] -> s | let [t] in u *)
-    red_ec (e_hole s) (trm_let t u) (e_term s u) t.
+    e_term s t / trm_val v => e_hole (s & (x ~ v)) / open_trm x t
+| red_term_to_hole_var : forall x t s, (* s | let [x] in t -> s | [t^x] *)
+    e_term s t / trm_var (avar_f x) => e_hole s / open_trm x t
+| red_hole_to_term : forall s t u, (* s | [let t in u] -> s | let [t] in u *)
+    e_hole s / trm_let t u => e_term s u / t
+where "t1 '/' st1 '=>' t2 '/' st2" := (red t1 st1 t2 st2).
 
 
 (* ###################################################################### *)
@@ -719,60 +686,6 @@ Inductive ty_trm_inv_v : ctx -> val -> typ -> Prop :=
   G |-##v v : T ->
   G |-##v v : typ_top
 where "G '|-##v' v ':' T" := (ty_trm_inv_v G v T).
-
-(* Reserved Notation "e '{{' u '}}' '==' t" (at level 60). *)
-(* Inductive ec_app : ec -> trm -> trm -> Prop := *)
-(* (* e[u] ≡ t *) *)
-(* | ec_empty : forall t, *)
-(*     e_empty {{ t }} == t *)
-(* (* ⦰[t] ≡ t *) *)
-(* | ec_val : forall x e u t v, *)
-(*     x \notin ((fv_ec e) \u (fv_trm t) \u (fv_val v) \u (fv_trm u)) -> *)
-(*     e {{ u }} == t -> *)
-(*     e_let_val x v (open_ec x e) {{ open_trm x u }} == (trm_let (trm_val v) t) *)
-(* (* let x = v in e[u] ≡ let x=v in t *) *)
-(* (* (e,x=v)[u] ≡ let x=v in t *) *)
-(* | ec_trm : forall x u t, *)
-(*     x \notin ((fv_trm u) \u (fv_trm t)) -> *)
-(*     (e_let_trm x (open_trm x t)) {{ u }} == (trm_let u t) *)
-(* (* let x = [u] in t ≡ let x=u in t *) *)
-(* where "e '{{' u '}}' '==' t" := (ec_app e u t). *)
-
-(* (** TODO: remove ' from names **) *)
-(* Reserved Notation "t1 '|=>' t2" (at level 60). *)
-(* Inductive ec_red : trm -> trm -> Prop := *)
-(* | red_term' : forall t t' e et et', *)
-(*     t |=> t' -> *)
-(*     e {{ t }} == et -> *)
-(*     e {{ t' }} == et' -> *)
-(*     et |=> et' *)
-(* | red_apply' : forall x e y t T t1 t2, *)
-(*     x \notin ((fv_ec e) \u (fv_trm t) \u (fv_typ T)) -> *)
-(*     (e_let_val x (val_lambda T t) e) {{ (trm_app (avar_f x) (avar_f y)) }} == t1 -> *)
-(*     (e_let_val x (val_lambda T t) e) {{ (open_trm y t) }} == t2 -> *)
-(*     t1 |=> t2 *)
-(* | red_project' : forall x e a t ds T t1 t2, *)
-(*     x \notin ((fv_ec e) \u (fv_defs ds)) -> *)
-(*     defs_has (open_defs x ds) (def_trm a t) -> *)
-(*     (e_let_val x (val_new T ds) e) {{ (trm_sel (avar_f x) a) }} == t1 -> *)
-(*     (e_let_val x (val_new T ds) e) {{ t }} == t2 -> *)
-(*     t1 |=> t2 *)
-(* | red_let_var' : forall y t, *)
-(*     trm_let (trm_var (avar_f y)) t |=> (open_trm y t) *)
-(* | red_let_let' : forall s t u, *)
-(*     trm_let (trm_let s t) u |=> (trm_let s (trm_let t u)) *)
-(* where "t1 '|=>' t2 " := (ec_red t1 t2). *)
-
-(* Reserved Notation "e '{{' G '}}' '==' G'" (at level 60). *)
-(* Inductive eg_app : ec -> ctx -> ctx -> Prop := *)
-(* | eg_empty : forall G, e_empty {{G}} == G *)
-(* | eg_val : forall L G x e (v: val) T G', *)
-(*     x \notin L -> *)
-(*     G |-! trm_val v : T -> *)
-(*     e{{G & x ~ T}} == G' -> *)
-(*     (e_let_val x v e) {{G}} == G' *)
-(* | eg_trm : forall G x u, (e_let_trm x u) {{G}} == G *)
-(* where "e '{{' G '}}' '==' G'" := (eg_app e G G'). *)
 
 Reserved Notation "G '~~' s" (at level 40).
 
