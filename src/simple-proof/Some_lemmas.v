@@ -204,32 +204,38 @@ Qed.
 Lemma lc_open_rec_open_typ_dec: forall x y,
     (forall T n m,
         n <> m ->
-        open_rec_typ n x (open_typ y T) = open_rec_typ m y T ->
+        open_rec_typ n x (open_rec_typ m y T) = open_rec_typ m y T ->
         open_rec_typ n x T = T) /\
     (forall D n m,
         n <> m ->
-        open_rec_dec n x (open_dec y D) = open_rec_dec m y D ->
+        open_rec_dec n x (open_rec_dec m y D) = open_rec_dec m y D ->
         open_rec_dec n x D = D).
 Proof.
-  introv. apply typ_mutind; intros; simpls; auto.
-Admitted.
+  introv. apply typ_mutind; intros; simpls; auto. 
+  - inversions H1. rewrite H with (m:=m); auto. 
+  - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=m); auto.
+  - inversions H0. destruct a; simpl; auto. 
+    case_if; simpls; case_if; subst; simpl in *; repeat case_if~.
+    reflexivity.
+  - 
+    Admitted.
 
 Lemma lc_open_rec_open_val_def_defs: forall x y,
     (forall t n m,
         n <> m ->
-        open_rec_trm n x (open_trm y t) = open_rec_trm m y t ->
+        open_rec_trm n x (open_rec_trm m y t) = open_rec_trm m y t ->
         open_rec_trm n x t = t) /\
     (forall v n m,
         n <> m ->
-        open_rec_val n x (open_val y v) = open_rec_val m y v ->
+        open_rec_val n x (open_rec_val m y v) = open_rec_val m y v ->
         open_rec_val n x v = v) /\
     (forall d n m,
         n <> m ->
-        open_rec_def n x (open_def y d) = open_rec_def m y d ->
+        open_rec_def n x (open_rec_def m y d) = open_rec_def m y d ->
         open_rec_def n x d = d) /\
     (forall ds n m,
         n <> m ->
-        open_rec_defs n x (open_defs y ds) = open_rec_defs m y ds ->
+        open_rec_defs n x (open_rec_defs m y ds) = open_rec_defs m y ds ->
         open_rec_defs n x ds = ds).
 Proof.
   introv. apply trm_mutind; intros; simpls; auto.
