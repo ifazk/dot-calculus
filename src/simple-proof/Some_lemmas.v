@@ -217,10 +217,13 @@ Proof.
   - inversions H0. destruct a; simpl; auto. 
     case_if; simpls; case_if; subst; simpl in *; repeat case_if~.
     reflexivity.
-  - 
-    Admitted.
+  - inversions H1. rewrite H with (m:=S m); auto.
+  - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=S m); auto.
+  - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=m); auto.
+  - inversions H1. rewrite H with (m:=m); auto.
+Qed.
 
-Lemma lc_open_rec_open_val_def_defs: forall x y,
+Lemma lc_open_rec_open_trm_val_def_defs: forall x y,
     (forall t n m,
         n <> m ->
         open_rec_trm n x (open_rec_trm m y t) = open_rec_trm m y t ->
@@ -239,7 +242,23 @@ Lemma lc_open_rec_open_val_def_defs: forall x y,
         open_rec_defs n x ds = ds).
 Proof.
   introv. apply trm_mutind; intros; simpls; auto.
- Admitted. (* here *)
+  - destruct a; simpl; auto.
+    case_if; simpl in *; case_if; simpl in *; auto; case_if.
+  - inversions H1. rewrite H with (m:=m); auto.
+  - inversions H0. 
+    destruct a; simpl; auto.
+    case_if; simpl in *; case_if; simpl in *; auto; case_if.
+  - inversions H0. destruct a; destruct a0; simpl; auto; repeat case_if~; simpls; repeat case_if; simpl in *; repeat case_if~.
+  - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=S m); auto.
+  - inversions H1. rewrite H with (m:=S m); auto. 
+    rewrite (proj21 (lc_open_rec_open_typ_dec x y)) with (m:=S m); auto.
+  - inversions H1. rewrite H with (m:=S m); auto.
+    rewrite (proj21 (lc_open_rec_open_typ_dec x y)) with (m:=m); auto.
+  - inversions H0. 
+    rewrite (proj21 (lc_open_rec_open_typ_dec x y)) with (m:=m); auto.
+  - inversions H1. rewrite H with (m:=m); auto.
+  - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=m); auto.
+Qed.
 
 Lemma lc_opening_avar: forall n x y,
     lc_var y ->
@@ -254,23 +273,27 @@ Lemma lc_opening_typ_dec: forall x,
 Proof.
   intros. apply lc_typ_mutind; intros; simpls; f_equal*.
   - apply* lc_opening_avar.
-  - specialize (H x (S n)). apply lc_open_rec_open_typ_dec in H. assumption.
-  - specialize (H x (S n)). apply lc_open_rec_open_typ_dec in H. assumption.
+  - specialize (H x (S n)). apply lc_open_rec_open_typ_dec in H; auto. 
+  - specialize (H x (S n)). apply lc_open_rec_open_typ_dec in H; auto. 
 Qed.
 
-Lemma lc_opening_val_def_defs: forall x,
+Lemma lc_opening_trm_val_def_defs: forall x,
   (forall t, lc_trm t -> forall n, open_rec_trm n x t = t) /\
   (forall v, lc_val v -> forall n, open_rec_val n x v = v) /\
   (forall d, lc_def d -> forall n, open_rec_def n x d = d) /\
   (forall ds, lc_defs ds -> forall n, open_rec_defs n x ds = ds).
 Proof.
   introv. apply lc_mutind; intros; simpls; f_equal*; try (apply* lc_opening_avar).
-  - specialize (H0 x (S n)). apply* lc_open_rec_open_val_def_defs.
-  - specialize (l x). apply (proj21 (lc_opening_typ_dec x)) with (n := S n) in l.
-    apply* lc_open_rec_open_typ_dec.
-  - specialize (H x (S n)). apply* lc_open_rec_open_val_def_defs.
+  - specialize (H0 x (S n)). 
+    rewrite (proj41 (lc_open_rec_open_trm_val_def_defs) x x) with (m:=0); auto.
+  - specialize (l x). 
+    apply (proj21 (lc_opening_typ_dec x)) with (n := S n) in l.
+    rewrite (proj21 (lc_open_rec_open_typ_dec x x)) with (m:=0); auto.
+  - specialize (H x (S n)). 
+    rewrite (proj44 (lc_open_rec_open_trm_val_def_defs) x x) with (m:=0); auto.
   - apply* lc_opening_typ_dec.
-  - specialize (H x (S n)). apply* lc_open_rec_open_val_def_defs.
+  - specialize (H x (S n)). 
+    rewrite (proj41 (lc_open_rec_open_trm_val_def_defs) x x) with (m:=0); auto.
   - apply* lc_opening_typ_dec.
 Qed.
 
