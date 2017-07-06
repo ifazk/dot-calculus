@@ -202,32 +202,35 @@ Proof.
 Qed.
 
 Lemma lc_open_rec_open_typ_dec: forall x y,
-    (forall T n m, 
+    (forall T n m,
         n <> m ->
         open_rec_typ n x (open_typ y T) = open_rec_typ m y T ->
         open_rec_typ n x T = T) /\
-    (forall D n m, 
-        n <> m -> 
+    (forall D n m,
+        n <> m ->
         open_rec_dec n x (open_dec y D) = open_rec_dec m y D ->
         open_rec_dec n x D = D).
 Proof.
-  introv. apply typ_mutind; intros; simpls; auto. 
-  - inversions H1. erewrite~ H. 
-  - inversions H1. rewrite~ H. rewrite~ H0.
-  - inversions H. destruct a; simpl; auto. 
-    case_if; simpls; case_if; subst; simpl. simpl in *.
-    case_if; subst; auto.
-Qed.
+  introv. apply typ_mutind; intros; simpls; auto.
+Admitted.
 
 Lemma lc_open_rec_open_val_def_defs: forall x y,
-    (forall t n, open_rec_trm n x (open_trm y t) = open_trm y t ->
-          open_rec_trm n x t = t) /\
-    (forall v n, open_rec_val n x (open_val y v) = open_val y v ->
-          open_rec_val n x v = v) /\
-    (forall d n, open_rec_def n x (open_def y d) = open_def y d ->
-          open_rec_def n x d = d) /\
-    (forall ds n, open_rec_defs n x (open_defs y ds) = open_defs y ds ->
-          open_rec_defs n x ds = ds).
+    (forall t n m,
+        n <> m ->
+        open_rec_trm n x (open_trm y t) = open_rec_trm m y t ->
+        open_rec_trm n x t = t) /\
+    (forall v n m,
+        n <> m ->
+        open_rec_val n x (open_val y v) = open_rec_val m y v ->
+        open_rec_val n x v = v) /\
+    (forall d n m,
+        n <> m ->
+        open_rec_def n x (open_def y d) = open_rec_def m y d ->
+        open_rec_def n x d = d) /\
+    (forall ds n m,
+        n <> m ->
+        open_rec_defs n x (open_defs y ds) = open_rec_defs m y ds ->
+        open_rec_defs n x ds = ds).
 Proof.
   introv. apply trm_mutind; intros; simpls; auto.
  Admitted. (* here *)
@@ -245,8 +248,9 @@ Lemma lc_opening_typ_dec: forall x,
 Proof.
   intros. apply lc_typ_mutind; intros; simpls; f_equal*.
   - apply* lc_opening_avar.
-  - specialize (H x (S n)). apply* lc_open_rec_open_typ_dec.
-    Admitted.
+  - specialize (H x (S n)). apply lc_open_rec_open_typ_dec in H. assumption.
+  - specialize (H x (S n)). apply lc_open_rec_open_typ_dec in H. assumption.
+Qed.
 
 Lemma lc_opening_val_def_defs: forall x,
   (forall t, lc_trm t -> forall n, open_rec_trm n x t = t) /\
@@ -255,14 +259,14 @@ Lemma lc_opening_val_def_defs: forall x,
   (forall ds, lc_defs ds -> forall n, open_rec_defs n x ds = ds).
 Proof.
   introv. apply lc_mutind; intros; simpls; f_equal*; try (apply* lc_opening_avar).
-  -
-
-
-    inversions H. f_equal. apply* lc_opening_avar.
-  - inversions H0. f_equal*.
-  - inversions H. f_equal*. apply* lc_opening_avar.
-  - inversions H. f_equal*; apply* lc_opening_avar.
-  - inversions H1. specialize (H n H4). rewrite H. f_equal*. apply* H0.
+  - specialize (H0 x (S n)). apply* lc_open_rec_open_val_def_defs.
+  - specialize (l x). apply (proj21 (lc_opening_typ_dec x)) with (n := S n) in l.
+    apply* lc_open_rec_open_typ_dec.
+  - specialize (H x (S n)). apply* lc_open_rec_open_val_def_defs.
+  - apply* lc_opening_typ_dec.
+  - specialize (H x (S n)). apply* lc_open_rec_open_val_def_defs.
+  - apply* lc_opening_typ_dec.
+Qed.
 
 Lemma lc_opening : forall t n x,
     lc_trm t ->
