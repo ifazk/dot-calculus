@@ -161,7 +161,7 @@ Lemma red_preserves_lc :
 Proof.
   intros.
   destruct H0.
-  dependent induction H.
+  dependent induction H; try solve [inversions H1; inversions H0; split*].
   - pose proof (lc_ec_sto_inv H0).
     pose proof (lc_ec_sto_binds_inv H0 H).
     inversions H3. split; auto.
@@ -178,9 +178,6 @@ Proof.
     assert (open_rec_trm 1 x (open_rec_trm 0 x0 t1) = open_rec_trm 0 x0 t1)
       as Heq by (apply lc_opening; auto).
     rewrite* Heq.
-  - inversions H1. inversions H0. split*.
-  - inversions H0. inversions H1. split*.
-  - inversions H0. inversions H1. split*.
 Qed.
 
 
@@ -312,7 +309,7 @@ Proof.
     * destruct (canonical_forms_2 Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
       right. repeat eexists. apply* red_project.
     * right. exists (e_term s u) t.
-      apply red_hole_to_term.
+      apply red_congruence_let.
     * specialize (IHHt Hi) as [IH | [t' [s' Hred]]].
       + assumption.
       + left. assumption.
