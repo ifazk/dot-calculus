@@ -28,7 +28,6 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import Weakening.
 
 (** [Gamma |- ds :: Ds]                     #<br>#
     [Ds] is a record type with labels [ls] #<br>#
