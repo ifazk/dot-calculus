@@ -25,20 +25,6 @@ Inductive normal_form: trm -> Prop :=
 
 Hint Constructors normal_form.
 
-(* Typing for the evaluation context / term pair with an empty typing context. Internally, a typing context representing the types of variables in the stack is used. *)
-Inductive ty_ec_trm: ctx -> ec -> trm -> typ -> Prop :=
-| ty_e_hole : forall G s t T,
-    G ~~ s ->
-    inert G ->
-    G |- t : T ->
-    ty_ec_trm G (e_hole s) t T
-| ty_e_term : forall L G s u t T U,
-    G ~~ s ->
-    inert G ->
-    G |- t : T ->
-    (forall x, x \notin L -> G & x ~ T |- (open_trm x u) : U) ->
-    ty_ec_trm G (e_term s u) t U.
-
 Lemma lc_sto_push_inv : forall s x v,
     lc_sto (s & x ~ v) ->
     lc_sto s /\ lc_val v.
@@ -96,8 +82,8 @@ Proof.
 Qed.
 
 Lemma red_term_to_hole: forall s u t t',
-    e_term s u / t => e_term s u / t' ->
-    e_hole s / t => e_hole s / t'.
+    e_term s u / t |-> e_term s u / t' ->
+    e_hole s / t |-> e_hole s / t'.
 Proof.
   intros. dependent induction H.
   - eapply red_apply; eauto.
@@ -169,7 +155,7 @@ Qed.
 
 Lemma red_preserves_lc :
   forall e t e' t',
-    e / t => e' / t' ->
+    e / t |-> e' / t' ->
     lc_term e t ->
     lc_term e' t'.
 Proof.
@@ -206,7 +192,7 @@ Qed.
 
 Lemma preservation_hole: forall G s t e' t' T,
     lc_term (e_hole s) t ->
-    e_hole s / t => e' / t' ->
+    e_hole s / t |-> e' / t' ->
     G ~~ s ->
     inert G ->
     G |- t : T ->
@@ -244,7 +230,7 @@ Qed.
 
 Lemma preservation: forall G e t e' t' T,
     lc_term e t ->
-    e / t => e' / t' ->
+    e / t |-> e' / t' ->
     ty_ec_trm G e t T ->
     exists G', ty_ec_trm (G & G') e' t' T.
 Proof.
@@ -330,7 +316,7 @@ Qed.
 
 Lemma progress_red: forall G e t T,
     ty_ec_trm G e t T ->
-    (normal_form t \/ exists e' t', e / t => e' / t').
+    (normal_form t \/ exists e' t', e / t |-> e' / t').
 Proof.
   introv Ht.
   destruct e.
@@ -364,7 +350,7 @@ Lemma progress: forall G e t T,
     ty_ec_trm G e t T ->
     (normal_form t \/
      exists e' t',
-       e / t => e' / t' /\
+       e / t |-> e' / t' /\
        lc_term e' t').
 Proof.
   introv Hlc Ht.
