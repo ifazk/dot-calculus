@@ -294,7 +294,7 @@ Lemma lc_opening : forall t n x,
     lc_trm t ->
     open_rec_trm n x t = t.
 Proof.
-  intros. apply* lc_opening_val_def_defs.
+  intros. apply* lc_opening_trm_val_def_defs.
 Qed.
 
 (* ###################################################################### *)
