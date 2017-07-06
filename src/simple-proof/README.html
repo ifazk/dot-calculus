@@ -33,6 +33,16 @@
             Coq proof that comes with Wadlerfest DOT paper.</p>
         <h3><a id="Getting_Started_12"></a>Getting Started</h3>
         <p><em>TODO finish this</em></p>
+        <p>
+            We provide a virtual box VM which comes with all the required
+            software and include all proof scripts.
+
+            You may download virtual box from <a
+            href="https://www.virtualbox.org/">virtualbox.org</a>, and the VM
+            from <a href="https://dropbox.me" >TODO</a>.
+
+            You may also choose to use your own system with <code>coq 8.6</code>.
+        </p>
         <div>
             <h3>Requirements</h3>
             <p>
@@ -51,11 +61,31 @@
                 Other requirements are.
                 <ul>
                     <li><code>make</code></li>
+                    <li><code>unzip</code></li>
                 </ul>
             </p>
         </div>
         <h3><a id="StepbyStep_Instructions_16"></a>Step-by-Step Instructions</h3>
         <p><em>TODO</em></p>
+        <p>
+            To use the VM, start up <code>VirtualBox</code> and select <code>New
+            VM</code> and add a new Linux (Ubuntu 64-bit) machine with the
+            provided <code>TODO.vdi</code> file as the harddisk. Then start the
+            VM. You will find the directory containing this
+            <code>README.html</code> file and the artifact in the Desktop. The
+            links in this file assume that you are reading this file from the
+            directory you will compiling from.
+        </p>
+        <p>
+            To compile the proof, navigate to the artifact directory from a
+            terminal window and run <code>make</code> to compile the
+            proof. <code>make</code> will do the following:
+            <ul>
+                <li>Compile the <code>tlc</code> library. (precompiled on the VM)</li>
+                <li>Compile the safety proof.</li>
+                <li>Generate the documentation.</li>
+            </ul>
+        </p>
         <h3><a id="Description_of_the_Artifact_20"></a>Description of the Artifact</h3>
         <p>This artifact presents a Coq formalization of the DOT calculus and DOT's type safety proof
             using the method presented in the paper. The artifact also provides proofs for Properties 1 (Inert Context Guarantee)
