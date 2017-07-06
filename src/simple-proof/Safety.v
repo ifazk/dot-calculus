@@ -19,11 +19,18 @@ Require Import Canonical_forms2.
 (* ###################################################################### *)
 (** * Safety *)
 
-Inductive normal_form: trm -> Prop :=
-| nf_var: forall x, normal_form (trm_var x)
-| nf_val: forall v, normal_form (trm_val v).
+Inductive normal_form_trm: trm -> Prop :=
+| nf_var: forall x, normal_form_trm (trm_var x)
+| nf_val: forall v, normal_form_trm (trm_val v).
 
-Hint Constructors normal_form.
+Definition normal_form (e : ec) (t : trm) : Prop :=
+  match e with
+  | e_hole _   => normal_form_trm t
+  | e_term _ _ => False
+  end.
+
+Hint Unfold normal_form.
+Hint Constructors normal_form_trm.
 
 Lemma lc_sto_push_inv : forall s x v,
     lc_sto (s & x ~ v) ->
@@ -298,7 +305,7 @@ Qed.
 Lemma progress_red: forall G e t T,
     inert G ->
     ty_ec_trm G e t T ->
-    (normal_form t \/ exists e' t', e / t |-> e' / t').
+    (normal_form e t \/ exists e' t', e / t |-> e' / t').
 Proof.
   introv Hi Ht.
   destruct e.
@@ -316,21 +323,27 @@ Proof.
       + right. exists t' s'. assumption.
   - inversions Ht. clear H6.
     rename H1 into Hwf. rename H3 into Ht.
-    dependent induction Ht; try solve [left; auto].
+    dependent induction Ht; right.
+    * repeat eexists; apply red_let_var.
+    * pick_fresh x. repeat eexists; apply red_congruence_val with (x:=x); auto.
     * destruct (canonical_forms_1 Hwf Hi Ht1) as [L' [T' [t [Bis [Hsub Hty]]]]].
-      right. repeat eexists. apply* red_apply.
+      repeat eexists. apply* red_apply.
+    * pick_fresh x. repeat eexists; apply red_congruence_val with (x:=x); auto.
     * destruct (canonical_forms_2 Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
-      right. repeat eexists. apply* red_project.
-    * right. exists (e_term s (trm_let u t0)) t.
-      eapply red_let_let.
+      repeat eexists. apply* red_project.
+    * repeat eexists; apply red_let_let.
+    * repeat eexists; apply red_let_var.
+    * repeat eexists; apply red_let_var.
+    * repeat eexists; apply red_let_var.
     * specialize (IHHt Hi) as [IH | [t' [s' Hred]]]; eauto.
+      inversion IH.
 Qed.
 
 Lemma progress: forall G e t T,
     inert G ->
     lc_term e t ->
     ty_ec_trm G e t T ->
-    (normal_form t \/
+    (normal_form e t \/
      exists e' t',
        e / t |-> e' / t' /\
        lc_term e' t').
