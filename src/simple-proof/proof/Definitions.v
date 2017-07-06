@@ -836,6 +836,29 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     G |- typ_all S1 T1 <: typ_all S2 T2
 where "G '|-' T '<:' U" := (subtyp G T U).
 
+(** ** Well-formed Stores *)
+
+(** Given a typing [Gamma |- e[t]: T], [wf_sto] establishes a correspondence
+    between [Gamma] and the store [s] that is used to define the
+    evaluation context [e].
+    We say that [s] is well-formed with respect to [Gamma], denoted [Gamma ~~ s], if
+    - [Gamma = {(xi mapsto Ti) | i = 1, ..., n}]
+    - [s = {(xi mapsto vi) | i = 1, ..., n)}]
+    - [Gamma |- vi: Ti].
+*)
+
+Reserved Notation "G '~~' s" (at level 40).
+
+Inductive wf_sto: ctx -> sto -> Prop :=
+| wf_sto_empty: empty ~~ empty
+| wf_sto_push: forall G s x T v,
+    G ~~ s ->
+    x # G ->
+    x # s ->
+    G |- trm_val v : T ->
+    G & x ~ T ~~ s & x ~ v
+where "G '~~' s" := (wf_sto G s).
+
 (** * Typing Relations for the Safety Proof *)
 (** The following typing relations are not part of the DOT calculus, but are used
     in the proof of DOT's safety theorems. *)
@@ -1225,18 +1248,6 @@ Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
   G |-##v v : T ->
   G |-##v v : typ_top
 where "G '|-##v' v ':' T" := (ty_val_inv G v T).
-
-Reserved Notation "G '~~' s" (at level 40).
-
-Inductive wf_sto: ctx -> sto -> Prop :=
-| wf_sto_empty: empty ~~ empty
-| wf_sto_push: forall G s x T v,
-    G ~~ s ->
-    x # G ->
-    x # s ->
-    G |- trm_val v : T ->
-    G & x ~ T ~~ s & x ~ v
-where "G '~~' s" := (wf_sto G s).
 
 (** ** Record types *)
 (** In the proof, it will be useful to be able to distinguish record types from

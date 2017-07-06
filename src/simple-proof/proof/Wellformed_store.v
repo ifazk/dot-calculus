@@ -10,9 +10,10 @@ Require Import Precise_types.
 Require Import Invertible_typing.
 Require Import General_to_tight.
 
-(* ###################################################################### *)
-(** ** Well-formed store *)
+(** This module establishes properties of the well-formedness
+    relation [Gamma ~~ s] ([wf_sto]). *)
 
+(** If [Gamma ~~ s] and [x notin s], then [x notin Gamma]. *)
 Lemma wf_sto_notin_dom: forall G s x,
     G ~~ s ->
     x # s -> x # G.
@@ -20,6 +21,7 @@ Proof.
   intros. induction H; auto.
 Qed.
 
+(** If [Gamma ~~ s], the variables in the domain of [s] are distinct. *)
 Lemma wf_sto_to_ok_G: forall s G,
     G ~~ s -> ok G.
 Proof. intros. induction H; jauto. Qed.

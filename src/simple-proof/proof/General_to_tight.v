@@ -35,12 +35,12 @@ Require Import Definitions.
 Require Import Precise_types.
 Require Import Invertible_typing.
 
-(** * Sel-<: Premise *)
-(** This lemma corresponds to Lemma 3.5 in the paper. *)
+(** * Sel-<: Premise
+    This lemma corresponds to Lemma 3.5 in the paper. *)
 
 (** [inert Gamma]                    #<br># *)
 (** [Gamma |-## x: {A: S..U}]               *)
-(** -------------------------               *)
+(** ------------------------------          *)
 (** [exists T. Gamma |-## x: {A: T..T}]   #<br># *)
 (** [Gamma |-# T <: U]               #<br># *)
 (** [Gamma |-# S <: T]                      *)
@@ -85,8 +85,8 @@ Qed.
 
 (** * General to Tight [|- to |-#] *)
 (** The following lemma corresponds to Theorem 3.3 in the paper.
-    It says that in an inert environment, general typing ([ty_trm] |-) can
-    be reduced to tight typing ([ty_trm_t] |-#).
+    It says that in an inert environment, general typing ([ty_trm] [|-]) can
+    be reduced to tight typing ([ty_trm_t] [|-#]).
     The proof is by mutual induction on the typing and subtyping judgements. *)
 
 (** [inert Gamma]       #<br># *)
@@ -113,7 +113,7 @@ Proof.
   apply ts_mutind; intros; subst; try solve [eapply sel_replacement; auto]; eauto.
 Qed.
 
-(** The general-to-tight lemma formulated for term typing.
+(** The general-to-tight lemma, formulated for term typing.
     This lemma corresponds to Theorem 3.3 in the paper. *)
 Lemma general_to_tight_typing: forall G t T,
   inert G ->

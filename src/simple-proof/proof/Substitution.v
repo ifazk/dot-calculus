@@ -181,13 +181,13 @@ Qed.
     [z[y/x] := if z == x then y else z], where [z] is a named variable. *)
 Definition subst_fvar(x y z: var): var := If z = x then y else z.
 
-(** The following lemmas state that substitution distributes over opening:
+(** The following lemmas state that substitution commutes with opening:
     for a symbol [Z], #<br>#
     [(Z^a)[y/x] = (Z[y/x])^(a[y/x])]. *)
 
-(** Distributivity of substitution
+(** Substitution commutes with opening
     - for variables *)
-Lemma subst_open_distr_avar: forall x y u,
+Lemma subst_open_commut_avar: forall x y u,
   (forall a: avar, forall n: Datatypes.nat,
     subst_avar x y (open_rec_avar n u a)
     = open_rec_avar n (subst_fvar x y u) (subst_avar  x y a)).
@@ -198,7 +198,7 @@ Proof.
 Qed.
 
 (** - for types and declarations *)
-Lemma subst_open_distr_typ_dec: forall x y u,
+Lemma subst_open_commut_typ_dec: forall x y u,
   (forall t : typ, forall n: nat,
      subst_typ x y (open_rec_typ n u t)
      = open_rec_typ n (subst_fvar x y u) (subst_typ x y t)) /\
@@ -207,18 +207,18 @@ Lemma subst_open_distr_typ_dec: forall x y u,
      = open_rec_dec n (subst_fvar x y u) (subst_dec x y D)).
 Proof.
   intros. apply typ_mutind; intros; simpl; f_equal*.
-  apply subst_open_distr_avar.
+  apply subst_open_commut_avar.
 Qed.
 
 (** - for types only *)
-Lemma subst_open_distr_typ: forall x y u T,
+Lemma subst_open_commut_typ: forall x y u T,
   subst_typ x y (open_typ u T) = open_typ (subst_fvar x y u) (subst_typ x y T).
 Proof.
-  intros. apply* subst_open_distr_typ_dec.
+  intros. apply* subst_open_commut_typ_dec.
 Qed.
 
 (** - for terms, values, and definitions *)
-Lemma subst_open_distr_trm_val_def_defs: forall x y u,
+Lemma subst_open_commut_trm_val_def_defs: forall x y u,
   (forall t : trm, forall n: Datatypes.nat,
      subst_trm x y (open_rec_trm n u t)
      = open_rec_trm n (subst_fvar x y u) (subst_trm x y t)) /\
@@ -233,23 +233,23 @@ Lemma subst_open_distr_trm_val_def_defs: forall x y u,
      = open_rec_defs n (subst_fvar x y u) (subst_defs x y ds)).
 Proof.
   intros. apply trm_mutind; intros; simpl; f_equal*;
-    (apply* subst_open_distr_avar || apply* subst_open_distr_typ_dec).
+    (apply* subst_open_commut_avar || apply* subst_open_commut_typ_dec).
 Qed.
 
 (** - only for terms *)
-Lemma subst_open_distr_trm: forall x y u t,
+Lemma subst_open_commut_trm: forall x y u t,
     subst_trm x y (open_trm u t)
     = open_trm (subst_fvar x y u) (subst_trm x y t).
 Proof.
-  intros. apply* subst_open_distr_trm_val_def_defs.
+  intros. apply* subst_open_commut_trm_val_def_defs.
 Qed.
 
 (** - only for definitions *)
-Lemma subst_open_distr_defs: forall x y u ds,
+Lemma subst_open_commut_defs: forall x y u ds,
     subst_defs x y (open_defs u ds)
     = open_defs (subst_fvar x y u) (subst_defs x y ds).
 Proof.
-  intros. apply* subst_open_distr_trm_val_def_defs.
+  intros. apply* subst_open_commut_trm_val_def_defs.
 Qed.
 
 (** The following lemmas state that opening a symbol with a variable [y]
@@ -262,7 +262,7 @@ Qed.
 Lemma subst_intro_trm: forall x u t, x \notin (fv_trm t) ->
   open_trm u t = subst_trm x u (open_trm x t).
 Proof.
-  introv Fr. unfold open_trm. rewrite* subst_open_distr_trm.
+  introv Fr. unfold open_trm. rewrite* subst_open_commut_trm.
   destruct (@subst_fresh_trm_val_def_defs x u) as [Q _]. rewrite* (Q t).
   unfold subst_fvar. case_var*.
 Qed.
@@ -271,7 +271,7 @@ Qed.
 Lemma subst_intro_defs: forall x u ds, x \notin (fv_defs ds) ->
   open_defs u ds = subst_defs x u (open_defs x ds).
 Proof.
-  introv Fr. unfold open_trm. rewrite* subst_open_distr_defs.
+  introv Fr. unfold open_trm. rewrite* subst_open_commut_defs.
   destruct (@subst_fresh_trm_val_def_defs x u) as [_ [_ [_ Q]]]. rewrite* (Q ds).
   unfold subst_fvar. case_var*.
 Qed.
@@ -280,7 +280,7 @@ Qed.
 Lemma subst_intro_typ: forall x u T, x \notin (fv_typ T) ->
   open_typ u T = subst_typ x u (open_typ x T).
 Proof.
-  introv Fr. unfold open_typ. rewrite* subst_open_distr_typ.
+  introv Fr. unfold open_typ. rewrite* subst_open_commut_typ.
   destruct (@subst_fresh_typ_dec x u) as [Q _]. rewrite* (Q T).
   unfold subst_fvar. case_var*.
 Qed.
@@ -376,8 +376,8 @@ Proof.
     assert (subst_fvar x y z = z) as A. {
       unfold subst_fvar. rewrite If_r. reflexivity. auto.
     }
-    rewrite <- A at 2. rewrite <- subst_open_distr_trm.
-    rewrite <- A at 3. rewrite <- subst_open_distr_typ.
+    rewrite <- A at 2. rewrite <- subst_open_commut_trm.
+    rewrite <- A at 3. rewrite <- subst_open_commut_typ.
     assert (subst_ctx x y G2 & z ~ subst_typ x y T
                                = subst_ctx x y (G2 & z ~ T)) as B. {
       unfold subst_ctx. rewrite map_concat. rewrite map_single. reflexivity.
@@ -389,7 +389,7 @@ Proof.
     rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
     apply ok_push. apply ok_concat_map. auto. unfold subst_ctx. auto.
   - Case "ty_all_elim".
-    rewrite subst_open_distr_typ.
+    rewrite subst_open_commut_typ.
     eapply ty_all_elim.
     simpl in H.
     apply H; auto.
@@ -401,7 +401,7 @@ Proof.
       unfold subst_fvar. rewrite If_r. reflexivity. auto.
     }
     rewrite <- A at 2. rewrite <- A at 3. rewrite <- A at 4.
-    rewrite <- subst_open_distr_typ. rewrite <- subst_open_distr_defs.
+    rewrite <- subst_open_commut_typ. rewrite <- subst_open_commut_defs.
     assert (subst_ctx x y G2 & z ~ subst_typ x y (open_typ z T)
                                = subst_ctx x y (G2 & z ~ open_typ z T)) as B. {
       unfold subst_ctx. rewrite map_concat. rewrite map_single. reflexivity.
@@ -422,7 +422,7 @@ Proof.
     assert (subst_fvar x y z = z) as A. {
       unfold subst_fvar. rewrite If_r; auto.
     }
-    rewrite <- A at 2. rewrite <- subst_open_distr_trm.
+    rewrite <- A at 2. rewrite <- subst_open_commut_trm.
     apply H0 with (x0:=z); eauto.
     rewrite concat_assoc. reflexivity.
     rewrite concat_assoc. apply ok_push. assumption. auto.
@@ -437,12 +437,12 @@ Proof.
     rewrite A.
     assert (open_typ (If x = x0 then y else x) (subst_typ x0 y T)
             = subst_typ x0 y (open_typ x T)) as B. {
-      rewrite subst_open_distr_typ. unfold subst_fvar. reflexivity.
+      rewrite subst_open_commut_typ. unfold subst_fvar. reflexivity.
     }
     rewrite B.
     apply H; auto.
   - Case "ty_rec_elim".
-    rewrite subst_open_distr_typ.
+    rewrite subst_open_commut_typ.
     apply ty_rec_elim.
     apply H; auto.
   - Case "ty_sub".
@@ -464,7 +464,7 @@ Proof.
       unfold subst_fvar. rewrite If_r. reflexivity. auto.
     }
     rewrite <- A at 2. rewrite <- A at 3.
-    rewrite <- subst_open_distr_typ. rewrite <- subst_open_distr_typ.
+    rewrite <- subst_open_commut_typ. rewrite <- subst_open_commut_typ.
     assert (subst_ctx x y G2 & z ~ subst_typ x y S2
                                = subst_ctx x y (G2 & z ~ S2)) as B. {
       unfold subst_ctx. rewrite map_concat. rewrite map_single. reflexivity.
