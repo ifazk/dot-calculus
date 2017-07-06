@@ -24,6 +24,9 @@
 (** printing notin  %\notin%         #&notin;#                     *)
 (** printing isin   %\in%            #&isin;#                      *)
 (** printing subG   %\prec:%         #&#8826;:#                    *)
+(** printing v1     %v_1%            #v<sub>1</sub>#               *)
+(** printing v2     %v_2%            #v<sub>2</sub>#               *)
+(** printing |->    %\mapsto%        #&#8614;#                     *)
 (** remove printing ~ *)
 
 (** This proof uses the
@@ -147,25 +150,44 @@ Definition defs_has(ds: defs)(d: def) := get_def (label_of_def d) ds = Some d.
 
 Definition defs_hasnt(ds: defs)(l: label) := get_def l ds = None.
 
-(** *** Environments *)
 (** Typing environment ([Gamma], referred to in the proof as [G]) *)
 Definition ctx := env typ.
 
-(** Value environment (used to represent evaluation contexts) *)
+(** ** Evaluation Contexts
+
+The paper defines an evaluation context with the following context-free grammar:
+
+[e ::= [] | let x = [] in t | let x = v in e]
+
+This grammar generates the language characterized by the regular expression:
+
+[ (let x = v in)* []  ]               #<br>#
+[| (let x = v in)* let x = [] in t]
+
+It is more convenient in Coq to represent evaluation contexts following the above
+regular expression.
+
+The sequence of variable-to-value let bindings, [(let x = v in)*],
+is represented as a value environment that maps variables to values: *)
 Definition sto := env val.
 
-(** Evaluation contexts *)
+(** Now, an evaluation context is either
+    - [e_hole s], where [s] is a (possibly empty) store, which
+      represents [(let x = v in)* []], or
+    - [e_term s t], where [s] is the store and [t] the term to
+      be evaluated next, which represents [(let x = v in)* let x = [] in t]. *)
 Inductive ec : Type :=
 | e_hole : sto -> ec
 | e_term : sto -> trm -> ec.
 
+(** A function that retrieves the store from an evaluation context. *)
 Definition ec_sto (e : ec) :=
   match e with
   | e_hole s   => s
   | e_term s t => s
   end.
 
-(** * Free Variables and Opening *)
+(** * Opening, Free Variables, Local Closure *)
 
 (** ** Opening *)
 (** Opening takes a bound variable that is represented with a de Bruijn index [k]
@@ -229,13 +251,19 @@ Definition open_val  u v := open_rec_val   0 u v.
 Definition open_def  u d := open_rec_def   0 u d.
 Definition open_defs u l := open_rec_defs  0 u l.
 
-(** **  Closed *)
-(** TODO DESCRIPTION *)
+(** ** Local Closure
 
+  Our definition of [trm] admits terms that contain de Bruijn indices that are unbound.
+  A symbol [X] is considered locally closed, denoted [lc X], if all de Bruijn indices
+  in [X] are bound.
+   We will require a term to be locally closed in the final safety theorem. *)
+
+(** Only named variables are locally closed. *)
 Inductive lc_var : avar -> Prop :=
 | lc_var_x : forall x,
     lc_var (avar_f x).
 
+(** Locally closed types and declarations. *)
 Inductive lc_typ : typ -> Prop :=
 | lc_typ_top : lc_typ typ_top
 | lc_typ_bot : lc_typ typ_bot
@@ -265,6 +293,7 @@ with lc_dec : dec -> Prop :=
     lc_typ T ->
     lc_dec (dec_trm a T).
 
+(** Locally closed terms, values, and definitions. *)
 Inductive lc_trm : trm -> Prop :=
 | lc_trm_var : forall a,
     lc_var a ->
@@ -306,6 +335,7 @@ with lc_defs : defs -> Prop :=
     lc_def d ->
     lc_defs (defs_cons ds d).
 
+(** Local closedness for stores *)
 Inductive lc_sto : sto -> Prop :=
 | lc_sto_empty : lc_sto empty
 | lc_sto_cons : forall x v s,
@@ -313,6 +343,7 @@ Inductive lc_sto : sto -> Prop :=
     lc_val v ->
     lc_sto (s & x ~ v).
 
+(** Local closedness for evaluation contexts *)
 Inductive lc_ec : ec -> Prop :=
 | lc_ec_hole : forall s,
     lc_sto s ->
@@ -322,18 +353,21 @@ Inductive lc_ec : ec -> Prop :=
     (forall x, lc_trm (open_trm x t)) ->
     lc_ec (e_term s t).
 
+(** Local closedness for terms that are decomposed using evaluation contexts *)
 Definition lc_term (e : ec) (t : trm) : Prop :=
   lc_ec e /\ lc_trm t.
 
 (** ** Free variables
-       Functions that retrieve the friee variables of types, terms, etc. *)
+       Functions that retrieve the free variables of a symbol. *)
 
+(** Free variable in a variable. *)
 Definition fv_avar (a: avar) : vars :=
   match a with
   | avar_b i => \{}
   | avar_f x => \{x}
   end.
 
+(** Free variables in a type or declaration. *)
 Fixpoint fv_typ (T: typ) : vars :=
   match T with
   | typ_top        => \{}
@@ -350,6 +384,7 @@ with fv_dec (D: dec) : vars :=
   | dec_trm m T   => (fv_typ T)
   end.
 
+(** Free variables in a term, value, or definition. *)
 Fixpoint fv_trm (t: trm) : vars :=
   match t with
   | trm_var a       => (fv_avar a)
@@ -374,12 +409,14 @@ with fv_defs(ds: defs) : vars :=
   | defs_cons tl d   => (fv_defs tl) \u (fv_def d)
   end.
 
+(** Free variables in an evaluation context *)
 Fixpoint fv_ec (e: ec) : vars :=
   match e with
   | e_hole s => dom s
   | e_term s t => dom s \u (fv_trm t)
   end.
 
+(** Free variables in the range (types) of a context *)
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
 
 (** ** Tactics *)
@@ -433,32 +470,162 @@ Tactic Notation "SSSCase" constr(name) := Case_aux SSSCase name.
 Tactic Notation "SSSSCase" constr(name) := Case_aux SSSSCase name.
 Tactic Notation "SSSSSCase" constr(name) := Case_aux SSSSSCase name.
 
-(** * Operational Semantics *)
+(** * Operational Semantics
 
-Reserved Notation "e1 '/' t1 '=>' e2 '/' t2" (at level 40, e2 at level 39).
+The reduction rules in the paper are:
+
+[t -> t']
+----------------
+[e[t] |-> e[t']]   #<br>#
+(Term)
+
+[v = lambda(z: T).t]
+-------------------------------------------------
+[let x = v in e[x y] |-> let x = v in e[[y/x] t]]  #<br>#
+(Apply)
+
+[v = nu(x: T)...{a = t}...]
+-------------------------------------------
+[let x = v in e[x.a] |-> let x = v in e[t]]   #<br>#
+(Project)
+
+[let x = y in t |-> [y/x] t] #<br>#
+(Let-Var)
+
+[let x = let y = s in t in y |-> let y = s in let x = t in u] #<br>#
+(Let-Let)
+
+We transform the rules by inlining the (Term) rule into all of the other rules:
+
+[v = lambda(z: T).t]
+-----------------------------------------------------------
+[e1[let x = v in e2[x y]] |-> e1[let x = v in e2[[y/x] t]]] #<br>#
+(Apply)
+
+[v = nu(x: T)...{a = t}...]
+-----------------------------------------------------
+[e1[let x = v in e2[x.a]] |-> e1[let x = v in e2[t]]] #<br>#
+(Project)
+
+[e[let x = y in t] |-> e[[y/x] t]] #<br>#
+(Let-Var)
+
+[e[let x = let y = s in t in y] |-> e[let y = s in let x = t in u]] #<br>#
+(Let-Let)
+
+We then note that in the Apply and Project rules,
+[e1[let x = v in e2[ ]]]
+is itself a larger evaluation context. We simplify this evaluation context
+into just [e[ ]].
+
+Additionally, we define a binds relation [e(x) = v] which determines
+that the evaluation context [e] to contains the subterm [let x = v in e2]:
+
+[e = e1[let x = v in e2[ ]]]
+------------------------------
+[binds x v e]
+
+The (Apply) and (Project) reduction rules become:
+
+[e(x) = lambda(z: T).t]
+------------------------------
+[e[x y] |-> e[[y/x] t]] #<br>#
+(Apply)
+
+[e(x) = nu(x: T)...{a = t}...]
+------------------------------
+[e[x.a] |-> e[t]] #<br>#
+(Project)
+
+In general, there may be multiple decompositions of a term into an evaluation context
+and a subterm. For example, the term
+
+[let x = v1 in let y = v2 in x y]
+
+decomposes in three ways:
+
+[[let x = v1 in let y = v2 in x y]]
+
+[let x = v1 in [let y = v2 in x y]]
+
+[let x = v1 in let y = v2 in [x y]]
+
+However, the reduction rules cannot apply to any of the decompositions except the
+last one, because none of the reduction rules match the syntactic pattern
+
+[e[let x = v in t]]
+
+Therefore, the only decomposition to which a reduction rule can possibly apply
+is the maximal one, where all prefixes of the form
+
+[let x = v in]
+
+have been shifted into the evaluation context.
+
+In the proof, we represent terms in this maximally decomposed way, in the form
+of a pair [(e, t)] of an evaluation context and a term.
+
+A term of the form
+
+[let x = t in u]
+
+can be decomposed into evaluation contexts in two ways:
+
+[[let x = t in u]]  (1)
+
+[let x = [t] in u]  (2)
+
+Similarly, a term of the form
+
+[let x = v in u]
+
+can be decomposed into evaluation contexts in three ways:
+
+[[let x = v in u]]  (3)
+
+[let x = [v] in u]  (4)
+
+[let x = v in [u]]  (5)
+
+Of these different decompositions of the same two terms, the reduction
+rules can apply only to decompositions (2) and (5).
+
+We add congruence reduction rules to reduce the decomposition (1) to
+decomposition (2) and decompositions (3) and (4) to decomposition (5).
+
+[e[ ] | let x = t in u |-> e[let x = [ ] in u] | t]
+(Congruence-Let)
+
+[e[let x = [ ] in u] | v |-> e[let x = v in [ ]] | u]
+(Congruence-Val)
+
+Rule (Congruence-Let) reduces (1) to (2). It also reduces (3) to (4).
+Rule (Congruence-Val) then further reduces (4) to (5). *)
+
+Reserved Notation "e1 '/' t1 '|->' e2 '/' t2" (at level 40, e2 at level 39).
 
 Inductive red : ec -> trm -> ec -> trm -> Prop :=
 | red_apply : forall x y e T t,
     binds x (val_lambda T t) (ec_sto e) ->
-    e / trm_app (avar_f x) (avar_f y) => e / open_trm y t
+    e / trm_app (avar_f x) (avar_f y) |-> e / open_trm y t
 | red_project : forall x a e T ds t,
     binds x (val_new T ds) (ec_sto e) ->
     defs_has (open_defs x ds) (def_trm a t) ->
-    e / trm_sel (avar_f x) a => e / t
+    e / trm_sel (avar_f x) a |-> e / t
+| red_let_var : forall x t s, (* s | let [x] in t -> s | [t^x] *)
+    e_term s t / trm_var (avar_f x) |-> e_hole s / open_trm x t
 | red_let_let : forall s t1 t2 t3,
-    e_term s t1 / trm_let t2 t3 => e_term s (trm_let t3 t1) / t2
-| red_term_to_hole_val : forall s x v t, (* s | let [v] in t -> s, (x ~ v) | [t^x] *)
+    e_term s t1 / trm_let t2 t3 |-> e_term s (trm_let t3 t1) / t2
+| red_congruence_let : forall s t u, (* s | [let t in u] -> s | let [t] in u *)
+    e_hole s / trm_let t u |-> e_term s u / t
+| red_congruence_val: forall s x v t, (* s | let [v] in t -> s, (x ~ v) | [t^x] *)
     x # s ->
-    e_term s t / trm_val v => e_hole (s & (x ~ v)) / open_trm x t
-| red_term_to_hole_var : forall x t s, (* s | let [x] in t -> s | [t^x] *)
-    e_term s t / trm_var (avar_f x) => e_hole s / open_trm x t
-| red_hole_to_term : forall s t u, (* s | [let t in u] -> s | let [t] in u *)
-    e_hole s / trm_let t u => e_term s u / t
-where "t1 '/' st1 '=>' t2 '/' st2" := (red t1 st1 t2 st2).
+    e_term s t / trm_val v |-> e_hole (s & (x ~ v)) / open_trm x t
+where "t1 '/' st1 '|->' t2 '/' st2" := (red t1 st1 t2 st2).
 
 (** * Typing Rules *)
 
-Reserved Notation "G '|-' t ':' T" (at level 40, t at level 59).
+Reserved Notation "G '|-'  t ':' T" (at level 40, t at level 59).
 Reserved Notation "G '|-' T '<:' U" (at level 40, T at level 59).
 Reserved Notation "G '/-' d : D" (at level 40, d at level 59).
 Reserved Notation "G '/-' ds :: D" (at level 40, ds at level 59).
@@ -657,9 +824,9 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     G |- trm_var (avar_f x) : typ_rcd (dec_typ A S T) ->
     G |- typ_sel (avar_f x) A <: T
 
-(** [Gamma |- S2 <: S1]                #<br>#  *)
+(** [Gamma |- S2 <: S1]                #<br># *)
 (** [Gamma, x: S2 |- T1^x <: T2^x]     #<br># *)
-(** [x fresh]                               *)
+(** [x fresh]                                *)
 (** ----------------------------             *)
 (** [Gamma |- forall(S1)T1 <: forall(S2)T2]             *)
 | subtyp_all: forall L G S1 T1 S2 T2,
@@ -669,9 +836,8 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     G |- typ_all S1 T1 <: typ_all S2 T2
 where "G '|-' T '<:' U" := (subtyp G T U).
 
-
-(** * Definitions used in the Safety Proof *)
-(** The following definitions are not part of the DOT calculus, but are used
+(** * Typing Relations for the Safety Proof *)
+(** The following typing relations are not part of the DOT calculus, but are used
     in the proof of DOT's safety theorems. *)
 
 Reserved Notation "G '|-!' t ':' T" (at level 40, t at level 59).
@@ -1142,6 +1308,24 @@ Inductive inert : ctx -> Prop :=
       inert_typ T ->
       x # G ->
       inert (G & x ~ T).
+
+(** ** Typing of Evaluation Contexts *)
+
+(** We define a typing relation for pairs [(e, t)] of an evaluation context and a term.
+    The pair [(e, t)] has type T in typing context [Gamma] if and only if the term
+    [e[t]] has type [T] in typing context [Gamma] according to the general typing
+    relation for terms. *)
+Inductive ty_ec_trm: ctx -> ec -> trm -> typ -> Prop :=
+| ty_e_hole : forall G s t T,
+    G ~~ s ->
+    G |- t : T ->
+    ty_ec_trm G (e_hole s) t T
+| ty_e_term : forall L G s u t T U,
+    G ~~ s ->
+    G |- t : T ->
+    (forall x, x \notin L -> G & x ~ T |- (open_trm x u) : U) ->
+    ty_ec_trm G (e_term s u) t U.
+
 
 (** * Infrastructure *)
 
