@@ -2,12 +2,12 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Definitions.
-Require Import Wellformed_store.
-Require Import Helper_lemmas.
 Require Import Narrowing.
-Require Import Invertible_typing.
+Require Import Helper_lemmas.
 Require Import Precise_types.
+Require Import Invertible_typing.
 Require Import General_to_tight.
+Require Import Wellformed_store.
 
 (*
 Lemma (Canonical forms 1)

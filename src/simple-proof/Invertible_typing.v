@@ -27,9 +27,9 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import Precise_types.
-Require Import Helper_lemmas.
 Require Import Narrowing.
+Require Import Helper_lemmas.
+Require Import Precise_types.
 
 (** This module contains lemmas related to invertible typing
     ([ty_var_inv], [|-##] and [ty_val_inv], [|-##v]). *)

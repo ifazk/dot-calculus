@@ -2,13 +2,12 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Definitions.
-Require Import Weakening.
-Require Import Wellformed_store.
-Require Import Substitution.
 Require Import Helper_lemmas.
 Require Import Precise_types.
-Require Import General_to_tight.
+Require Import Substitution.
 Require Import Invertible_typing.
+Require Import General_to_tight.
+Require Import Wellformed_store.
 
 Lemma defs_has_hasnt_neq: forall ds d1 d2,
   defs_has ds d1 ->
