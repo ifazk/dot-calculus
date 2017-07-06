@@ -41,13 +41,75 @@ Inductive ty_ec_trm: ctx -> ec -> trm -> typ -> Prop :=
     (forall x, x \notin L -> G & x ~ T |- (open_trm x u) : U) ->
     ty_ec_trm G (e_term s u) t U.
 
-Lemma red_preserves_lc :
-  forall e t e' t',
-    red_ec e t e' t' ->
-    lc_term e t ->
-    lc_term e' t'.
+(* Lemma test_bnd: forall G x t T, *)
+(*     inert G -> *)
+(*     G |- trm_sel (avar_f x) t : T -> *)
+(*     exists T', G |- trm_var (avar_f x) : typ_bnd T'. *)
+(* Proof. *)
+(*   introv Hin Ht. apply (general_to_tight_typing Hin) in Ht. *)
+(*   inversions Ht. *)
+(*   - apply (invertible_typing_lemma Hin) in H3. *)
+(*     dependent induction H3. *)
+(*     + admit. *)
+(*     + eapply IHty_trm_inv; auto. *)
+(*   - admit. *)
+(* Qed. *)
+
+Lemma lc_sto_push_inv : forall s x v,
+    lc_sto (s & x ~ v) ->
+    lc_sto s /\ lc_val v.
 Proof.
-  Admitted.
+  intros s x v H.
+  inversion H.
+  - destruct (empty_push_inv H1).
+  - destruct (eq_push_inv H0) as [? [? ?] ]; subst.
+    auto.
+Qed.
+
+Lemma lc_sto_binds_inv : forall s x v,
+    lc_sto s ->
+    binds x v s ->
+    lc_val v.
+Proof.
+  intros.
+  induction s using env_ind.
+  - destruct (binds_empty_inv H0).
+  - destruct (binds_push_inv H0) as [[? ?] | [? ?]]; subst.
+    + apply (lc_sto_push_inv H).
+    + apply IHs; auto.
+      apply (lc_sto_push_inv H).
+Qed.
+
+Lemma lc_ec_sto_inv : forall e,
+    lc_ec e ->
+    lc_sto (ec_sto e).
+Proof.
+  intros e H.
+  induction H; auto.
+Qed.
+
+Lemma lc_ec_sto_binds_inv : forall e x v,
+    lc_ec e ->
+    binds x v (ec_sto e) ->
+    lc_val v.
+Proof.
+  intros.
+  inversion H; subst; eauto using lc_sto_binds_inv.
+Qed.
+
+Lemma lc_defs_has : forall ds d,
+    lc_defs ds ->
+    defs_has ds d ->
+    lc_def d.
+Proof.
+  intros.
+  induction ds.
+  - inversion H0.
+  - unfold defs_has in H0; simpl in H0.
+    cases_if.
+    + inversion H0; subst. inversion H; auto.
+    + apply IHds; auto. inversion H; auto.
+Qed.
 
 Lemma red_term_to_hole: forall s u t t',
     red_ec (e_term s u) t (e_term s u) t' ->
@@ -70,7 +132,7 @@ Qed.
 Lemma open_comm_typ_dec: forall x y,
     (forall T n m,
         n <> m ->
-        open_rec_typ n x (open_rec_typ m y T) = 
+        open_rec_typ n x (open_rec_typ m y T) =
         open_rec_typ m y (open_rec_typ n x T)) /\
     (forall D n m,
         n <> m ->
@@ -80,34 +142,34 @@ Proof.
   intros. apply typ_mutind; intros; subst; simpl; auto.
   - rewrite~ H.
   - rewrite~ H. rewrite~ H0.
-  - destruct a; simpl; auto. 
+  - destruct a; simpl; auto.
     repeat case_if; subst; simpl; repeat case_if~.
   - rewrite~ H.
   - rewrite~ H. rewrite~ H0.
   - rewrite~ H. rewrite~ H0.
   - rewrite~ H.
 Qed.
-    
+
 Lemma open_comm_trm_val_def_defs : forall x y,
-    (forall t n m, 
+    (forall t n m,
         n <> m ->
-        open_rec_trm n x (open_rec_trm m y t) = 
-        open_rec_trm m y (open_rec_trm n x t)) /\ 
-    (forall v n m, 
+        open_rec_trm n x (open_rec_trm m y t) =
+        open_rec_trm m y (open_rec_trm n x t)) /\
+    (forall v n m,
         n <> m ->
         open_rec_val n x (open_rec_val m y v) =
         open_rec_val m y (open_rec_val n x v)) /\
-    (forall d n m, 
+    (forall d n m,
         n <> m ->
-        open_rec_def n x (open_rec_def m y d) = 
+        open_rec_def n x (open_rec_def m y d) =
         open_rec_def m y (open_rec_def n x d)) /\
-    (forall ds n m, 
+    (forall ds n m,
         n <> m ->
-        open_rec_defs n x (open_rec_defs m y ds) = 
+        open_rec_defs n x (open_rec_defs m y ds) =
         open_rec_defs m y (open_rec_defs n x ds)).
 Proof.
   intros. apply trm_mutind; intros; subst; simpl; auto.
-  - destruct a; simpl; auto. 
+  - destruct a; simpl; auto.
     repeat case_if; subst; simpl; repeat case_if~.
   - rewrite~ H.
   - destruct a; simpl; auto.
@@ -120,6 +182,43 @@ Proof.
   - rewrite~ H.
   - rewrite~ H. rewrite~ H0.
 Qed.
+
+Lemma red_preserves_lc :
+  forall e t e' t',
+    red_ec e t e' t' ->
+    lc_term e t ->
+    lc_term e' t'.
+Proof.
+  intros.
+  destruct H0.
+  dependent induction H.
+  - pose proof (lc_ec_sto_inv H0).
+    pose proof (lc_ec_sto_binds_inv H0 H).
+    inversion H3; subst.
+    split; auto.
+  - pose proof (lc_ec_sto_binds_inv H1 H).
+    inversion H3; subst.
+    pose proof (lc_defs_has (H7 x) H0).
+    inversion H4; subst.
+    split; auto.
+  - inversion H0; subst.
+    inversion H1; subst.
+    split; auto. eapply lc_ec_term; auto.
+    intros x. unfold open_trm.
+    simpl. eapply lc_trm_let; auto.
+    intros x0. pose proof (H4 x0).
+    assert (0 <> 1) by auto.
+    pose proof (proj1 (open_comm_trm_val_def_defs x0 x) t1 0 1 H2).
+    unfold open_trm. rewrite H7.
+    assert (open_rec_trm 1 x (open_rec_trm 0 x0 t1) = open_rec_trm 0 x0 t1) by (apply lc_opening; auto).
+    rewrite H8. apply H.
+  - inversion H1; subst.
+    inversion H0; subst.
+    split; auto.
+  - inversion H0; subst. inversion H1; subst. split; auto.
+  - inversion H0; subst. inversion H1; subst. split; auto.
+Qed.
+
 
 Lemma preservation_hole: forall G s t e' t' T,
     lc_term (e_hole s) t ->
@@ -148,10 +247,10 @@ Proof.
     exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
     rewrite <- (defs_has_inv Has H5). constructor*.
   - inversions Hred.
-    exists (@empty typ). rewrite concat_empty_r. 
+    exists (@empty typ). rewrite concat_empty_r.
     eapply ty_e_term; eauto.
   - specialize (IHHt Hlc Hred Hwf Hin Hlc') as [G' IHHt].
-    exists G'. inversions IHHt. 
+    exists G'. inversions IHHt.
     + eapply ty_e_hole; eauto.
       apply weaken_subtyp with (G2:=G') in H; eauto.
     + apply_fresh ty_e_term as z; eauto; intros. assert (z \notin L) by auto.
@@ -178,7 +277,7 @@ Proof.
     destruct t.
     - inversions Hred.
       pick_fresh y.
-      exists (@empty typ). rewrite concat_empty_r. 
+      exists (@empty typ). rewrite concat_empty_r.
       apply ty_e_hole; auto.
       rewrite subst_intro_trm with (x:=y); auto.
       rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
@@ -213,7 +312,7 @@ Proof.
       assert (x0 \notin L) by auto.
       specialize (Ht2 x0 H3).
       eapply (proj41 weaken_rules); eauto.
-    - inversion Hred. rewrite <- H1 in Hred. 
+    - inversion Hred. rewrite <- H1 in Hred.
       apply red_term_to_hole in Hred. subst.
       apply lc_term_to_hole in Hlc.
       pose proof (preservation_hole Hlc Hred Hwf Hin Ht1) as [G' Ht].
@@ -327,13 +426,13 @@ Lemma progress_red: forall G e t T,
     ty_ec_trm G e t T ->
     (normal_form t \/ exists e' t', red_ec e t e' t').
 Proof.
-  introv Ht. 
+  introv Ht.
   (* inversion Hlc as [Hlc_ec Hlc_trm]. *)
   destruct e.
   - inversions Ht. rename H0 into Hwf. rename H1 into Hin. rename H3 into Ht.
     dependent induction Ht; try solve [left; auto].
     * destruct (canonical_forms_1 Hwf Hin Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
-      right. repeat eexists. apply* red_ec_apply. 
+      right. repeat eexists. apply* red_ec_apply.
     * destruct (canonical_forms_2 Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
       right. repeat eexists. apply* red_ec_project.
     * right. exists (e_term s u) t.
@@ -358,12 +457,12 @@ Qed.
 Lemma progress'': forall G e t T,
     lc_term e t ->
     ty_ec_trm G e t T ->
-    (normal_form t \/ 
-     exists e' t', 
+    (normal_form t \/
+     exists e' t',
        red_ec e t e' t' /\
        lc_term e' t').
 Proof.
-  introv Hlc Ht. 
+  introv Hlc Ht.
   destruct (progress_red Ht).
   - left~.
   - destruct H as [e' [t' Hred']]. right. exists e' t'. split~.
