@@ -231,11 +231,17 @@ Proof.
       exists (@empty typ). rewrite concat_empty_r.
       gen L.
       dependent induction Ht1; intros.
-      + eapply ty_e_term with (L:=L); eauto. intros.
-        unfold open_trm. simpl. specialize (H x H1).
+      + eapply ty_e_term with (L:=L \u (dom G)); eauto. intros.
+        assert (x \notin L) by auto.
+        unfold open_trm. simpl. specialize (H x H2).
         apply_fresh ty_let as z; eauto.
         unfold open_trm.
-        rewrite~ (proj41 (open_comm_trm_val_def_defs z x)). admit.
+        rewrite~ (proj41 (open_comm_trm_val_def_defs z x)).
+        inversions Hlc_ec. specialize (H6 z). 
+        apply (lc_opening 1 x) in H6. unfold open_trm in H6. rewrite H6.
+        assert (z \notin L0) by auto.
+        specialize (Ht2 z H3).
+        eapply weaken_rules; eauto. 
       + eapply IHHt1 with (L:=L \u (dom G)); eauto. intros.
         assert (x \notin L) by auto.
         specialize (Ht2 x H1).
