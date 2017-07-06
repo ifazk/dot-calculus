@@ -224,17 +224,18 @@ Proof.
     + eapply ty_e_hole; eauto.
       apply weaken_subtyp with (G2:=G') in H; eauto.
     + apply_fresh ty_e_term as z; eauto; intros. assert (z \notin L) by auto.
-      specialize (H3 z H4).
+      specialize (H2 z H3).
       apply weaken_subtyp with (G2:=(G' & z ~ T0)) in H; rewrite concat_assoc in *; eauto.
 Qed.
 
 Lemma preservation: forall G e t e' t' T,
+    inert G ->
     lc_term e t ->
     e / t |-> e' / t' ->
     ty_ec_trm G e t T ->
     exists G', ty_ec_trm (G & G') e' t' T.
 Proof.
-  introv Hlc Hred Ht.
+  introv Hi Hlc Hred Ht.
   (* lets Hlc': (red_preserves_lc Hred Hlc). *)
   inversion Hlc as [Hlc_ec Hlc_trm].
   inversions Ht.
