@@ -5,11 +5,11 @@ DOTFILES=$(DPDFILES:.dpd=.dot)
 PDFFILES=$(DPDFILES:.dpd=.pdf)
 FILES=$(DPDFILES) $(DOTFILES) $(PDFFILES)
 
-TOPDIR=../tight-proof/
+TOPDIR=../
 TOPNAME=""
 SAFETY=$(TOPDIR)Safety.vo
 
-TLCDIR=../../../ln/tlc/
+TLCDIR=../../../lib/tlc/
 LIBLN=$(TLCDIR)/LibLN.vo
 TLCNAME=TLC
 
@@ -20,6 +20,7 @@ COQINCLUDE=-R $(TLCDIR) $(TLCNAME) -R $(TOPDIR) $(TOPNAME)
 ##############
 
 .PHONY: dpd dot pdf
+
 pdf:: $(PDFFILES)
 dot:: $(DOTFILES)
 dpd:: $(DPDFILES)

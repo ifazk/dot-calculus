@@ -229,16 +229,6 @@ Proof.
     inversion H1. assumption.
 Qed.
 
-(** If [x]'s precise type is a recursive type [mu(x: U)], then [U] is a record type. *)
-Lemma pf_inert_rcd_bnd_U : forall G x T U,
-    inert G ->
-    precise_flow x G T (typ_bnd U) ->
-    record_type U.
-Proof.
-  introv Hi Pf. lets HT: (pf_inert_bnd_U Hi Pf). subst.
-  lets HiT: (pf_rcd_T Hi Pf). assumption.
-Qed.
-
 (** The following two lemmas express that if [x]'s precise type is a function type,
     then [Gamma(x)] is the same function type. *)
 Lemma pf_inert_lambda_U : forall x G S T U,
@@ -371,69 +361,6 @@ Proof.
   }
   lets Hr: (pf_inert_rcd_typ_U Hi Pf1 Hrt). destruct Hr as [U Heq]. subst.
   apply* pf_record_unique_tight_bounds_rec.
-Qed.
-
-(** If [Gamma |-! x: T1] and [Gamma |-! x: T2], where both [T1] and [T2] are inert,
-    then [T1 = T2]. *)
-Lemma inert_pt_unique: forall G x T T1 T2,
-    inert G ->
-    precise_flow x G T T1 ->
-    precise_flow x G T T2 ->
-    inert_typ T1 ->
-    inert_typ T2 ->
-    T1 = T2.
-Proof.
-  introv Hi P1 P2 I1 I2. inversions I1; inversions I2.
-  - apply (pf_inert_lambda_U Hi) in P1.
-    apply (pf_inert_lambda_U Hi) in P2. inversions* P2.
-  - apply (pf_inert_bnd_U Hi) in P2.
-    apply (pf_inert_lambda_U Hi) in P1. inversions* P2.
-  - apply (pf_inert_bnd_U Hi) in P1.
-    apply (pf_inert_lambda_U Hi) in P2. inversions* P2.
-  - apply (pf_inert_bnd_U Hi) in P2.
-    apply (pf_inert_bnd_U Hi) in P1. inversions* P2.
-Qed.
-
-(** If [Gamma |-! x: {a: U1}] and [Gamma |-! x: {a: U2}], then [U1 = U2]. *)
-Lemma pf_rcd_unique: forall G x T a U1 U2,
-    inert G ->
-    precise_flow x G T (typ_rcd (dec_trm a U1)) ->
-    precise_flow x G T (typ_rcd (dec_trm a U2 )) ->
-    U1 = U2.
-Proof.
-  introv Hi Pf1 Pf2. dependent induction Pf1.
-  - apply (binds_inert H) in Hi. inversion Hi.
-  - assert (record_type (typ_rcd (dec_trm a U2))) as Hrt. {
-      eexists. apply* rt_one. constructor.
-    }
-    destruct (pf_inert_rcd_typ_U Hi Pf2 Hrt) as [S Heq]. subst.
-    destruct U; inversions x. destruct d; inversions H0.
-    apply (pf_inert_bnd_U Hi) in Pf1. inversions Pf1.
-    lets Hr: (precise_flow_record_has Hi Pf2). inversion* Hr.
-  - assert (record_type (typ_rcd (dec_trm a U2))) as Hrt. {
-      eexists. apply* rt_one. constructor.
-    }
-    destruct (pf_inert_rcd_typ_U Hi Pf2 Hrt) as [S Heq]. subst.
-    assert (record_has (typ_and (typ_rcd (dec_trm a U1)) U0) (dec_trm a U1))
-      as H by (apply* rh_andl).
-    lets Hr1: (pf_record_sub Hi Pf1 H).
-    lets Hr2: (precise_flow_record_has Hi Pf2).
-    assert (record_type (open_typ x S)) as Hs. {
-      apply open_record_type. apply pf_inert_T in Pf1; auto. inversion* Pf1.
-    }
-    apply* unique_rcd_trm.
-  - assert (record_type (typ_rcd (dec_trm a U2))) as Hrt. {
-      eexists. apply* rt_one. constructor.
-    }
-    destruct (pf_inert_rcd_typ_U Hi Pf2 Hrt) as [S Heq]. subst.
-    assert (record_has (typ_and U3 (typ_rcd (dec_trm a U1))) (dec_trm a U1))
-      as H by (apply* rh_andr).
-    lets Hr1: (pf_record_sub Hi Pf1 H).
-    lets Hr2: (precise_flow_record_has Hi Pf2).
-    assert (record_type (open_typ x S)) as Hs. {
-      apply open_record_type. apply pf_inert_T in Pf1; auto. inversion* Pf1.
-    }
-    apply* unique_rcd_trm.
 Qed.
 
 (** The type to which a variable is bound in an environment is unique. *)
