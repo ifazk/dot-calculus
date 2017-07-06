@@ -514,9 +514,7 @@ Lemma tight_to_general:
      G |-# S <: U ->
      G |- S <: U).
 Proof.
-  apply ts_mutind_t; intros; subst; eauto.
-  - apply precise_to_general in t; eauto.
-  - apply precise_to_general in t; eauto.
+  apply ts_mutind_t; intros; subst; eauto using precise_to_general.
 Qed.
 
 (** * Other Lemmas *)
