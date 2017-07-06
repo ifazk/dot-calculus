@@ -88,7 +88,7 @@ Lemma var_typ_rcd_to_binds: forall G x a T,
     G |- trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
     (exists S T',
         binds x (typ_bnd S) G /\
-        record_has S (dec_trm a T') /\
+        record_has (open_typ x S) (dec_trm a T') /\
         G |- T' <: T).
 Proof.
   introv Hin Ht.
@@ -96,7 +96,42 @@ Proof.
   lets Htt: (general_to_tight_typing Hin Ht).
   lets Hinv: (tight_to_invertible Hin Htt).
   destruct (invertible_to_precise_trm_dec Hinv) as [T' [Htp Hs]].
-Admitted.
+  destruct (precise_flow_lemma Htp) as [U Pf].
+  destruct (pf_inert_rcd_U Hin Pf) as [U' Hr]. subst.
+  lets Hr': (precise_flow_record_has Hin Pf). apply pf_binds in Pf.
+  exists U' T'. split. assumption. split. assumption. apply* tight_to_general.
+Qed.
+
+Lemma record_has_open: forall T D x,
+    record_has T D ->
+    record_has (open_typ x T) (open_dec x D).
+Proof.
+  introv Hr. induction Hr.
+  constructor*.
+  constructor*.
+  unfolds open_typ. simpl. apply* rh_andr.
+Qed.
+
+Lemma val_mu_to_new: forall G v T U a,
+    inert G ->
+    G |- trm_val v: typ_bnd T ->
+    record_has T (dec_trm a U) ->
+    exists x t ds,
+      v = val_new T ds /\
+      defs_has (open_defs x ds) (def_trm a t) /\
+      G & x ~ open_typ x T |- t: (open_typ x U).
+Proof.
+  introv Hi Ht Hr.
+  lets Htt: (general_to_tight_typing Hi Ht).
+  lets Hinv: (tight_to_invertible_v Hi Htt).
+  lets Hp: (invertible_val_to_precise_rec Hinv).
+  destruct (precise_bnd_inv Hp) as [ds Heq]. subst.
+  inversions Hp. pick_fresh x. assert (x \notin L) as Hx by auto.
+  specialize (H1 x Hx).
+  apply record_has_open with (x:=x) in Hr.
+  destruct (record_has_ty_defs H1 Hr) as [d [Hh Hd]]. inversions Hd.
+  exists x t ds. split*.
+Qed.
 
 Lemma canonical_forms_2: forall G s x a T,
   inert G ->
