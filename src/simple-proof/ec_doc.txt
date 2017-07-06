@@ -1,0 +1,119 @@
+The reduction rules in the paper are:
+
+t -> t'
+---------
+e[t] -> e[t']
+(Term)
+
+v = lambda
+-----------
+let x = v in e[x y] -> let x = v in e[[y/x] t]
+(Apply)
+
+v = nu
+-------------
+let x = v in e[x.a] -> let x = v in e[t]
+(Project)
+
+let x = y in t -> [y/x] t
+(Let-Var)
+
+let x = let y = s in t in y -> let y = s in let x = t in u
+(Let-Let)
+
+We transform the rules by inlining the Term rule into all of the other rules:
+
+v = lambda
+-----------
+e1[let x = v in e2[x y]] -> e1[let x = v in e2[[y/x] t]]
+(Apply)
+
+v = nu
+-------------
+e1[let x = v in e2[x.a]] -> e1[let x = v in e2[t]]
+(Project)
+
+e[let x = y in t] -> e[[y/x] t]
+(Let-Var)
+
+e[let x = let y = s in t in y] -> e[let y = s in let x = t in u]
+(Let-Let)
+
+We then note that in the Apply and Project rules,
+e1[let x = v in e2[ ]]
+is itself a larger evaluation context. We simplify this evaluation context
+into just e[ ]. We define a binds relation for evaluation contexts to determine
+that the context contains the subterm let x = v in e2:
+
+e === e1[let x = v in e2[ ]]
+----------------------
+binds x v e
+
+The reduction rules become:
+
+binds x lambda e
+-----------
+e[x y] -> e[[y/x] t]
+(Apply)
+
+binds x nu e
+-------------
+e[x.a] -> e[t]
+(Project)
+
+Representing evaluation contexts
+
+The paper defines an evaluation context with the following context-free grammar:
+
+e ::= [] | let x = [] in t | let x = v in e
+
+This grammar generates the language characterize by the regular expression:
+(let x = v in)* []  |  (let x = v in)* let x = [] in t
+
+It is more convenient in Coq to represent evaluation contexts following the
+regular expression:
+
+TODO insert Coq here
+
+Representing terms
+
+In general, there may be multiple decompositions of a term into an evaluation context
+and a subterm. For example, the term
+
+let x = v1 in let y = v2 in x y
+
+decomposes in three ways:
+
+[let x = v1 in let y = v2 in x y]
+let x = v1 in [let y = v2 in x y]
+let x = v1 in let y = v2 in [x y]
+
+However, the reduction rules cannot apply to any of the decompositions except the
+last one, because none of the reduction rules match the syntactic pattern
+
+e[let x = v in t]
+
+Therefore, the only decomposition to which a reduction rule can possibly apply
+is the maximal one, where all prefixes of the form
+
+let x = v in
+
+have been shifted into the evaluation context.
+
+In the proof, we represent terms in this maximally decomposed way, in the form
+of a pair (e,t) of an evaluation context and a term. We add a reduction rule
+that shifts a prefix
+
+let x = v in
+
+from the term into the evaluation context.
+
+e[let x = v in t] -> e[let x = v in [t]]
+(Let-Val)
+
+Typing for decomposed terms
+
+We define a typing relation for pairs (e,t) of an evaluation context and a term.
+The pair (e,t) has type T in typing context Gamma if and only if the term
+e[t] has type T in typing context Gamma according to the general typing
+relation for terms.
