@@ -9,6 +9,46 @@ Require Import Invertible_typing.
 Require Import General_to_tight.
 Require Import Wellformed_store.
 
+Lemma var_typ_all_to_binds: forall G x T U,
+    inert G ->
+    G |- trm_var (avar_f x) : typ_all T U ->
+    (exists L T' U',
+        binds x (typ_all T' U') G /\
+        G |- T <: T' /\
+        (forall y, y \notin L -> G & y ~ T |- (open_typ y U') <: (open_typ y U))).
+Proof.
+  introv Hin Ht.
+  lets Htt: (general_to_tight_typing Hin Ht).
+  lets Hinv: (tight_to_invertible Hin Htt).
+  destruct (invertible_to_precise_typ_all (inert_ok Hin) Hinv) as [T' [U' [L [Htp [Hs1 Hs2]]]]].
+  exists L T' U'. repeat split.
+  - apply~ inert_precise_all_inv.
+  - apply~ tight_to_general.
+  - assumption.
+Qed.
+
+Lemma val_typ_all_to_lambda: forall G v T U,
+    inert G ->
+    G |- (trm_val v) : typ_all T U ->
+    (exists L T' t,
+        v = val_lambda T' t /\
+        G |- T <: T' /\
+        (forall y, y \notin L -> G & y ~ T |- (open_trm y t) : open_typ y U)).
+Proof.
+  introv Hin Ht.
+  lets Htt: (general_to_tight_typing Hin Ht).
+  lets Hinv: (tight_to_invertible_v Hin Htt).
+  destruct (invertible_val_to_precise_lambda Hinv Hin) as [L [T' [U' [Htp [Hs1 Hs2]]]]].
+  destruct (precise_forall_inv Htp) as [t Heq].
+  subst. inversions Htp.
+  exists (L0 \u L \u (dom G)) T' t. repeat split~.
+  intros. assert (HL: y \notin L) by auto. assert (HL0: y \notin L0) by auto.
+  specialize (Hs2 y HL).
+  specialize (H1 y HL0).
+  eapply ty_sub; eauto. eapply narrow_typing in H1; eauto.
+  apply~ subenv_last.
+Qed.
+
 (*
 Lemma (Canonical forms 1)
 If G ~ s and G |- x: all(x: T)U then s(x) = lambda(x: T')t where G |- T <: T' and G, x: T |- t: U.
@@ -21,36 +61,30 @@ Lemma canonical_forms_1: forall G s x T U,
   (exists L T' t, binds x (val_lambda T' t) s /\ G |- T <: T' /\
   (forall y, y \notin L -> G & y ~ T |- open_trm y t : open_typ y U)).
 Proof.
-  introv Hwf Hgd Hty.
-  pose proof (general_to_tight_typing Hgd Hty) as Hti.
-  pose proof (tight_to_invertible Hgd Hti) as Hinv.
-  pose proof (invertible_to_precise_typ_all (inert_ok Hgd) Hinv) as [S' [T' [L' [Hpt [HSsub HTsub]]]]].
-  pose proof (inert_precise_all_inv Hgd Hpt) as Bi.
-  pose proof (corresponding_types Hwf Hgd Bi)
-    as [[L [S [V [S1 [V1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [S [ds [Hb [Ht Heq]]]]].
-  subst. inversion Heq; subst. inversions Ht.
-  - exists (L \u L' \u L0 \u dom G) S t.
-    split; auto.
-    assert (forall y W, y # G -> ok (G & y ~ W)) as Hok by (intros; apply* ok_push).
-    inversion Hinv; subst.
-    + apply (inert_precise_all_inv Hgd) in Hpt.
-      apply (inert_precise_all_inv Hgd) in H.
-      pose proof (binds_func Hpt H) as H4.
-      inversion H4; subst T U; clear H4.
-      split. auto. intros y Hy.
-      assert (y \notin L0) as Hy0 by auto. assert (y \notin L) as HyL by auto.
-      specialize (H1 y Hy0). apply narrow_typing with (G':=G & y ~ S1) in H1.
-      apply ty_sub with (T:=open_typ y V).
-      assumption. apply* Hs2. apply* subenv_last. apply* Hok.
-    + apply tight_to_general in HSsub; auto.
-      assert (G |- T <: S) as HTS by (apply* subtyp_trans).
-      split; auto. intros y Hy. assert (y \notin L0) as Hy0 by auto.
-      specialize (H1 y Hy0).
-      apply narrow_typing with (G':=G & y ~ T) in H1. apply ty_sub with (T:=open_typ y V).
-      assumption. apply subtyp_trans with (T:=open_typ y V1).
-      assert (y \notin L) as HL by auto.
-      specialize (Hs2 y HL). apply narrow_subtyping with (G':=G & y ~ T) in Hs2.
-      assumption. apply* subenv_last. apply* Hok.
-      apply* HTsub. apply* subenv_last. apply* Hok.
+  introv Hwf Hin Hty.
+  destruct (var_typ_all_to_binds Hin Hty) as [L [S [T' [BiG [Hs1 Hs2]]]]].
+  destruct (corresponding_types Hwf Hin BiG) as [[L' [S' [V [S1 [V1 [t [Hb [Ht [Heq [Hs1' Hs2']]]]]]]]]] | [S' [ds [Hb [Ht Heq]]]]].
+  - inversions Heq.
+    destruct (val_typ_all_to_lambda Hin (precise_to_general Ht)) as [L'' [S'' [t' [Heq [Hs1'' Hs2'']]]]].
+    inversions Heq.
+    inversions Ht.
+    exists (L0 \u L \u L' \u L'' \u (dom G)) S'' t'.
+    repeat split~.
+    + eapply subtyp_trans; eauto.
+    + intros.
+      assert (HL: y \notin L) by auto.
+      assert (HL': y \notin L') by auto.
+      assert (HL'': y \notin L'') by auto.
+      specialize (Hs2 y HL).
+      specialize (Hs2' y HL').
+      specialize (Hs2'' y HL'').
+      apply narrow_typing with (G':=G & y ~ T) in Hs2''; auto.
+      {
+        apply ty_sub with (T:=open_typ y V1); auto.
+        apply narrow_subtyping with (G':=G & y ~ T) in Hs2'; auto.
+        { eapply ty_sub; eauto. }
+        { apply~ subenv_last. }
+      }
+      { apply~ subenv_last. eapply subtyp_trans; eauto. }
   - inversion Heq.
 Qed.
