@@ -223,11 +223,11 @@ Inductive lc_typ : typ -> Prop :=
 | lc_typ_sel : forall x L,
     lc_var x ->
     lc_typ (typ_sel x L)
-| lc_typ_bnd : forall x T,
-    lc_typ (open_typ x T) ->
+| lc_typ_bnd : forall T,
+    (forall x, lc_typ (open_typ x T)) ->
     lc_typ (typ_bnd T)
-| lc_typ_all : forall x T1 T2,
-    lc_typ (open_typ x T2) ->
+| lc_typ_all : forall T1 T2,
+    (forall x, lc_typ (open_typ x T2)) ->
     lc_typ T1 ->
     lc_typ (typ_all T1 T2)
 with lc_dec : dec -> Prop :=
@@ -253,18 +253,18 @@ Inductive lc_trm : trm -> Prop :=
     lc_var f ->
     lc_var a ->
     lc_trm (trm_app f a)
-| lc_trm_let : forall x t1 t2,
+| lc_trm_let : forall t1 t2,
     lc_trm t1 ->
-    lc_trm (open_trm x t2) ->
+    (forall x, lc_trm (open_trm x t2)) ->
     lc_trm (trm_let t1 t2)
 with lc_val : val -> Prop :=
-     | lc_val_new : forall x T ds,
-         lc_typ (open_typ x T) ->
-         lc_defs (open_defs x ds) ->
+     | lc_val_new : forall T ds,
+         (forall x, lc_typ (open_typ x T)) ->
+         (forall x, lc_defs (open_defs x ds)) ->
          lc_val (val_new T ds)
-     | lc_val_lam : forall x T t,
+     | lc_val_lam : forall T t,
          lc_typ T ->
-         lc_trm (open_trm x t) ->
+         (forall x, lc_trm (open_trm x t)) ->
          lc_val (val_lambda T t)
 with lc_def : def -> Prop :=
      | lc_def_typ : forall L T,
@@ -291,9 +291,9 @@ Inductive lc_ec : ec -> Prop :=
 | lc_ec_hole : forall s,
     lc_sto s ->
     lc_ec (e_hole s)
-| lc_ec_term : forall s x t,
+| lc_ec_term : forall s t,
     lc_sto s ->
-    lc_trm (open_trm x t) ->
+    (forall x, lc_trm (open_trm x t)) ->
     lc_ec (e_term s t).
 
 Definition lc_term (e : ec) (t : trm) : Prop :=
