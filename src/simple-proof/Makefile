@@ -80,3 +80,8 @@ _CoqProject: .FORCE
 	@echo $(COQINCLUDE) > $@
 
 .FORCE:
+
+
+graph.png: $(PROOFS)
+	coqdep -dumpgraph graph.dot *.v
+	dot -Tpng graph.dot > graph.png
