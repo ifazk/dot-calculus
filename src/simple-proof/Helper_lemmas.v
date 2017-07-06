@@ -145,58 +145,6 @@ Proof.
     + assumption.
 Qed.
 
-(** - opening of terms, values, and definitions with fresh variables is injective. *)
-Lemma open_fresh_trm_val_def_defs_injective:
-  (forall t t' k x,
-      x \notin fv_trm t ->
-      x \notin fv_trm t' ->
-      open_rec_trm k x t = open_rec_trm k x t' ->
-      t = t') /\
-  (forall v v' k x,
-      x \notin fv_val v ->
-      x \notin fv_val v' ->
-      open_rec_val k x v = open_rec_val k x v' ->
-      v = v') /\
-  (forall d d' k x,
-      x \notin fv_def d ->
-      x \notin fv_def d' ->
-      open_rec_def k x d = open_rec_def k x d' ->
-      d = d') /\
-  (forall ds ds' k x,
-      x \notin fv_defs ds ->
-      x \notin fv_defs ds' ->
-      open_rec_defs k x ds = open_rec_defs k x ds' ->
-      ds = ds').
-Proof.
-  apply trm_mutind; intros; simpl in *.
-  - destruct t'; inversions H1.
-    apply (open_fresh_avar_injective _ _ _ H H0) in H3. subst*.
-  - destruct t'; inversions H2.
-    specialize (H _ _ _ H0 H1 H4). subst*.
-  - destruct t'; inversions H1.
-    apply (open_fresh_avar_injective _ _ _ H H0) in H3. subst*.
-  - destruct t'; inversions H1. simpls.
-    assert (a = a1) by (apply* open_fresh_avar_injective).
-    assert (a0 = a2) by (apply* open_fresh_avar_injective). subst*.
-  - destruct t'; inversions H3. simpls.
-    assert (t = t'1) by (apply* H).
-    assert (t0 = t'2) by (apply* H0). subst*.
-  - destruct v'; inversions H2. simpls.
-    assert (t = t0) by (apply* open_fresh_typ_dec_injective).
-    assert (d = d0) by (apply* H). subst~.
-  - destruct v'; inversions H2. simpl in *.
-    assert (t = t1) by (apply* open_fresh_typ_dec_injective).
-    assert (t0 = t2) by (apply* H). subst*.
-  - destruct d'; inversions H1. simpls.
-    apply ((proj21 open_fresh_typ_dec_injective) _ _ _ _ H H0) in H4. subst~.
-  - destruct d'; inversions H2. simpls.
-    specialize (H _ _ _ H0 H1 H5). subst~.
-  - destruct ds'; inversion* H1.
-  - destruct ds'; inversions H3. simpls.
-    assert (d = ds') by (apply* H).
-    assert (d0 = d1) by (apply* H0). subst*.
-Qed.
-
 Lemma lc_open_rec_open_typ_dec: forall x y,
     (forall T n m,
         n <> m ->
@@ -455,30 +403,6 @@ Proof.
   - inversions H5. inversions* H9.
 Qed.
 
-(** [T = ... /\ {a: U1} /\ ...] #<br>#
-    [T = ... /\ {a: U2} /\ ...]
-    -----------------------------
-    [U1 = U2] *)
-Lemma unique_rcd_trm: forall T a U1 U2,
-    record_type T ->
-    record_has T (dec_trm a U1) ->
-    record_has T (dec_trm a U2) ->
-    U1 = U2.
-Proof.
-  introv Htype Has1 Has2.
-  generalize dependent U2. generalize dependent U1. generalize dependent a.
-  destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Has1; inversion Has2; subst.
-  - inversion* H3.
-  - inversion* H5.
-  - apply record_typ_has_label_in with (D:=dec_trm a U1) in Htyp.
-    + inversions H9. false* H1.
-    + assumption.
-  - apply record_typ_has_label_in with (D:=dec_trm a U2) in Htyp.
-    + inversions H5. false* H1.
-    + assumption.
-  - inversions H5. inversions* H9.
-Qed.
-
 (** [ds = ... /\ {a = t} /\ ...]  #<br>#
     [ds = ... /\ {a = t'} /\ ...]
     -----------------------------
@@ -518,16 +442,6 @@ Qed.
 
 (** * Other Lemmas *)
 
-(** If a variable can be typed, then it is a named variable
-    (as opposed to de Bruijn variable). *)
-Lemma var_typing_implies_avar_f: forall G a T,
-  G |- trm_var a : T ->
-  exists x, a = avar_f x.
-Proof.
-  intros. dependent induction H; try solve [eexists; reflexivity].
-  apply IHty_trm; auto.
-Qed.
-
 (** If a value [v] has type [T], then [v] has a precise type [T']
     that is a subtype of [T].
     This lemma corresponds to Lemma 3.13 in the paper. *)
@@ -557,21 +471,4 @@ Proof.
     try solve [inversion Heqt; eapply IHty_trm; eauto];
     try solve [inversion Heqt; eapply IHty_trm1; eauto].
   - inversion Heqt. subst. exists T. assumption.
-Qed.
-
-(** If a variable has a precise type in an environment,
-    then it is bound in that environment. *)
-Lemma precise_typing_implies_bound: forall G x T,
-  G |-! trm_var (avar_f x) : T ->
-  exists S, binds x S G.
-Proof.
-  intros. pose proof (precise_to_general H) as H'.
-  pose proof (typing_implies_bound H'). assumption.
-Qed.
-
-(** A variable cannot be typed in an empty context. *)
-Lemma empty_typing_var: forall x T,
-    empty |- trm_var x : T -> False.
-Proof.
-  intros. dependent induction H; eauto. apply* binds_empty_inv.
 Qed.
