@@ -4,13 +4,13 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Weakening.
-Require Import Wellformed_store.
-Require Import Substitution.
 Require Import Narrowing.
 Require Import Helper_lemmas.
+Require Import Precise_types.
+Require Import Wellformed_store.
+Require Import Substitution.
 Require Import Canonical_forms1.
 Require Import Canonical_forms2.
-Require Import Precise_types.
 
 (* ###################################################################### *)
 (* ###################################################################### *)
