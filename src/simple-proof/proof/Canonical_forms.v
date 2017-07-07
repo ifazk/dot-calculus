@@ -72,7 +72,9 @@ Proof.
     apply* H0.
 Qed.
 
-(** [inert G]            #<br>#
+(** This lemma corresponds to Lemma 3.7 (forall to G(x)) in the paper.
+
+    [inert G]            #<br>#
     [G |- x: forall(T)U]       #<br>#
     [――――――――――――――-]    #<br>#
     [exists T', U'.]          #<br>#
@@ -98,7 +100,9 @@ Proof.
   - assumption.
 Qed.
 
-(** [inert G]                       #<br>#
+(** This lemma corresponds to Lemma 3.8 (forall to lambda) in the paper.
+
+    [inert G]                       #<br>#
     [G |- v: forall(T)U]                  #<br>#
     [――――――――――――]                  #<br>#
     [exists T' t.]                       #<br>#
