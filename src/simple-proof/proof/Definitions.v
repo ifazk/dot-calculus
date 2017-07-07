@@ -1,31 +1,7 @@
-(** printing |-     %\vdash%         #&vdash;#                     *)
-(** printing /-     %\vdash%         #&vdash;#                     *)
 (** printing |-#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
 (** printing |-##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
 (** printing |-##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
 (** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
-(** printing ->     %\rightarrow%    #&rarr;#                      *)
-(** printing =>     %\Rightarrow%    #&rArr;#                      *)
-(** printing ~~     %\~%             #~#                           *)
-(** printing /\     %\wedge%         #&and;#                       *)
-(** printing \/     %\vee%           #&or;#                        *)
-(** printing forall %\forall%        #&forall;#                    *)
-(** printing exists %\exists%        #&exist;#                     *)
-(** printing lambda %\lambda%        #&lambda;#                    *)
-(** printing mu     %\mu%            #&mu;#                        *)
-(** printing nu     %\nu%            #&nu;#                        *)
-(** printing Gamma  %\Gamma%         #&Gamma;#                     *)
-(** printing Gamma' %\Gamma'%        #&Gamma;'#                    *)
-(** printing Gamma1 %\Gamma_1%       #&Gamma;<sub>1</sub>#         *)
-(** printing Gamma2 %\Gamma_2%       #&Gamma;<sub>2</sub>#         *)
-(** printing top    %\top%           #&#8868;#                     *)
-(** printing bottom %\bot%           #&perp;#                      *)
-(** printing <>     %\ne%            #&ne;#                        *)
-(** printing isin   %\in%            #&isin;#                      *)
-(** printing subG   %\prec:%         #&#8826;:#                    *)
-(** printing v1     %v_1%            #v<sub>1</sub>#               *)
-(** printing v2     %v_2%            #v<sub>2</sub>#               *)
-(** printing |->    %\mapsto%        #&#8614;#                     *)
 (** remove printing ~ *)
 
 (** This proof uses the
@@ -1322,15 +1298,17 @@ Inductive inert : ctx -> Prop :=
 (** ** Typing of Evaluation Contexts *)
 
 (** We define a typing relation for pairs [(e, t)] of an evaluation context and a term.
-    The pair [(e, t)] has type T in typing context [Gamma] if and only if the term
-    [e[t]] has type [T] in typing context [Gamma] according to the general typing
-    relation for terms. *)
+    The pair [(e, t)] has type T in typing context [Gamma] if and only if [Gamma] is inert,
+    [Gamma] corresponds to the store of [e], and the term [e[t]] has type [T] in typing context
+    [Gamma] according to the general typing relation for terms . *)
 Inductive ty_ec_trm: ctx -> ec -> trm -> typ -> Prop :=
 | ty_e_hole : forall G s t T,
+    inert G ->
     G ~~ s ->
     G |- t : T ->
     ty_ec_trm G (e_hole s) t T
 | ty_e_term : forall L G s u t T U,
+    inert G ->
     G ~~ s ->
     G |- t : T ->
     (forall x, x \notin L -> G & x ~ T |- (open_trm x u) : U) ->
