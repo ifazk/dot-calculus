@@ -228,7 +228,7 @@ Definition open_defs u l := open_rec_defs  0 u l.
 
 (** ** Local Closure
 
-  Our definition of [trm] admits terms that contain de Bruijn indices that are unbound.
+  Our definition of [trm] accepts terms that contain de Bruijn indices that are unbound.
   A symbol [X] is considered locally closed, denoted [lc X], if all de Bruijn indices
   in [X] are bound.
    We will require a term to be locally closed in the final safety theorem. *)

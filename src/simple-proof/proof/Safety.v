@@ -86,22 +86,20 @@ Lemma progress: forall G e t T,
     ty_ec_trm G e t T ->
     (normal_form e t \/ exists e' t', e / t |-> e' / t').
 Proof.
-  introv Ht.
-  destruct e.
-  - inversions Ht.
-    rename H0 into Hin. rename H1 into Hwf. rename H3 into Ht.
+  introv Ht. destruct e; inversions Ht.
+  - rename H0 into Hi. rename H3 into Ht. rename H1 into Hwf.
     dependent induction Ht; try solve [left; auto].
-    * destruct (canonical_forms_fun Hin Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+    * destruct (canonical_forms_fun Hi Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
       right. repeat eexists. apply* red_apply.
-    * destruct (canonical_forms_obj Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+    * destruct (canonical_forms_obj Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
       right. repeat eexists. apply* red_project.
     * right. exists (e_term s u) t.
       apply red_congruence_let.
-    * specialize (IHHt Hin) as [IH | [t' [s' Hred]]].
+    * specialize (IHHt Hi) as [IH | [t' [s' Hred]]].
       + assumption.
       + left. assumption.
       + right. exists t' s'. assumption.
-  - inversions Ht. clear H7.
+  - clear H7.
     rename H1 into Hin. rename H2 into Hwf. rename H4 into Ht.
     dependent induction Ht; right.
     * repeat eexists; apply red_let_var.
@@ -277,4 +275,6 @@ Lemma preservation: forall G e t e' t' T,
     e / t |-> e' / t' ->
     ty_ec_trm G e t T ->
     lc_term e' t' /\ exists G', ty_ec_trm (G & G') e' t' T.
-Admitted.
+Proof.
+  introv Hl Hr Ht. split. apply* red_preserves_lc. apply* red_preserves_type.
+Qed.
