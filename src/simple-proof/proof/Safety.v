@@ -102,60 +102,6 @@ Proof.
   intros. inversions H. inversions H0. repeat constructor~.
 Qed.
 
-Lemma open_comm_typ_dec: forall x y,
-    (forall T n m,
-        n <> m ->
-        open_rec_typ n x (open_rec_typ m y T) =
-        open_rec_typ m y (open_rec_typ n x T)) /\
-    (forall D n m,
-        n <> m ->
-        open_rec_dec n x (open_rec_dec m y D) =
-        open_rec_dec m y (open_rec_dec n x D)).
-Proof.
-  intros. apply typ_mutind; intros; subst; simpl; auto.
-  - rewrite~ H.
-  - rewrite~ H. rewrite~ H0.
-  - destruct a; simpl; auto.
-    repeat case_if; subst; simpl; repeat case_if~.
-  - rewrite~ H.
-  - rewrite~ H. rewrite~ H0.
-  - rewrite~ H. rewrite~ H0.
-  - rewrite~ H.
-Qed.
-
-Lemma open_comm_trm_val_def_defs : forall x y,
-    (forall t n m,
-        n <> m ->
-        open_rec_trm n x (open_rec_trm m y t) =
-        open_rec_trm m y (open_rec_trm n x t)) /\
-    (forall v n m,
-        n <> m ->
-        open_rec_val n x (open_rec_val m y v) =
-        open_rec_val m y (open_rec_val n x v)) /\
-    (forall d n m,
-        n <> m ->
-        open_rec_def n x (open_rec_def m y d) =
-        open_rec_def m y (open_rec_def n x d)) /\
-    (forall ds n m,
-        n <> m ->
-        open_rec_defs n x (open_rec_defs m y ds) =
-        open_rec_defs m y (open_rec_defs n x ds)).
-Proof.
-  intros. apply trm_mutind; intros; subst; simpl; auto.
-  - destruct a; simpl; auto.
-    repeat case_if; subst; simpl; repeat case_if~.
-  - rewrite~ H.
-  - destruct a; simpl; auto.
-    repeat case_if; subst; simpl; repeat case_if~.
-  - destruct a; destruct a0; simpl; auto; repeat case_if~; subst; simpl; repeat case_if~.
-  - rewrite~ H. rewrite~ H0.
-  - rewrite~ H. rewrite~ (proj21 (open_comm_typ_dec x y)).
-  - rewrite~ H. rewrite~ (proj21 (open_comm_typ_dec x y)).
-  - rewrite~ (proj21 (open_comm_typ_dec x y)).
-  - rewrite~ H.
-  - rewrite~ H. rewrite~ H0.
-Qed.
-
 Lemma red_preserves_lc :
   forall e t e' t',
     e / t |-> e' / t' ->

@@ -145,6 +145,73 @@ Proof.
     + assumption.
 Qed.
 
+(** The following [open_comm_XYZ] lemmas state that opening two
+    symbols (variables, types, terms, etc.) at different indices commute. *)
+
+(** - opening types and declarations with different indices commute. *)
+Lemma open_comm_typ_dec: forall x y,
+    (forall T n m,
+        n <> m ->
+        open_rec_typ n x (open_rec_typ m y T) =
+        open_rec_typ m y (open_rec_typ n x T)) /\
+    (forall D n m,
+        n <> m ->
+        open_rec_dec n x (open_rec_dec m y D) =
+        open_rec_dec m y (open_rec_dec n x D)).
+Proof.
+  intros. apply typ_mutind; intros; subst; simpl; auto.
+  - rewrite~ H.
+  - rewrite~ H. rewrite~ H0.
+  - destruct a; simpl; auto.
+    repeat case_if; subst; simpl; repeat case_if~.
+  - rewrite~ H.
+  - rewrite~ H. rewrite~ H0.
+  - rewrite~ H. rewrite~ H0.
+  - rewrite~ H.
+Qed.
+
+(** - opening terms, values, definitions, and lists of definitions with
+      different indices commute. *)
+Lemma open_comm_trm_val_def_defs : forall x y,
+    (forall t n m,
+        n <> m ->
+        open_rec_trm n x (open_rec_trm m y t) =
+        open_rec_trm m y (open_rec_trm n x t)) /\
+    (forall v n m,
+        n <> m ->
+        open_rec_val n x (open_rec_val m y v) =
+        open_rec_val m y (open_rec_val n x v)) /\
+    (forall d n m,
+        n <> m ->
+        open_rec_def n x (open_rec_def m y d) =
+        open_rec_def m y (open_rec_def n x d)) /\
+    (forall ds n m,
+        n <> m ->
+        open_rec_defs n x (open_rec_defs m y ds) =
+        open_rec_defs m y (open_rec_defs n x ds)).
+Proof.
+  intros. apply trm_mutind; intros; subst; simpl; auto.
+  - destruct a; simpl; auto.
+    repeat case_if; subst; simpl; repeat case_if~.
+  - rewrite~ H.
+  - destruct a; simpl; auto.
+    repeat case_if; subst; simpl; repeat case_if~.
+  - destruct a; destruct a0; simpl; auto; repeat case_if~; subst; simpl; repeat case_if~.
+  - rewrite~ H. rewrite~ H0.
+  - rewrite~ H. rewrite~ (proj21 (open_comm_typ_dec x y)).
+  - rewrite~ H. rewrite~ (proj21 (open_comm_typ_dec x y)).
+  - rewrite~ (proj21 (open_comm_typ_dec x y)).
+  - rewrite~ H.
+  - rewrite~ H. rewrite~ H0.
+Qed.
+
+(** The following [lc_open_rec_open_XYZ] lemmas state that if opening
+    a symbol (variables, types, terms, etc.) at index [n] that is
+    already opened at index [m] results in the same opened symbol,
+    opening the symbol itself at index [n] results in the same symbol. *)
+
+(** - if opening an opened type or declaration at index [n] has no effect,
+      opening the original type or declaration at index [n] has no effect *)
 Lemma lc_open_rec_open_typ_dec: forall x y,
     (forall T n m,
         n <> m ->
@@ -167,6 +234,9 @@ Proof.
   - inversions H1. rewrite H with (m:=m); auto.
 Qed.
 
+(** - if opening an opened term, value, definition, or list of definitions
+      at index [n] has no effect, opening the original term, value, definition,
+      or list of definitions at index [n] has no effect *)
 Lemma lc_open_rec_open_trm_val_def_defs: forall x y,
     (forall t n m,
         n <> m ->
