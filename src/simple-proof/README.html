@@ -175,12 +175,12 @@
                 <td class="tg-yw4l">term typing<br></td>
                 <td class="tg-yw4l" rowspan="2">Definitions.v</td>
                 <td class="tg-rkwu">ty_trm_t</td>
-                <td class="tg-rkwu">G ⊢ t : T</td>
+                <td class="tg-rkwu">G &vdash;<sub>&#35;</sub> t : T</td>
             </tr>
             <tr>
                 <td class="tg-yw4l">subtyping<br></td>
                 <td class="tg-rkwu">subtyp_t</td>
-                <td class="tg-rkwu">G ⊢ T &lt;: U</td>
+                <td class="tg-rkwu">G &vdash;<sub>&#35;</sub> T &lt;: U</td>
             </tr>
             <tr>
                 <td class="tg-yw4l" rowspan="2">Figure 3<br></td>
@@ -211,32 +211,16 @@
                 <td class="tg-rkwu"></td>
             </tr>
             <tr>
-                <td class="tg-yw4l">Property 1<br></td>
-                <td class="tg-yw4l">Inert context guarantee<br></td>
-                <td class="tg-yw4l"></td>
-                <td class="tg-yw4l">TODO</td>
-                <td class="tg-rkwu"></td>
-                <td class="tg-rkwu"></td>
-            </tr>
-            <tr>
                 <td class="tg-yw4l">Figure 4<br></td>
                 <td class="tg-yw4l">Precise typing rules<br></td>
                 <td class="tg-yw4l"></td>
                 <td class="tg-yw4l">Definitions.v</td>
                 <td class="tg-rkwu">ty_trm_p</td>
-                <td class="tg-rkwu">G ⊢! t : T</td>
-            </tr>
-            <tr>
-                <td class="tg-yw4l">Property 2<br></td>
-                <td class="tg-yw4l">Tight typing guarantee<br></td>
-                <td class="tg-yw4l"></td>
-                <td class="tg-yw4l">TODO</td>
-                <td class="tg-rkwu"></td>
-                <td class="tg-rkwu"></td>
+                <td class="tg-rkwu">G &vdash;<sub>!</sub> t : T</td>
             </tr>
             <tr>
                 <td class="tg-yw4l">Theorem 3.3<br></td>
-                <td class="tg-yw4l">General-to-tight typing (⊢ to ⊢#)</td>
+                <td class="tg-yw4l">General-to-tight typing (⊢ to ⊢<sub>#</sub>)</td>
                 <td class="tg-yw4l"></td>
                 <td class="tg-yw4l">General_to_tight.v</td>
                 <td class="tg-rkwu">general_to_tight</td>
@@ -264,16 +248,16 @@
                 <td class="tg-yw4l">for variables<br></td>
                 <td class="tg-yw4l" rowspan="2">Definitions.v</td>
                 <td class="tg-rkwu">ty_var_inv</td>
-                <td class="tg-rkwu">G ⊢## x : T</td>
+                <td class="tg-rkwu">G &vdash;<sub>&#35&#35</sub> x : T</td>
             </tr>
             <tr>
                 <td class="tg-yw4l">for values<br></td>
                 <td class="tg-rkwu">ty_var_inv</td>
-                <td class="tg-rkwu">G ⊢##v v : T</td>
+                <td class="tg-rkwu">G &vdash;<sub>&#35&#35v</sub> v : T</td>
             </tr>
             <tr>
                 <td class="tg-yw4l" rowspan="2">Theorem 3.6<br></td>
-                <td class="tg-yw4l" rowspan="2">Tight-to-invertible typing (⊢#-to-⊢##)</td>
+                <td class="tg-yw4l" rowspan="2">Tight-to-invertible typing (⊢<sub>#</sub> to ⊢<sub>##</sub>)</td>
                 <td class="tg-yw4l">for variables<br></td>
                 <td class="tg-yw4l" rowspan="2">Invertible_typing.v</td>
                 <td class="tg-rkwu">tight_to_invertible</td>
@@ -288,32 +272,32 @@
                 <td class="tg-yw4l">Lemma 3.7<br></td>
                 <td class="tg-yw4l">∀ to Γ(x)</td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l">TODO</td>
-                <td class="tg-rkwu"></td>
+                <td class="tg-yw4l">Canonical Forms.v</td>
+                <td class="tg-rkwu">var_typ_all_to_binds</td>
                 <td class="tg-rkwu"></td>
             </tr>
             <tr>
                 <td class="tg-yw4l">Lemma 3.8<br></td>
                 <td class="tg-yw4l">∀ to λ</td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l">TODO</td>
-                <td class="tg-rkwu"></td>
+                <td class="tg-yw4l">Canonical Forms.v</td>
+                <td class="tg-rkwu">val_typ_all_to_lambda</td>
                 <td class="tg-rkwu"></td>
             </tr>
             <tr>
                 <td class="tg-yw4l">Lemma 3.9<br></td>
                 <td class="tg-yw4l">μ to Γ(x)</td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l">TODO</td>
-                <td class="tg-rkwu"></td>
+                <td class="tg-yw4l">Canonical Forms.v</td>
+                <td class="tg-rkwu">var_typ_rcd_to_binds</td>
                 <td class="tg-rkwu"></td>
             </tr>
             <tr>
                 <td class="tg-yw4l">Lemma 3.10<br></td>
                 <td class="tg-yw4l">μ to ν</td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l">TODO</td>
-                <td class="tg-rkwu"></td>
+                <td class="tg-yw4l">Canonical Forms.v</td>
+                <td class="tg-rkwu">val_mu_to_new</td>
                 <td class="tg-rkwu"></td>
             </tr>
             <tr>
@@ -329,15 +313,15 @@
                 <td class="tg-yw4l">Operational semantics<br></td>
                 <td class="tg-yw4l"></td>
                 <td class="tg-yw4l">Definitions.v</td>
-                <td class="tg-rkwu">TODO</td>
-                <td class="tg-rkwu"></td>
+                <td class="tg-rkwu">red</td>
+                <td class="tg-rkwu">e<sub>1</sub> / t<sub>1</sub> ↦ e<sub>2</sub> / t<sub>2</sub></td>
             </tr>
             <tr>
                 <td class="tg-yw4l">Theorem 3.12<br></td>
                 <td class="tg-yw4l">Soundness</td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l">TODO</td>
-                <td class="tg-rkwu"></td>
+                <td class="tg-yw4l">Safety.v</td>
+                <td class="tg-rkwu">safety</td>
                 <td class="tg-rkwu"></td>
             </tr>
             <tr>
@@ -355,6 +339,19 @@
                 <td class="tg-yw4l">Substitution.v</td>
                 <td class="tg-rkwu">subst_ty_trm</td>
                 <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l" rowspan="2">Figure 7<br></td>
+                <td class="tg-yw4l" rowspan="2">DOT Type Rules<br></td>
+                <td class="tg-yw4l">term typing<br></td>
+                <td class="tg-yw4l" rowspan="2">Definitions.v</td>
+                <td class="tg-rkwu">ty_trm</td>
+                <td class="tg-rkwu">G ⊢ t : T</td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">subtyping<br></td>
+                <td class="tg-rkwu">subtyp</td>
+                <td class="tg-rkwu">G ⊢ T &lt;: U</td>
             </tr>
         </table>
     </div>

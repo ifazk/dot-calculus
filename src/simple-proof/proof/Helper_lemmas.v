@@ -12,7 +12,7 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 
-(** [Gamma |- ds :: Ds]                     #<br>#
+(** [G |- ds :: Ds]                         #<br>#
     [Ds] is a record type with labels [ls] #<br>#
     [ds] are definitions with label [ls']  #<br>#
     [l notin ls']                          #<br>#
@@ -568,7 +568,7 @@ Qed.
 
 (** * Well-formedness *)
 
-(** If [Gamma ~~ s] and [x notin s], then [x notin Gamma]. *)
+(** If [G ~~ s] and [x notin s], then [x notin G]. *)
 Lemma wf_sto_notin_dom: forall G s x,
     G ~~ s ->
     x # s -> x # G.
@@ -576,7 +576,7 @@ Proof.
   intros. induction H; auto.
 Qed.
 
-(** If [Gamma ~~ s], the variables in the domain of [s] are distinct. *)
+(** If [G ~~ s], the variables in the domain of [s] are distinct. *)
 Lemma wf_sto_to_ok_G: forall s G,
     G ~~ s -> ok G.
 Proof.
