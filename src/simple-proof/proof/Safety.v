@@ -99,6 +99,13 @@ Proof.
     rewrite~ lc_opening.
 Qed.
 
+(**
+Special case of the preservation lemma for evaluation contexts of the
+form [e] = [(let x=v in)* [ ]].
+
+If e and t are locally closed, [0 |- e[t]: T], and [e[t] |-> e'[t']], then [0 |- e'[t']: T].
+*)
+
 Lemma preservation_hole: forall G s t e' t' T,
     lc_term (e_hole s) t ->
     e_hole s / t |-> e' / t' ->
@@ -135,6 +142,10 @@ Proof.
       apply weaken_subtyp with (G2:=(G' & z ~ T0)) in H; rewrite concat_assoc in *; eauto.
 Qed.
 
+(**
+Preservation:
+If e and t are locally closed, [0 |- e[t]: T], and [e[t] |-> e'[t']], then [0 |- e'[t']: T].
+*)
 Lemma preservation: forall G e t e' t' T,
     lc_term e t ->
     e / t |-> e' / t' ->
@@ -209,6 +220,12 @@ Proof.
       specialize (H2 x H1).
       eapply narrow_typing; eauto. apply~ subenv_last.
 Qed.
+
+(**
+Progress:
+If [0 |- e[t] : T], then either [e[t]] is a normal form,
+        or [e[t]] reduces to some [e'[t']].
+*)
 
 Lemma progress_red: forall G e t T,
     ty_ec_trm G e t T ->
