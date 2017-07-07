@@ -13,10 +13,6 @@ Require Import Canonical_forms1.
 Require Import Canonical_forms2.
 
 (* ###################################################################### *)
-(* ###################################################################### *)
-(** * Proofs *)
-
-(* ###################################################################### *)
 (** * Safety *)
 
 Inductive normal_form_trm: trm -> Prop :=
@@ -171,22 +167,17 @@ Proof.
   dependent induction H; try solve [inversions H1; inversions H0; split*].
   - pose proof (lc_ec_sto_inv H0).
     pose proof (lc_ec_sto_binds_inv H0 H).
-    inversions H3. split; auto.
+    inversions H3. split~.
   - pose proof (lc_ec_sto_binds_inv H1 H). inversions H3.
-    pose proof (lc_defs_has (H7 x) H0). inversions H3. split; auto.
+    pose proof (lc_defs_has (H7 x) H0). inversions H3. split~.
   - inversions H0. inversions H1.
     split; auto. eapply lc_ec_term; auto.
     intros x. unfold open_trm.
     simpl. eapply lc_trm_let; auto.
-    intros x0. pose proof (H4 x0).
-    assert (0 <> 1) as Hn by auto.
-    lets Ho: (proj1 (open_comm_trm_val_def_defs x0 x) t1 0 1 Hn).
-    unfold open_trm. rewrite Ho.
-    assert (open_rec_trm 1 x (open_rec_trm 0 x0 t1) = open_rec_trm 0 x0 t1)
-      as Heq by (apply lc_opening; auto).
-    rewrite* Heq.
+    intros x0. unfold open_trm.
+    rewrite~ (proj1 (open_comm_trm_val_def_defs x0 x)).
+    rewrite~ lc_opening.
 Qed.
-
 
 Lemma preservation_hole: forall G s t e' t' T,
     lc_term (e_hole s) t ->
@@ -212,14 +203,14 @@ Proof.
   - destruct (canonical_forms_2 Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
     inversions Hred.
     apply (binds_func H2) in Bis. inversions Bis.
-    exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    exists (@empty typ). rewrite concat_empty_r.
     rewrite <- (defs_has_inv Has H5). constructor*.
   - inversions Hred.
     exists (@empty typ). rewrite concat_empty_r.
     eapply ty_e_term; eauto.
   - specialize (IHHt Hlc Hred Hwf Hin Hlc') as [G' IHHt].
     exists G'. inversions IHHt.
-    + eapply ty_e_hole; eauto.
+    + eapply ty_e_hole; auto.
       apply weaken_subtyp with (G2:=G') in H; eauto.
     + apply_fresh ty_e_term as z; eauto; intros. assert (z \notin L) by auto.
       specialize (H2 z H3).
@@ -244,7 +235,7 @@ Proof.
     apply ty_e_hole; auto.
     rewrite subst_intro_trm with (x:=y); auto.
     rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
-    eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
+    eapply subst_ty_trm; auto. rewrite~ subst_fresh_typ.
   - inversions Hred.
     pose proof (wf_sto_notin_dom Hwf H5).
     pose proof (val_typing Ht) as [V [Hv Hs]].
@@ -256,7 +247,7 @@ Proof.
       apply (precise_to_general Hv).
     * rewrite subst_intro_trm with (x:=y); auto.
       rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
-      eapply subst_ty_trm; eauto.
+      eapply subst_ty_trm; auto.
       { eapply weaken_rules; eauto. }
       { apply~ fv_ctx_types_push. }
       {
@@ -294,7 +285,7 @@ Proof.
       assert (z \notin L0) by auto.
       specialize (H1 z H4).
       eapply weaken_rules; eauto.
-    + eapply IHHt with (L:=L \u (dom G)); eauto. intros.
+    + eapply IHHt with (L:=L \u (dom G)); auto. intros.
       assert (x \notin L) by auto.
       specialize (H1 x H2).
       eapply narrow_typing; eauto. apply~ subenv_last.
