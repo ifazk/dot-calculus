@@ -132,18 +132,6 @@ Proof.
   exists t ds. split*.
 Qed.
 
-
-Lemma val_mu_to_new': forall G v T U a x,
-    inert G ->
-    G |- trm_val v: typ_bnd T ->
-    G |- trm_var (avar_f x) : open_typ x T ->
-    record_has (open_typ x T) (dec_trm a U) ->
-    exists t ds,
-      v = val_new T ds /\
-      defs_has (open_defs x ds) (def_trm a t) /\
-      G |- t : U.
-Admitted.
-
 Lemma canonical_forms_2: forall G s x a T,
   inert G ->
   G ~~ s ->
@@ -154,6 +142,6 @@ Proof.
   destruct (var_typ_rcd_to_binds Hi Hty) as [S [T' [Bi [Hr Hs]]]].
   destruct (corresponding_types' Hwf Hi Bi) as [v [Bis Ht]].
   apply ty_var in Bi. apply ty_rec_elim in Bi.
-  destruct (val_mu_to_new' Hi Ht Bi Hr) as [t [ds [Heq [Hdefs Ht']]]].
+  destruct (val_mu_to_new Hi Ht Bi Hr) as [t [ds [Heq [Hdefs Ht']]]].
   subst. exists S ds t. repeat split~. eapply ty_sub; eauto.
 Qed.
