@@ -38,14 +38,11 @@
             <a href="https://github.com/samuelgruetter/dot-calculus/blob/master/dev/lf/dot_top_bot.v">original</a>
             Coq proof that comes with Wadlerfest DOT paper.</p>
         <h3><a id="Getting_Started_12"></a>Getting Started</h3>
-        <p><em>TODO finish this</em></p>
         <p>
-            We provide a virtual box VM which comes with all the required
+            We provide a VirtualBox VM which comes with all the required
             software and include all proof scripts.
 
-            You may download virtual box from <a
-                                                  href="https://www.virtualbox.org/">virtualbox.org</a>, and the VM
-            from <a href="https://dropbox.me" >TODO</a>.
+            You may download virtual box from <a href="https://www.virtualbox.org/">virtualbox.org</a>.
 
             You may also choose to use your own system with <code>coq 8.6</code>.
         </p>
@@ -72,17 +69,19 @@
             </p>
         </div>
         <h3><a id="StepbyStep_Instructions_16"></a>Step-by-Step Instructions</h3>
-        <p><em>TODO</em></p>
+        <h4>VirtualBox intructions</h4>
         <p>
             To use the VM, start up <code>VirtualBox</code> and select <code>New
             VM</code> and add a new Linux (Ubuntu 64-bit) machine with the
-            provided <code>TODO.vdi</code> file as the harddisk. Then start the
+            provided <code>.vdi</code> file as the harddisk. Then start the
             VM. You will find the directory containing this
             <code>README.html</code> file and the artifact in the Desktop. The
             links in this file assume that you are reading this file from the
             directory you will compiling from. You may open this file from the
-            VM using Firefox.
+            VM using Firefox. For IDE options for <code>coq</code> the VM comes
+            preinstalled with the <code>Proof General</code> Emacs interface.
         </p>
+        <h4>Compiling the proof</h4>
         <p>
             To compile the proof, navigate to the artifact directory from a
             terminal window and run <code>make</code> to compile the
@@ -93,24 +92,30 @@
                 <li>Generate documentation.</li>
             </ul>
 
+            A successful compilation indicates a correct proof.
+        </p>
+        <h4>Inspecting Source files</h4>
+        <p>
             The documentation can be found at the <a
-            href="./doc/toc.html"><code>doc/toc.html</code></a>. This page lists
-            links to pretty printed <code>coq</code> source files, but the raw
-            files can be found in the <a href="./proof/"><code>proof/</code></a>
-            directory.
+            href="./doc/toc.html"><code>Table of Contents</code></a>. This page
+            lists links to pretty printed <code>coq</code> source files, but the
+            raw <code>.v</code> files can be found in the <a
+            href="./proof/"><code>proof/</code></a> directory. In the pretty
+            printed versions, the proof scripts are hidden by default, you may
+            click on show proofs at the top of the page to display all the
+            proof, or click under Lemma/Theorem statements to display their
+            proofs.
         </p>
         <h3><a id="Description_of_the_Artifact_20"></a>Description of the Artifact</h3>
         <p>This artifact presents a Coq formalization of the DOT calculus and DOT's type safety proof
-            using the method presented in the paper. The artifact also provides proofs for Properties 1 (Inert Context Guarantee)
-            and 2 (Tight Typing Guarantee), which are not part of the safety proof,
-            but are discussed in the paper.</p>
-        <p>The type-safety proof can be found in <em>TODO</em>.
-            The proof of the properties can be found in <em>TODO</em>.</p>
+            using the method presented in the paper. The type-safety proof can
+            be found in <a href="./doc/Safety.html">Safety.v</a>.</p>
         <p>Below, we present a table that shows how the definitions and lemmas in the paper correspond
             to the artifact. However, before comparing the correspondence, we recommend reading
-            through <em>TODO</em> (Definitions.v). That file not only presents the definitions of the abstract
-            syntax and type system of DOT, but also presents some of the tactics, functions, and inductive definitions
-            that are used in the proof.</p>
+            through <a href="./doc/Definitions.html">Definitions.v</a>. That file
+            not only presents the definitions of the abstract syntax and type
+            system of DOT, but also presents some of the tactics, functions, and
+            inductive definitions that are used in the proof.</p>
         <h4><a id="PaperArtifact_Correspondence_37"></a>Paper-Artifact Correspondence</h4>
 
         <table class="tg">

@@ -83,7 +83,7 @@ graph.png: $(PROOFS)
 EXTRA_DIR:=../doc/assets
 COQDOCFLAGS:= \
   --no-externals \
-  --toc --toc-depth 2 --html --interpolate \
+  --toc --toc-depth 2 --html \
   --index indexpage --no-lib-name --parse-comments \
   --with-header $(EXTRA_DIR)/header.html --with-footer $(EXTRA_DIR)/footer.html
 export COQDOCFLAGS

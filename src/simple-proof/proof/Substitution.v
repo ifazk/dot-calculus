@@ -300,7 +300,7 @@ Lemma subst_defs_hasnt: forall x y l ds,
   defs_hasnt (subst_defs x y ds) l.
 Proof.
   intros x y l ds. unfold defs_hasnt. induction ds; introv Eq.
-  - simpl. reflexivity.
+  - reflexivity.
   - unfold get_def. simpl. rewrite <- subst_label_of_def.
     simpl in Eq. case_if. apply (IHds Eq).
 Qed.
@@ -361,7 +361,7 @@ Lemma subst_rules: forall y S,
     G1 & (subst_ctx x y G2) |- trm_var (avar_f y) : subst_typ x y S ->
     G1 & (subst_ctx x y G2) |- subst_typ x y T <: subst_typ x y U).
 Proof.
-  intros y S. apply rules_mutind; intros; subst; simpl; try solve [constructor; eauto].
+  intros y S. apply rules_mutind; intros; subst; simpl; try solve [econstructor; auto].
   - Case "ty_var".
     cases_if.
     + apply binds_middle_eq_inv in b; subst; assumption.
@@ -412,6 +412,8 @@ Proof.
     rewrite concat_assoc. apply ok_push. assumption. auto.
     rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
     apply ok_push. apply ok_concat_map. auto. unfold subst_ctx. auto.
+  - Case "ty_new_elim".
+    eauto.
   - Case "ty_let".
     simpl. apply_fresh ty_let as z; auto.
     assert (subst_ctx x y G2 & z ~ subst_typ x y T
@@ -445,14 +447,12 @@ Proof.
     rewrite subst_open_commut_typ.
     apply ty_rec_elim.
     apply H; auto.
-  - Case "ty_sub".
-    eapply ty_sub; eauto.
+  - Case "ty_and_intro".
+    eauto.
   - Case "ty_defs_cons".
     simpl. apply ty_defs_cons; auto.
     rewrite <- subst_label_of_def.
     apply subst_defs_hasnt. assumption.
-  - Case "subtyp_trans".
-    eapply subtyp_trans; auto 5.
   - Case "subtyp_sel2".
     eapply subtyp_sel2. apply H; auto.
   - Case "subtyp_sel1".

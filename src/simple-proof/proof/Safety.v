@@ -278,8 +278,6 @@ Proof.
     pose proof (preservation_hole Hlc Hred Hwf Hi Ht) as [G' Ht'].
     inversions Ht'. exists G'.
     eapply ty_e_term with (L:=L \u (dom G) \u (dom G')); eauto. intros.
-    assert (x0 \notin L) by auto.
-    specialize (H1 x0 H2).
     eapply (proj41 weaken_rules); eauto.
   - inversions Hred.
     exists (@empty typ). rewrite concat_empty_r.
