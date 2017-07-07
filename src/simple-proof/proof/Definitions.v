@@ -98,7 +98,7 @@ with def : Set :=
 (**
   [defs] represents a list of definitions that are part of an intersection
   - [defs_nil] represents the empty list;
-  - [defs_cons d ds] represents a concatenation of the definition [d] do the definitions [ds]. *)
+  - [defs_cons d ds] represents a concatenation of the definition [d] to the definitions [ds]. *)
 with defs : Set :=
   | defs_nil : defs
   | defs_cons : defs -> def -> defs.
@@ -125,7 +125,7 @@ Definition defs_has(ds: defs)(d: def) := get_def (label_of_def d) ds = Some d.
 
 Definition defs_hasnt(ds: defs)(l: label) := get_def l ds = None.
 
-(** Typing environment ([G], referred to in the proof as [G]) *)
+(** Typing environment ([G]) *)
 Definition ctx := env typ.
 
 (** ** Evaluation Contexts
@@ -162,9 +162,7 @@ Definition ec_sto (e : ec) :=
   | e_term s t => s
   end.
 
-(** * Opening, Free Variables, Local Closure *)
-
-(** ** Opening *)
+(** * Opening *)
 (** Opening takes a bound variable that is represented with a de Bruijn index [k]
     and replaces it by a named variable [u].
     The following functions define opening on variables, types, declarations, terms,
@@ -226,7 +224,7 @@ Definition open_val  u v := open_rec_val   0 u v.
 Definition open_def  u d := open_rec_def   0 u d.
 Definition open_defs u l := open_rec_defs  0 u l.
 
-(** ** Local Closure
+(** * Local Closure
 
   Our definition of [trm] accepts terms that contain de Bruijn indices that are unbound.
   A symbol [X] is considered locally closed, denoted [lc X], if all de Bruijn indices
@@ -328,12 +326,12 @@ Inductive lc_ec : ec -> Prop :=
     (forall x, lc_trm (open_trm x t)) ->
     lc_ec (e_term s t).
 
-(** Local closedness for terms that are decomposed using evaluation contexts *)
+(** Locally closed terms that are decomposed using evaluation contexts *)
 Definition lc_term (e : ec) (t : trm) : Prop :=
   lc_ec e /\ lc_trm t.
 
-(** ** Free variables
-       Functions that retrieve the free variables of a symbol. *)
+(** * Free variables
+      Functions that retrieve the free variables of a symbol. *)
 
 (** Free variable in a variable. *)
 Definition fv_avar (a: avar) : vars :=
@@ -394,7 +392,7 @@ Fixpoint fv_ec (e: ec) : vars :=
 (** Free variables in the range (types) of a context *)
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
 
-(** ** Tactics *)
+(** * Tactics *)
 
 (** Tactics for generating fresh variables. *)
 
@@ -449,35 +447,35 @@ Tactic Notation "SSSSSCase" constr(name) := Case_aux SSSSSCase name.
 
 The reduction rules in the paper are:
 
-[t -> t']                 #<br>#
+[t |-> t']                 #<br>#
 [――――――――――――――] (Term)  #<br>#
-[e[t] |-> e[t']]
+[e[t] |-> e[t']] #<br># #<br>#
 
 [v = lambda(z: T).t]                                      #<br>#
 [―――――――――――――――――――――――――――――――――――――――――――――――] (Apply) #<br>#
-[let x = v in e[x y] |-> let x = v in e[[y/x] t]]
+[let x = v in e[x y] |-> let x = v in e[[y/z] t]] #<br># #<br>#
 
 [v = nu(x: T)...{a = t}...]                             #<br>#
 [―――――――――――――――――――――――――――――――――――――――――] (Project)   #<br>#
-[let x = v in e[x.a] |-> let x = v in e[t]]
+[let x = v in e[x.a] |-> let x = v in e[t]] #<br># #<br>#
 
-[let x = y in t |-> [y/x] t] (Let-Var)
+[let x = y in t |-> [y/x] t] (Let-Var) #<br># #<br>#
 
-[let x = let y = s in t in y |-> let y = s in let x = t in u] (Let-Let)
+[let x = let y = s in t in y |-> let y = s in let x = t in u] (Let-Let) #<br># #<br>#
 
 We transform the rules by inlining the (Term) rule into all of the other rules:
 
 [v = lambda(z: T).t]                                                #<br>#
 [―――――――――――――――――――――――――――――――――――――――――――――――――――――――――] (Apply) #<br>#
-[e1[let x = v in e2[x y]] |-> e1[let x = v in e2[[y/x] t]]]
+[e1[let x = v in e2[x y]] |-> e1[let x = v in e2[[y/z] t]]] #<br># #<br>#
 
 [v = nu(x: T)...{a = t}...]                                           #<br>#
 [―――――――――――――――――――――――――――――――――――――――――――――――――――――――――] (Project) #<br>#
-[e1[let x = v in e2[x.a]] |-> e1[let x = v in e2[t]]]
+[e1[let x = v in e2[x.a]] |-> e1[let x = v in e2[t]]] #<br># #<br>#
 
-[e[let x = y in t] |-> e[[y/x] t]] (Let-Var)
+[e[let x = y in t] |-> e[[y/x] t]] (Let-Var) #<br># #<br>#
 
-[e[let x = let y = s in t in y] |-> e[let y = s in let x = t in u]] (Let-Let)
+[e[let x = let y = s in t in u] |-> e[let y = s in let x = t in u]] (Let-Let) #<br># #<br>#
 
 We then note that in the Apply and Project rules,
 [e1[let x = v in e2[ ]]]
@@ -485,21 +483,21 @@ is itself a larger evaluation context. We simplify this evaluation context
 into just [e[ ]].
 
 Additionally, we define a binds relation [e(x) = v] which determines
-that the evaluation context [e] to contains the subterm [let x = v in e2]:
+whether the evaluation context [e] contains the subterm [let x = v in e2]:
 
 [e = e1[let x = v in e2[ ]]] #<br>#
 [――――――――――――――――――――――――――] #<br>#
-[binds x v e]
+[e(x) = v] #<br># #<br>#
 
 The (Apply) and (Project) reduction rules become:
 
 [e(x) = lambda(z: T).t]         #<br>#
 [―――――――――――――――――――――] (Apply) #<br>#
-[e[x y] |-> e[[y/x] t]]
+[e[x y] |-> e[[y/z] t]] #<br># #<br>#
 
 [e(x) = nu(x: T)...{a = t}...]           #<br>#
 [――――――――――――――――――――――――――――] (Project) #<br>#
-[e[x.a] |-> e[t]]
+[e[x.a] |-> e[t]] #<br># #<br>#
 
 In general, there may be multiple decompositions of a term into an evaluation context
 and a subterm. For example, the term
@@ -557,11 +555,11 @@ rules can apply only to decompositions (2) and (5).
 We add congruence reduction rules to reduce the decomposition (1) to
 decomposition (2) and decompositions (3) and (4) to decomposition (5).
 
-[e[ ] | let x = t in u |-> e[let x = [ ] in u] | t]
-(Congruence-Let)
+[e[let x = t in u] |-> e[let x = [t] in u]]
+(Congruence-Let) #<br># #<br>#
 
-[e[let x = [ ] in u] | v |-> e[let x = v in [ ]] | u]
-(Congruence-Val)
+[e[let x = [v] in u] |-> e[let x = v in [u]]
+(Congruence-Val) #<br># #<br>#
 
 Rule (Congruence-Let) reduces (1) to (2). It also reduces (3) to (4).
 Rule (Congruence-Val) then further reduces (4) to (5). *)
@@ -569,27 +567,37 @@ Rule (Congruence-Val) then further reduces (4) to (5). *)
 Reserved Notation "e1 '/' t1 '|->' e2 '/' t2" (at level 40, e2 at level 39).
 
 Inductive red : ec -> trm -> ec -> trm -> Prop :=
+(** [e(x) = lambda(T)t]  #<br>#
+    [――――――――――――]  #<br>#
+    [e | x y |-> e | t^y]  *)
 | red_apply : forall x y e T t,
     binds x (val_lambda T t) (ec_sto e) ->
     e / trm_app (avar_f x) (avar_f y) |-> e / open_trm y t
+(** [e(x) = nu(T)...{a = t}...]  #<br>#
+    [――――――――――――――――――――――――]  #<br>#
+    [e | x.a |-> e | t]  *)
 | red_project : forall x a e T ds t,
     binds x (val_new T ds) (ec_sto e) ->
     defs_has (open_defs x ds) (def_trm a t) ->
     e / trm_sel (avar_f x) a |-> e / t
-| red_let_var : forall x t s, (* s | let [x] in t -> s | [t^x] *)
+(** [e[let x = [ ] in t] | y |-> e[ ] | t^y] *)
+| red_let_var : forall x t s,
     e_term s t / trm_var (avar_f x) |-> e_hole s / open_trm x t
+(** [e[let x = [ ] in t1] | let t2 in t3 |-> e[let x = [ ] in let t3 in t1] | t2] *)
 | red_let_let : forall s t1 t2 t3,
     e_term s t1 / trm_let t2 t3 |-> e_term s (trm_let t3 t1) / t2
-| red_congruence_let : forall s t u, (* s | [let t in u] -> s | let [t] in u *)
+(** [e[ ] | let x = t in u |-> e[let x = [ ] in u] | t] *)
+| red_congruence_let : forall s t u,
     e_hole s / trm_let t u |-> e_term s u / t
-| red_congruence_val: forall s x v t, (* s | let [v] in t -> s, (x ~ v) | [t^x] *)
+(** [e[let x = [ ] in t] | v |-> e[let x = v in [ ]] | t^x] *)
+| red_congruence_val: forall s x v t,
     x # s ->
     e_term s t / trm_val v |-> e_hole (s & (x ~ v)) / open_trm x t
 where "t1 '/' st1 '|->' t2 '/' st2" := (red t1 st1 t2 st2).
 
 (** * Typing Rules *)
 
-Reserved Notation "G '|-'  t ':' T" (at level 40, t at level 59).
+Reserved Notation "G '|-' t ':' T" (at level 40, t at level 59).
 Reserved Notation "G '|-' T '<:' U" (at level 40, T at level 59).
 Reserved Notation "G '/-' d : D" (at level 40, d at level 59).
 Reserved Notation "G '/-' ds :: D" (at level 40, ds at level 59).
@@ -607,7 +615,7 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
 (** [G, x: T |- t^x: U^x]     #<br>#
     [x fresh]                #<br>#
     [――――――――――――――――――――――] #<br>#
-    [G |- lambda(T).t: forall(T)U]      *)
+    [G |- lambda(T)t: forall(T)U]      *)
 | ty_all_intro : forall L G T t U,
     (forall x, x \notin L ->
       G & x ~ T |- open_trm x t : open_typ x U) ->
@@ -724,7 +732,7 @@ with subtyp : ctx -> typ -> typ -> Prop :=
 | subtyp_top: forall G T,
     G |- T <: typ_top
 
-(** [G |- bottom <: T] *)
+(** [G |- bot <: T] *)
 | subtyp_bot: forall G T,
     G |- typ_bot <: T
 
