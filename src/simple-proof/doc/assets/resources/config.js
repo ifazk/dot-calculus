@@ -12,10 +12,12 @@ coqdocjs.repl = {
     "<>": "≠",
     "<=": "≤",
     ">=": "≥",
+    "|->": "↦",
     "el": "∈",
     "nel": "∉",
     "<<=": "⊆",
     "|-": "⊢",
+    "/-": "⊢",
     ">>": "»",
     "<<": "⊆",
     "++": "⧺",
@@ -68,4 +70,4 @@ coqdocjs.subscr = {
   "9" : "₉",
 };
 
-coqdocjs.replInText = ["==>","<=>", "=>", "->", "<-", ":="];
+coqdocjs.replInText = Object.keys(coqdocjs.repl);
