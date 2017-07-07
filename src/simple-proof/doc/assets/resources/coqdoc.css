@@ -7,14 +7,13 @@ body{
 }
 
 a {
-    text-decoration: none;
+    text-decoration: underline;
     border-radius: 3px;
     padding-left: 3px;
     padding-right: 3px;
     margin-left: -3px;
     margin-right: -3px;
     color: inherit;
-    font-weight: bold;
 }
 
 #main .code a, #main .inlinecode a, #toc a {
