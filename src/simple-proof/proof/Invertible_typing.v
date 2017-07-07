@@ -18,7 +18,6 @@
 (** printing top    %\top%           #&#8868;#                     *)
 (** printing bottom %\bot%           #&perp;#                      *)
 (** printing <>     %\ne%            #&ne;#                        *)
-(** printing notin  %\notin%         #&notin;#                     *)
 (** printing isin   %\in%            #&isin;#                      *)
 (** remove printing ~ *)
 
