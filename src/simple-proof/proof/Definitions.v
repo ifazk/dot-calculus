@@ -1286,8 +1286,10 @@ Inductive inert : ctx -> Prop :=
 
 (** ** Typing of Evaluation Contexts *)
 
-(** We define a typing relation for pairs [(e, t)] of an evaluation context and a term.
-    The pair [(e, t)] has type T in typing context [G] if and only if [G] is inert,
+(** We define a typing relation for pairs [e] and [t] of an evaluation context and a term
+    in an empty context.
+
+    The term [e[t]] has type T in an empty context if and only if [G] is inert,
     [G] corresponds to the store of [e], and the term [e[t]] has type [T] in typing context
     [G] according to the general typing relation for terms . *)
 Inductive ty_ec_trm: ctx -> ec -> trm -> typ -> Prop :=

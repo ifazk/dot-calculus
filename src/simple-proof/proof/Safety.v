@@ -135,8 +135,8 @@ Qed.
 (** Special case of type preservation for evaluation contexts of the
     form [e] = [(let x=v in)* [ ]].
 
-    If [e] and [t] are locally closed, [0 |- e[t]: T],
-    and [e[t] |-> e'[t']], then [0 |- e'[t']: T]. *)
+    If [e] and [t] are locally closed, [|- e[t]: T],
+    and [e[t] |-> e'[t']], then [|- e'[t']: T]. *)
 Lemma red_preserves_type_hole: forall G s t e' t' T,
     lc_term (e_hole s) t ->
     e_hole s / t |-> e' / t' ->
@@ -174,8 +174,8 @@ Proof.
 Qed.
 
 (** Type Preservation:
-    If [e] and [t] are locally closed, [0 |- e[t]: T], and [e[t] |-> e'[t']],
-    then [0 |- e'[t']: T]. *)
+    If [e] and [t] are locally closed, [|- e[t]: T], and [e[t] |-> e'[t']],
+    then [|- e'[t']: T]. *)
 Lemma red_preserves_type: forall G e t e' t' T,
     lc_term e t ->
     e / t |-> e' / t' ->
@@ -251,12 +251,11 @@ Proof.
       eapply narrow_typing; eauto. apply~ subenv_last.
 Qed.
 
-
 (** ** Preservation Theorem
     Reduction preserves both local closedness and the type of the term being reduced.
 
-    If [e] and [t] are locally closed, [0 |- e[t]: T], and [e[t] |-> e'[t']], then
-    [e'] and [t'] are locally closed and [0 |- e'[t']: T]. *)
+    If [e] and [t] are locally closed, [|- e[t]: T], and [e[t] |-> e'[t']], then
+    [e'] and [t'] are locally closed and [|- e'[t']: T]. *)
 Lemma preservation: forall G e t e' t' T,
     lc_term e t ->
     e / t |-> e' / t' ->
@@ -267,7 +266,11 @@ Proof.
 Qed.
 
 (** * Type Safety
-    This theorem corresponds to Theorem 3.12 in the paper. *)
+    This theorem corresponds to Theorem 3.12 in the paper.
+
+    If [e[t]] is locally closed and [|- e[t]: T], then [t] is a normal form or
+    [e[t] |-> e'[t']], and [|- e'[t']: T].
+    *)
 Theorem safety: forall G e t T,
     lc_term e t ->
     ty_ec_trm G e t T ->
