@@ -3,15 +3,6 @@
     <head>
         <meta charset="utf-8"><title>Simple DOT Proof | Artifact Guide</title><style></style>
         <style type="text/css">
-         @media only screen and (min-width : 1224px) {
-             body {
-                 margin: auto;
-                 max-width : 1224px;
-             }
-         }
-        </style>
-        <style type="text/css">
-         .tg  {margin:auto;}
          .tg  {border-collapse:collapse;border-spacing:0;border-color:#ccc;}
          .tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#ccc;color:#333;background-color:#fff;border-top-width:1px;border-bottom-width:1px;}
          .tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#ccc;color:#333;background-color:#f0f0f0;border-top-width:1px;border-bottom-width:1px;}
@@ -20,8 +11,23 @@
          .tg .tg-8fc1{font-weight:bold;font-family:Arial, Helvetica, sans-serif !important;;vertical-align:top}
          .tg .tg-yw4l{vertical-align:top}
         </style>
+        <link href="doc/assets/resources/coqdoc.css" rel="stylesheet" type="text/css" />
+        <link href="doc/assets/resources/coqdocjs.css" rel="stylesheet" type="text/css"/>
     </head>
     <body id="preview">
+        <div id="header">
+            <span class="left">
+                <span class="modulename"> README </span>
+            </span>
+
+            <span class="right">
+                <a href="./README.html">Project Page</a>
+                <a href="./doc/indexpage.html"> Index </a>
+                <a href="./doc/toc.html"> Table of Contents </a>
+            </span>
+        </div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
         <h1><a id="A_Simple_Soundness_Proof_for_Dependent_Object_Types_0"></a>A Simple Soundness Proof for Dependent Object Types</h1>
         <h2><a id="Artifact_2"></a>Artifact Guide</h2>
         <p>Our <a href="paper.pdf">paper</a> presents a simplified type-safety proof for the
@@ -38,7 +44,7 @@
             software and include all proof scripts.
 
             You may download virtual box from <a
-            href="https://www.virtualbox.org/">virtualbox.org</a>, and the VM
+                                                  href="https://www.virtualbox.org/">virtualbox.org</a>, and the VM
             from <a href="https://dropbox.me" >TODO</a>.
 
             You may also choose to use your own system with <code>coq 8.6</code>.
@@ -84,8 +90,14 @@
             <ul>
                 <li>Compile the <code>tlc</code> library. (precompiled on the VM)</li>
                 <li>Compile the safety proof.</li>
-                <li>Generate the documentation.</li>
+                <li>Generate documentation.</li>
             </ul>
+
+            The documentation can be found at the <a
+            href="./doc/toc.html"><code>doc/toc.html</code></a>. This page lists
+            links to pretty printed <code>coq</code> source files, but the raw
+            files can be found in the <a href="./proof/"><code>proof/</code></a>
+            directory.
         </p>
         <h3><a id="Description_of_the_Artifact_20"></a>Description of the Artifact</h3>
         <p>This artifact presents a Coq formalization of the DOT calculus and DOT's type safety proof
@@ -340,6 +352,8 @@
                 <td class="tg-rkwu"></td>
             </tr>
         </table>
+    </div>
+    </div>
 
     </body>
 </html>
