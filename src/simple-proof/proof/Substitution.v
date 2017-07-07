@@ -304,6 +304,16 @@ Proof.
     simpl in Eq. case_if. apply (IHds Eq).
 Qed.
 
+Lemma subst_defs_has: forall ds d x y,
+    defs_has ds d ->
+    defs_has (subst_defs x y ds) (subst_def x y d).
+Proof.
+  introv Hd. induction ds; simpls. inversion Hd.
+  inversions Hd. case_if. inversions H0. unfold defs_has. simpl. case_if*.
+  apply IHds in H0. unfold defs_has. simpl. case_if*.
+  repeat rewrite <- subst_label_of_def in C0. false* C0.
+Qed.
+
 (** * Substitution Lemma *)
 (** [Gamma1, x: S, Gamma2 |- t: T]            #<br>#
     [ok(Gamma1, x: S, Gamma2)]               #<br>#

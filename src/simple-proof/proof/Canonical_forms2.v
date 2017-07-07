@@ -106,25 +106,30 @@ Proof.
   unfolds open_typ. simpl. apply* rh_andr.
 Qed.
 
-Lemma val_mu_to_new: forall G v T U a,
+Lemma val_mu_to_new: forall G v T U a x,
     inert G ->
     G |- trm_val v: typ_bnd T ->
-    record_has T (dec_trm a U) ->
-    exists x t ds,
+    G |- trm_var (avar_f x) : open_typ x T ->
+    record_has (open_typ x T) (dec_trm a U) ->
+    exists t ds,
       v = val_new T ds /\
       defs_has (open_defs x ds) (def_trm a t) /\
-      G & x ~ open_typ x T |- t: (open_typ x U).
+      G |- t: U.
 Proof.
-  introv Hi Ht Hr.
+  introv Hi Ht Hx Hr.
   lets Htt: (general_to_tight_typing Hi Ht).
   lets Hinv: (tight_to_invertible_v Hi Htt).
   lets Hp: (invertible_val_to_precise_rec Hinv).
   destruct (precise_bnd_inv Hp) as [ds Heq]. subst.
-  inversions Hp. pick_fresh x. assert (x \notin L) as Hx by auto.
-  specialize (H1 x Hx).
-  apply record_has_open with (x:=x) in Hr.
-  destruct (record_has_ty_defs H1 Hr) as [d [Hh Hd]]. inversions Hd.
-  exists x t ds. split*.
+  inversions Hp. pick_fresh z. assert (z \notin L) as Hz by auto.
+  specialize (H1 z Hz).
+  assert (G /- open_defs x ds :: open_typ x T) as Hds. {
+    rewrite subst_intro_typ with (x:=z). rewrite subst_intro_defs with (x:=z).
+    eapply subst_ty_defs. eapply H1. apply* ok_push. auto.
+    rewrite* <- subst_intro_typ. auto. auto.
+  }
+  destruct (record_has_ty_defs Hds Hr) as [d [Hh Hd]]. inversions Hd.
+  exists t ds. split*.
 Qed.
 
 Lemma canonical_forms_2: forall G s x a T,
@@ -135,11 +140,8 @@ Lemma canonical_forms_2: forall G s x a T,
 Proof.
   introv Hi Hwf Hty.
   destruct (var_typ_rcd_to_binds Hi Hty) as [S [T' [Bi [Hr Hs]]]].
-  destruct (corresponding_types Hwf Hi Bi)
-    as [[L [U [V [S1 [V1 [t [Hb [Ht [Heq [Hs1 Hs2]]]]]]]]]] | [U [ds [Hb [Ht Heq]]]]].
-  + inversions Heq.
-  + subst. exists U ds.
-    pose proof (new_ty_defs Hwf Hi Hb) as Htd. inversions Heq.
-    pose proof (corresponding_types_ty_trms Hwf Hi Bi Hb Hr) as [t [H1 H2]].
-    exists* t.
+  destruct (corresponding_types' Hwf Hi Bi) as [v [Bis Ht]].
+  apply ty_var in Bi. apply ty_rec_elim in Bi.
+  destruct (val_mu_to_new Hi Ht Bi Hr) as [t [ds [Heq [Hdefs Ht']]]].
+  subst. exists S ds t. repeat split~. eapply ty_sub; eauto.
 Qed.
