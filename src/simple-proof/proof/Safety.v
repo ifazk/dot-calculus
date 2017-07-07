@@ -13,6 +13,16 @@ Require Import Canonical_forms.
 
 (** * Safety *)
 
+(** *** Normal Forms
+A normal form is defined in the WadlerFest DOT paper as:
+
+[n ::= x | v | let x = v in n]
+
+This corresponds to an evaluation context of the form
+[(let x = v in)* [ ]] whose hole is filled by a variable [x]
+or value [v].
+*)
+
 Inductive normal_form_trm: trm -> Prop :=
 | nf_var: forall x, normal_form_trm (trm_var x)
 | nf_val: forall v, normal_form_trm (trm_val v).
@@ -25,6 +35,20 @@ Definition normal_form (e : ec) (t : trm) : Prop :=
 
 Hint Unfold normal_form.
 Hint Constructors normal_form_trm.
+
+(**
+If
+[(let x = v in)* let y = [t] in u]
+reduces to 
+[(let x = v in)* let y = [t'] in u],
+then
+[(let x = v in)* [t]]
+reduces to 
+[(let x = v in)* [t']].
+This lemma is used to reduce cases involving
+[let y = [t] in u]
+into simpler cases involving [[t]].
+*)
 
 Lemma red_term_to_hole: forall s u t t',
     e_term s u / t |-> e_term s u / t' ->
