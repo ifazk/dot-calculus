@@ -60,6 +60,9 @@ Proof.
     eapply IHu2; eauto.
 Qed.
 
+(** If the term [(let x = v in)* let x = [t] in u] represented by an
+    evaluation context is locally closed, so is the term
+    [(let x = v in)* [t]]. *)
 Lemma lc_term_to_hole: forall s u t,
     lc_term (e_term s u) t ->
     lc_term (e_hole s) t.
