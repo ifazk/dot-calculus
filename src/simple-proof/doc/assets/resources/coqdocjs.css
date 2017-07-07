@@ -4,6 +4,10 @@
   font-size: 0;
 }
 
+.inlinecode .hidden {
+    display: none;
+}
+
 .id[repl]:before{
   content: attr(repl);
 }
