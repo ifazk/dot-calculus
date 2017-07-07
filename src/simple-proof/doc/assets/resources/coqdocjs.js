@@ -57,6 +57,27 @@ function replNodes() {
   });
 }
 
+    function replNotIn() {
+        toArray(document.getElementsByClassName("id")).forEach(function(node){
+            if (node.getAttribute("type") == "notation" && node.textContent == "\\" && node.nextSibling.getAttribute("type") == "notation" && node.nextSibling.textContent == "notin"){
+                var next = node.nextSibling;
+
+                node.setAttribute("repl", "∉");
+                node.setAttribute("title", "\\notin");
+
+                var hidden = document.createElement("span");
+                hidden.setAttribute("class", "hidden");
+                while (node.firstChild) {
+                    hidden.appendChild(node.firstChild);
+                }
+
+                hidden.appendChild(next);
+
+                node.appendChild(hidden);
+            }
+        });
+    }
+
 function isVernacStart(l, t){
   t = t.trim();
   for(var s of l){
@@ -172,6 +193,7 @@ function postprocess(){
   repairDom();
   replInTextNodes()
   replNodes();
+  replNotIn();
   foldProofs();
   document.getElementById("toggle-proofs").addEventListener("click", toggleProofs);
   updateView();
