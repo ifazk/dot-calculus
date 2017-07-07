@@ -44,39 +44,6 @@ Proof.
       * inversions* H4.
 Qed.
 
-Lemma new_ty_defs: forall G s x T ds,
-  G ~~ s ->
-  inert G ->
-  binds x (val_new T ds) s ->
-  G /- open_defs x ds :: open_typ x T.
-Proof.
-  introv Hwf Hg Bis.
-  lets Htyv: (val_new_typing Hwf Hg Bis).
-  inversions Htyv.
-  pick_fresh y. assert (y \notin L) as FrL by auto. specialize (H1 y FrL).
-  rewrite subst_intro_defs with (x:=y) by auto.
-  rewrite subst_intro_typ with (x:=y) by auto.
-  eapply subst_ty_defs; eauto.
-  rewrite <- subst_intro_typ with (x:=y) by auto.
-  eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
-Qed.
-
-Lemma corresponding_types_ty_trms: forall G s ds x S a T',
-  G ~~ s ->
-  inert G ->
-  binds x (typ_bnd S) G ->
-  binds x (val_new S ds) s ->
-  record_has (open_typ x S) (dec_trm a T') ->
-  exists t, defs_has (open_defs x ds) (def_trm a t) /\
-        G |- t : T'.
-Proof.
-  introv Hwf Hg Bi Bis Hr.
-  pose proof (new_ty_defs Hwf Hg Bis) as Htds.
-  pose proof (record_has_ty_defs Htds Hr) as [d [Hds Htd]].
-  inversion Htd; subst.
-  exists t. auto.
-Qed.
-
 Lemma var_typ_rcd_to_binds: forall G x a T,
     inert G ->
     G |- trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
@@ -94,16 +61,6 @@ Proof.
   destruct (pf_inert_rcd_U Hin Pf) as [U' Hr]. subst.
   lets Hr': (precise_flow_record_has Hin Pf). apply pf_binds in Pf.
   exists U' T'. split. assumption. split. assumption. apply* tight_to_general.
-Qed.
-
-Lemma record_has_open: forall T D x,
-    record_has T D ->
-    record_has (open_typ x T) (open_dec x D).
-Proof.
-  introv Hr. induction Hr.
-  constructor*.
-  constructor*.
-  unfolds open_typ. simpl. apply* rh_andr.
 Qed.
 
 Lemma val_mu_to_new: forall G v T U a x,
@@ -140,7 +97,7 @@ Lemma canonical_forms_2: forall G s x a T,
 Proof.
   introv Hi Hwf Hty.
   destruct (var_typ_rcd_to_binds Hi Hty) as [S [T' [Bi [Hr Hs]]]].
-  destruct (corresponding_types' Hwf Hi Bi) as [v [Bis Ht]].
+  destruct (corresponding_types Hwf Hi Bi) as [v [Bis Ht]].
   apply ty_var in Bi. apply ty_rec_elim in Bi.
   destruct (val_mu_to_new Hi Ht Bi Hr) as [t [ds [Heq [Hdefs Ht']]]].
   subst. exists S ds t. repeat split~. eapply ty_sub; eauto.

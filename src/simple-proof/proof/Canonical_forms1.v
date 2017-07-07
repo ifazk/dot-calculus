@@ -63,7 +63,7 @@ Lemma canonical_forms_1: forall G s x T U,
 Proof.
   introv Hwf Hin Hty.
   destruct (var_typ_all_to_binds Hin Hty) as [L [S [T' [BiG [Hs1 Hs2]]]]].
-  destruct (corresponding_types' Hwf Hin BiG) as [v [Bis Ht]].
+  destruct (corresponding_types Hwf Hin BiG) as [v [Bis Ht]].
   destruct (val_typ_all_to_lambda Hin Ht) as [L' [S' [t [Heq [Hs1' Hs2']]]]].
   subst.
   exists (L \u L' \u (dom G)) S' t. repeat split~.

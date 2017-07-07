@@ -86,18 +86,6 @@ Proof.
     specialize (IHHpf S T eq_refl); inversion IHHpf.
 Qed.
 
-(** The precise type of a value is inert. *)
-Lemma precise_inert_typ : forall G v T,
-    G |-! trm_val v : T ->
-    inert_typ T.
-Proof.
-  introv Ht. inversions Ht; constructor; rename T0 into T.
-  pick_fresh z. assert (Hz: z \notin L) by auto. specialize (H1 z Hz).
-  pose proof (ty_defs_record_type H1).
-  assert (Hz': z \notin fv_typ T) by auto.
-  apply (record_type_open T Hz' H).
-Qed.
-
 (** The following two lemmas say that the type to which a variable is bound in an inert context is inert. *)
 Lemma binds_inert : forall G x T,
     binds x T G ->
@@ -119,21 +107,6 @@ Lemma pf_inert_T : forall G p T U,
 Proof.
   introv Hi Pf. induction Pf; eauto.
   apply (binds_inert H Hi).
-Qed.
-
-(** The following two lemmas say that if a variable is bound to a recursive
-    type [mu(x: T)] in an inert context, then [T] is a record type (i.e.
-    it is an intersection of declarations, among which the type declarations
-    have equal bounds). *)
-Lemma inert_typ_bnd_record : forall G x T,
-    inert G ->
-    binds x (typ_bnd T) G ->
-    record_type T.
-Proof.
-  introv Bi Hgd.
-  pose proof (binds_inert Hgd Bi).
-  dependent induction H.
-  assumption.
 Qed.
 
 (** See [inert_typ_bnd_record] *)
