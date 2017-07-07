@@ -159,6 +159,18 @@ Proof.
     apply* binds_push_neq.
 Qed.
 
+Lemma ctx_binds_to_sto_binds: forall G s x v,
+  G ~~ s -> binds x v G -> exists v, binds x v s.
+Proof.
+  introv Hwf Bis.  remember Hwf as Hwf'. clear HeqHwf'.
+  induction Hwf.
+  false* binds_empty_inv.
+  destruct (binds_push_inv Bis) as [[Hx Hv] | [Hn Hb]]; subst.
+  - exists* v0.
+  - destruct (IHHwf Hb Hwf) as [S HS]. exists S.
+    apply* binds_push_neq.
+Qed.
+
 Lemma wf_sto_val_new_in_G: forall G s x T ds,
   G ~~ s ->
   inert G ->
