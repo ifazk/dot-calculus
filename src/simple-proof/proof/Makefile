@@ -73,3 +73,15 @@ $(LIBLN):
 graph.png: $(PROOFS)
 	coqdep -dumpgraph graph.dot *.v
 	dot -Tpng graph.dot > graph.png
+
+#################
+# Documentation #
+#################
+
+EXTRA_DIR:=../doc/assets
+COQDOCFLAGS:= \
+  --no-externals \
+  --toc --toc-depth 2 --html --interpolate \
+  --index indexpage --no-lib-name --parse-comments \
+  --with-header $(EXTRA_DIR)/header.html --with-footer $(EXTRA_DIR)/footer.html
+export COQDOCFLAGS
