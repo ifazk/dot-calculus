@@ -146,13 +146,13 @@ Qed.
     [G |- T <: T']        #<br>#
     [G, x: T |- t: U]          *)
 Lemma canonical_forms_fun: forall G s x T U,
-  G ~~ s ->
   inert G ->
+  G ~~ s ->
   G |- trm_var (avar_f x) : typ_all T U ->
   (exists L T' t, binds x (val_lambda T' t) s /\ G |- T <: T' /\
   (forall y, y \notin L -> G & y ~ T |- open_trm y t : open_typ y U)).
 Proof.
-  introv Hwf Hin Hty.
+  introv Hin Hwf Hty.
   destruct (var_typ_all_to_binds Hin Hty) as [L [S [T' [BiG [Hs1 Hs2]]]]].
   destruct (corresponding_types Hwf Hin BiG) as [v [Bis Ht]].
   destruct (val_typ_all_to_lambda Hin Ht) as [L' [S' [t [Heq [Hs1' Hs2']]]]].

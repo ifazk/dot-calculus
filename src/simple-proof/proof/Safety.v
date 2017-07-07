@@ -102,17 +102,16 @@ Qed.
 Lemma preservation_hole: forall G s t e' t' T,
     lc_term (e_hole s) t ->
     e_hole s / t |-> e' / t' ->
-    G ~~ s ->
     inert G ->
-    G |- t : T ->
+    ty_ec_trm G (e_hole s) t T ->
     exists G',
       ty_ec_trm (G & G') e' t' T.
 Proof.
-  introv Hlc Hred Hwf Hin Ht.
+  introv Hlc Hred Hin Ht.
+  inversions Ht. rename H0 into Hwf. rename H2 into Ht.
   lets Hlc': (red_preserves_lc Hred Hlc).
-  (* inversion Hlc' as [Hlc_ec Hlc_trm]. *)
   dependent induction Ht; try solve [inversion Hred].
-  - destruct (canonical_forms_fun Hwf Hin Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+  - destruct (canonical_forms_fun Hin Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
     inversions Hred.
     apply (binds_func H4) in Bis. inversions Bis.
     exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
@@ -128,7 +127,7 @@ Proof.
   - inversions Hred.
     exists (@empty typ). rewrite concat_empty_r.
     eapply ty_e_term; eauto.
-  - specialize (IHHt Hlc Hred Hwf Hin Hlc') as [G' IHHt].
+  - specialize (IHHt Hlc Hred Hin Hwf Hlc') as [G' IHHt].
     exists G'. inversions IHHt.
     + eapply ty_e_hole; auto.
       apply weaken_subtyp with (G2:=G') in H; eauto.
@@ -146,7 +145,7 @@ Lemma preservation: forall G e t e' t' T,
 Proof.
   introv Hi Hlc Hred Ht.
   inversion Hlc as [Hlc_ec Hlc_trm].
-  inversions Ht. apply* preservation_hole.
+  inversions Ht. apply* preservation_hole. constructor~.
   rename H into Hwf. rename H0 into Ht.
   destruct t.
   - inversions Hred.
@@ -177,7 +176,7 @@ Proof.
       }
   - inversion Hred. rewrite <- H4 in Hred. apply red_term_to_hole in Hred. subst.
     apply lc_term_to_hole in Hlc.
-    pose proof (preservation_hole Hlc Hred Hwf Hi Ht) as [G' Ht'].
+    pose proof (preservation_hole Hlc Hred Hi (ty_e_hole Hwf Ht)) as [G' Ht'].
     inversions Ht'. exists G'.
     eapply ty_e_term with (L:=L \u (dom G) \u (dom G')); eauto. intros.
     assert (x0 \notin L) by auto.
@@ -186,7 +185,7 @@ Proof.
   - inversion Hred. rewrite <- H2 in Hred.
     apply red_term_to_hole in Hred. subst.
     apply lc_term_to_hole in Hlc.
-    pose proof (preservation_hole Hlc Hred Hwf Hi Ht) as [G' Ht'].
+    pose proof (preservation_hole Hlc Hred Hi (ty_e_hole Hwf Ht)) as [G' Ht'].
     inversions Ht'. exists G'.
     eapply ty_e_term with (L:=L \u (dom G) \u (dom G')); eauto. intros.
     eapply (proj41 weaken_rules); eauto.
@@ -220,7 +219,7 @@ Proof.
   destruct e.
   - inversions Ht. rename H0 into Hwf. rename H2 into Ht.
     dependent induction Ht; try solve [left; auto].
-    * destruct (canonical_forms_fun Hwf Hi Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+    * destruct (canonical_forms_fun Hi Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
       right. repeat eexists. apply* red_apply.
     * destruct (canonical_forms_obj Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
       right. repeat eexists. apply* red_project.
@@ -235,7 +234,7 @@ Proof.
     dependent induction Ht; right.
     * repeat eexists; apply red_let_var.
     * pick_fresh x. repeat eexists; apply red_congruence_val with (x:=x); auto.
-    * destruct (canonical_forms_fun Hwf Hi Ht1) as [L' [T' [t [Bis [Hsub Hty]]]]].
+    * destruct (canonical_forms_fun Hi Hwf Ht1) as [L' [T' [t [Bis [Hsub Hty]]]]].
       repeat eexists. apply* red_apply.
     * pick_fresh x. repeat eexists; apply red_congruence_val with (x:=x); auto.
     * destruct (canonical_forms_obj Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
