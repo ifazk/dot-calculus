@@ -1,3 +1,9 @@
+(** printing |-#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
+(** printing |-##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
+(** printing |-##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
+(** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
+(** remove printing ~ *)
+
 Set Implicit Arguments.
 
 Require Import LibLN.
@@ -38,11 +44,11 @@ Hint Constructors normal_form_trm.
 (**
 If
 [(let x = v in)* let y = [t] in u]
-reduces to 
+reduces to
 [(let x = v in)* let y = [t'] in u],
 then
 [(let x = v in)* [t]]
-reduces to 
+reduces to
 [(let x = v in)* [t']].
 This lemma is used to reduce cases involving
 [let y = [t] in u]
