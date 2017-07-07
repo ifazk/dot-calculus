@@ -1298,15 +1298,17 @@ Inductive inert : ctx -> Prop :=
 (** ** Typing of Evaluation Contexts *)
 
 (** We define a typing relation for pairs [(e, t)] of an evaluation context and a term.
-    The pair [(e, t)] has type T in typing context [Gamma] if and only if the term
-    [e[t]] has type [T] in typing context [Gamma] according to the general typing
-    relation for terms and [Gamma] corresponds to the store of [e]. *)
+    The pair [(e, t)] has type T in typing context [Gamma] if and only if [Gamma] is inert,
+    [Gamma] corresponds to the store of [e], and the term [e[t]] has type [T] in typing context
+    [Gamma] according to the general typing relation for terms . *)
 Inductive ty_ec_trm: ctx -> ec -> trm -> typ -> Prop :=
 | ty_e_hole : forall G s t T,
+    inert G ->
     G ~~ s ->
     G |- t : T ->
     ty_ec_trm G (e_hole s) t T
 | ty_e_term : forall L G s u t T U,
+    inert G ->
     G ~~ s ->
     G |- t : T ->
     (forall x, x \notin L -> G & x ~ T |- (open_trm x u) : U) ->
