@@ -63,28 +63,17 @@ Lemma canonical_forms_1: forall G s x T U,
 Proof.
   introv Hwf Hin Hty.
   destruct (var_typ_all_to_binds Hin Hty) as [L [S [T' [BiG [Hs1 Hs2]]]]].
-  destruct (corresponding_types Hwf Hin BiG) as [[L' [S' [V [S1 [V1 [t [Hb [Ht [Heq [Hs1' Hs2']]]]]]]]]] | [S' [ds [Hb [Ht Heq]]]]].
-  - inversions Heq.
-    destruct (val_typ_all_to_lambda Hin (precise_to_general Ht)) as [L'' [S'' [t' [Heq [Hs1'' Hs2'']]]]].
-    inversions Heq.
-    inversions Ht.
-    exists (L0 \u L \u L' \u L'' \u (dom G)) S'' t'.
-    repeat split~.
-    + eapply subtyp_trans; eauto.
-    + intros.
-      assert (HL: y \notin L) by auto.
-      assert (HL': y \notin L') by auto.
-      assert (HL'': y \notin L'') by auto.
-      specialize (Hs2 y HL).
-      specialize (Hs2' y HL').
-      specialize (Hs2'' y HL'').
-      apply narrow_typing with (G':=G & y ~ T) in Hs2''; auto.
-      {
-        apply ty_sub with (T:=open_typ y V1); auto.
-        apply narrow_subtyping with (G':=G & y ~ T) in Hs2'; auto.
-        { eapply ty_sub; eauto. }
-        { apply~ subenv_last. }
-      }
-      { apply~ subenv_last. eapply subtyp_trans; eauto. }
-  - inversion Heq.
+  destruct (corresponding_types' Hwf Hin BiG) as [v [Bis Ht]].
+  destruct (val_typ_all_to_lambda Hin Ht) as [L' [S' [t [Heq [Hs1' Hs2']]]]].
+  subst.
+  exists (L \u L' \u (dom G)) S' t. repeat split~.
+  - eapply subtyp_trans; eauto.
+  - intros.
+    assert (HL: y \notin L) by auto.
+    assert (HL': y \notin L') by auto.
+    specialize (Hs2 y HL).
+    specialize (Hs2' y HL').
+    apply narrow_typing with (G':=G & y ~ T) in Hs2'; auto.
+    + eapply ty_sub; eauto.
+    + apply~ subenv_last.
 Qed.
