@@ -76,6 +76,7 @@ Proof.
   intros. inversions H. inversions H0. repeat constructor~.
 Qed.
 
+(** Reduction preserves local closedness. *)
 Lemma red_preserves_lc :
   forall e t e' t',
     e / t |-> e' / t' ->
