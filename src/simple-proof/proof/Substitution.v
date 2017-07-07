@@ -62,7 +62,7 @@ with subst_defs (z: var) (u: var) (ds: defs) : defs :=
   | defs_cons rest d => defs_cons (subst_defs z u rest) (subst_def z u d)
   end.
 
-(** Substitution on the types of a typing environment: [Gamma[u/z]]. *)
+(** Substitution on the types of a typing environment: [G[u/z]]. *)
 Definition subst_ctx (z: var) (u: var) (G: ctx) : ctx :=
   map (subst_typ z u) G.
 
@@ -102,9 +102,9 @@ Proof.
 Qed.
 
 (** [x notin fv(T)]           #<br>#
-    [x notin fv(Gamma)]       #<br>#
+    [x notin fv(G)]       #<br>#
     [―――――――――――――――――――――――] #<br>#
-    [x notin fv(Gamma, z: T)] *)
+    [x notin fv(G, z: T)] *)
 Lemma fv_ctx_types_push: forall x z T G,
     x \notin fv_typ T ->
     x \notin fv_ctx_types G ->
@@ -121,10 +121,10 @@ Proof.
   apply notin_union. split~.
 Qed.
 
-(** [x notin fv(Gamma, z: T)]               #<br>#
+(** [x notin fv(G, z: T)]                   #<br>#
     [x notin fv(T)]                         #<br>#
     [―――――――――――――――――――――――――――――――――――――] #<br>#
-    [x notin fv(T)] and [x notin fv(Gamma)] *)
+    [x notin fv(T)] and [x notin fv(G)] *)
 Lemma invert_fv_ctx_types_push: forall x z T G,
   x \notin fv_ctx_types (G & z ~ T) -> x \notin fv_typ T /\ x \notin (fv_ctx_types G).
 Proof.
@@ -139,9 +139,9 @@ Proof.
   apply notin_union in N. exact N.
 Qed.
 
-(** [x notin fv(Gamma)]     #<br>#
+(** [x notin fv(G)]         #<br>#
     [――――――――――――――――――]    #<br>#
-    [Gamma[y/x] = Gamma]    *)
+    [G[y/x] = G]    *)
 Lemma subst_fresh_ctx: forall x y G,
   x \notin fv_ctx_types G -> subst_ctx x y G = G.
 Proof.
@@ -285,33 +285,39 @@ Proof.
 Qed.
 
 (** * Substitution Lemma *)
-(** [Gamma1, x: S, Gamma2 |- t: T]            #<br>#
-    [ok(Gamma1, x: S, Gamma2)]               #<br>#
-    [x notin fv(Gamma1)]                     #<br>#
-    [Gamma1, Gamma2[y/x] |- y: S[y/x]]       #<br>#
-    [―――――――――――――――――――――――――――――――――――――]  #<br>#
-    [Gamma1, Gamma2[y/x] |- t[y/x]: T[y/x]]  #<br>#
-    and                                      #<br>#
-    [Gamma1, x: S, Gamma2 |- d: D]            #<br>#
-    [ok(Gamma1, x: S, Gamma2)]               #<br>#
-    [x notin fv(Gamma1)]                     #<br>#
-    [Gamma1, Gamma2[y/x] |- y: S[y/x]]       #<br>#
-    [―――――――――――――――――――――――――――――――――――――]  #<br>#
-    [Gamma1, Gamma2[y/x] |- d[y/x]: D[y/x]]  #<br>#
-    and                                      #<br>#
-    [Gamma1, x: S, Gamma2 |- ds: T]           #<br>#
-    [ok(Gamma1, x: S, Gamma2)]               #<br>#
-    [x notin fv(Gamma1)]                     #<br>#
-    [Gamma1, Gamma2[y/x] |- y: S[y/x]]       #<br>#
-    [―――――――――――――――――――――――――――――――――――――]  #<br>#
-    [Gamma1, Gamma2[y/x] |- ds[y/x]: T[y/x]] #<br>#
-    and                                      #<br>#
-    [Gamma1, x: S, Gamma2 |- T <: U]          #<br>#
-    [ok(Gamma1, x: S, Gamma2)]               #<br>#
-    [x notin fv(Gamma1)]                     #<br>#
-    [Gamma1, Gamma2[y/x] |- y: S[y/x]]       #<br>#
-    [―――――――――――――――――――――――――――――――――――――]  #<br>#
-    [Gamma1, Gamma2[y/x] |- T[y/x] <: U[y/x]] *)
+(** [G1, x: S, G2 |- t: T]            #<br>#
+    [ok(G1, x: S, G2)]               #<br>#
+    [x notin fv(G1)]                 #<br>#
+    [G1, G2[y/x] |- y: S[y/x]]       #<br>#
+    [―――――――――――――――――――――――――――――]  #<br>#
+    [G1, G2[y/x] |- t[y/x]: T[y/x]]
+
+    and
+
+    [G1, x: S, G2 |- d: D]            #<br>#
+    [ok(G1, x: S, G2)]               #<br>#
+    [x notin fv(G1)]                 #<br>#
+    [G1, G2[y/x] |- y: S[y/x]]       #<br>#
+    [―――――――――――――――――――――――――――――]  #<br>#
+    [G1, G2[y/x] |- d[y/x]: D[y/x]]
+
+    and
+
+    [G1, x: S, G2 |- ds: T]           #<br>#
+    [ok(G1, x: S, G2)]               #<br>#
+    [x notin fv(G1)]                 #<br>#
+    [G1, G2[y/x] |- y: S[y/x]]       #<br>#
+    [――――――――――――――――――――――――――――――] #<br>#
+    [G1, G2[y/x] |- ds[y/x]: T[y/x]]
+
+    and
+
+    [G1, x: S, G2 |- T <: U]           #<br>#
+    [ok(G1, x: S, G2)]                #<br>#
+    [x notin fv(G1)]                  #<br>#
+    [G1, G2[y/x] |- y: S[y/x]]        #<br>#
+    [―――――――――――――――――――――――――――――――] #<br>#
+    [G1, G2[y/x] |- T[y/x] <: U[y/x]] *)
 
 (** The proof is by mutual induction on term typing, definition typing, and subtyping. *)
 Lemma subst_rules: forall y S,

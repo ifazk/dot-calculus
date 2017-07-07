@@ -11,20 +11,20 @@ Require Import Definitions.
 Require Import Weakening.
 
 
-(** [Gamma1] is a subenvironment of [Gamma2], denoted [Gamma1 subG Gamma2],
-     if for each [x] s.t. [Gamma2(x)=T2],
-    [Gamma1(x) = T1] and [Gamma1 |- T1 <: T2]. *)
+(** [G1] is a subenvironment of [G2], denoted [G1 subG G2],
+     if for each [x] s.t. [G2(x)=T2],
+    [G1(x) = T1] and [G1 |- T1 <: T2]. *)
 Definition subenv(G1 G2: ctx) :=
   forall x T2, binds x T2 G2 ->
     binds x T2 G1 \/
     exists T1,
       binds x T1 G1 /\ G1 |- T1 <: T2.
 
-(** [Gamma' subG Gamma]              #<br>#
-    [ok(Gamma', x: T)]               #<br>#
+(** [G' subG G]              #<br>#
+    [ok(G', x: T)]               #<br>#
     [―――――――――――――――――――――――――――――]  #<br>#
-    [Gamma', x: T subG Gamma, x: T]  #<br>#
-    Note: [ok(Gamma)] means that [Gamma]'s domain consists of distinct variables.
+    [G', x: T subG G, x: T]  #<br>#
+    Note: [ok(G)] means that [G]'s domain consists of distinct variables.
     [ok] is defined in [TLC.LibEnv.v]. *)
 Lemma subenv_push: forall G G' x T,
   subenv G' G ->
@@ -43,10 +43,10 @@ Proof.
       exists T'. split. eauto. apply weaken_subtyp. assumption. eauto.
 Qed.
 
-(** [Gamma |- S <: U]                      #<br>#
-    [ok(Gamma, x: S)] (see [subenv_push]) #<br>#
+(** [G |- S <: U]                      #<br>#
+    [ok(G, x: S)] (see [subenv_push]) #<br>#
     [――――――――――――――――――――――――――――――――――]  #<br>#
-    [Gamma', x: T subG Gamma, x: T] *)
+    [G', x: T subG G, x: T] *)
 Lemma subenv_last: forall G x S U,
   G |- S <: U ->
   ok (G & x ~ S) ->
@@ -64,29 +64,35 @@ Qed.
     The proof is by mutual induction on term typing, definition typing,
     and subtyping. *)
 
-(** [Gamma |- t: T]                 #<br>#
-    [Gamma' subG Gamma]            #<br>#
-    [ok Gamma']                    #<br>#
-    [―――――――――――――――――]            #<br>#
-    [Gamma' |- t: T]                #<br>#
-    and                            #<br>#
-    [Gamma |- d: D]                 #<br>#
-    [Gamma' subG Gamma]            #<br>#
-    [ok Gamma']                    #<br>#
-    [―――――――――――――――――]            #<br>#
-    [Gamma' |- d: D]                #<br>#
-    and                            #<br>#
-    [Gamma |- ds :: T]              #<br>#
-    [Gamma' subG Gamma]            #<br>#
-    [ok Gamma']                    #<br>#
-    [―――――――――――――――――]            #<br>#
-    [Gamma' |- ds :: T]             #<br>#
-    and                            #<br>#
-    [Gamma |- S <: U]               #<br>#
-    [Gamma' subG Gamma]            #<br>#
-    [ok Gamma']                    #<br>#
-    [―――――――――――――――――]            #<br>#
-    [Gamma' |- S <: U]              #<br>#
+(** [G |- t: T]                 #<br>#
+    [G' subG G]                #<br>#
+    [ok G']                    #<br>#
+    [―――――――――――――――――]        #<br>#
+    [G' |- t: T]
+
+    and
+
+    [G |- d: D]                 #<br>#
+    [G' subG G]                #<br>#
+    [ok G']                    #<br>#
+    [―――――――――――――――――]        #<br>#
+    [G' |- d: D]
+
+    and
+
+    [G |- ds :: T]              #<br>#
+    [G' subG G]                #<br>#
+    [ok G']                    #<br>#
+    [―――――――――――――――――]        #<br>#
+    [G' |- ds :: T]
+
+    and
+
+    [G |- S <: U]               #<br>#
+    [G' subG G]                #<br>#
+    [ok G']                    #<br>#
+    [―――――――――――――――――]        #<br>#
+    [G' |- S <: U]              #<br>#
 
 Note: for simplicity, the definition typing judgements and [ok] conditions
       are omitted from the paper formulation. *)

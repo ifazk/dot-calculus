@@ -15,8 +15,8 @@ Require Import Definitions.
 (** [Gamma |- ds :: Ds]                     #<br>#
     [Ds] is a record type with labels [ls] #<br>#
     [ds] are definitions with label [ls']  #<br>#
-    [l notin ls']
-    --------------------------------------
+    [l notin ls']                          #<br>#
+    [―――――――――――――――――――――――――――――――――――]  #<br>#
     [l notin ls] *)
 Lemma hasnt_notin : forall G ds ls l U,
     G /- ds :: U ->

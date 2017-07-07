@@ -16,17 +16,14 @@ Require Import Precise_types.
 Require Import Substitution.
 Require Import Canonical_forms.
 
-(** * Safety *)
-
-(** *** Normal Forms
+(** * Normal Forms
 A normal form is defined in the WadlerFest DOT paper as:
 
 [n ::= x | v | let x = v in n]
 
 This corresponds to an evaluation context of the form
 [(let x = v in)* [ ]] whose hole is filled by a variable [x]
-or value [v].
-*)
+or value [v]. *)
 
 Inductive normal_form_trm: trm -> Prop :=
 | nf_var: forall x, normal_form_trm (trm_var x)
@@ -51,20 +48,13 @@ Proof.
   intros. inversions H. inversions H0. repeat constructor~.
 Qed.
 
-(**
-If
-[(let x = v in)* let y = [t] in u]
-reduces to
-[(let x = v in)* let y = [t'] in u],
-then
-[(let x = v in)* [t]]
-reduces to
-[(let x = v in)* [t']].
-This lemma is used to reduce cases involving
-[let y = [t] in u]
-into simpler cases involving [[t]].
-*)
+(** If [(let x = v in)* let y = [t] in u]
+    reduces to [(let x = v in)* let y = [t'] in u],
+    then [(let x = v in)* [t]]
+    reduces to [(let x = v in)* [t']].
 
+    This lemma is used to reduce cases involving [let y = [t] in u]
+    into simpler cases involving [[t]]. *)
 Lemma red_term_to_hole: forall s u t t',
     e_term s u / t |-> e_term s u / t' ->
     e_hole s / t |-> e_hole s / t'.
@@ -76,12 +66,11 @@ Proof.
     eapply IHu2; eauto.
 Qed.
 
-(**
-Progress:
-If [0 |- e[t] : T], then either [e[t]] is a normal form,
-        or [e[t]] reduces to some [e'[t']].
-*)
+(** * Progress *)
 
+(** ** Progress theorem
+    If [0 |- e[t] : T], then either [e[t]] is a normal form,
+    or [e[t]] reduces to some [e'[t']]. *)
 Lemma progress: forall G e t T,
     ty_ec_trm G e t T ->
     (normal_form e t \/ exists e' t', e / t |-> e' / t').
@@ -117,6 +106,8 @@ Proof.
       inversion IH.
 Qed.
 
+(** * Preservation *)
+
 (** Reduction preserves local closedness. *)
 Lemma red_preserves_lc :
   forall e t e' t',
@@ -141,13 +132,11 @@ Proof.
     rewrite~ lc_opening.
 Qed.
 
-(**
-Special case of type preservation for evaluation contexts of the
-form [e] = [(let x=v in)* [ ]].
+(** Special case of type preservation for evaluation contexts of the
+    form [e] = [(let x=v in)* [ ]].
 
-If e and t are locally closed, [0 |- e[t]: T], and [e[t] |-> e'[t']], then [0 |- e'[t']: T].
-*)
-
+    If [e] and [t] are locally closed, [0 |- e[t]: T],
+    and [e[t] |-> e'[t']], then [0 |- e'[t']: T]. *)
 Lemma red_preserves_type_hole: forall G s t e' t' T,
     lc_term (e_hole s) t ->
     e_hole s / t |-> e' / t' ->
@@ -184,10 +173,9 @@ Proof.
       apply weaken_subtyp with (G2:=(G' & z ~ T0)) in H; rewrite concat_assoc in *; eauto.
 Qed.
 
-(**
-Type Preservation:
-If [e] and [t] are locally closed, [0 |- e[t]: T], and [e[t] |-> e'[t']], then [0 |- e'[t']: T].
-*)
+(** Type Preservation:
+    If [e] and [t] are locally closed, [0 |- e[t]: T], and [e[t] |-> e'[t']],
+    then [0 |- e'[t']: T]. *)
 Lemma red_preserves_type: forall G e t e' t' T,
     lc_term e t ->
     e / t |-> e' / t' ->
@@ -264,12 +252,11 @@ Proof.
 Qed.
 
 
-(**
-Preservation:
-Reduction preserves both local closedness and the type of the term being reduced.
-If [e] and [t] are locally closed, [0 |- e[t]: T], and [e[t] |-> e'[t']], then
-[e'] and [t'] are locally closed and [0 |- e'[t']: T].
-*)
+(** ** Preservation Theorem
+    Reduction preserves both local closedness and the type of the term being reduced.
+
+    If [e] and [t] are locally closed, [0 |- e[t]: T], and [e[t] |-> e'[t']], then
+    [e'] and [t'] are locally closed and [0 |- e'[t']: T]. *)
 Lemma preservation: forall G e t e' t' T,
     lc_term e t ->
     e / t |-> e' / t' ->

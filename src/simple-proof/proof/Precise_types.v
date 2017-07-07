@@ -15,17 +15,17 @@ Require Import Helper_lemmas.
 
 (** * Precise Flow *)
 (** We use the precise flow relation to reason about the relations between
-    the precise type of a variable [Gamma |-! x: T] and the type that the variable
+    the precise type of a variable [G |-! x: T] and the type that the variable
     is bound to in the context [Γamma(x)=T'].#<br>#
-    If [Gamma(x) = T], the [precise_flow] relation describes all the types [U] that [x] can
+    If [G(x) = T], the [precise_flow] relation describes all the types [U] that [x] can
     derive through precise typing ([|-!], see [ty_trm_p]).
-    If [precise_flow x Gamma T U], then [Gamma(x) = T] and [Gamma |-! x: U].   #<br>#
-    For example, if [Gamma(x) = mu(x: {a: T} /\ {B: S..U})], then we can derive the following
-    precise flows for [x]:                                                     #<br>#
-    [precise_flow x Gamma mu(x: {a: T} /\ {B: S..U}) mu(x: {a: T} /\ {B: S..U}]  #<br>#
-    [precise_flow x Gamma mu(x: {a: T} /\ {B: S..U}) {a: T} /\ {B: S..U}]        #<br>#
-    [precise_flow x Gamma mu(x: {a: T} /\ {B: S..U}) {a: T}]                    #<br>#
-    [precise_flow x Gamma mu(x: {a: T} /\ {B: S..U}) {B: S..}]. *)
+    If [precise_flow x G T U], then [G(x) = T] and [G |-! x: U].   #<br>#
+    For example, if [G(x) = mu(x: {a: T} /\ {B: S..U})], then we can derive the following
+    precise flows for [x]:                                                 #<br>#
+    [precise_flow x G mu(x: {a: T} /\ {B: S..U}) mu(x: {a: T} /\ {B: S..U}]  #<br>#
+    [precise_flow x G mu(x: {a: T} /\ {B: S..U}) {a: T} /\ {B: S..U}]        #<br>#
+    [precise_flow x G mu(x: {a: T} /\ {B: S..U}) {a: T}]                    #<br>#
+    [precise_flow x G mu(x: {a: T} /\ {B: S..U}) {B: S..}]. *)
 Inductive precise_flow : var -> ctx -> typ -> typ -> Prop :=
   | pf_bind : forall x G T,
       binds x T G ->
@@ -42,7 +42,7 @@ Inductive precise_flow : var -> ctx -> typ -> typ -> Prop :=
 
 Hint Constructors precise_flow.
 
-(** If [precise_flow x Gamma T U] then [Gamma(x) = T]. *)
+(** If [precise_flow x G T U] then [G(x) = T]. *)
 Lemma pf_binds: forall G x T U,
     precise_flow x G T U ->
     binds x T G.
@@ -59,7 +59,7 @@ Proof.
               try (destruct* (IHty_trm_p _ eq_refl)); eauto.
 Qed.
 
-(** If [Gamma(x) = forall(S)T], then [x]'s precise type can be only [forall(S)T]. *)
+(** If [G(x) = forall(S)T], then [x]'s precise type can be only [forall(S)T]. *)
 Lemma precise_flow_all_inv : forall p G S T U,
     precise_flow p G (typ_all S T) U ->
     U = typ_all S T.
@@ -113,7 +113,7 @@ Proof.
   introv Hi Pf. apply pf_inert_T in Pf; inversions Pf; assumption.
 Qed.
 
-(** If [Gamma(x) = mu(x: T)], then [x]'s precise type can be only [mu(x: T)]
+(** If [G(x) = mu(x: T)], then [x]'s precise type can be only [mu(x: T)]
      or a record type. *)
 Lemma pf_inert_or_rcd : forall G x T U,
     inert G ->
@@ -134,7 +134,7 @@ Proof.
     eexists. apply* rt_one.
 Qed.
 
-(** If [x]'s precise type is [mu(x: U)], then [Gamma(x) = mu(x: U)] *)
+(** If [x]'s precise type is [mu(x: U)], then [G(x) = mu(x: U)] *)
 Lemma pf_inert_bnd_U: forall G x T U,
     inert G ->
     precise_flow x G T (typ_bnd U) ->
@@ -158,7 +158,7 @@ Proof.
     * inversions Hr. inversions H0.
 Qed.
 
-(** If [x]'s precise type is a field or type declaration, then [Gamma(x)] is
+(** If [x]'s precise type is a field or type declaration, then [G(x)] is
     a recursive type. *)
 Lemma pf_inert_rcd_U: forall G x T D,
     inert G ->
@@ -175,7 +175,7 @@ Proof.
   - exists* T0.
 Qed.
 
-(** If [x]'s precise type is a record type, then [Gamma(x)] is a recursive type. *)
+(** If [x]'s precise type is a record type, then [G(x)] is a recursive type. *)
 Lemma pf_inert_rcd_typ_U: forall G x T Ds,
     inert G ->
     precise_flow x G T Ds ->
@@ -197,7 +197,7 @@ Proof.
 Qed.
 
 (** The following two lemmas express that if [x]'s precise type is a function type,
-    then [Gamma(x)] is the same function type. *)
+    then [G(x)] is the same function type. *)
 Lemma pf_inert_lambda_U : forall x G S T U,
     inert G ->
     precise_flow x G U (typ_all S T) ->
@@ -269,7 +269,7 @@ Proof.
   apply* pf_psel_false.
 Qed.
 
-(** If [Gamma(x) = mu(T)], and [Gamma |-! x: ... /\ D /\ ...], then [T^x = ... /\ D /\ ...]. *)
+(** If [G(x) = mu(T)], and [G |-! x: ... /\ D /\ ...], then [T^x = ... /\ D /\ ...]. *)
 Lemma pf_record_sub : forall x G T T' D,
     inert G ->
     precise_flow x G (typ_bnd T) T' ->
@@ -283,7 +283,7 @@ Proof.
   - apply* IHPf.
 Qed.
 
-(** If [Gamma(x) = mu(S)] and [Gamma |-! x: D], where [D] is a field or type declaration,
+(** If [G(x) = mu(S)] and [G |-! x: D], where [D] is a field or type declaration,
     then [S^x = ... /\ D /\ ...]. *)
 Lemma precise_flow_record_has: forall S G x D,
     inert G ->
@@ -294,9 +294,9 @@ Proof.
 Qed.
 
 (** If
-    - [Gamma(x) = mu(T)]
-    - [Gamma |-! x: {A: T1..T1}]
-    - [Gamma |-! x: {A: T2..T2}]
+    - [G(x) = mu(T)]
+    - [G |-! x: {A: T1..T1}]
+    - [G |-! x: {A: T2..T2}]
     then [T1 = T2]. *)
 Lemma pf_record_unique_tight_bounds_rec : forall G x T A T1 T2,
     inert G ->
@@ -312,8 +312,8 @@ Proof.
 Qed.
 
 (** If
-    - [Gamma |-! x: {A: T1..T1}]
-    - [Gamma |-! x: {A: T2..T2}]
+    - [G |-! x: {A: T1..T1}]
+    - [G |-! x: {A: T2..T2}]
     then [T1 = T2]. *)(** *)
 Lemma pf_inert_unique_tight_bounds : forall G x T T1 T2 A,
     inert G ->
@@ -371,7 +371,7 @@ Qed.
 
 Hint Resolve inert_ok.
 
-(** The following two lemmas express that if [Gamma |-! x: {A: S..U}] then [S = U]. *)
+(** The following two lemmas express that if [G |-! x: {A: S..U}] then [S = U]. *)
 Lemma pf_dec_typ_inv : forall G x T A S U,
     inert G ->
     precise_flow x G T (typ_rcd (dec_typ A S U)) ->

@@ -17,10 +17,10 @@ Require Import Precise_types.
     ([ty_var_inv], [|-##] and [ty_val_inv], [|-##v]). *)
 
 (** Invertible-to-precise typing for field declarations: #<br>#
-    [Gamma |-## x: {a: T}]            #<br>#
-    [――――――――――――――――――――――――――]      #<br>#
-    [exists T'. Gamma |-! x: {a: T'}]      #<br>#
-    [Gamma |-# T' <: T]. *)
+    [G |-## x: {a: T}]            #<br>#
+    [――――――――――――――――――――――]      #<br>#
+    [exists T'. G |-! x: {a: T'}]      #<br>#
+    [G |-# T' <: T]. *)
 Lemma invertible_to_precise_trm_dec: forall G x a T,
   G |-## x : typ_rcd (dec_trm a T) ->
   exists T',
@@ -36,12 +36,12 @@ Proof.
 Qed.
 
 (** Invertible-to-precise typing for function types: #<br>#
-    [ok Gamma]                        #<br>#
-    [Gamma |-## x: forall(S)T]             #<br>#
-    [――――――――――――――――――――――――――――――]  #<br>#
-    [exists S', T'. Gamma |-! x: forall(S')T']  #<br>#
-    [Gamma |-# S <: S']               #<br>#
-    [Gamma |-# T'^y <: T^y], where [y] is fresh. *)
+    [ok G]                        #<br>#
+    [G |-## x: forall(S)T]             #<br>#
+    [――――――――――――――――――――――――――]  #<br>#
+    [exists S', T'. G |-! x: forall(S')T']  #<br>#
+    [G |-# S <: S']               #<br>#
+    [G |-# T'^y <: T^y], where [y] is fresh. *)
 Lemma invertible_to_precise_typ_all: forall G x S T,
   ok G ->
   G |-## x : typ_all S T ->
@@ -95,10 +95,10 @@ Qed.
 
        This lemma corresponds to Theorem 3.6 in the paper.
 
-       [inert Gamma]            #<br>#
-       [Gamma |-# x: U]         #<br>#
-       [―――――――――――――――]        #<br>#
-       [Gamma |-## x: U] *)
+       [inert G]            #<br>#
+       [G |-# x: U]         #<br>#
+       [―――――――――――――――]    #<br>#
+       [G |-## x: U] *)
 Lemma tight_to_invertible :
   forall G U x,
     inert G ->
@@ -134,10 +134,10 @@ Qed.
 
 (** ** Tight-to-Invertible Lemma for Values
 
-       [inert Gamma]            #<br>#
-       [Gamma |-# v: T]         #<br>#
-       [――――――――――――――――]       #<br>#
-       [Gamma |-##v v: T] *)
+       [inert G]            #<br>#
+       [G |-# v: T]         #<br>#
+       [――――――――――――――――]   #<br>#
+       [G |-##v v: T] *)
 Lemma tight_to_invertible_v : forall G v T,
     inert G ->
     G |-# trm_val v : T ->

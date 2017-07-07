@@ -125,7 +125,7 @@ Definition defs_has(ds: defs)(d: def) := get_def (label_of_def d) ds = Some d.
 
 Definition defs_hasnt(ds: defs)(l: label) := get_def l ds = None.
 
-(** Typing environment ([Gamma], referred to in the proof as [G]) *)
+(** Typing environment ([G], referred to in the proof as [G]) *)
 Definition ctx := env typ.
 
 (** ** Evaluation Contexts
@@ -449,44 +449,35 @@ Tactic Notation "SSSSSCase" constr(name) := Case_aux SSSSSCase name.
 
 The reduction rules in the paper are:
 
-[t -> t']
-----------------
-[e[t] |-> e[t']]   #<br>#
-(Term)
+[t -> t']                 #<br>#
+[――――――――――――――] (Term)  #<br>#
+[e[t] |-> e[t']]
 
-[v = lambda(z: T).t]
--------------------------------------------------
-[let x = v in e[x y] |-> let x = v in e[[y/x] t]]  #<br>#
-(Apply)
+[v = lambda(z: T).t]                                      #<br>#
+[―――――――――――――――――――――――――――――――――――――――――――――――] (Apply) #<br>#
+[let x = v in e[x y] |-> let x = v in e[[y/x] t]]
 
-[v = nu(x: T)...{a = t}...]
--------------------------------------------
-[let x = v in e[x.a] |-> let x = v in e[t]]   #<br>#
-(Project)
+[v = nu(x: T)...{a = t}...]                             #<br>#
+[―――――――――――――――――――――――――――――――――――――――――] (Project)   #<br>#
+[let x = v in e[x.a] |-> let x = v in e[t]]
 
-[let x = y in t |-> [y/x] t] #<br>#
-(Let-Var)
+[let x = y in t |-> [y/x] t] (Let-Var)
 
-[let x = let y = s in t in y |-> let y = s in let x = t in u] #<br>#
-(Let-Let)
+[let x = let y = s in t in y |-> let y = s in let x = t in u] (Let-Let)
 
 We transform the rules by inlining the (Term) rule into all of the other rules:
 
-[v = lambda(z: T).t]
------------------------------------------------------------
-[e1[let x = v in e2[x y]] |-> e1[let x = v in e2[[y/x] t]]] #<br>#
-(Apply)
+[v = lambda(z: T).t]                                                #<br>#
+[―――――――――――――――――――――――――――――――――――――――――――――――――――――――――] (Apply) #<br>#
+[e1[let x = v in e2[x y]] |-> e1[let x = v in e2[[y/x] t]]]
 
-[v = nu(x: T)...{a = t}...]
------------------------------------------------------
-[e1[let x = v in e2[x.a]] |-> e1[let x = v in e2[t]]] #<br>#
-(Project)
+[v = nu(x: T)...{a = t}...]                                           #<br>#
+[―――――――――――――――――――――――――――――――――――――――――――――――――――――――――] (Project) #<br>#
+[e1[let x = v in e2[x.a]] |-> e1[let x = v in e2[t]]]
 
-[e[let x = y in t] |-> e[[y/x] t]] #<br>#
-(Let-Var)
+[e[let x = y in t] |-> e[[y/x] t]] (Let-Var)
 
-[e[let x = let y = s in t in y] |-> e[let y = s in let x = t in u]] #<br>#
-(Let-Let)
+[e[let x = let y = s in t in y] |-> e[let y = s in let x = t in u]] (Let-Let)
 
 We then note that in the Apply and Project rules,
 [e1[let x = v in e2[ ]]]
@@ -496,21 +487,19 @@ into just [e[ ]].
 Additionally, we define a binds relation [e(x) = v] which determines
 that the evaluation context [e] to contains the subterm [let x = v in e2]:
 
-[e = e1[let x = v in e2[ ]]]
-------------------------------
+[e = e1[let x = v in e2[ ]]] #<br>#
+[――――――――――――――――――――――――――] #<br>#
 [binds x v e]
 
 The (Apply) and (Project) reduction rules become:
 
-[e(x) = lambda(z: T).t]
-------------------------------
-[e[x y] |-> e[[y/x] t]] #<br>#
-(Apply)
+[e(x) = lambda(z: T).t]         #<br>#
+[―――――――――――――――――――――] (Apply) #<br>#
+[e[x y] |-> e[[y/x] t]]
 
-[e(x) = nu(x: T)...{a = t}...]
-------------------------------
-[e[x.a] |-> e[t]] #<br>#
-(Project)
+[e(x) = nu(x: T)...{a = t}...]           #<br>#
+[――――――――――――――――――――――――――――] (Project) #<br>#
+[e[x.a] |-> e[t]]
 
 In general, there may be multiple decompositions of a term into an evaluation context
 and a subterm. For example, the term
@@ -605,122 +594,122 @@ Reserved Notation "G '|-' T '<:' U" (at level 40, T at level 59).
 Reserved Notation "G '/-' d : D" (at level 40, d at level 59).
 Reserved Notation "G '/-' ds :: D" (at level 40, ds at level 59).
 
-(** ** Term typing [Gamma |- t: T] *)
+(** ** Term typing [G |- t: T] *)
 Inductive ty_trm : ctx -> trm -> typ -> Prop :=
 
-(** [Gamma(x) = T]  *)
-(** ----------  *)
-(** [Gamma |- x: T]  *)
+(** [G(x) = T]  #<br>#
+    [――――――――]  #<br>#
+    [G |- x: T]  *)
 | ty_var : forall G x T,
     binds x T G ->
     G |- trm_var (avar_f x) : T
 
-(** [Gamma, x: T |- t^x: U^x]    #<br># *)
-(** [x fresh]                          *)
-(** ----------------------------       *)
-(** [Gamma |- lambda(T).t: forall(T)U]       *)
+(** [G, x: T |- t^x: U^x]     #<br>#
+    [x fresh]                #<br>#
+    [――――――――――――――――――――――] #<br>#
+    [G |- lambda(T).t: forall(T)U]      *)
 | ty_all_intro : forall L G T t U,
     (forall x, x \notin L ->
       G & x ~ T |- open_trm x t : open_typ x U) ->
     G |- trm_val (val_lambda T t) : typ_all T U
 
-(** [Gamma |- x: forall(S)T] #<br># *)
-(** [Gamma |- z: S]            *)
-(** ------------------        *)
-(** [Gamma |- x z: T^z]        *)
+(** [G |- x: forall(S)T] #<br>#
+    [G |- z: S]     #<br>#
+    [――――――――――――] #<br>#
+    [G |- x z: T^z]     *)
 | ty_all_elim : forall G x z S T,
     G |- trm_var (avar_f x) : typ_all S T ->
     G |- trm_var (avar_f z) : S ->
     G |- trm_app (avar_f x) (avar_f z) : open_typ z T
 
-(** [Gamma, x: T^x |- ds^x :: T^x]  #<br># *)
-(** [x fresh]                             *)
-(** -----------------------------         *)
-(** [Gamma |- nu(T)ds :: mu(T)]            *)
+(** [G, x: T^x |- ds^x :: T^x]  #<br>#
+    [x fresh]                  #<br>#
+    [―――――――――――――――――――――――]  #<br>#
+    [G |- nu(T)ds :: mu(T)]          *)
 | ty_new_intro : forall L G T ds,
     (forall x, x \notin L ->
       G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
     G |- trm_val (val_new T ds) : typ_bnd T
 
-(** [Gamma |- x: {a: T}]  *)
-(** ------------------   *)
-(** [Gamma |- x.a: T    ] *)
+(** [G |- x: {a: T}] #<br>#
+    [―――――――――――――] #<br>#
+    [G |- x.a: T]        *)
 | ty_new_elim : forall G x a T,
     G |- trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
     G |- trm_sel (avar_f x) a : T
 
-(** [Gamma |- t: T]          #<br># *)
-(** [Gamma, x: T |- u^x: U]  #<br># *)
-(** [x fresh]                      *)
-(** ----------------------         *)
-(** [Gamma |- let t in u: U]        *)
+(** [G |- t: T]          #<br>#
+    [G, x: T |- u^x: U]  #<br>#
+    [x fresh]           #<br>#
+    [―――――――――――――――――] #<br>#
+    [G |- let t in u: U]     *)
 | ty_let : forall L G t u T U,
     G |- t : T ->
     (forall x, x \notin L ->
       G & x ~ T |- open_trm x u : U) ->
     G |- trm_let t u : U
 
-(** [Gamma |- x: T^x]   *)
-(** ------------------ *)
-(** [Gamma |- x: mu(T)] *)
+(** [G |- x: T^x]   #<br>#
+    [――――――――――――] #<br>#
+    [G |- x: mu(T)]     *)
 | ty_rec_intro : forall G x T,
     G |- trm_var (avar_f x) : open_typ x T ->
     G |- trm_var (avar_f x) : typ_bnd T
 
-(** [Gamma |- x: mu(T)] *)
-(** ------------------ *)
-(** [Gamma |- x: T^x]   *)
+(** [G |- x: mu(T)] #<br>#
+    [――――――――――――] #<br>#
+    [G |- x: T^x]   *)
 | ty_rec_elim : forall G x T,
     G |- trm_var (avar_f x) : typ_bnd T ->
     G |- trm_var (avar_f x) : open_typ x T
 
-(** [Gamma |- x: T]      #<br># *)
-(** [Gamma |- x: U]             *)
-(** ------------------         *)
-(** [Gamma |- x: T /\ U]         *)
+(** [G |- x: T]     #<br>#
+    [G |- x: U]     #<br>#
+    [――――――――――――] #<br>#
+    [G |- x: T /\ U]     *)
 | ty_and_intro : forall G x T U,
     G |- trm_var (avar_f x) : T ->
     G |- trm_var (avar_f x) : U ->
     G |- trm_var (avar_f x) : typ_and T U
 
-(** [Gamma |- t: T]    #<br># *)
-(** [Gamma |- T <: U]         *)
-(** ------------------       *)
-(** [Gamma |- t: U]           *)
+(** [G |- t: T]   #<br>#
+    [G |- T <: U] #<br>#
+    [――――――――――] #<br>#
+    [G |- t: U]   *)
 | ty_sub : forall G t T U,
     G |- t : T ->
     G |- T <: U ->
     G |- t : U
 where "G '|-' t ':' T" := (ty_trm G t T)
 
-(** ** Single-definition typing [Gamma |- d: D] *)
+(** ** Single-definition typing [G |- d: D] *)
 with ty_def : ctx -> def -> dec -> Prop :=
-(** [Gamma |- {A = T}: {A: T..T}]   *)
+(** [G |- {A = T}: {A: T..T}]   *)
 | ty_def_typ : forall G A T,
     G /- def_typ A T : dec_typ A T T
 
-(** [Gamma |- t: T]           *)
-(** -----------------------  *)
-(** [Gamma |- {a = t}: {a: T} *)
+(** [G |- t: T]            #<br>#
+    [―――――――――――――――――――] #<br>#
+    [G |- {a = t}: {a: T}] *)
 | ty_def_trm : forall G a t T,
     G |- t : T ->
     G /- def_trm a t : dec_trm a T
 where "G '/-' d ':' D" := (ty_def G d D)
 
-(** ** Multiple-definition typing [Gamma |- ds :: T] *)
+(** ** Multiple-definition typing [G |- ds :: T] *)
 with ty_defs : ctx -> defs -> typ -> Prop :=
-(** [Gamma |- d: D]              *)
-(** --------------------------  *)
-(** [Gamma |- d ++ defs_nil : D] *)
+(** [G |- d: D]              #<br>#
+    [―――――――――――――――――――――] #<br>#
+    [G |- d ++ defs_nil : D] *)
 | ty_defs_one : forall G d D,
     G /- d : D ->
     G /- defs_cons defs_nil d :: typ_rcd D
 
-(** [Gamma |- ds :: T]             #<br># *)
-(** [Gamma |- d: D]                #<br># *)
-(** [d \notin ds]                        *)
-(**  --------------------------          *)
-(** [Gamma |- ds ++ d : T /\ D]            *)
+(** [G |- ds :: T]         #<br>#
+    [G |- d: D]            #<br>#
+    [d \notin ds]         #<br>#
+    [―――――――――――――――――――] #<br>#
+    [G |- ds ++ d : T /\ D] *)
 | ty_defs_cons : forall G ds d T D,
     G /- ds :: T ->
     G /- d : D ->
@@ -728,82 +717,82 @@ with ty_defs : ctx -> defs -> typ -> Prop :=
     G /- defs_cons ds d :: typ_and T (typ_rcd D)
 where "G '/-' ds '::' T" := (ty_defs G ds T)
 
-(** ** Subtyping [Gamma |- T <: U] *)
+(** ** Subtyping [G |- T <: U] *)
 with subtyp : ctx -> typ -> typ -> Prop :=
 
-(** [Gamma |- T <: top] *)
+(** [G |- T <: top] *)
 | subtyp_top: forall G T,
     G |- T <: typ_top
 
-(** [Gamma |- bottom <: T] *)
+(** [G |- bottom <: T] *)
 | subtyp_bot: forall G T,
     G |- typ_bot <: T
 
-(** [Gamma |- T <: T] *)
+(** [G |- T <: T] *)
 | subtyp_refl: forall G T,
     G |- T <: T
 
-(** [Gamma |- S <: T]     #<br># *)
-(** [Gamma |- T <: U]            *)
-(** ----------------            *)
-(** [Gamma |- S <: U]            *)
+(** [G |- S <: T]     #<br>#
+    [G |- T <: U]     #<br>#
+    [――――――――――]     #<br>#
+    [G |- S <: U]         *)
 | subtyp_trans: forall G S T U,
     G |- S <: T ->
     G |- T <: U ->
     G |- S <: U
 
-(** [Gamma |- T /\ U <: T] *)
+(** [G |- T /\ U <: T] *)
 | subtyp_and11: forall G T U,
     G |- typ_and T U <: T
 
-(** [Gamma |- T /\ U <: U] *)
+(** [G |- T /\ U <: U] *)
 | subtyp_and12: forall G T U,
     G |- typ_and T U <: U
 
-(** [Gamma |- S <: T]       #<br># *)
-(** [Gamma |- S <: U]              *)
+(** [G |- S <: T]       #<br># *)
+(** [G |- S <: U]              *)
 (** ----------------              *)
-(** [Gamma |- S <: T /\ U]          *)
+(** [G |- S <: T /\ U]          *)
 | subtyp_and2: forall G S T U,
     G |- S <: T ->
     G |- S <: U ->
     G |- S <: typ_and T U
 
-(** [Gamma |- T <: U]           *)
+(** [G |- T <: U]           *)
 (** -------------------------- *)
-(** [Gamma |- {a: T} <: {a: U}] *)
+(** [G |- {a: T} <: {a: U}] *)
 | subtyp_fld: forall G a T U,
     G |- T <: U ->
     G |- typ_rcd (dec_trm a T) <: typ_rcd (dec_trm a U)
 
-(** [Gamma |- S2 <: S1]                 #<br># *)
-(** [Gamma |- T1 <: T2]                        *)
+(** [G |- S2 <: S1]                 #<br># *)
+(** [G |- T1 <: T2]                        *)
 (** ----------------------------------        *)
-(** [Gamma |- {A: S1..T1} <: {A: S2..T2}       *)
+(** [G |- {A: S1..T1} <: {A: S2..T2}       *)
 | subtyp_typ: forall G A S1 T1 S2 T2,
     G |- S2 <: S1 ->
     G |- T1 <: T2 ->
     G |- typ_rcd (dec_typ A S1 T1) <: typ_rcd (dec_typ A S2 T2)
 
-(** [Gamma |- x: {A: S..T}] *)
+(** [G |- x: {A: S..T}] *)
 (** ---------------------- *)
-(** [Gamma |- S <: x.A]     *)
+(** [G |- S <: x.A]     *)
 | subtyp_sel2: forall G x A S T,
     G |- trm_var (avar_f x) : typ_rcd (dec_typ A S T) ->
     G |- S <: typ_sel (avar_f x) A
 
-(** [Gamma |- x: {A: S..T}] *)
+(** [G |- x: {A: S..T}] *)
 (** ---------------------- *)
-(** [Gamma |- x.A <: T]     *)
+(** [G |- x.A <: T]     *)
 | subtyp_sel1: forall G x A S T,
     G |- trm_var (avar_f x) : typ_rcd (dec_typ A S T) ->
     G |- typ_sel (avar_f x) A <: T
 
-(** [Gamma |- S2 <: S1]                #<br># *)
-(** [Gamma, x: S2 |- T1^x <: T2^x]     #<br># *)
+(** [G |- S2 <: S1]                #<br># *)
+(** [G, x: S2 |- T1^x <: T2^x]     #<br># *)
 (** [x fresh]                                *)
 (** ----------------------------             *)
-(** [Gamma |- forall(S1)T1 <: forall(S2)T2]             *)
+(** [G |- forall(S1)T1 <: forall(S2)T2]             *)
 | subtyp_all: forall L G S1 T1 S2 T2,
     G |- S2 <: S1 ->
     (forall x, x \notin L ->
@@ -813,13 +802,13 @@ where "G '|-' T '<:' U" := (subtyp G T U).
 
 (** ** Well-formed Stores *)
 
-(** Given a typing [Gamma |- e[t]: T], [wf_sto] establishes a correspondence
-    between [Gamma] and the store [s] that is used to define the
+(** Given a typing [G |- e[t]: T], [wf_sto] establishes a correspondence
+    between [G] and the store [s] that is used to define the
     evaluation context [e].
-    We say that [s] is well-formed with respect to [Gamma], denoted [Gamma ~~ s], if
-    - [Gamma = {(xi mapsto Ti) | i = 1, ..., n}]
+    We say that [s] is well-formed with respect to [G], denoted [G ~~ s], if
+    - [G = {(xi mapsto Ti) | i = 1, ..., n}]
     - [s = {(xi mapsto vi) | i = 1, ..., n)}]
-    - [Gamma |- vi: Ti].
+    - [G |- vi: Ti].
 *)
 
 Reserved Notation "G '~~' s" (at level 40).
@@ -840,67 +829,67 @@ where "G '~~' s" := (wf_sto G s).
 
 Reserved Notation "G '|-!' t ':' T" (at level 40, t at level 59).
 
-(** ** Precise typing [Gamma |-! t: T] *)
+(** ** Precise typing [G |-! t: T] *)
 (** Precise typing is used to reason about the types of variables and values.
     Precise typing does not ``modify'' a variable's or value's type through subtyping.
     - For values, precise typing allows to only retrieve the ``immediate'' type of the value.
       It types objects with recursive types, and functions with dependent-function types. #<br>#
       For example, if a value is the object [nu(x: {a: T}){a = x.a}], the only way to type
-      the object through precise typing is [Gamma |-! nu(x: {a: T}){a = x.a}: mu(x: {a: T})].
-    - For variables, we start out with a type [T=Gamma(x)] (the type to which the variable is
-      bound in [Gamma]). Then we use precise typing to additionally deconstruct [T]
+      the object through precise typing is [G |-! nu(x: {a: T}){a = x.a}: mu(x: {a: T})].
+    - For variables, we start out with a type [T=G(x)] (the type to which the variable is
+      bound in [G]). Then we use precise typing to additionally deconstruct [T]
       by using recursion elimination and intersection elimination. #<br>#
-      For example, if [Gamma(x)=mu(x: {a: T} /\ {B: S..U})], then we can derive the following
+      For example, if [G(x)=mu(x: {a: T} /\ {B: S..U})], then we can derive the following
       precise types for [x]:                   #<br>#
-      [Gamma |-! x: mu(x: {a: T} /\ {B: S..U})] #<br>#
-      [Gamma |-! x: {a: T} /\ {B: S..U}]        #<br>#
-      [Gamma |-! x: {a: T}]                    #<br>#
-      [Gamma |-! x: {B: S..U}]. *)
+      [G |-! x: mu(x: {a: T} /\ {B: S..U})] #<br>#
+      [G |-! x: {a: T} /\ {B: S..U}]        #<br>#
+      [G |-! x: {a: T}]                    #<br>#
+      [G |-! x: {B: S..U}]. *)
 
 Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
 
-(** [Gamma(x) = T]   *)
+(** [G(x) = T]   *)
 (** ---------------- *)
-(** [Gamma |-! x: T] *)
+(** [G |-! x: T] *)
 | ty_var_p : forall G x T,
     binds x T G ->
     G |-! trm_var (avar_f x) : T
 
-(** [Gamma, x: T |- t^x: U^x]         #<br># *)
+(** [G, x: T |- t^x: U^x]         #<br># *)
 (** [x fresh]                               *)
 (** -----------------------------           *)
-(** [Gamma |-! lambda(T)t: forall(T) U]          *)
+(** [G |-! lambda(T)t: forall(T) U]          *)
 | ty_all_intro_p : forall L G T t U,
     (forall x, x \notin L ->
       G & x ~ T |- open_trm x t : open_typ x U) ->
     G |-! trm_val (val_lambda T t) : typ_all T U
 
-(** [Gamma, x: T^x |- ds^x :: T^x]   #<br># *)
+(** [G, x: T^x |- ds^x :: T^x]   #<br># *)
 (** [x fresh]                              *)
 (** -----------------------------          *)
-(** [Gamma |-! nu(T)ds :: mu(T)]           *)
+(** [G |-! nu(T)ds :: mu(T)]           *)
 | ty_new_intro_p : forall L G T ds,
     (forall x, x \notin L ->
       G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
     G |-! trm_val (val_new T ds) : typ_bnd T
 
-(** [Gamma |-! x: mu(T)] *)
+(** [G |-! x: mu(T)] *)
 (** -------------------- *)
-(** [Gamma |-! x: T^x]   *)
+(** [G |-! x: T^x]   *)
 | ty_rec_elim_p : forall G x T,
     G |-! trm_var (avar_f x) : typ_bnd T ->
     G |-! trm_var (avar_f x) : open_typ x T
 
-(** [Gamma |-! x: T /\ U] *)
+(** [G |-! x: T /\ U] *)
 (** -------------------- *)
-(** [Gamma |-! x: T]     *)
+(** [G |-! x: T]     *)
 | ty_and1_p : forall G x T U,
     G |-! trm_var (avar_f x) : typ_and T U ->
     G |-! trm_var (avar_f x) : T
 
-(** [Gamma |-! x: T /\ U] *)
+(** [G |-! x: T /\ U] *)
 (** -------------------- *)
-(** [Gamma |-! x: U]     *)
+(** [G |-! x: U]     *)
 | ty_and2_p : forall G x T U,
     G |-! trm_var (avar_f x) : typ_and T U ->
     G |-! trm_var (avar_f x) : U
@@ -912,7 +901,7 @@ where "G '|-!' t ':' T" := (ty_trm_p G t T).
 Reserved Notation "G '|-#' t ':' T" (at level 40, t at level 59).
 Reserved Notation "G '|-#' T '<:' U" (at level 40, T at level 59).
 
-(** *** Tight term typing [Gamma |-# t: T] *)
+(** *** Tight term typing [G |-# t: T] *)
 (** Tight typing is very similar to general typing, and could be obtained by replacing
     all occurrences of [|-] with [|-#], except for the following:
     - in the type selection subtyping rules Sel-<: and <:-Sel ([subtyp_sel1] and [subtyp_sel2]),
@@ -922,167 +911,167 @@ Reserved Notation "G '|-#' T '<:' U" (at level 40, T at level 59).
 
 Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
 
-(** [Gamma(x) = T]    *)
+(** [G(x) = T]    *)
 (** ----------------  *)
-(** [Gamma |-# x: T]  *)
+(** [G |-# x: T]  *)
 | ty_var_t : forall G x T,
     binds x T G ->
     G |-# trm_var (avar_f x) : T
 
-(** [Gamma, x: T |- t^x: U^x]       #<br># *)
+(** [G, x: T |- t^x: U^x]       #<br># *)
 (** [x fresh]                             *)
 (** ------------------------------        *)
-(** [Gamma |-# lambda(T).t: forall(T)U]        *)
+(** [G |-# lambda(T).t: forall(T)U]        *)
 | ty_all_intro_t : forall L G T t U,
     (forall x, x \notin L ->
       G & x ~ T |- open_trm x t : open_typ x U) ->
     G |-# trm_val (val_lambda T t) : typ_all T U
 
-(** [Gamma |-# x: forall(S)T]    #<br># *)
-(** [Gamma |-# z: S]               *)
+(** [G |-# x: forall(S)T]    #<br># *)
+(** [G |-# z: S]               *)
 (** --------------------           *)
-(** [Gamma |-# x z: T^z]           *)
+(** [G |-# x z: T^z]           *)
 | ty_all_elim_t : forall G x z S T,
     G |-# trm_var (avar_f x) : typ_all S T ->
     G |-# trm_var (avar_f z) : S ->
     G |-# trm_app (avar_f x) (avar_f z) : open_typ z T
 
-(** [Gamma, x: T^x |- ds^x :: T^x]    #<br># *)
+(** [G, x: T^x |- ds^x :: T^x]    #<br># *)
 (** [x fresh]                               *)
 (** -----------------------------           *)
-(** [Gamma |-# nu(T)ds :: mu(T)]            *)
+(** [G |-# nu(T)ds :: mu(T)]            *)
 | ty_new_intro_t : forall L G T ds,
     (forall x, x \notin L ->
       G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
     G |-# trm_val (val_new T ds) : typ_bnd T
 
-(** [Gamma |-# x: {a: T}]  *)
+(** [G |-# x: {a: T}]  *)
 (** ---------------------  *)
-(** [Gamma |-# x.a: T]     *)
+(** [G |-# x.a: T]     *)
 | ty_new_elim_t : forall G x a T,
     G |-# trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
     G |-# trm_sel (avar_f x) a : T
 
-(** [Gamma |-# t: T]             #<br># *)
-(** [Gamma, x: T |- u^x: U]       #<br># *)
+(** [G |-# t: T]             #<br># *)
+(** [G, x: T |- u^x: U]       #<br># *)
 (** [x fresh]                           *)
 (** -------------------------           *)
-(** [Gamma |-# let t in u: U]           *)
+(** [G |-# let t in u: U]           *)
 | ty_let_t : forall L G t u T U,
     G |-# t : T ->
     (forall x, x \notin L ->
       G & x ~ T |- open_trm x u : U) ->
     G |-# trm_let t u : U
 
-(** [Gamma |-# x: T^x]   *)
+(** [G |-# x: T^x]   *)
 (** -------------------- *)
-(** [Gamma |-# x: mu(T)] *)
+(** [G |-# x: mu(T)] *)
 | ty_rec_intro_t : forall G x T,
     G |-# trm_var (avar_f x) : open_typ x T ->
     G |-# trm_var (avar_f x) : typ_bnd T
 
-(** [Gamma |-# x: mu(T)] *)
+(** [G |-# x: mu(T)] *)
 (** -------------------- *)
-(** [Gamma |-# x: T^x]   *)
+(** [G |-# x: T^x]   *)
 | ty_rec_elim_t : forall G x T,
     G |-# trm_var (avar_f x) : typ_bnd T ->
     G |-# trm_var (avar_f x) : open_typ x T
 
-(** [Gamma |-# x: T]      #<br># *)
-(** [Gamma |-# x: U]             *)
+(** [G |-# x: T]      #<br># *)
+(** [G |-# x: U]             *)
 (** --------------------         *)
-(** [Gamma |-# x: T /\ U]         *)
+(** [G |-# x: T /\ U]         *)
 | ty_and_intro_t : forall G x T U,
     G |-# trm_var (avar_f x) : T ->
     G |-# trm_var (avar_f x) : U ->
     G |-# trm_var (avar_f x) : typ_and T U
 
-(** [Gamma |-# t: T]    #<br># *)
-(** [Gamma |-# T <: U]         *)
+(** [G |-# t: T]    #<br># *)
+(** [G |-# T <: U]         *)
 (** --------------------       *)
-(** [Gamma |-# t: U]           *)
+(** [G |-# t: U]           *)
 | ty_sub_t : forall G t T U,
     G |-# t : T ->
     G |-# T <: U ->
     G |-# t : U
 where "G '|-#' t ':' T" := (ty_trm_t G t T)
 
-(** *** Tight subtyping [Gamma |-# T <: U] *)
+(** *** Tight subtyping [G |-# T <: U] *)
 with subtyp_t : ctx -> typ -> typ -> Prop :=
 
-(** [Gamma |-# T <: top] *)
+(** [G |-# T <: top] *)
 | subtyp_top_t: forall G T,
     G |-# T <: typ_top
 
-(** [Gamma |-# bottom <: T] *)
+(** [G |-# bottom <: T] *)
 | subtyp_bot_t: forall G T,
     G |-# typ_bot <: T
 
-(** [Gamma |-# T <: T] *)
+(** [G |-# T <: T] *)
 | subtyp_refl_t: forall G T,
     G |-# T <: T
 
-(** [Gamma |-# S <: T]     #<br># *)
-(** [Gamma |-# T <: U]            *)
+(** [G |-# S <: T]     #<br># *)
+(** [G |-# T <: U]            *)
 (** ------------------            *)
-(** [Gamma |-# S <: U]            *)
+(** [G |-# S <: U]            *)
 | subtyp_trans_t: forall G S T U,
     G |-# S <: T ->
     G |-# T <: U ->
     G |-# S <: U
 
-(** [Gamma |-# T /\ U <: T] *)
+(** [G |-# T /\ U <: T] *)
 | subtyp_and11_t: forall G T U,
     G |-# typ_and T U <: T
 
-(** [Gamma |-# T /\ U <: U] *)
+(** [G |-# T /\ U <: U] *)
 | subtyp_and12_t: forall G T U,
     G |-# typ_and T U <: U
 
-(** [Gamma |-# S <: T]       #<br># *)
-(** [Gamma |-# S <: U]              *)
+(** [G |-# S <: T]       #<br># *)
+(** [G |-# S <: U]              *)
 (** ------------------              *)
-(** [Gamma |-# S <: T /\ U]          *)
+(** [G |-# S <: T /\ U]          *)
 | subtyp_and2_t: forall G S T U,
     G |-# S <: T ->
     G |-# S <: U ->
     G |-# S <: typ_and T U
 
-(** [Gamma |-# T <: U]           *)
+(** [G |-# T <: U]           *)
 (** ---------------------------- *)
-(** [Gamma |-# {a: T} <: {a: U}] *)
+(** [G |-# {a: T} <: {a: U}] *)
 | subtyp_fld_t: forall G a T U,
     G |-# T <: U ->
     G |-# typ_rcd (dec_trm a T) <: typ_rcd (dec_trm a U)
 
-(** [Gamma |-# S2 <: S1]                 #<br># *)
-(** [Gamma |-# T1 <: T2]                        *)
+(** [G |-# S2 <: S1]                 #<br># *)
+(** [G |-# T1 <: T2]                        *)
 (** ------------------------------------        *)
-(** [Gamma |-# {A: S1..T1} <: {A: S2..T2}       *)
+(** [G |-# {A: S1..T1} <: {A: S2..T2}       *)
 | subtyp_typ_t: forall G A S1 T1 S2 T2,
     G |-# S2 <: S1 ->
     G |-# T1 <: T2 ->
     G |-# typ_rcd (dec_typ A S1 T1) <: typ_rcd (dec_typ A S2 T2)
 
-(** [Gamma |-! x: {A: T..T}]   *)
+(** [G |-! x: {A: T..T}]   *)
 (** ------------------------   *)
-(** [Gamma |-# T <: x.A]       *)
+(** [G |-# T <: x.A]       *)
 | subtyp_sel2_t: forall G x A T,
     G |-! trm_var (avar_f x) : typ_rcd (dec_typ A T T) ->
     G |-# T <: typ_sel (avar_f x) A
 
-(** [Gamma |-! x: {A: T..T}] *)
+(** [G |-! x: {A: T..T}] *)
 (** ------------------------ *)
-(** [Gamma |-# x.A <: T]     *)
+(** [G |-# x.A <: T]     *)
 | subtyp_sel1_t: forall G x A T,
     G |-! trm_var (avar_f x) : typ_rcd (dec_typ A T T) ->
     G |-# typ_sel (avar_f x) A <: T
 
-(** [Gamma |-# S2 <: S1]                #<br># *)
-(** [Gamma, x: S2 |- T1^x <: T2^x]       #<br># *)
+(** [G |-# S2 <: S1]                #<br># *)
+(** [G, x: S2 |- T1^x <: T2^x]       #<br># *)
 (** [x fresh]                                  *)
 (** ------------------------------             *)
-(** [Gamma |-# forall(S1)T1 <: forall(S2)T2]             *)
+(** [G |-# forall(S1)T1 <: forall(S2)T2]             *)
 | subtyp_all_t: forall L G S1 T1 S2 T2,
     G |-# S2 <: S1 ->
     (forall x, x \notin L ->
@@ -1093,52 +1082,52 @@ where "G '|-#' T '<:' U" := (subtyp_t G T U).
 
 (** ** Invertible typing *)
 
-(** *** Invertible typing of variables [Gamma |-## x: T] *)
+(** *** Invertible typing of variables [G |-## x: T] *)
 
 Reserved Notation "G '|-##' x ':' T" (at level 40, x at level 59).
 
 Inductive ty_var_inv : ctx -> var -> typ -> Prop :=
 
-(** [Gamma |-! x: T]  *)
+(** [G |-! x: T]  *)
 (** ----------------- *)
-(** [Gamma |-## x: T] *)
+(** [G |-## x: T] *)
 | ty_precise_inv : forall G x T,
   G |-! trm_var (avar_f x) : T ->
   G |-## x : T
 
-(** [Gamma |-## x: {a: T}]    #<br># *)
-(** [Gamma |-# T <: U]              *)
+(** [G |-## x: {a: T}]    #<br># *)
+(** [G |-# T <: U]              *)
 (** -----------------------          *)
-(** [Gamma |-## x: {a: U}]          *)
+(** [G |-## x: {a: U}]          *)
 | ty_dec_trm_inv : forall G x a T U,
   G |-## x : typ_rcd (dec_trm a T) ->
   G |-# T <: U ->
   G |-## x : typ_rcd (dec_trm a U)
 
-(** [Gamma |-## x: {A: T..U}]     #<br># *)
-(** [Gamma |-# T' <: T]           #<br># *)
-(** [Gamma |-# U <: U']                  *)
+(** [G |-## x: {A: T..U}]     #<br># *)
+(** [G |-# T' <: T]           #<br># *)
+(** [G |-# U <: U']                  *)
 (** ---------------------------          *)
-(** [Gamma |-## x: {A: T'..U'}]          *)
+(** [G |-## x: {A: T'..U'}]          *)
 | ty_dec_typ_inv : forall G x A T T' U' U,
   G |-## x : typ_rcd (dec_typ A T U) ->
   G |-# T' <: T ->
   G |-# U <: U' ->
   G |-## x : typ_rcd (dec_typ A T' U')
 
-(** [Gamma |-## x: T^x]   *)
+(** [G |-## x: T^x]   *)
 (** --------------------- *)
-(** [Gamma |-## x: mu(T)] *)
+(** [G |-## x: mu(T)] *)
 | ty_bnd_inv : forall G x T,
   G |-## x : open_typ x T ->
   G |-## x : typ_bnd T
 
-(** [Gamma |-## x: forall(S)T]          #<br># *)
-(** [Gamma |-# S' <: S]            #<br># *)
-(** [Gamma, y: S' |- T^y <: T'^y]   #<br># *)
+(** [G |-## x: forall(S)T]          #<br># *)
+(** [G |-# S' <: S]            #<br># *)
+(** [G, y: S' |- T^y <: T'^y]   #<br># *)
 (** [y fresh]                             *)
 (** ------------------------              *)
-(** [Gamma |-## x: forall(S')T']               *)
+(** [G |-## x: forall(S')T']               *)
 | ty_all_inv : forall L G x S T S' T',
   G |-## x : typ_all S T ->
   G |-# S' <: S ->
@@ -1146,51 +1135,51 @@ Inductive ty_var_inv : ctx -> var -> typ -> Prop :=
    G & y ~ S' |- open_typ y T <: open_typ y T') ->
   G |-## x : typ_all S' T'
 
-(** [Gamma |-## x : T]        #<br># *)
-(** [Gamma |-## x : U]               *)
+(** [G |-## x : T]        #<br># *)
+(** [G |-## x : U]               *)
 (** --------------------              *)
-(** [Gamma |-## x : T /\ U]          *)
+(** [G |-## x : T /\ U]          *)
 | ty_and_inv : forall G x S1 S2,
   G |-## x : S1 ->
   G |-## x : S2 ->
   G |-## x : typ_and S1 S2
 
-(** [Gamma |-## x: S]          #<br># *)
-(** [Gamma |-! y: {A: S..S}]          *)
+(** [G |-## x: S]          #<br># *)
+(** [G |-! y: {A: S..S}]          *)
 (** ------------------------          *)
-(** [Gamma |-## x: y.A]               *)
+(** [G |-## x: y.A]               *)
 | ty_sel_inv : forall G x y A S,
   G |-## x : S ->
   G |-! trm_var y : typ_rcd (dec_typ A S S) ->
   G |-## x : typ_sel y A
 
-(** [Gamma |-## x: T]   *)
+(** [G |-## x: T]   *)
 (** ------------------- *)
-(** [Gamma |-## x: top] *)
+(** [G |-## x: top] *)
 | ty_top_inv : forall G x T,
   G |-## x : T ->
   G |-## x : typ_top
 where "G '|-##' x ':' T" := (ty_var_inv G x T).
 
-(** *** Invertible typing of values [Gamma |-##v v: T] *)
+(** *** Invertible typing of values [G |-##v v: T] *)
 
 Reserved Notation "G '|-##v' v ':' T" (at level 40, v at level 59).
 
 Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
 
-(** [Gamma |-! v: T]  *)
+(** [G |-! v: T]  *)
 (** ------------- *)
-(** [Gamma |-##v v: T] *)
+(** [G |-##v v: T] *)
 | ty_precise_inv_v : forall G v T,
   G |-! trm_val v : T ->
   G |-##v v : T
 
-(** [Gamma |-##v v: forall(S)T]          #<br># *)
-(** [Gamma |-# S' <: S]             #<br># *)
-(** [Gamma, y: S' |- T^y <: T'^y]    #<br># *)
+(** [G |-##v v: forall(S)T]          #<br># *)
+(** [G |-# S' <: S]             #<br># *)
+(** [G, y: S' |- T^y <: T'^y]    #<br># *)
 (** [y fresh]                              *)
 (** -----------------------------          *)
-(** [Gamma |-##v v: forall(S')T']               *)
+(** [G |-##v v: forall(S')T']               *)
 | ty_all_inv_v : forall L G v S T S' T',
   G |-##v v : typ_all S T ->
   G |-# S' <: S ->
@@ -1198,27 +1187,27 @@ Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
    G & y ~ S' |- open_typ y T <: open_typ y T') ->
   G |-##v v : typ_all S' T'
 
-(** [Gamma |-##v v: S]          #<br># *)
-(** [Gamma |-! y: {A: S..S}]           *)
+(** [G |-##v v: S]          #<br># *)
+(** [G |-! y: {A: S..S}]           *)
 (** -------------------------          *)
-(** [Gamma |-##v v: y.A]               *)
+(** [G |-##v v: y.A]               *)
 | ty_sel_inv_v : forall G v y A S,
   G |-##v v : S ->
   G |-! trm_var y : typ_rcd (dec_typ A S S) ->
   G |-##v v : typ_sel y A
 
-(** [Gamma |-##v v : T]        #<br># *)
-(** [Gamma |-##v v : U]               *)
+(** [G |-##v v : T]        #<br># *)
+(** [G |-##v v : U]               *)
 (** -------------------------          *)
-(** [Gamma |-##v v : T /\ U]          *)
+(** [G |-##v v : T /\ U]          *)
 | ty_and_inv_v : forall G v T U,
   G |-##v v : T ->
   G |-##v v : U ->
   G |-##v v : typ_and T U
 
-(** [Gamma |-##v v: T]   *)
+(** [G |-##v v: T]   *)
 (** -------------------- *)
-(** [Gamma |-##v v: top] *)
+(** [G |-##v v: top] *)
 | ty_top_inv_v : forall G v T,
   G |-##v v : T ->
   G |-##v v : typ_top
@@ -1298,9 +1287,9 @@ Inductive inert : ctx -> Prop :=
 (** ** Typing of Evaluation Contexts *)
 
 (** We define a typing relation for pairs [(e, t)] of an evaluation context and a term.
-    The pair [(e, t)] has type T in typing context [Gamma] if and only if [Gamma] is inert,
-    [Gamma] corresponds to the store of [e], and the term [e[t]] has type [T] in typing context
-    [Gamma] according to the general typing relation for terms . *)
+    The pair [(e, t)] has type T in typing context [G] if and only if [G] is inert,
+    [G] corresponds to the store of [e], and the term [e[t]] has type [T] in typing context
+    [G] according to the general typing relation for terms . *)
 Inductive ty_ec_trm: ctx -> ec -> trm -> typ -> Prop :=
 | ty_e_hole : forall G s t T,
     inert G ->

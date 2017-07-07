@@ -15,18 +15,24 @@ Require Import Definitions.
 (** [G1, G3 |- t: T]                    #<br>#
     [ok(G1, G2, G3)]                   #<br>#
     [――――――――――――――――――――]             #<br>#
-    [G1, G2, G3 |- t: T]                #<br>#
-    and                                #<br>#
+    [G1, G2, G3 |- t: T]
+
+    and
+
     [G1, G3 |- d: D]                    #<br>#
     [ok(G1, G2, G3)]                   #<br>#
     [――――――――――――――――――――]             #<br>#
-    [G1, G2, G3 |- d: D]                #<br>#
-    and                                #<br>#
+    [G1, G2, G3 |- d: D]
+
+    and
+
     [G1, G3 |- ds :: T]                 #<br>#
     [ok(G1, G2, G3)]                   #<br>#
     [――――――――――――――――――――]             #<br>#
-    [G1, G2, G3 |- ds :: T]             #<br>#
-    and                                #<br>#
+    [G1, G2, G3 |- ds :: T]
+
+    and
+
     [G1, G3 |- T <: U]                  #<br>#
     [ok(G1, G2, G3)]                   #<br>#
     [――――――――――――――――――――]             #<br>#
