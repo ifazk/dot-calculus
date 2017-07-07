@@ -90,8 +90,7 @@ Proof.
   apply ts_mutind; intros; subst; try solve [eapply sel_replacement; auto]; eauto.
 Qed.
 
-(** The general-to-tight lemma, formulated for term typing.
-    This lemma corresponds to Theorem 3.3 in the paper. *)
+(** The general-to-tight lemma, formulated for term typing. *)
 Lemma general_to_tight_typing: forall G t T,
   inert G ->
   G |- t : T ->
