@@ -8,7 +8,6 @@ Require Import Narrowing.
 Require Import Helper_lemmas.
 Require Import Precise_types.
 Require Import Substitution.
-Require Import Wellformed_store.
 Require Import Canonical_forms.
 
 (** * Safety *)

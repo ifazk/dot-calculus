@@ -11,10 +11,15 @@ Require Import Helper_lemmas.
 Require Import Precise_types.
 Require Import Invertible_typing.
 Require Import General_to_tight.
-Require Import Wellformed_store.
 Require Import Substitution.
 Require Import Weakening.
 
+(** [G ~~ s]            #<br>#
+    [inert G]           #<br>#
+    [G(x) = T]          #<br>#
+    [―――――――――――――]     #<br>#
+    [exists v, s(x) = v]     #<br>#
+    [G |- v: T]          *)
 Lemma corresponding_types: forall G s x T,
     G ~~ s ->
     inert G ->
@@ -38,6 +43,12 @@ Proof.
       exists v'. repeat split~. apply~ weaken_ty_trm.
 Qed.
 
+(** [G |-##v v: forall(S)T]                 #<br>#
+    [inert G]                          #<br>#
+    [――――――――――――――――――――――――――――――――] #<br>#
+    [exists S',  T'. G |-! v: forall(S')T']      #<br>#
+    [G |- S <: S']                      #<br>#
+    [forall fresh y. G, y: S |- T'^y <: T^y] *)
 Lemma invertible_val_to_precise_lambda: forall G v S T,
     G |-##v v : typ_all S T ->
     inert G ->
@@ -68,8 +79,7 @@ Qed.
     [G(x) = forall(T')U']     #<br>#
     [G |- T <: T']        #<br>#
     [forall fresh y.
-      G, y: T |- U'^y <: U^y]
-*)
+      G, y: T |- U'^y <: U^y] *)
 Lemma var_typ_all_to_binds: forall G x T U,
     inert G ->
     G |- trm_var (avar_f x) : typ_all T U ->
