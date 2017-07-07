@@ -110,11 +110,11 @@ Lemma val_mu_to_new: forall G v T U a x,
     inert G ->
     G |- trm_val v: typ_bnd T ->
     G |- trm_var (avar_f x) : open_typ x T ->
-    record_has T (dec_trm a U) ->
+    record_has (open_typ x T) (dec_trm a U) ->
     exists t ds,
       v = val_new T ds /\
       defs_has (open_defs x ds) (def_trm a t) /\
-      G & x ~ open_typ x T |- t: (open_typ x U).
+      G |- t: U.
 Proof.
   introv Hi Ht Hx Hr.
   lets Htt: (general_to_tight_typing Hi Ht).
@@ -123,14 +123,14 @@ Proof.
   destruct (precise_bnd_inv Hp) as [ds Heq]. subst.
   inversions Hp. pick_fresh z. assert (z \notin L) as Hz by auto.
   specialize (H1 z Hz).
-  apply record_has_open with (x:=z) in Hr.
-  destruct (record_has_ty_defs H1 Hr) as [d [Hh Hd]]. inversions Hd. Admitted. (*
-  exists t ds. split. reflexivity. split. rewrite subst_defs_has in Hh.
-  eapply subst_ty_defs; eauto.
-  rewrite <- subst_intro_typ with (x:=y) by auto.
-  eapply ty_rec_elim. apply ty_var. eapply wf_sto_val_new_in_G; eauto.
-  exists x t ds. split*.
-Qed.*)
+  assert (G /- open_defs x ds :: open_typ x T) as Hds. {
+    rewrite subst_intro_typ with (x:=z). rewrite subst_intro_defs with (x:=z).
+    eapply subst_ty_defs. eapply H1. apply* ok_push. auto.
+    rewrite* <- subst_intro_typ. auto. auto.
+  }
+  destruct (record_has_ty_defs Hds Hr) as [d [Hh Hd]]. inversions Hd.
+  exists t ds. split*.
+Qed.
 
 
 Lemma val_mu_to_new': forall G v T U a x,
