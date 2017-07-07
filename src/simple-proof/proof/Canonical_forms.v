@@ -3,6 +3,7 @@
 
 Set Implicit Arguments.
 
+Require Import Coq.Program.Equality.
 Require Import LibLN.
 Require Import Definitions.
 Require Import Narrowing.
@@ -12,6 +13,29 @@ Require Import Invertible_typing.
 Require Import General_to_tight.
 Require Import Wellformed_store.
 Require Import Substitution.
+
+Lemma invertible_val_to_precise_lambda: forall G v S T,
+    G |-##v v : typ_all S T ->
+    inert G ->
+    exists L S' T',
+      G |-! trm_val v : typ_all S' T' /\
+      G |- S <: S' /\
+      (forall y, y \notin L ->
+                 G & y ~ S |- open_typ y T' <: open_typ y T).
+Proof.
+  introv Ht Hg. dependent induction Ht.
+  - exists (dom G) S T. split*.
+  - destruct (IHHt S0 T0 eq_refl Hg) as [L' [S1 [T1 [Hp [Hss Hst]]]]].
+    exists (L \u L' \u dom G) S1 T1. split. assumption. split. apply subtyp_trans with (T:=S0).
+    apply* tight_to_general. assumption. intros.
+    assert (ok (G & y ~ S)) as Hok. {
+      apply* ok_push.
+    }
+    apply subtyp_trans with (T:=open_typ y T0).
+    eapply narrow_subtyping. apply* Hst. apply subenv_last. apply* tight_to_general.
+    assumption. assumption.
+    apply* H0.
+Qed.
 
 (** [inert G]            #<br>#
     [G |- x: forall(T)U]       #<br>#
@@ -59,13 +83,12 @@ Proof.
   lets Htt: (general_to_tight_typing Hin Ht).
   lets Hinv: (tight_to_invertible_v Hin Htt).
   destruct (invertible_val_to_precise_lambda Hinv Hin) as [L [T' [U' [Htp [Hs1 Hs2]]]]].
-  destruct (precise_forall_inv Htp) as [t Heq].
-  subst. inversions Htp.
+  inversions Htp.
   exists (L0 \u L \u (dom G)) T' t. repeat split~.
   intros. assert (HL: y \notin L) by auto. assert (HL0: y \notin L0) by auto.
   specialize (Hs2 y HL).
-  specialize (H1 y HL0).
-  eapply ty_sub; eauto. eapply narrow_typing in H1; eauto.
+  specialize (H2 y HL0).
+  eapply ty_sub; eauto. eapply narrow_typing in H2; eauto.
   apply~ subenv_last.
 Qed.
 
@@ -198,13 +221,12 @@ Proof.
   introv Hi Ht Hx Hr.
   lets Htt: (general_to_tight_typing Hi Ht).
   lets Hinv: (tight_to_invertible_v Hi Htt).
-  lets Hp: (invertible_val_to_precise_rec Hinv).
-  destruct (precise_bnd_inv Hp) as [ds Heq]. subst.
-  inversions Hp. pick_fresh z. assert (z \notin L) as Hz by auto.
-  specialize (H1 z Hz).
+  inversions Hinv. inversions H.
+  pick_fresh z. assert (z \notin L) as Hz by auto.
+  specialize (H3 z Hz).
   assert (G /- open_defs x ds :: open_typ x T) as Hds. {
     rewrite subst_intro_typ with (x:=z). rewrite subst_intro_defs with (x:=z).
-    eapply subst_ty_defs. eapply H1. apply* ok_push. auto.
+    eapply subst_ty_defs. eapply H3. apply* ok_push. auto.
     rewrite* <- subst_intro_typ. auto. auto.
   }
   destruct (record_has_ty_defs Hds Hr) as [d [Hh Hd]]. inversions Hd.

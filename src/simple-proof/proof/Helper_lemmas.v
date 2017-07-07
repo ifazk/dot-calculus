@@ -34,7 +34,7 @@ Require Import Definitions.
 (** The following [open_comm_XYZ] lemmas state that opening two
     symbols (variables, types, terms, etc.) at different indices commute. *)
 
-(** - opening types and declarations with different indices commute. *)
+(** - types and declarations *)
 Lemma open_comm_typ_dec: forall x y,
     (forall T n m,
         n <> m ->
@@ -56,8 +56,7 @@ Proof.
   - rewrite~ H.
 Qed.
 
-(** - opening terms, values, definitions, and lists of definitions with
-      different indices commute. *)
+(** - terms, values, definitions, and lists of definitions *)
 Lemma open_comm_trm_val_def_defs : forall x y,
     (forall t n m,
         n <> m ->
@@ -96,8 +95,7 @@ Qed.
     already opened at index [m] results in the same opened symbol,
     opening the symbol itself at index [n] results in the same symbol. *)
 
-(** - if opening an opened type or declaration at index [n] has no effect,
-      opening the original type or declaration at index [n] has no effect *)
+(** - types and declarations *)
 Lemma lc_open_rec_open_typ_dec: forall x y,
     (forall T n m,
         n <> m ->
@@ -120,9 +118,7 @@ Proof.
   - inversions H1. rewrite H with (m:=m); auto.
 Qed.
 
-(** - if opening an opened term, value, definition, or list of definitions
-      at index [n] has no effect, opening the original term, value, definition,
-      or list of definitions at index [n] has no effect *)
+(** - terms, values, definitions, and list of definitions *)
 Lemma lc_open_rec_open_trm_val_def_defs: forall x y,
     (forall t n m,
         n <> m ->
@@ -160,6 +156,11 @@ Proof.
   - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=m); auto.
 Qed.
 
+(** The following [lc_opening_XYZ] lemmas state that opening a locally
+    closed symbol (variables, types, terms, etc.) at any index
+    results in the same symbol. *)
+
+(** - variables *)
 Lemma lc_opening_avar: forall n x y,
     lc_var y ->
     open_rec_avar n x y = y.
@@ -167,6 +168,7 @@ Proof.
   introv Hl. destruct y as [b | y]. inversion Hl. simpls*.
 Qed.
 
+(** - types and declarations *)
 Lemma lc_opening_typ_dec: forall x,
     (forall T, lc_typ T -> forall n, open_rec_typ n x T = T) /\
     (forall D, lc_dec D -> forall n, open_rec_dec n x D = D).
@@ -177,6 +179,7 @@ Proof.
   - specialize (H x (S n)). apply lc_open_rec_open_typ_dec in H; auto.
 Qed.
 
+(** - terms, values, definitions, and list of definitions *)
 Lemma lc_opening_trm_val_def_defs: forall x,
   (forall t, lc_trm t -> forall n, open_rec_trm n x t = t) /\
   (forall v, lc_val v -> forall n, open_rec_val n x v = v) /\
@@ -197,11 +200,80 @@ Proof.
   - apply* lc_opening_typ_dec.
 Qed.
 
+(** The [lc_opening_trm_val_def_defs] lemma, specialized to terms. *)
 Lemma lc_opening : forall t n x,
     lc_trm t ->
     open_rec_trm n x t = t.
 Proof.
   intros. apply* lc_opening_trm_val_def_defs.
+Qed.
+
+(** * Lemmas About Local Closure *)
+
+(** When a binding is removed from a locally closed store, the
+    resulting store and the value in the binding are both
+    locally closed. *)
+Lemma lc_sto_push_inv : forall s x v,
+    lc_sto (s & x ~ v) ->
+    lc_sto s /\ lc_val v.
+Proof.
+  intros s x v H.
+  inversion H.
+  - destruct (empty_push_inv H1).
+  - destruct (eq_push_inv H0) as [? [? ?] ]; subst.
+    auto.
+Qed.
+
+(** Values in a locally closed store are also locally closed. *)
+Lemma lc_sto_binds_inv : forall s x v,
+    lc_sto s ->
+    binds x v s ->
+    lc_val v.
+Proof.
+  intros.
+  induction s using env_ind.
+  - destruct (binds_empty_inv H0).
+  - destruct (binds_push_inv H0) as [[? ?] | [? ?]]; subst.
+    + apply (lc_sto_push_inv H).
+    + apply IHs; auto.
+      apply (lc_sto_push_inv H).
+Qed.
+
+(** The store of a locally closed evaluation context is also
+    locally closed. *)
+Lemma lc_ec_sto_inv : forall e,
+    lc_ec e ->
+    lc_sto (ec_sto e).
+Proof.
+  intros e H.
+  induction H; auto.
+Qed.
+
+(** A value that is part of a binding in a locally closed evaluation
+    context is also locally closed. *)
+Lemma lc_ec_sto_binds_inv : forall e x v,
+    lc_ec e ->
+    binds x v (ec_sto e) ->
+    lc_val v.
+Proof.
+  intros.
+  inversions H; eauto using lc_sto_binds_inv.
+Qed.
+
+(** A definition in a locally closed list of definitions is also
+    locally closed. *)
+Lemma lc_defs_has : forall ds d,
+    lc_defs ds ->
+    defs_has ds d ->
+    lc_def d.
+Proof.
+  intros.
+  induction ds.
+  - inversion H0.
+  - unfold defs_has in H0; simpl in H0.
+    cases_if.
+    + inversions H0. inversion H; auto.
+    + apply IHds; auto. inversion H; auto.
 Qed.
 
 (** * Lemmas About Records and Record Types *)
@@ -323,6 +395,24 @@ Lemma tight_to_general:
 Proof.
   apply ts_mutind_t; intros; subst; eauto using precise_to_general.
 Qed.
+
+(** * Well-formedness *)
+
+(** If [Gamma ~~ s] and [x notin s], then [x notin Gamma]. *)
+Lemma wf_sto_notin_dom: forall G s x,
+    G ~~ s ->
+    x # s -> x # G.
+Proof.
+  intros. induction H; auto.
+Qed.
+
+(** If [Gamma ~~ s], the variables in the domain of [s] are distinct. *)
+Lemma wf_sto_to_ok_G: forall s G,
+    G ~~ s -> ok G.
+Proof.
+  intros. induction H; jauto.
+Qed.
+Hint Resolve wf_sto_to_ok_G.
 
 (** * Other Lemmas *)
 

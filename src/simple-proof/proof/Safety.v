@@ -26,62 +26,6 @@ Definition normal_form (e : ec) (t : trm) : Prop :=
 Hint Unfold normal_form.
 Hint Constructors normal_form_trm.
 
-Lemma lc_sto_push_inv : forall s x v,
-    lc_sto (s & x ~ v) ->
-    lc_sto s /\ lc_val v.
-Proof.
-  intros s x v H.
-  inversion H.
-  - destruct (empty_push_inv H1).
-  - destruct (eq_push_inv H0) as [? [? ?] ]; subst.
-    auto.
-Qed.
-
-Lemma lc_sto_binds_inv : forall s x v,
-    lc_sto s ->
-    binds x v s ->
-    lc_val v.
-Proof.
-  intros.
-  induction s using env_ind.
-  - destruct (binds_empty_inv H0).
-  - destruct (binds_push_inv H0) as [[? ?] | [? ?]]; subst.
-    + apply (lc_sto_push_inv H).
-    + apply IHs; auto.
-      apply (lc_sto_push_inv H).
-Qed.
-
-Lemma lc_ec_sto_inv : forall e,
-    lc_ec e ->
-    lc_sto (ec_sto e).
-Proof.
-  intros e H.
-  induction H; auto.
-Qed.
-
-Lemma lc_ec_sto_binds_inv : forall e x v,
-    lc_ec e ->
-    binds x v (ec_sto e) ->
-    lc_val v.
-Proof.
-  intros.
-  inversions H; eauto using lc_sto_binds_inv.
-Qed.
-
-Lemma lc_defs_has : forall ds d,
-    lc_defs ds ->
-    defs_has ds d ->
-    lc_def d.
-Proof.
-  intros.
-  induction ds.
-  - inversion H0.
-  - unfold defs_has in H0; simpl in H0.
-    cases_if.
-    + inversions H0. inversion H; auto.
-    + apply IHds; auto. inversion H; auto.
-Qed.
-
 Lemma red_term_to_hole: forall s u t t',
     e_term s u / t |-> e_term s u / t' ->
     e_hole s / t |-> e_hole s / t'.
