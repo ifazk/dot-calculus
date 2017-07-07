@@ -1,21 +1,6 @@
 FILES=Safety.v
 OBJECTS=$(FILES:.v=.vo)
 
-PROOFS= \
-    Definitions.v \
-    Wellformed_store.v \
-    Weakening.v \
-    Helper_lemmas.v \
-    Precise_types.v \
-    Invertible_typing.v \
-    Substitution.v \
-    Narrowing.v \
-    General_to_tight.v \
-    Canonical_forms1.v \
-    Canonical_forms2.v \
-    Safety.v
-PROOFOBJECTS=$(PROOFS:.v=.vo)
-
 TLCDIR=../lib/tlc/
 LIBLN=$(TLCDIR)/LibLN.vo
 TLCNAME=TLC

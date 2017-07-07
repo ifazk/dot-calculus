@@ -9,10 +9,8 @@ Require Import Helper_lemmas.
 Require Import Precise_types.
 Require Import Substitution.
 Require Import Wellformed_store.
-Require Import Canonical_forms1.
-Require Import Canonical_forms2.
+Require Import Canonical_forms.
 
-(* ###################################################################### *)
 (** * Safety *)
 
 Inductive normal_form_trm: trm -> Prop :=
@@ -138,7 +136,7 @@ Proof.
   lets Hlc': (red_preserves_lc Hred Hlc).
   (* inversion Hlc' as [Hlc_ec Hlc_trm]. *)
   dependent induction Ht; try solve [inversion Hred].
-  - destruct (canonical_forms_1 Hwf Hin Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+  - destruct (canonical_forms_fun Hwf Hin Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
     inversions Hred.
     apply (binds_func H4) in Bis. inversions Bis.
     exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
@@ -146,7 +144,7 @@ Proof.
     constructor*. rewrite subst_intro_typ with (x:=y); auto.
     rewrite subst_intro_trm with (x:=y); auto.
     eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
-  - destruct (canonical_forms_2 Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+  - destruct (canonical_forms_obj Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
     inversions Hred.
     apply (binds_func H2) in Bis. inversions Bis.
     exists (@empty typ). rewrite concat_empty_r.
@@ -246,9 +244,9 @@ Proof.
   destruct e.
   - inversions Ht. rename H0 into Hwf. rename H2 into Ht.
     dependent induction Ht; try solve [left; auto].
-    * destruct (canonical_forms_1 Hwf Hi Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+    * destruct (canonical_forms_fun Hwf Hi Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
       right. repeat eexists. apply* red_apply.
-    * destruct (canonical_forms_2 Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+    * destruct (canonical_forms_obj Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
       right. repeat eexists. apply* red_project.
     * right. exists (e_term s u) t.
       apply red_congruence_let.
@@ -261,10 +259,10 @@ Proof.
     dependent induction Ht; right.
     * repeat eexists; apply red_let_var.
     * pick_fresh x. repeat eexists; apply red_congruence_val with (x:=x); auto.
-    * destruct (canonical_forms_1 Hwf Hi Ht1) as [L' [T' [t [Bis [Hsub Hty]]]]].
+    * destruct (canonical_forms_fun Hwf Hi Ht1) as [L' [T' [t [Bis [Hsub Hty]]]]].
       repeat eexists. apply* red_apply.
     * pick_fresh x. repeat eexists; apply red_congruence_val with (x:=x); auto.
-    * destruct (canonical_forms_2 Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+    * destruct (canonical_forms_obj Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
       repeat eexists. apply* red_project.
     * repeat eexists; apply red_let_let.
     * repeat eexists; apply red_let_var.

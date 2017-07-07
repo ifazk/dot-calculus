@@ -237,7 +237,9 @@ div.goal {
 }
 
 div.doc {
-  clear: both;
+    background-color: #e0e5f8;
+    padding: 10px;
+    clear: both;
 }
 
 span.command:hover {
