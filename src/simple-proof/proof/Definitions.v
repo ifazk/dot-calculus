@@ -334,7 +334,7 @@ with lc_defs : defs -> Prop :=
     lc_def d ->
     lc_defs (defs_cons ds d).
 
-(** Local closedness for stores *)
+(** Locally closed stores *)
 Inductive lc_sto : sto -> Prop :=
 | lc_sto_empty : lc_sto empty
 | lc_sto_cons : forall x v s,
@@ -342,7 +342,7 @@ Inductive lc_sto : sto -> Prop :=
     lc_val v ->
     lc_sto (s & x ~ v).
 
-(** Local closedness for evaluation contexts *)
+(** Locally closed evaluation contexts *)
 Inductive lc_ec : ec -> Prop :=
 | lc_ec_hole : forall s,
     lc_sto s ->
@@ -735,7 +735,7 @@ where "G '/-' d ':' D" := (ty_def G d D)
 with ty_defs : ctx -> defs -> typ -> Prop :=
 (** [Gamma |- d: D]              *)
 (** --------------------------  *)
-(** [Gamma |- d +: defs_nil : D] *)
+(** [Gamma |- d ++ defs_nil : D] *)
 | ty_defs_one : forall G d D,
     G /- d : D ->
     G /- defs_cons defs_nil d :: typ_rcd D
