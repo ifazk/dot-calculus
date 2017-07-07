@@ -285,8 +285,8 @@ Proof.
   intros. induction D; simpl; reflexivity.
 Qed.
 
-(** [record_dec D]
-    ----------------
+(** [record_dec D]   #<br>#
+    [――――――――――――――] #<br>#
     [record_dec D^x] *)
 Lemma open_record_dec: forall D x,
   record_dec D -> record_dec (open_dec x D).
@@ -294,8 +294,8 @@ Proof.
   intros. inversion H; unfold open_dec; simpl; constructor.
 Qed.
 
-(** [record_typ T]
-    ----------------
+(** [record_typ T]   #<br>#
+    [――――――――――――――] #<br>#
     [record_typ T^x] *)
 Lemma open_record_typ: forall T x ls,
   record_typ T ls -> record_typ (open_typ x T) ls.
@@ -311,8 +311,8 @@ Proof.
     rewrite <- open_dec_preserves_label. assumption.
 Qed.
 
-(** [record_typ T]
-    ----------------
+(** [record_typ T]   #<br>#
+    [――――――――――――――] #<br>#
     [record_typ T^x] *)
 Lemma open_record_type: forall T x,
   record_type T -> record_type (open_typ x T).
@@ -336,8 +336,8 @@ Proof.
 Qed.
 
 (** [T = ... /\ {A: T1..T1} /\ ...] #<br>#
-    [T = ... /\ {A: T2..T2} /\ ...]
-    -----------------------------
+    [T = ... /\ {A: T2..T2} /\ ...] #<br>#
+    [―――――――――――――――――――――――――――] #<br>#
     [T1 = T2] *)
 Lemma unique_rcd_typ: forall T A T1 T2,
   record_type T ->
@@ -360,8 +360,8 @@ Proof.
 Qed.
 
 (** [ds = ... /\ {a = t} /\ ...]  #<br>#
-    [ds = ... /\ {a = t'} /\ ...]
-    -----------------------------
+    [ds = ... /\ {a = t'} /\ ...] #<br>#
+    [―――――――――――――――――――――――――] #<br>#
     [t = t'] *)
 Lemma defs_has_inv: forall ds a t t',
     defs_has ds (def_trm a t) ->

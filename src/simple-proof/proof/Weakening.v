@@ -34,25 +34,25 @@ Require Import Definitions.
 (** * Weakening Lemma *)
 (** Weakening states that typing is preserved in extended environments. *)
 
-(** [Gamma1, Gamma3 |- t: T]            #<br>#
-    [ok(Gamma1, Gamma2, Gamma3)]
-    -------------------------------
-    [Gamma1, Gamma2, Gamma3 |- t: T]    #<br>#
+(** [G1, G3 |- t: T]                    #<br>#
+    [ok(G1, G2, G3)]                   #<br>#
+    [――――――――――――――――――――]             #<br>#
+    [G1, G2, G3 |- t: T]                #<br>#
     and                                #<br>#
-    [Gamma1, Gamma3 |- d: D]            #<br>#
-    [ok(Gamma1, Gamma2, Gamma3)]
-    -------------------------------
-    [Gamma1, Gamma2, Gamma3 |- d: D]    #<br>#
+    [G1, G3 |- d: D]                    #<br>#
+    [ok(G1, G2, G3)]                   #<br>#
+    [――――――――――――――――――――]             #<br>#
+    [G1, G2, G3 |- d: D]                #<br>#
     and                                #<br>#
-    [Gamma1, Gamma3 |- ds :: T]         #<br>#
-    [ok(Gamma1, Gamma2, Gamma3)]
-    -------------------------------
-    [Gamma1, Gamma2, Gamma3 |- ds :: T] #<br>#
+    [G1, G3 |- ds :: T]                 #<br>#
+    [ok(G1, G2, G3)]                   #<br>#
+    [――――――――――――――――――――]             #<br>#
+    [G1, G2, G3 |- ds :: T]             #<br>#
     and                                #<br>#
-    [Gamma1, Gamma3 |- T <: U]          #<br>#
-    [ok(Gamma1, Gamma2, Gamma3)]
-    -------------------------------
-    [Gamma1, Gamma2, Gamma3 |- T <: U]  #<br>#
+    [G1, G3 |- T <: U]                  #<br>#
+    [ok(G1, G2, G3)]                   #<br>#
+    [――――――――――――――――――――]             #<br>#
+    [G1, G2, G3 |- T <: U]
 
     The proof is by mutual induction on term typing, definition typing, and subtyping. *)
 Lemma weaken_rules:

@@ -42,8 +42,8 @@ Definition subenv(G1 G2: ctx) :=
       binds x T1 G1 /\ G1 |- T1 <: T2.
 
 (** [Gamma' subG Gamma]              #<br>#
-    [ok(Gamma', x: T)]
-    -----------------------
+    [ok(Gamma', x: T)]               #<br>#
+    [―――――――――――――――――――――――――――――]  #<br>#
     [Gamma', x: T subG Gamma, x: T]  #<br>#
     Note: [ok(Gamma)] means that [Gamma]'s domain consists of distinct variables.
     [ok] is defined in [TLC.LibEnv.v]. *)
@@ -64,9 +64,9 @@ Proof.
       exists T'. split. eauto. apply weaken_subtyp. assumption. eauto.
 Qed.
 
-(** [Gamma |- S <: U]              #<br>#
-    [ok(Gamma, x: S)] (see [subenv_push])
-    -----------------------
+(** [Gamma |- S <: U]                      #<br>#
+    [ok(Gamma, x: S)] (see [subenv_push]) #<br>#
+    [――――――――――――――――――――――――――――――――――]  #<br>#
     [Gamma', x: T subG Gamma, x: T] *)
 Lemma subenv_last: forall G x S U,
   G |- S <: U ->
@@ -87,26 +87,26 @@ Qed.
 
 (** [Gamma |- t: T]                 #<br>#
     [Gamma' subG Gamma]            #<br>#
-    [ok Gamma']
-    -------------------
+    [ok Gamma']                    #<br>#
+    [―――――――――――――――――]            #<br>#
     [Gamma' |- t: T]                #<br>#
     and                            #<br>#
     [Gamma |- d: D]                 #<br>#
     [Gamma' subG Gamma]            #<br>#
-    [ok Gamma']
-    -------------------
+    [ok Gamma']                    #<br>#
+    [―――――――――――――――――]            #<br>#
     [Gamma' |- d: D]                #<br>#
     and                            #<br>#
     [Gamma |- ds :: T]              #<br>#
     [Gamma' subG Gamma]            #<br>#
-    [ok Gamma']
-    -------------------
+    [ok Gamma']                    #<br>#
+    [―――――――――――――――――]            #<br>#
     [Gamma' |- ds :: T]             #<br>#
     and                            #<br>#
     [Gamma |- S <: U]               #<br>#
     [Gamma' subG Gamma]            #<br>#
-    [ok Gamma']
-    -------------------
+    [ok Gamma']                    #<br>#
+    [―――――――――――――――――]            #<br>#
     [Gamma' |- S <: U]              #<br>#
 
 Note: for simplicity, the definition typing judgements and [ok] conditions

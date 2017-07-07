@@ -35,14 +35,14 @@ Require Import Precise_types.
 Require Import Invertible_typing.
 
 (** * Sel-<: Premise
-    This lemma corresponds to Lemma 3.5 in the paper. *)
+    This lemma corresponds to Lemma 3.5 in the paper.
 
-(** [inert Gamma]                    #<br># *)
-(** [Gamma |-## x: {A: S..U}]               *)
-(** ------------------------------          *)
-(** [exists T. Gamma |-## x: {A: T..T}]   #<br># *)
-(** [Gamma |-# T <: U]               #<br># *)
-(** [Gamma |-# S <: T]                      *)
+    [inert G]                    #<br>#
+    [G |-## x: {A: S..U}]        #<br>#
+    [――――――――――――――――――――――――――――]   #<br>#
+    [exists T. G |-## x: {A: T..T}]   #<br>#
+    [G |-# T <: U]               #<br>#
+    [G |-# S <: T]                    *)
 Lemma sel_premise: forall G x A S U,
   inert G ->
   G |-## x : typ_rcd (dec_typ A S U) ->
@@ -60,14 +60,14 @@ Proof.
     exists V. split*.
 Qed.
 
-(** * Sel-<: Replacement *)
-(** This lemma corresponds to Lemma 3.4 in the paper. *)
+(** * Sel-<: Replacement
+    This lemma corresponds to Lemma 3.4 in the paper.
 
-(** [inert Gamma]              #<br># *)
-(** [Gamma |-# x: {A: S..U}]          *)
-(** ------------------------          *)
-(** [Gamma |-# x.A <: U]       #<br># *)
-(** [Gamma |-# S <: x.A]            # *)
+    [inert G]              #<br>#
+    [G |-# x: {A: S..U}]   #<br>#
+    [――――――――――――――――――――――]   #<br>#
+    [G |-# x.A <: U]       #<br>#
+    [G |-# S <: x.A]            *)
 Lemma sel_replacement: forall G x A S U,
     inert G ->
     G |-# trm_var (avar_f x) : typ_rcd (dec_typ A S U) ->
@@ -86,17 +86,17 @@ Qed.
 (** The following lemma corresponds to Theorem 3.3 in the paper.
     It says that in an inert environment, general typing ([ty_trm] [|-]) can
     be reduced to tight typing ([ty_trm_t] [|-#]).
-    The proof is by mutual induction on the typing and subtyping judgements. *)
+    The proof is by mutual induction on the typing and subtyping judgements.
 
-(** [inert Gamma]       #<br># *)
-(** [Gamma |- t: T]             *)
-(** ----------------           *)
-(** [Gamma |-# t: T]    #<br># *)
-(** and                 #<br># *)
-(** [inert Gamma]       #<br># *)
-(** [Gamma |- S <: U]           *)
-(** ------------------         *)
-(** [Gamma |-# S <: U]         *)
+    [inert G]           #<br>#
+    [G |- t: T]          #<br>#
+    [――――――――――――――]    #<br>#
+    [G |-# t: T]        #<br>#
+    and                 #<br>#
+    [inert G]           #<br>#
+    [G |- S <: U]        #<br>#
+    [――――――――――――――――]  #<br>#
+    [G |-# S <: U]         *)
 Lemma general_to_tight: forall G0,
   inert G0 ->
   (forall G t T,

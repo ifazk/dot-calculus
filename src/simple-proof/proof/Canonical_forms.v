@@ -72,7 +72,7 @@ Proof.
     apply* H0.
 Qed.
 
-(** This lemma corresponds to Lemma 3.7 (forall to G(x)) in the paper.
+(** This lemma corresponds to Lemma 3.7 ([forall] to [G(x)]) in the paper.
 
     [inert G]            #<br>#
     [G |- x: forall(T)U]       #<br>#

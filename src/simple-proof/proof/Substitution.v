@@ -123,8 +123,8 @@ Qed.
 
 (** [x notin fv(T)]           #<br>#
     [x notin fv(Gamma)]       #<br>#
-    ------------------------
-    [x notin fv(Gamma, z: T) *)
+    [―――――――――――――――――――――――] #<br>#
+    [x notin fv(Gamma, z: T)] *)
 Lemma fv_ctx_types_push: forall x z T G,
     x \notin fv_typ T ->
     x \notin fv_ctx_types G ->
@@ -141,9 +141,9 @@ Proof.
   apply notin_union. split~.
 Qed.
 
-(** [x notin fv(Gamma, z: T)]                #<br>#
-    [x notin fv(T)]                          #<br>#
-    ---------------------------------------
+(** [x notin fv(Gamma, z: T)]               #<br>#
+    [x notin fv(T)]                         #<br>#
+    [―――――――――――――――――――――――――――――――――――――] #<br>#
     [x notin fv(T)] and [x notin fv(Gamma)] *)
 Lemma invert_fv_ctx_types_push: forall x z T G,
   x \notin fv_ctx_types (G & z ~ T) -> x \notin fv_typ T /\ x \notin (fv_ctx_types G).
@@ -159,8 +159,8 @@ Proof.
   apply notin_union in N. exact N.
 Qed.
 
-(** [x notin fv(Gamma)]
-    -------------------
+(** [x notin fv(Gamma)]     #<br>#
+    [――――――――――――――――――]    #<br>#
     [Gamma[y/x] = Gamma]    *)
 Lemma subst_fresh_ctx: forall x y G,
   x \notin fv_ctx_types G -> subst_ctx x y G = G.
@@ -291,8 +291,8 @@ Proof.
   intros. destruct d; simpl; reflexivity.
 Qed.
 
-(** [l notin labels(ds)]
-    ------------------------
+(** [l notin labels(ds)]     #<br>#
+    [――――――――――――――――――――――] #<br>#
     [l notin labels(ds[y/x]] *)
 Lemma subst_defs_hasnt: forall x y l ds,
   defs_hasnt ds l ->
@@ -308,29 +308,29 @@ Qed.
 (** [Gamma1, x: S, Gamma2 |- t: T]            #<br>#
     [ok(Gamma1, x: S, Gamma2)]               #<br>#
     [x notin fv(Gamma1)]                     #<br>#
-    [Gamma1, Gamma2[y/x] |- y: S[y/x]]
-    ---------------------------------------
+    [Gamma1, Gamma2[y/x] |- y: S[y/x]]       #<br>#
+    [―――――――――――――――――――――――――――――――――――――]  #<br>#
     [Gamma1, Gamma2[y/x] |- t[y/x]: T[y/x]]  #<br>#
     and                                      #<br>#
     [Gamma1, x: S, Gamma2 |- d: D]            #<br>#
     [ok(Gamma1, x: S, Gamma2)]               #<br>#
     [x notin fv(Gamma1)]                     #<br>#
-    [Gamma1, Gamma2[y/x] |- y: S[y/x]]
-    ---------------------------------------
+    [Gamma1, Gamma2[y/x] |- y: S[y/x]]       #<br>#
+    [―――――――――――――――――――――――――――――――――――――]  #<br>#
     [Gamma1, Gamma2[y/x] |- d[y/x]: D[y/x]]  #<br>#
     and                                      #<br>#
     [Gamma1, x: S, Gamma2 |- ds: T]           #<br>#
     [ok(Gamma1, x: S, Gamma2)]               #<br>#
     [x notin fv(Gamma1)]                     #<br>#
-    [Gamma1, Gamma2[y/x] |- y: S[y/x]]
-    ---------------------------------------
+    [Gamma1, Gamma2[y/x] |- y: S[y/x]]       #<br>#
+    [―――――――――――――――――――――――――――――――――――――]  #<br>#
     [Gamma1, Gamma2[y/x] |- ds[y/x]: T[y/x]] #<br>#
     and                                      #<br>#
     [Gamma1, x: S, Gamma2 |- T <: U]          #<br>#
     [ok(Gamma1, x: S, Gamma2)]               #<br>#
     [x notin fv(Gamma1)]                     #<br>#
-    [Gamma1, Gamma2[y/x] |- y: S[y/x]]
-    -----------------------------------------
+    [Gamma1, Gamma2[y/x] |- y: S[y/x]]       #<br>#
+    [―――――――――――――――――――――――――――――――――――――]  #<br>#
     [Gamma1, Gamma2[y/x] |- T[y/x] <: U[y/x]] *)
 
 (** The proof is by mutual induction on term typing, definition typing, and subtyping. *)

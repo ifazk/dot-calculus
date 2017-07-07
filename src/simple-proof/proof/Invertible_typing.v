@@ -34,8 +34,8 @@ Require Import Precise_types.
     ([ty_var_inv], [|-##] and [ty_val_inv], [|-##v]). *)
 
 (** Invertible-to-precise typing for field declarations: #<br>#
-    [Gamma |-## x: {a: T}]
-    ----------------------
+    [Gamma |-## x: {a: T}]            #<br>#
+    [――――――――――――――――――――――――――]      #<br>#
     [exists T'. Gamma |-! x: {a: T'}]      #<br>#
     [Gamma |-# T' <: T]. *)
 Lemma invertible_to_precise_trm_dec: forall G x a T,
@@ -54,8 +54,8 @@ Qed.
 
 (** Invertible-to-precise typing for function types: #<br>#
     [ok Gamma]                        #<br>#
-    [Gamma |-## x: forall(S)T]
-    ----------------------
+    [Gamma |-## x: forall(S)T]             #<br>#
+    [――――――――――――――――――――――――――――――]  #<br>#
     [exists S', T'. Gamma |-! x: forall(S')T']  #<br>#
     [Gamma |-# S <: S']               #<br>#
     [Gamma |-# T'^y <: T^y], where [y] is fresh. *)
@@ -113,8 +113,8 @@ Qed.
        This lemma corresponds to Theorem 3.6 in the paper.
 
        [inert Gamma]            #<br>#
-       [Gamma |-# x: U]
-       -----------------
+       [Gamma |-# x: U]         #<br>#
+       [―――――――――――――――]        #<br>#
        [Gamma |-## x: U] *)
 Lemma tight_to_invertible :
   forall G U x,
@@ -152,8 +152,8 @@ Qed.
 (** ** Tight-to-Invertible Lemma for Values
 
        [inert Gamma]            #<br>#
-       [Gamma |-# v: T]
-       -----------------
+       [Gamma |-# v: T]         #<br>#
+       [――――――――――――――――]       #<br>#
        [Gamma |-##v v: T] *)
 Lemma tight_to_invertible_v : forall G v T,
     inert G ->
