@@ -76,13 +76,12 @@ Proof.
   introv Hi Ht Hx Hr.
   lets Htt: (general_to_tight_typing Hi Ht).
   lets Hinv: (tight_to_invertible_v Hi Htt).
-  lets Hp: (invertible_val_to_precise_rec Hinv).
-  destruct (precise_bnd_inv Hp) as [ds Heq]. subst.
-  inversions Hp. pick_fresh z. assert (z \notin L) as Hz by auto.
-  specialize (H1 z Hz).
+  inversions Hinv. inversions H.
+  pick_fresh z. assert (z \notin L) as Hz by auto.
+  specialize (H3 z Hz).
   assert (G /- open_defs x ds :: open_typ x T) as Hds. {
     rewrite subst_intro_typ with (x:=z). rewrite subst_intro_defs with (x:=z).
-    eapply subst_ty_defs. eapply H1. apply* ok_push. auto.
+    eapply subst_ty_defs. eapply H3. apply* ok_push. auto.
     rewrite* <- subst_intro_typ. auto. auto.
   }
   destruct (record_has_ty_defs Hds Hr) as [d [Hh Hd]]. inversions Hd.
