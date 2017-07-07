@@ -265,3 +265,18 @@ Lemma preservation: forall G e t e' t' T,
 Proof.
   introv Hl Hr Ht. split. apply* red_preserves_lc. apply* red_preserves_type.
 Qed.
+
+(** * Type Safety
+    This theorem corresponds to Theorem 3.12 in the paper. *)
+Theorem safety: forall G e t T,
+    lc_term e t ->
+    ty_ec_trm G e t T ->
+    normal_form e t \/ (exists e' t' G', e / t |-> e' / t' /\ ty_ec_trm G' e' t' T).
+Proof.
+  introv Hl Ht.
+  lets Progress: (progress Ht). destruct Progress as [Hn | [e' [t' Red]]].
+  - left*.
+  - right.
+    lets Preservation: (preservation Hl Red Ht).
+    destruct Preservation as [Hl' [G' Ht']]. exists*.
+Qed.
