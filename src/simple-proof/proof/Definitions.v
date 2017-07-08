@@ -558,7 +558,7 @@ decomposition (2) and decompositions (3) and (4) to decomposition (5).
 [e[let x = t in u] |-> e[let x = [t] in u]]
 (Congruence-Let) #<br># #<br>#
 
-[e[let x = [v] in u] |-> e[let x = v in [u]]
+[e[let x = [v] in u] |-> e[let x = v in [u]]]
 (Congruence-Val) #<br># #<br>#
 
 Rule (Congruence-Let) reduces (1) to (2). It also reduces (3) to (4).

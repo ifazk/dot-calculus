@@ -12,8 +12,8 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 
-(** [G |- ds :: Ds]                         #<br>#
-    [Ds] is a record type with labels [ls] #<br>#
+(** [G |- ds :: U]                          #<br>#
+    [U] is a record type with labels [ls]  #<br>#
     [ds] are definitions with label [ls']  #<br>#
     [l \notin ls']                          #<br>#
     [―――――――――――――――――――――――――――――――――――]  #<br>#
