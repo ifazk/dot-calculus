@@ -48,6 +48,8 @@ Proof.
   intros. inversions H. inversions H0. repeat constructor~.
 Qed.
 
+(** * Progress *)
+
 (** If [(let x = v in)* let y = [t] in u]
     reduces to [(let x = v in)* let y = [t'] in u],
     then [(let x = v in)* [t]]
@@ -66,7 +68,7 @@ Proof.
     eapply IHu2; eauto.
 Qed.
 
-(** ** Progress theorem
+(** ** Progress Theorem
     If [|- e[t] : T], then either [e[t]] is a normal form,
     or [e[t]] reduces to some [e'[t']]. *)
 Lemma progress: forall G e t T,
@@ -266,7 +268,7 @@ Qed.
 (** * Type Safety
     This theorem corresponds to Theorem 3.12 in the paper.
 
-    If [e[t]] is locally closed and [|- e[t]: T], then [t] is a normal form or
+    If [e[t]] is locally closed and [|- e[t]: T], then [e[t]] is a normal form or
     [e[t] |-> e'[t']], and [|- e'[t']: T].
     *)
 Theorem safety: forall G e t T,
