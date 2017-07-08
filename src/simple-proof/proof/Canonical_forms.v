@@ -106,7 +106,7 @@ Proof.
   - assumption.
 Qed.
 
-(** This lemma corresponds to Lemma 3.8 (forall to lambda) in the paper.
+(** This lemma corresponds to Lemma 3.8 ([forall] to [lambda]) in the paper.
 
     [inert G]                       #<br>#
     [G |- v: forall(T)U]                  #<br>#
@@ -212,7 +212,7 @@ Proof.
       * inversions* H4.
 Qed.
 
-(** This lemma corresponds to Lemma 3.9 (mu to G(x)) in the paper.
+(** This lemma corresponds to Lemma 3.9 ([mu] to [G(x)]) in the paper.
 
     [inert G]                    #<br>#
     [G |- x: {a: T}]              #<br>#
