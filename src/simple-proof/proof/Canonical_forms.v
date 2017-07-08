@@ -21,32 +21,27 @@ Require Import Substitution.
 Require Import Weakening.
 
 (** [G ~~ s]            #<br>#
-    [inert G]           #<br>#
     [G(x) = T]          #<br>#
     [―――――――――――――]     #<br>#
     [exists v, s(x) = v]     #<br>#
     [G |- v: T]          *)
 Lemma corresponding_types: forall G s x T,
     G ~~ s ->
-    inert G ->
     binds x T G ->
     (exists v, binds x v s /\
           G |- trm_val v : T).
 Proof.
-  introv Hwf Hin BiG. induction Hwf.
+  introv Hwf BiG. induction Hwf.
   - false* binds_empty_inv.
   - destruct (classicT (x = x0)).
     + subst. apply binds_push_eq_inv in BiG. subst.
       exists v. repeat split~. apply~ weaken_ty_trm.
-    + apply binds_push_neq_inv in BiG; auto.
-      assert (Hin': inert G).
-      {
-        inversions Hin.
-        - false* empty_push_inv.
-        - destruct (eq_push_inv H2) as [Hx [Hv HG]]. subst*.
-      }
-      specialize (IHHwf Hin' BiG) as [v' [Bis Ht]].
+      apply ok_push. apply wf_sto_to_ok_G with (s:=s); assumption. assumption.
+    +
+      apply binds_push_neq_inv in BiG; auto.
+      specialize (IHHwf BiG) as [v' [Bis Ht]].
       exists v'. repeat split~. apply~ weaken_ty_trm.
+      apply ok_push. apply wf_sto_to_ok_G with (s:=s); assumption. assumption.
 Qed.
 
 (** [G |-##v v: forall(S)T]                 #<br>#
@@ -153,7 +148,7 @@ Lemma canonical_forms_fun: forall G s x T U,
 Proof.
   introv Hin Hwf Hty.
   destruct (var_typ_all_to_binds Hin Hty) as [L [S [T' [BiG [Hs1 Hs2]]]]].
-  destruct (corresponding_types Hwf Hin BiG) as [v [Bis Ht]].
+  destruct (corresponding_types Hwf BiG) as [v [Bis Ht]].
   destruct (val_typ_all_to_lambda Hin Ht) as [L' [S' [t [Heq [Hs1' Hs2']]]]].
   subst.
   exists (L \u L' \u (dom G)) S' t. repeat split~.
@@ -293,7 +288,7 @@ Lemma canonical_forms_obj: forall G s x a T,
 Proof.
   introv Hi Hwf Hty.
   destruct (var_typ_rcd_to_binds Hi Hty) as [S [T' [Bi [Hr Hs]]]].
-  destruct (corresponding_types Hwf Hi Bi) as [v [Bis Ht]].
+  destruct (corresponding_types Hwf Bi) as [v [Bis Ht]].
   apply ty_var in Bi. apply ty_rec_elim in Bi.
   destruct (val_mu_to_new Hi Ht Bi Hr) as [t [ds [Heq [Hdefs Ht']]]].
   subst. exists S ds t. repeat split~. eapply ty_sub; eauto.
