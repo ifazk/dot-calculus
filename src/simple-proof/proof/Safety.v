@@ -69,7 +69,7 @@ Qed.
 (** * Progress *)
 
 (** ** Progress theorem
-    If [0 |- e[t] : T], then either [e[t]] is a normal form,
+    If [|- e[t] : T], then either [e[t]] is a normal form,
     or [e[t]] reduces to some [e'[t']]. *)
 Lemma progress: forall G e t T,
     ty_ec_trm G e t T ->
@@ -108,7 +108,7 @@ Qed.
 
 (** * Preservation *)
 
-(** Reduction preserves local closedness. *)
+(** Reduction preserves local closure. *)
 Lemma red_preserves_lc :
   forall e t e' t',
     e / t |-> e' / t' ->
@@ -133,7 +133,7 @@ Proof.
 Qed.
 
 (** Special case of type preservation for evaluation contexts of the
-    form [e] = [(let x=v in)* [ ]].
+    form [(let x=v in)* [ ]].
 
     If [e] and [t] are locally closed, [|- e[t]: T],
     and [e[t] |-> e'[t']], then [|- e'[t']: T]. *)
@@ -252,7 +252,7 @@ Proof.
 Qed.
 
 (** ** Preservation Theorem
-    Reduction preserves both local closedness and the type of the term being reduced.
+    Reduction preserves both local closure and the type of the term being reduced.
 
     If [e] and [t] are locally closed, [|- e[t]: T], and [e[t] |-> e'[t']], then
     [e'] and [t'] are locally closed and [|- e'[t']: T]. *)

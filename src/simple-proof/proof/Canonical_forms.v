@@ -52,9 +52,9 @@ Qed.
 (** [G |-##v v: forall(S)T]                 #<br>#
     [inert G]                          #<br>#
     [――――――――――――――――――――――――――――――――] #<br>#
-    [exists S',  T'. G |-! v: forall(S')T']      #<br>#
+    [exists S', T', G |-! v: forall(S')T']      #<br>#
     [G |- S <: S']                      #<br>#
-    [forall fresh y. G, y: S |- T'^y <: T^y] *)
+    [forall fresh y, G, y: S |- T'^y <: T^y] *)
 Lemma invertible_val_to_precise_lambda: forall G v S T,
     G |-##v v : typ_all S T ->
     inert G ->
@@ -83,11 +83,10 @@ Qed.
     [inert G]            #<br>#
     [G |- x: forall(T)U]       #<br>#
     [――――――――――――――-]    #<br>#
-    [exists T', U'.]          #<br>#
+    [exists T', U',]          #<br>#
     [G(x) = forall(T')U']     #<br>#
     [G |- T <: T']        #<br>#
-    [forall fresh y.
-      G, y: T |- U'^y <: U^y] *)
+    [forall fresh y, G, y: T |- U'^y <: U^y] *)
 Lemma var_typ_all_to_binds: forall G x T U,
     inert G ->
     G |- trm_var (avar_f x) : typ_all T U ->
@@ -111,10 +110,10 @@ Qed.
     [inert G]                       #<br>#
     [G |- v: forall(T)U]                  #<br>#
     [――――――――――――]                  #<br>#
-    [exists T' t.]                       #<br>#
-    [v = lambda(T').t]              #<br>#
+    [exists T', t,]                       #<br>#
+    [v = lambda(T')t]              #<br>#
     [G |- T <: T']                   #<br>#
-    [forall fresh y. G, y: T |- t^y: U^y] *)
+    [forall fresh y, G, y: T |- t^y: U^y] *)
 Lemma val_typ_all_to_lambda: forall G v T U,
     inert G ->
     G |- (trm_val v) : typ_all T U ->
@@ -190,7 +189,7 @@ Qed.
 
 (** [G |- ds :: ... /\ D /\ ...]       #<br>#
     [―――――――――――――――――――――――]       #<br>#
-    [exists d. ds = ... /\ d /\ ...]       #<br>#
+    [exists d, ds = ... /\ d /\ ...]       #<br>#
     [G |- d: D]                      *)
 Lemma record_has_ty_defs: forall G T ds D,
   G /- ds :: T ->
@@ -217,7 +216,7 @@ Qed.
     [inert G]                    #<br>#
     [G |- x: {a: T}]              #<br>#
     [―――――――――――――――――――――――]    #<br>#
-    [exists S T'. G(x) = mu(S)]       #<br>#
+    [exists S, T', G(x) = mu(S)]       #<br>#
     [S^x = ... /\ {a: T'} /\ ...]  #<br>#
     [G |- T' <: T]                *)
 Lemma var_typ_rcd_to_binds: forall G x a T,
@@ -239,7 +238,7 @@ Proof.
   exists U' T'. split. assumption. split. assumption. apply* tight_to_general.
 Qed.
 
-(** This lemma corresponds to Lemma 3.10 (mu to nu) in the paper.
+(** This lemma corresponds to Lemma 3.10 ([mu] to [nu]) in the paper.
 
     Note: the paper formulation misses the condition that [G |- x: T^x].
     We will fix that in the final submission.
@@ -249,7 +248,7 @@ Qed.
     [G |- x: T^x]               #<br>#
     [T = ... /\ {a: U} /\ ...  ] #<br>#
     [――――――――――――――――――――――――] #<br>#
-    [exists t ds. v = nu(T)ds     ] #<br>#
+    [exists t, ds, v = nu(T)ds     ] #<br>#
     [ds^x = ... /\ {a = t} ...] #<br>#
     [G |- t: U] *)
 Lemma val_mu_to_new: forall G v T U a x,
@@ -282,7 +281,7 @@ Qed.
     [inert G]            #<br>#
     [G ~~ s]             #<br>#
     [G |- x: forall(T)U]       #<br>#
-    ――――――――――――――――――――
+    [――――――――――――――――――] #<br>#
     [s(x) = lambda(T')t] #<br>#
     [G |- T <: T']        #<br>#
     [G, x: T |- t: U] *)
