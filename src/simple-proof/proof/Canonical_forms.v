@@ -235,16 +235,13 @@ Qed.
 
 (** This lemma corresponds to Lemma 3.10 ([mu] to [nu]) in the paper.
 
-    Note: the paper formulation misses the condition that [G |- x: T^x].
-    We will fix that in the final submission.
-
     [inert G]                  #<br>#
     [G |- v: mu(T)]             #<br>#
     [G |- x: T^x]               #<br>#
     [T = ... /\ {a: U} /\ ...  ] #<br>#
     [――――――――――――――――――――――――] #<br>#
     [exists t, ds, v = nu(T)ds     ] #<br>#
-    [ds^x = ... /\ {a = t} ...] #<br>#
+    [ds^x = ... /\ {a = t} /\ ...] #<br>#
     [G |- t: U] *)
 Lemma val_mu_to_new: forall G v T U a x,
     inert G ->
@@ -275,11 +272,12 @@ Qed.
 
     [inert G]            #<br>#
     [G ~~ s]             #<br>#
-    [G |- x: forall(T)U]       #<br>#
+    [G |- x: {a:T}]             #<br>#
     [――――――――――――――――――] #<br>#
-    [s(x) = lambda(T')t] #<br>#
-    [G |- T <: T']        #<br>#
-    [G, x: T |- t: U] *)
+    [exists S, ds, t,] #<br>#
+    [s(x) = nu(S)ds] #<br>#
+    [ds^x = ... /\ {a = t} /\ ...] #<br>#
+    [G |- t: T] *)
 Lemma canonical_forms_obj: forall G s x a T,
   inert G ->
   G ~~ s ->

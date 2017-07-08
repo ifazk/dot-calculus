@@ -66,8 +66,6 @@ Proof.
     eapply IHu2; eauto.
 Qed.
 
-(** * Progress *)
-
 (** ** Progress theorem
     If [|- e[t] : T], then either [e[t]] is a normal form,
     or [e[t]] reduces to some [e'[t']]. *)
