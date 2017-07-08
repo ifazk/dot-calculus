@@ -12,7 +12,7 @@ Require Import Weakening.
 
 (** * Definitions *)
 
-(** Substitution on variables: [a[u/z]] (substituting [u] with [z] in [a]). *)
+(** Substitution on variables: [a[u/z]] (substituting [z] with [u] in [a]). *)
 Definition subst_avar (z: var) (u: var) (a: avar) : avar :=
   match a with
   | avar_b i => avar_b i

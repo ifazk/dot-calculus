@@ -105,7 +105,7 @@ Proof.
   - assumption.
 Qed.
 
-(** This lemma corresponds to Lemma 3.8 (forall to lambda) in the paper.
+(** This lemma corresponds to Lemma 3.8 ([forall] to [lambda]) in the paper.
 
     [inert G]                       #<br>#
     [G |- v: forall(T)U]                  #<br>#
@@ -281,7 +281,7 @@ Qed.
     [inert G]            #<br>#
     [G ~~ s]             #<br>#
     [G |- x: forall(T)U]       #<br>#
-    ――――――――――――――――――――
+    [――――――――――――――――――] #<br>#
     [s(x) = lambda(T')t] #<br>#
     [G |- T <: T']        #<br>#
     [G, x: T |- t: U] *)

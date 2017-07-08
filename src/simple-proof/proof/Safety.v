@@ -69,7 +69,7 @@ Qed.
 (** * Progress *)
 
 (** ** Progress theorem
-    If [0 |- e[t] : T], then either [e[t]] is a normal form,
+    If [|- e[t] : T], then either [e[t]] is a normal form,
     or [e[t]] reduces to some [e'[t']]. *)
 Lemma progress: forall G e t T,
     ty_ec_trm G e t T ->
