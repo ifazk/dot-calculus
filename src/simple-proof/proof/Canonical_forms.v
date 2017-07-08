@@ -170,7 +170,7 @@ Proof.
 Qed.
 
 (** [d1 isin ds]             #<br>#
-    [label(d2) notin ds]     #<br>#
+    [label(d2) \notin ds]     #<br>#
     [―――――――――――――――――――――]  #<br>#
     [label(d1) <> label(d2)]  *)
 Lemma defs_has_hasnt_neq: forall ds d1 d2,

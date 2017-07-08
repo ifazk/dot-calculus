@@ -15,9 +15,9 @@ Require Import Definitions.
 (** [G |- ds :: Ds]                         #<br>#
     [Ds] is a record type with labels [ls] #<br>#
     [ds] are definitions with label [ls']  #<br>#
-    [l notin ls']                          #<br>#
+    [l \notin ls']                          #<br>#
     [―――――――――――――――――――――――――――――――――――]  #<br>#
-    [l notin ls] *)
+    [l \notin ls] *)
 Lemma hasnt_notin : forall G ds ls l U,
     G /- ds :: U ->
     record_typ U ls ->
@@ -36,9 +36,9 @@ Qed.
 
 (** The following [open_fresh_XYZ_injective] lemmas state that given two
     symbols (variables, types, terms, etc.) [X] and [Y] and a variable [z],
-    if [z notin fv(X)] and [z notin fv(Y)], then [X^z = Y^z] entails [X = Y]. *)
+    if [z \notin fv(X)] and [z \notin fv(Y)], then [X^z = Y^z] implies [X = Y]. *)
 
-(** - opening of variables with fresh variables is injective. *)
+(** - variables *)
 Lemma open_fresh_avar_injective : forall x y k z,
     z \notin fv_avar x ->
     z \notin fv_avar y ->
@@ -54,7 +54,7 @@ Proof.
   - reflexivity.
 Qed.
 
-(** - opening of types and declarations with fresh variables is injective. *)
+(** - types and declarations *)
 Lemma open_fresh_typ_dec_injective:
   (forall T T' k x,
     x \notin fv_typ T ->
@@ -568,7 +568,7 @@ Qed.
 
 (** * Well-formedness *)
 
-(** If [G ~~ s] and [x notin s], then [x notin G]. *)
+(** If [G ~~ s] and [x \notin dom(s)], then [x \notin dom(G)]. *)
 Lemma wf_sto_notin_dom: forall G s x,
     G ~~ s ->
     x # s -> x # G.

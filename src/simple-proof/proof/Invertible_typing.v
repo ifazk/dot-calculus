@@ -4,6 +4,9 @@
 (** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
+(** This module contains lemmas related to invertible typing
+    ([ty_var_inv], [|-##] and [ty_val_inv], [|-##v]). *)
+
 Set Implicit Arguments.
 
 Require Import LibLN.
@@ -13,13 +16,10 @@ Require Import Narrowing.
 Require Import Helper_lemmas.
 Require Import Precise_types.
 
-(** This module contains lemmas related to invertible typing
-    ([ty_var_inv], [|-##] and [ty_val_inv], [|-##v]). *)
-
 (** Invertible-to-precise typing for field declarations: #<br>#
     [G |-## x: {a: T}]            #<br>#
     [――――――――――――――――――――――]      #<br>#
-    [exists T'. G |-! x: {a: T'}]      #<br>#
+    [exists T', G |-! x: {a: T'}]      #<br>#
     [G |-# T' <: T]. *)
 Lemma invertible_to_precise_trm_dec: forall G x a T,
   G |-## x : typ_rcd (dec_trm a T) ->

@@ -15,28 +15,28 @@ Require Import Definitions.
 (** [G1, G3 |- t: T]                    #<br>#
     [ok(G1, G2, G3)]                   #<br>#
     [――――――――――――――――――――]             #<br>#
-    [G1, G2, G3 |- t: T]
+    [G1, G2, G3 |- t: T] #<br># #<br>#
 
     and
 
     [G1, G3 |- d: D]                    #<br>#
     [ok(G1, G2, G3)]                   #<br>#
     [――――――――――――――――――――]             #<br>#
-    [G1, G2, G3 |- d: D]
+    [G1, G2, G3 |- d: D] #<br># #<br>#
 
     and
 
     [G1, G3 |- ds :: T]                 #<br>#
     [ok(G1, G2, G3)]                   #<br>#
     [――――――――――――――――――――]             #<br>#
-    [G1, G2, G3 |- ds :: T]
+    [G1, G2, G3 |- ds :: T] #<br># #<br>#
 
     and
 
     [G1, G3 |- T <: U]                  #<br>#
     [ok(G1, G2, G3)]                   #<br>#
     [――――――――――――――――――――]             #<br>#
-    [G1, G2, G3 |- T <: U]
+    [G1, G2, G3 |- T <: U] #<br># #<br>#
 
     The proof is by mutual induction on term typing, definition typing, and subtyping. *)
 Lemma weaken_rules:

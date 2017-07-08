@@ -101,10 +101,10 @@ Proof.
     (apply* subst_fresh_avar || apply* subst_fresh_typ_dec).
 Qed.
 
-(** [x notin fv(T)]           #<br>#
-    [x notin fv(G)]       #<br>#
+(** [x \notin fv(T)]           #<br>#
+    [x \notin fv(G)]       #<br>#
     [―――――――――――――――――――――――] #<br>#
-    [x notin fv(G, z: T)] *)
+    [x \notin fv(G, z: T)] *)
 Lemma fv_ctx_types_push: forall x z T G,
     x \notin fv_typ T ->
     x \notin fv_ctx_types G ->
@@ -121,10 +121,10 @@ Proof.
   apply notin_union. split~.
 Qed.
 
-(** [x notin fv(G, z: T)]                   #<br>#
-    [x notin fv(T)]                         #<br>#
+(** [x \notin fv(G, z: T)]                   #<br>#
+    [x \notin fv(T)]                         #<br>#
     [―――――――――――――――――――――――――――――――――――――] #<br>#
-    [x notin fv(T)] and [x notin fv(G)] *)
+    [x \notin fv(T)] and [x \notin fv(G)] *)
 Lemma invert_fv_ctx_types_push: forall x z T G,
   x \notin fv_ctx_types (G & z ~ T) -> x \notin fv_typ T /\ x \notin (fv_ctx_types G).
 Proof.
@@ -139,7 +139,7 @@ Proof.
   apply notin_union in N. exact N.
 Qed.
 
-(** [x notin fv(G)]         #<br>#
+(** [x \notin fv(G)]         #<br>#
     [――――――――――――――――――]    #<br>#
     [G[y/x] = G]    *)
 Lemma subst_fresh_ctx: forall x y G,
@@ -165,7 +165,7 @@ Definition subst_fvar(x y z: var): var := If z = x then y else z.
     [(Z^a)[y/x] = (Z[y/x])^(a[y/x])]. *)
 
 (** Substitution commutes with opening
-    - for variables *)
+    - variables *)
 Lemma subst_open_commut_avar: forall x y u,
   (forall a: avar, forall n: Datatypes.nat,
     subst_avar x y (open_rec_avar n u a)
@@ -176,7 +176,7 @@ Proof.
   + case_var*.
 Qed.
 
-(** - for types and declarations *)
+(** - types and declarations *)
 Lemma subst_open_commut_typ_dec: forall x y u,
   (forall t : typ, forall n: nat,
      subst_typ x y (open_rec_typ n u t)
@@ -189,14 +189,14 @@ Proof.
   apply subst_open_commut_avar.
 Qed.
 
-(** - for types only *)
+(** - types only *)
 Lemma subst_open_commut_typ: forall x y u T,
   subst_typ x y (open_typ u T) = open_typ (subst_fvar x y u) (subst_typ x y T).
 Proof.
   intros. apply* subst_open_commut_typ_dec.
 Qed.
 
-(** - for terms, values, and definitions *)
+(** - terms, values, definitions, and list of definitions *)
 Lemma subst_open_commut_trm_val_def_defs: forall x y u,
   (forall t : trm, forall n: Datatypes.nat,
      subst_trm x y (open_rec_trm n u t)
@@ -215,7 +215,7 @@ Proof.
     (apply* subst_open_commut_avar || apply* subst_open_commut_typ_dec).
 Qed.
 
-(** - only for terms *)
+(** - terms only *)
 Lemma subst_open_commut_trm: forall x y u t,
     subst_trm x y (open_trm u t)
     = open_trm (subst_fvar x y u) (subst_trm x y t).
@@ -223,7 +223,7 @@ Proof.
   intros. apply* subst_open_commut_trm_val_def_defs.
 Qed.
 
-(** - only for definitions *)
+(** - definitions only *)
 Lemma subst_open_commut_defs: forall x y u ds,
     subst_defs x y (open_defs u ds)
     = open_defs (subst_fvar x y u) (subst_defs x y ds).
@@ -237,7 +237,7 @@ Qed.
     [Z^y = (Z^x)[y/x]] *)
 
 (** Substitution after opening
-    - for terms *)
+    - terms *)
 Lemma subst_intro_trm: forall x u t, x \notin (fv_trm t) ->
   open_trm u t = subst_trm x u (open_trm x t).
 Proof.
@@ -246,7 +246,7 @@ Proof.
   unfold subst_fvar. case_var*.
 Qed.
 
-(** - for definitions *)
+(** - definitions *)
 Lemma subst_intro_defs: forall x u ds, x \notin (fv_defs ds) ->
   open_defs u ds = subst_defs x u (open_defs x ds).
 Proof.
@@ -255,7 +255,7 @@ Proof.
   unfold subst_fvar. case_var*.
 Qed.
 
-(** - for types *)
+(** - types *)
 Lemma subst_intro_typ: forall x u T, x \notin (fv_typ T) ->
   open_typ u T = subst_typ x u (open_typ x T).
 Proof.
@@ -271,9 +271,9 @@ Proof.
   intros. destruct d; simpl; reflexivity.
 Qed.
 
-(** [l notin labels(ds)]     #<br>#
+(** [l \notin labels(ds)]     #<br>#
     [――――――――――――――――――――――] #<br>#
-    [l notin labels(ds[y/x]] *)
+    [l \notin labels(ds[y/x]] *)
 Lemma subst_defs_hasnt: forall x y l ds,
   defs_hasnt ds l ->
   defs_hasnt (subst_defs x y ds) l.
@@ -287,37 +287,37 @@ Qed.
 (** * Substitution Lemma *)
 (** [G1, x: S, G2 |- t: T]            #<br>#
     [ok(G1, x: S, G2)]               #<br>#
-    [x notin fv(G1)]                 #<br>#
+    [x \notin fv(G1)]                 #<br>#
     [G1, G2[y/x] |- y: S[y/x]]       #<br>#
     [―――――――――――――――――――――――――――――]  #<br>#
-    [G1, G2[y/x] |- t[y/x]: T[y/x]]
+    [G1, G2[y/x] |- t[y/x]: T[y/x]] #<br>#  #<br>#
 
     and
 
     [G1, x: S, G2 |- d: D]            #<br>#
     [ok(G1, x: S, G2)]               #<br>#
-    [x notin fv(G1)]                 #<br>#
+    [x \notin fv(G1)]                 #<br>#
     [G1, G2[y/x] |- y: S[y/x]]       #<br>#
     [―――――――――――――――――――――――――――――]  #<br>#
-    [G1, G2[y/x] |- d[y/x]: D[y/x]]
+    [G1, G2[y/x] |- d[y/x]: D[y/x]] #<br>#  #<br>#
 
     and
 
     [G1, x: S, G2 |- ds: T]           #<br>#
     [ok(G1, x: S, G2)]               #<br>#
-    [x notin fv(G1)]                 #<br>#
+    [x \notin fv(G1)]                 #<br>#
     [G1, G2[y/x] |- y: S[y/x]]       #<br>#
     [――――――――――――――――――――――――――――――] #<br>#
-    [G1, G2[y/x] |- ds[y/x]: T[y/x]]
+    [G1, G2[y/x] |- ds[y/x]: T[y/x]] #<br>#  #<br>#
 
     and
 
     [G1, x: S, G2 |- T <: U]           #<br>#
     [ok(G1, x: S, G2)]                #<br>#
-    [x notin fv(G1)]                  #<br>#
+    [x \notin fv(G1)]                  #<br>#
     [G1, G2[y/x] |- y: S[y/x]]        #<br>#
     [―――――――――――――――――――――――――――――――] #<br>#
-    [G1, G2[y/x] |- T[y/x] <: U[y/x]] *)
+    [G1, G2[y/x] |- T[y/x] <: U[y/x]] #<br>#  #<br># *)
 
 (** The proof is by mutual induction on term typing, definition typing, and subtyping. *)
 Lemma subst_rules: forall y S,
@@ -481,7 +481,7 @@ Proof.
   unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption.
 Qed.
 
-(** The substiution lemma for definition typing. *)
+(** The substitution lemma for definition typing. *)
 Lemma subst_ty_defs: forall y S G x ds T,
     G & x ~ S /- ds :: T ->
     ok (G & x ~ S) ->
