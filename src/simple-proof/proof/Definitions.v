@@ -815,7 +815,7 @@ where "G '|-' T '<:' U" := (subtyp G T U).
     evaluation context [e].
     We say that [s] is well-formed with respect to [G], denoted [G ~~ s], if
     - [G = {(xi mapsto Ti) | i = 1, ..., n}]
-    - [s = {(xi mapsto vi) | i = 1, ..., n)}]
+    - [s = {(xi mapsto vi) | i = 1, ..., n}]
     - [G |- vi: Ti].
 *)
 
@@ -839,8 +839,8 @@ Reserved Notation "G '|-!' t ':' T" (at level 40, t at level 59).
 
 (** ** Precise typing [G |-! t: T] *)
 (** Precise typing is used to reason about the types of variables and values.
-    Precise typing does not ``modify'' a variable's or value's type through subtyping.
-    - For values, precise typing allows to only retrieve the ``immediate'' type of the value.
+    Precise typing does not "modify" a variable's or value's type through subtyping.
+    - For values, precise typing allows to only retrieve the "immediate" type of the value.
       It types objects with recursive types, and functions with dependent-function types. #<br>#
       For example, if a value is the object [nu(x: {a: T}){a = x.a}], the only way to type
       the object through precise typing is [G |-! nu(x: {a: T}){a = x.a}: mu(x: {a: T})].
@@ -929,7 +929,7 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
 (** [G, x: T |- t^x: U^x]       #<br>#
     [x fresh]                  #<br>#
     [――――――――――――――――――――――――] #<br>#
-    [G |-# lambda(T).t: forall(T)U]     *)
+    [G |-# lambda(T)t: forall(T)U]     *)
 | ty_all_intro_t : forall L G T t U,
     (forall x, x \notin L ->
       G & x ~ T |- open_trm x t : open_typ x U) ->
@@ -1011,7 +1011,7 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
 | subtyp_top_t: forall G T,
     G |-# T <: typ_top
 
-(** [G |-# bottom <: T] *)
+(** [G |-# bot <: T] *)
 | subtyp_bot_t: forall G T,
     G |-# typ_bot <: T
 
@@ -1234,7 +1234,7 @@ Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
 where "G '|-##v' v ':' T" := (ty_val_inv G v T).
 
 (** ** Record types *)
-(** In the proof, it will be useful to be able to distinguish record types from
+(** In the proof, it is useful to be able to distinguish record types from
     other types. A record type is a concatenation of type declarations with equal
     bounds [{A: T..T}] and field declarations [{a: T}]. *)
 
@@ -1261,7 +1261,7 @@ Inductive record_typ : typ -> fset label -> Prop :=
   record_typ (typ_and T (typ_rcd D)) (union ls \{l}).
 
 (** A [record_type] is a [record_typ] with an unspecified set of labels. The meaning
-    of [record_type] is: an intersection of type/field declarations with distinct labels. *)
+    of [record_type] is an intersection of type/field declarations with distinct labels. *)
 Definition record_type T := exists ls, record_typ T ls.
 
 (** Given a type [T = D1 /\ D2 /\ ... /\ Dn] and member declaration [D], [record_has T D] tells whether
