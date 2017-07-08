@@ -69,8 +69,9 @@ Qed.
     [inert G]           #<br>#
     [G |- t: T]          #<br>#
     [――――――――――――――]    #<br>#
-    [G |-# t: T]        #<br>#
-    and                 #<br>#
+    [G |-# t: T] #<br># #<br>#
+
+    and                 #<br># #<br>#
     [inert G]           #<br>#
     [G |- S <: U]        #<br>#
     [――――――――――――――――]  #<br>#
