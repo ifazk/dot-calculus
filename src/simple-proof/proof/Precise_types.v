@@ -16,7 +16,7 @@ Require Import Helper_lemmas.
 (** * Precise Flow *)
 (** We use the precise flow relation to reason about the relations between
     the precise type of a variable [G |-! x: T] and the type that the variable
-    is bound to in the context [Γamma(x)=T'].#<br>#
+    is bound to in the context [G(x)=T'].#<br>#
     If [G(x) = T], the [precise_flow] relation describes all the types [U] that [x] can
     derive through precise typing ([|-!], see [ty_trm_p]).
     If [precise_flow x G T U], then [G(x) = T] and [G |-! x: U].   #<br>#
@@ -25,7 +25,7 @@ Require Import Helper_lemmas.
     [precise_flow x G mu(x: {a: T} /\ {B: S..U}) mu(x: {a: T} /\ {B: S..U}]  #<br>#
     [precise_flow x G mu(x: {a: T} /\ {B: S..U}) {a: T} /\ {B: S..U}]        #<br>#
     [precise_flow x G mu(x: {a: T} /\ {B: S..U}) {a: T}]                    #<br>#
-    [precise_flow x G mu(x: {a: T} /\ {B: S..U}) {B: S..}]. *)
+    [precise_flow x G mu(x: {a: T} /\ {B: S..U}) {B: S..U}]. *)
 Inductive precise_flow : var -> ctx -> typ -> typ -> Prop :=
   | pf_bind : forall x G T,
       binds x T G ->
