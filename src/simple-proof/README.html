@@ -50,7 +50,7 @@
             <h3>Requirements</h3>
             <p>
                 To compile the proof, we require <code>coq 8.6</code> and related tooling
-                to be run in a unix-like environment. In particular we require
+                to be run in a unix-like environment. In particular, we require
                 the following tools (all version 8.6) in the <code>PATH</code>
                 enviroment variable:
                 <ul>
@@ -61,7 +61,7 @@
                     <li><code>coqmakefile</code></li>
                 </ul>
 
-                Other requirements are.
+                Other requirements are:
                 <ul>
                     <li><code>make</code></li>
                     <li><code>unzip</code></li>
@@ -84,38 +84,32 @@
         <h4>Compiling the proof</h4>
         <p>
             To compile the proof, navigate to the artifact directory from a
-            terminal window and run <code>make</code> to compile the
-            proof. <code>make</code> will do the following:
+            terminal window and run <code>make</code>.
+            This will do the following:
             <ul>
-                <li>Compile the <code>tlc</code> library. (precompiled on the VM)</li>
-                <li>Compile the safety proof.</li>
-                <li>Generate documentation.</li>
+                <li>compile the <code>tlc</code> library (precompiled on the VM);</li>
+                <li>compile the safety proof;</li>
+                <li>generate documentation.</li>
             </ul>
 
             Successful compilation indicates a correct proof.
         </p>
         <h4>Inspecting Source files</h4>
         <p>
-            The documentation can be found at the <a
+            The documentation can be accessed from the <a
             href="./doc/toc.html"><code>Table of Contents</code></a>. This page
             lists links to pretty printed <code>coq</code> source files, but the
-            raw <code>.v</code> files can be found in the <a
-            href="./proof/"><code>proof/</code></a> directory. In the pretty
-            printed versions, the proof scripts are hidden by default, you may
-            click on Show Proofs at the top of the page to display all the
-            proof, or click under the Lemma/Theorem statements to display their
+            raw <code>.v</code> files can be found in the
+            <a href="./proof/"><code>proof</code></a> directory. In the
+            pretty-printed versions, the proof scripts are hidden by default, you may
+            click on "Show Proofs" at the top of the page to display all the
+            proof, or click under the Lemma or Theorem statements to display their
             proofs.
         </p>
-        <h3><a id="Description_of_the_Artifact_20"></a>Description of the Artifact</h3>
+        <h2><a id="Description_of_the_Artifact_20"></a>Description of the Artifact</h2>
         <p>This artifact presents a Coq formalization of the DOT calculus and DOT's type safety proof
-            using the method presented in the paper. The type-safety proof can
+            using the method presented in the paper. The final Progress and Preservation proofs can
             be found in <a href="./doc/Safety.html">Safety.v</a>.</p>
-        <p>Below, we present a table that shows how the definitions and lemmas in the paper correspond
-            to the artifact. However, before comparing the correspondence, we recommend reading
-            through <a href="./doc/Definitions.html"><a href="doc/Definitions.html">Definitions.v</a></a>. That file
-            not only presents the definitions of the abstract syntax and type
-            system of DOT, but also presents most tactics, functions, and
-          inductive definitions that are used in the proof.</p>
 
         <h3>Proof Structure</h3>
         The Coq proof is split up into the following modules:
@@ -158,6 +152,12 @@
         <p><center><img src=doc/graph.png width=400></center></p>
 
         <h3><a id="PaperArtifact_Correspondence_37"></a>Paper-Artifact Correspondence</h3>
+        <p>Below, we present a table that shows how the definitions and lemmas in the paper correspond
+            to the artifact. However, before comparing the correspondence, we recommend reading
+            through <a href="./doc/Definitions.html"><a href="doc/Definitions.html">Definitions.v</a></a>. That file
+            not only presents the definitions of the abstract syntax and type
+            system of DOT, but also presents most tactics, functions, and
+          inductive definitions that are used in the proof.</p>
 
         <table class="tg">
             <tr>
