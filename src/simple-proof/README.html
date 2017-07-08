@@ -14,7 +14,7 @@
         <link href="doc/assets/resources/coqdoc.css" rel="stylesheet" type="text/css" />
         <link href="doc/assets/resources/coqdocjs.css" rel="stylesheet" type="text/css"/>
     </head>
-    <body id="preview">
+    <body id="preview" class="readme">
         <div id="header">
             <span class="left">
                 <span class="modulename"> README </span>
@@ -115,7 +115,48 @@
             through <a href="./doc/Definitions.html"><a href="doc/Definitions.html">Definitions.v</a></a>. That file
             not only presents the definitions of the abstract syntax and type
             system of DOT, but also presents most tactics, functions, and
-            inductive definitions that are used in the proof.</p>
+          inductive definitions that are used in the proof.</p>
+
+        <h3>Proof Structure</h3>
+        The Coq proof is split up into the following modules:
+        <ul>
+          <li><a href="doc/Definitions.html">Definitions.v</a>:
+            The main inductive definitions and functions that are used in the proof.
+            Defines the abstract syntax, type system, evaluation semantics of DOT, as well as
+            definitions used in the proof: inert types, tight, invertible, and precise typing relations.
+          </li>
+          <li><a href="doc/Weakening.html">Weakening.v</a>:
+            Proves the Weakening Lemma.
+          </li>
+          <li><a href="doc/Narrowing.html">Narrowing.v</a>:
+            Proves the Narrowing Lemma.
+          </li>
+          <li><a href="doc/Substitution.html">Substitution.v</a>:
+            Proves the Substitution Lemma.
+          </li>
+          <li><a href="doc/Precise_types.html">Precise_types.v</a>:
+            Proves lemmas related to precise typing. In particliar, reasons about the possible
+            precise types that a variable can have in an inert environment.
+          </li>
+          <li><a href="doc/General_to_tight.html">General_to_tight.v</a>:
+            Proves that in an inert context, general typing implies tight typing.
+          </li>
+          <li><a href="doc/Invertible_typing.html">Invertible_typing.v</a>:
+            Proves that in an inert context, tight typing implies invertible typing (both for variables and values).
+          </li>
+          <li><a href="doc/Helper_lemmas.html">Helper_lemmas.v</a>:
+            Various helper lemmas used throughout the proof.
+          </li>
+          <li><a href="doc/Canonical_forms.html">Canonical_forms.v</a>:
+            Proves the Canonical Forms Lemmas for functions and objects.
+          </li>
+          <li><a href="doc/Safety.html">Safety.v</a>:
+            Proves the Progress and Preservation Theorems.
+          </li>
+        </ul>
+        <p>The following figure shows a dependency graph between the Coq modules.</p>
+        <p><center><img src=doc/graph.png width=400></center></p>
+
         <h3><a id="PaperArtifact_Correspondence_37"></a>Paper-Artifact Correspondence</h3>
 
         <table class="tg">
@@ -354,9 +395,6 @@
                 <td class="tg-rkwu">G ⊢ T &lt;: U</td>
             </tr>
         </table>
-
-        <p>The following figure shows a dependency graph between the Coq modules.</p>
-        <p><center><img src=doc/graph.png></center></p>
     </div>
     </div>
 
