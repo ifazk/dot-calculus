@@ -12,51 +12,149 @@ Require Import Canonical_forms.
 Require Import Safety.
 
 
-Fixpoint ec_trm_helper(e: ec)(s: sto)(t: trm): trm :=
+(* TODO move to definitions *)
+Definition close_rec_avar (k: nat) (u: var) (a: avar) : avar :=
+  match a with
+  | avar_b i => avar_b i
+  | avar_f x => If x = u then avar_b k else avar_f x
+  end.
+
+Fixpoint close_rec_typ (k: nat) (u: var) (T: typ): typ :=
+  match T with
+  | typ_top        => typ_top
+  | typ_bot        => typ_bot
+  | typ_rcd D      => typ_rcd (close_rec_dec k u D)
+  | typ_and T1 T2  => typ_and (close_rec_typ k u T1) (close_rec_typ k u T2)
+  | typ_sel x L    => typ_sel (close_rec_avar k u x) L
+  | typ_bnd T      => typ_bnd (close_rec_typ (S k) u T)
+  | typ_all T1 T2  => typ_all (close_rec_typ k u T1) (close_rec_typ (S k) u T2)
+  end
+with close_rec_dec (k: nat) (u: var) (D: dec): dec :=
+  match D with
+  | dec_typ L T U => dec_typ L (close_rec_typ k u T) (close_rec_typ k u U)
+  | dec_trm m T   => dec_trm m (close_rec_typ k u T)
+  end.
+
+Fixpoint close_rec_trm (k: nat) (u: var) (t: trm): trm :=
+  match t with
+  | trm_var a      => trm_var (close_rec_avar k u a)
+  | trm_val v      => trm_val (close_rec_val k u v)
+  | trm_sel v m    => trm_sel (close_rec_avar k u v) m
+  | trm_app f a    => trm_app (close_rec_avar k u f) (close_rec_avar k u a)
+  | trm_let t1 t2  => trm_let (close_rec_trm k u t1) (close_rec_trm (S k) u t2)
+  end
+with close_rec_val (k: nat) (u: var) (v: val): val :=
+  match v with
+  | val_new T ds   => val_new (close_rec_typ (S k) u T) (close_rec_defs (S k) u ds)
+  | val_lambda T e => val_lambda (close_rec_typ k u T) (close_rec_trm (S k) u e)
+  end
+with close_rec_def (k: nat) (u: var) (d: def): def :=
+  match d with
+  | def_typ L T => def_typ L (close_rec_typ k u T)
+  | def_trm m e => def_trm m (close_rec_trm k u e)
+  end
+with close_rec_defs (k: nat) (u: var) (ds: defs): defs :=
+  match ds with
+  | defs_nil       => defs_nil
+  | defs_cons tl d => defs_cons (close_rec_defs k u tl) (close_rec_def k u d)
+  end.
+
+Definition close_avar u a := close_rec_avar  0 u a.
+Definition close_typ  u t := close_rec_typ   0 u t.
+Definition close_dec  u D := close_rec_dec   0 u D.
+Definition close_trm  u e := close_rec_trm   0 u e.
+Definition close_val  u v := close_rec_val   0 u v.
+Definition close_def  u d := close_rec_def   0 u d.
+Definition close_defs u l := close_rec_defs  0 u l.
+
+Fixpoint ec_trm_helper (e: ec) (s: sto) (t: trm) : trm :=
   match s with
   | nil => match e with
           | e_hole _ => t
           | e_term _ u => trm_let t u
           end
-  | cons (x,v) s => trm_let (trm_val v) (open_trm x (ec_trm_helper e s t))
+  | cons (x, v) s => trm_let (trm_val v) (close_trm x (ec_trm_helper e s t))
   end.
 
-Fixpoint ec_trm(e: ec)(t: trm): trm := ec_trm_helper e (ec_sto e) t.
+Fixpoint ec_trm (e: ec) (t: trm): trm := ec_trm_helper e (ec_sto e) t.
 
-Fixpoint ec_vars(e: ec) := from_list (keys (ec_sto e)).
+Fixpoint ec_vars (e: ec) := from_list (keys (ec_sto e)).
 
-Fixpoint prepend(s: sto)(e: ec) :=
+Fixpoint prepend (e: ec) (s: sto) :=
   match e with
   | e_hole s' => e_hole (s & s')
   | e_term s' t => e_term (s & s') t
   end.
 
-Fixpoint max_ec(t': trm): ec * trm := match t' with
+Fixpoint max_ec (t': trm) : ec * trm :=
+  match t' with
   | trm_let (trm_val v) u =>
     match max_ec(u) with
-    | (e,t) =>
+    | (e, t) =>
       let x := (var_gen (ec_vars e)) in
-      ((prepend (x~v) e),(open_trm x t))
+      ((prepend e (x ~ v)), (open_trm x t))
     end
   | trm_let t u => ((e_term nil u), t)
-  | t => ((e_hole nil),t)
+  | t => ((e_hole nil), t)
   end.
 
 Lemma ec_inverse: forall e t u,
-    (e,t) = max_ec(u) ->
-    ec_trm e t = u
-.
+    (e, t) = max_ec(u) ->
+    ec_trm e t = u.
+Proof.
 Admitted.
+  (* intros. induction e. *)
+(*   - gen t u. destruct s using env_ind; intros. *)
+(*     + gen t. destruct u; intros; inversions H; try solve [rewrite H1; auto]. *)
+(*       destruct u1; inversions H1. *)
+(*       destruct (max_ec u2) in H0; inversions H0. *)
+(*       destruct e; inversions H1. *)
+(*       destruct s using env_ind. *)
+(*       * rewrite concat_empty_r in H0. false (empty_single_inv H0). *)
+(*       * admit. *)
+(*     + destruct u; simpl in *. *)
+(*       * inversions H. *)
+(*         rewrite <- empty_def in H1. symmetry in H1. false* empty_push_inv. *)
+(*       * inversions H. *)
+(*         rewrite <- empty_def in H1. symmetry in H1. false* empty_push_inv. *)
+(*       * inversions H. *)
+(*         rewrite <- empty_def in H1. symmetry in H1. false* empty_push_inv. *)
+(*       * inversions H. *)
+(*         rewrite <- empty_def in H1. symmetry in H1. false* empty_push_inv. *)
+(*       * destruct u1; inversions H. *)
+(*         destruct (max_ec u2) in H1; inversions H1. *)
+(*         destruct e; inversions H0. *)
+(*         destruct s using env_ind. *)
+(*         { rewrite concat_empty_l in H1. simpl. admit. (* false (empty_single_inv H1). *) } *)
+(*         { admit. } *)
+(*   - admit. *)
+(* Qed. *)
+
+Lemma ec_trm_helper_e: forall s s' s'' t t',
+    ec_trm_helper (e_hole s') s t = ec_trm_helper (e_hole s'') s t /\
+    ec_trm_helper (e_term s' t') s t = ec_trm_helper (e_term s'' t') s t.
+Proof.
+  intros. induction s.
+  - split~.
+  - destruct a. destruct IHs. simpl. rewrite H. rewrite H0. split~.
+Qed.
 
 Lemma ec_preserves_lc: forall e t u,
+    ok (ec_sto e) ->
     ec_trm e t = u ->
     lc_trm u ->
-    lc_term e t
-.
+    lc_term e t.
+Proof.
+(*   introv Hok Heq Hlc. rewrite <- Heq in Hlc. destruct e. *)
+(*   - simpl in *. gen t u. induction s; intros. *)
+(*     + split~. apply lc_ec_hole. rewrite <- empty_def. apply lc_sto_empty. *)
+(*     + destruct a. simpl in *. inversions Hlc. *)
+(*       * *)
+(* Qed. *)
 Admitted.
 
 (*
-Definition ctx_sto(s: sto)(G: ctx): Prop :=
+Definition ctx_sto (s: sto) (G: ctx): Prop :=
     forall x v, binds x v s -> exists T, binds x T G /\ G |- (trm_val v) : T
 .
 
@@ -64,13 +162,12 @@ I would prefer to use the above definition, but the definition below is
 closer to what we already have, so it will be less work.
 *)
 
-Definition ctx_sto(s: sto)(G: ctx): Prop := G ~~ s.
+Definition ctx_sto (s: sto) (G: ctx): Prop := G ~~ s.
 
 Lemma ctx_sto_exists: forall e t u U,
     ec_trm e t = u ->
     empty |- u : U ->
-    exists G, inert G /\ ctx_sto (ec_sto e) G
-.
+    exists G, inert G /\ ctx_sto (ec_sto e) G.
 (* Use the fact that all the (let x=v in) in u have to type. Use
 val_typing lemma from the existing proof to show that they have a precise
 type. This type is inert.
@@ -81,21 +178,18 @@ Lemma hole_type : forall s t u U G,
     ec_trm (e_hole s) t = u ->
     empty |- u : U ->
     ctx_sto s G ->
-    G |- t : U
-.
+    G |- t : U.
 Admitted.
 
-Lemma term_type : forall s t u U G,
+Lemma term_type : forall s t' t u U G,
     ec_trm (e_term s t') t = u ->
     empty |- u : U ->
     ctx_sto s G ->
-    exists U', G |- t : U'
-.
+    exists U', G |- t : U'.
 Admitted.
 
 Lemma hole_term: forall s t u,
-    ec_trm (e_hole s) (trm_let t u) = ec_trm (e_term s u) t
-.
+    ec_trm (e_hole s) (trm_let t u) = ec_trm (e_term s u) t.
 Admitted.
 
 
@@ -126,8 +220,7 @@ where "t1 '/' st1 '||->' t2 '/' st2" := (red' t1 st1 t2 st2).
 Lemma progress : forall u T e t,
   empty |- u : T ->
   (e,t) = max_ec u ->
-  normal_form e t \/ exists e' t', e / t ||-> e' / t'
-.
+  normal_form e t \/ exists e' t', e / t ||-> e' / t'.
 (* Proof sketch:
 
 Use ctx_sto_exists on (ec_sto e) to get G.
@@ -145,8 +238,7 @@ Lemma hole_preserves_type : forall s t u t' u' U G,
     empty |- u : U ->
     ctx_sto s G ->
     G |- t' : U ->
-    empty |- u' : U
-.
+    empty |- u' : U.
 Admitted.
 
 (*
@@ -160,15 +252,13 @@ Lemma term_preserves_type : forall s t u t' u' U G U' t'',
     ctx_sto s G ->
     G |- t : U' ->
     G |- t' : U' ->
-    empty |- u' : U
-.
+    empty |- u' : U.
 Admitted.
 *)
 
 Lemma red_preserves_sto : forall e t e' t',
     e / t ||-> e' / t' ->
-    ec_sto e = ec_sto e'
-.
+    ec_sto e = ec_sto e'.
 Admitted.
 
 Lemma preservation : forall u T e t e' t' u',
@@ -177,8 +267,7 @@ Lemma preservation : forall u T e t e' t' u',
     ec_trm e t = u ->
     e / t ||-> e' / t' ->
     ec_trm e' t' = u' ->
-    empty |- u' : T /\ lc_trm u'
-.
+    empty |- u' : T /\ lc_trm u'.
 (*
 1) apply ctx_sto_exists
 2) case-split on e (e_hole vs e_term)
