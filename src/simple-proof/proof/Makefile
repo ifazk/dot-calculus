@@ -22,8 +22,6 @@ proofs:
 
 clean:
 	$(MAKE) -f $(PROOFMAKEFILE) cleanall
-	$(RM) ../doc/*.html
-	$(RM) ../doc/*.css
 
 doc:
 	$(MAKE) -f $(PROOFMAKEFILE) html
