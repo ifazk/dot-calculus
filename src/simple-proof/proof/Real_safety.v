@@ -262,6 +262,9 @@ Admitted.
 
 
 
+(* I think this one is false. Replacing both hole_preserves_type and term_preserves_type
+with ec_preserves_type below.
+
 Lemma hole_preserves_type : forall s t u t' u' U G,
     ec_trm (e_hole s) t = u ->
     ec_trm (e_hole s) t' = u' ->
@@ -270,6 +273,7 @@ Lemma hole_preserves_type : forall s t u t' u' U G,
     G |- t' : U ->
     empty |- u' : U.
 Admitted.
+*)
 
 (*
 I don't know whether the following lemma is true or not.
@@ -285,6 +289,15 @@ Lemma term_preserves_type : forall s t u t' u' U G U' t'',
     empty |- u' : U.
 Admitted.
 *)
+
+Lemma ec_preserves_type : forall s t u t' u' U G,
+    ec_trm (e_hole s) t = u ->
+    ec_trm (e_hole s) t' = u' ->
+    empty |- u : U ->
+    ctx_sto s G ->
+    (forall T, G |- t : T -> G |- t' : T) ->
+    empty |- u' : U.
+Admitted.
 
 Lemma red_preserves_sto : forall e t e' t',
     e / t ||-> e' / t' ->
