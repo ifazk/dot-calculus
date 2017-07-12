@@ -190,7 +190,37 @@ Admitted.
 
 Lemma hole_term: forall s t u,
     ec_trm (e_hole s) (trm_let t u) = ec_trm (e_term s u) t.
-Admitted.
+Proof.
+  intros s.
+  simpl.
+  induction s using env_ind.
+  - intros t u.
+    unfold ec_trm_helper; rewrite? empty_def; auto.
+  - intros t u.
+  replace (ec_trm_helper (e_hole (s & x ~ v)) (s & x ~ v) (trm_let t u))
+    with (ec_trm_helper (e_hole empty) (s & x ~ v) (trm_let t u))
+    by (apply ec_trm_helper_e; auto).
+  replace (ec_trm_helper (e_term (s & x ~ v) u) (s & x ~ v) t)
+    with (ec_trm_helper (e_term empty u) (s & x ~ v) t)
+    by (apply ec_trm_helper_e; auto).
+    unfold ec_trm_helper; rewrite? single_def, concat_def; unfold LibList.append; simpl.
+    apply f_equal, f_equal.
+    replace (fix ec_trm_helper (e : ec) (s0 : sto) (t0 : trm) {struct s0} : trm :=
+     match s0 with
+     | nil => match e with
+              | e_hole _ => t0
+              | e_term _ u0 => trm_let t0 u0
+              end
+     | ((x0, v0) :: s1)%list => trm_let (trm_val v0) (close_trm x0 (ec_trm_helper e s1 t0))
+     end) with ec_trm_helper by auto.
+    replace (ec_trm_helper (e_hole empty) s (trm_let t u))
+      with (ec_trm_helper (e_hole s) s (trm_let t u))
+      by (apply ec_trm_helper_e; auto).
+    replace (ec_trm_helper (e_term empty u) s t)
+      with (ec_trm_helper (e_term s u) s t)
+      by (apply ec_trm_helper_e; auto).
+    auto.
+Qed.
 
 
 Reserved Notation "e1 '/' t1 '||->' e2 '/' t2" (at level 40, e2 at level 39).
