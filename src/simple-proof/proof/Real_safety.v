@@ -67,6 +67,24 @@ Definition close_val  u v := close_rec_val   0 u v.
 Definition close_def  u d := close_rec_def   0 u d.
 Definition close_defs u l := close_rec_defs  0 u l.
 
+(* Inductive lc_rec_avar : nat -> avar -> Prop := *)
+(* | lc_avar_f : forall n x, lc_rec_avar n (avar_f x) *)
+(* | lc_avar_b : forall n m, *)
+(*     n > m -> *)
+(*     lc_rec_avar n (avar_b m). *)
+
+(* Definition lc_var' := lc_rec_avar 0. *)
+
+(* Lemma test: forall x, *)
+(*     lc_var x <-> lc_var' x. *)
+(* Proof. *)
+(*   intros. split; intros. *)
+(*   - inversions H. constructor. *)
+(*   - inversions H. *)
+(*     + constructor. *)
+(*     + inversions H0. *)
+(* Qed. *)
+
 Fixpoint ec_trm_helper (e: ec) (s: sto) (t: trm) : trm :=
   match s with
   | nil => match e with
@@ -78,57 +96,131 @@ Fixpoint ec_trm_helper (e: ec) (s: sto) (t: trm) : trm :=
 
 Fixpoint ec_trm (e: ec) (t: trm): trm := ec_trm_helper e (ec_sto e) t.
 
-Fixpoint ec_vars (e: ec) := from_list (keys (ec_sto e)).
+Inductive ec_trm' : ec -> trm -> trm -> Prop :=
+| ec_trm_empty_hole : forall t,
+    ec_trm' (e_hole empty) t t
+| ec_trm_empty_term : forall t u,
+    ec_trm' (e_term empty u) t (trm_let t u)
+| ec_trm_sto_hole : forall x v s t t',
+    x \notin (fv_trm t') ->
+    ec_trm' (e_hole s) t (open_trm x t') ->
+    ec_trm' (e_hole (s & x ~ v)) t (trm_let (trm_val v) t')
+| ec_trm_sto_term: forall x v s t t' u,
+    x \notin (fv_trm t') ->
+    ec_trm' (e_term s u) t (open_trm x t') ->
+    ec_trm' (e_term (s & x ~ v) u) t (trm_let (trm_val v) t').
 
-Fixpoint prepend (e: ec) (s: sto) :=
-  match e with
-  | e_hole s' => e_hole (s & s')
-  | e_term s' t => e_term (s & s') t
-  end.
+Fixpoint ec_vars (e: ec) := from_list (keys (ec_sto e)).
 
 Fixpoint max_ec (t': trm) : ec * trm :=
   match t' with
   | trm_let (trm_val v) u =>
-    match max_ec(u) with
-    | (e, t) =>
-      let x := (var_gen (ec_vars e)) in
-      ((prepend e (x ~ v)), (open_trm x t))
+    match max_ec u with
+    | ((e_hole s), t) =>
+      let x := (var_gen (fv_ec (e_hole s))) in
+      ((e_hole (s & x ~ v)), (open_trm x t))
+    | ((e_term s u), t) =>
+      let x := (var_gen (fv_ec (e_term s u))) in
+      ((e_term (s & x ~ v) u), (open_trm x t))
     end
   | trm_let t u => ((e_term nil u), t)
   | t => ((e_hole nil), t)
   end.
 
-Lemma ec_inverse: forall e t u,
-    (e, t) = max_ec(u) ->
-    ec_trm e t = u.
+(* Coq doesn't accept this *)
+(* Fixpoint max_ec' (t' : trm) : ec * trm := *)
+(*   match t' with *)
+(*   | trm_let (trm_val v) u => *)
+(*     let x := (var_gen (fv_trm t')) in *)
+(*     match max_ec' (open_trm x u) with *)
+(*     | (e_hole s, t)    => (e_hole (s & x ~ v),    t) *)
+(*     | (e_term s u', t) => (e_term (s & x ~ v) u', t) *)
+(*     end *)
+(*   | trm_let t u => (e_term empty u, t) *)
+(*   | t => (e_hole empty, t) *)
+(*   end. *)
+
+Inductive max_ec': trm -> ec -> trm -> Prop :=
+| max_ec_var : forall x,
+    max_ec' (trm_var x) (e_hole empty) (trm_var x)
+| max_ec_val : forall v,
+    max_ec' (trm_val v) (e_hole empty) (trm_val v)
+| max_ec_sel : forall x a,
+    max_ec' (trm_sel x a) (e_hole empty) (trm_sel x a)
+| max_ec_app : forall x y,
+    max_ec' (trm_app x y) (e_hole empty) (trm_app x y)
+| max_ec_let_var : forall x t,
+    max_ec' (trm_let (trm_var x) t) (e_term empty t) (trm_var x)
+| max_ec_let_sel : forall x a t,
+    max_ec' (trm_let (trm_sel x a) t) (e_term empty t) (trm_sel x a)
+| max_ec_let_app : forall x y t,
+    max_ec' (trm_let (trm_app x y) t) (e_term empty t) (trm_app x y)
+| max_ec_let_let : forall t' u' t,
+    max_ec' (trm_let (trm_let t' u') t) (e_term empty t) (trm_let t' u')
+| max_ec_let_val_hole : forall u s t v x,
+    x \notin ((dom s) \u (fv_trm u) \u (fv_trm t) \u (fv_val v)) ->
+    max_ec' (open_trm x u) (e_hole s) t ->
+    max_ec' (trm_let (trm_val v) u) (e_hole (s & x ~ v)) t
+| max_ec_let_val_term : forall u s u' t v x,
+    x \notin ((dom s) \u (fv_trm u) \u (fv_trm u') \u (fv_trm t) \u (fv_val v)) ->
+    max_ec' (open_trm x u) (e_term s u') t ->
+    max_ec' (trm_let (trm_val v) u) (e_term (s & x ~ v) u') t.
+
+(* Inductive max_ec': trm -> ec -> trm -> Prop := *)
+(* | max_ec_var : forall x, *)
+(*     max_ec' (trm_var x) (e_hole empty) (trm_var x) *)
+(* | max_ec_val : forall v, *)
+(*     max_ec' (trm_val v) (e_hole empty) (trm_val v) *)
+(* | max_ec_sel : forall x a, *)
+(*     max_ec' (trm_sel x a) (e_hole empty) (trm_sel x a) *)
+(* | max_ec_app : forall x y, *)
+(*     max_ec' (trm_app x y) (e_hole empty) (trm_app x y) *)
+(* | max_ec_let_var : forall x t, *)
+(*     max_ec' (trm_let (trm_var x) t) (e_term empty t) (trm_var x) *)
+(* | max_ec_let_sel : forall x a t, *)
+(*     max_ec' (trm_let (trm_sel x a) t) (e_term empty t) (trm_sel x a) *)
+(* | max_ec_let_app : forall x y t, *)
+(*     max_ec' (trm_let (trm_app x y) t) (e_term empty t) (trm_app x y) *)
+(* | max_ec_let_let : forall t' u' t, *)
+(*     max_ec' (trm_let (trm_let t' u') t) (e_term empty t) (trm_let t' u') *)
+(* | max_ec_let_val_hole : forall u s t v x, *)
+(*     max_ec' u (e_hole s) t -> *)
+(*     x # s -> *)
+(*     max_ec' (trm_let (trm_val v) u) (e_hole (s & x ~ v)) (open_trm x t) *)
+(* | max_ec_let_val_term : forall u s u' t v x, *)
+(*     max_ec' u (e_term s u') t -> *)
+(*     x # s -> (* notin u' also? *) *)
+(*     max_ec' (trm_let (trm_val v) u) (e_term (s & x ~ v) u') (open_trm x t). *)
+
+(* Lemma ec_let_val: forall v t u e, *)
+(*     max_ec u = (e, trm_let (trm_val v) t) -> False. *)
+(* Proof. *)
+(*   intros. gen v t e. induction u; intros; inversions H. *)
+(*   induction u1; inversions H1. *)
+(*   - destruct (max_ec u2); simpl in *. destruct e0; inversions H0. *)
+(*     + admit. *)
+(*     + admit. *)
+(*   - destruct (max_ec u2); simpl in *. *)
+(*     destruct t; simpl in *. *)
+
+Lemma ec_inverse'': forall e t u u',
+    max_ec' u e t ->
+    ec_trm' e t u' ->
+    u = u'.
 Proof.
-Admitted.
-  (* intros. induction e. *)
-(*   - gen t u. destruct s using env_ind; intros. *)
-(*     + gen t. destruct u; intros; inversions H; try solve [rewrite H1; auto]. *)
-(*       destruct u1; inversions H1. *)
-(*       destruct (max_ec u2) in H0; inversions H0. *)
-(*       destruct e; inversions H1. *)
-(*       destruct s using env_ind. *)
-(*       * rewrite concat_empty_r in H0. false (empty_single_inv H0). *)
-(*       * admit. *)
-(*     + destruct u; simpl in *. *)
-(*       * inversions H. *)
-(*         rewrite <- empty_def in H1. symmetry in H1. false* empty_push_inv. *)
-(*       * inversions H. *)
-(*         rewrite <- empty_def in H1. symmetry in H1. false* empty_push_inv. *)
-(*       * inversions H. *)
-(*         rewrite <- empty_def in H1. symmetry in H1. false* empty_push_inv. *)
-(*       * inversions H. *)
-(*         rewrite <- empty_def in H1. symmetry in H1. false* empty_push_inv. *)
-(*       * destruct u1; inversions H. *)
-(*         destruct (max_ec u2) in H1; inversions H1. *)
-(*         destruct e; inversions H0. *)
-(*         destruct s using env_ind. *)
-(*         { rewrite concat_empty_l in H1. simpl. admit. (* false (empty_single_inv H1). *) } *)
-(*         { admit. } *)
-(*   - admit. *)
-(* Qed. *)
+  intros. gen u'.
+  dependent induction H; intros; try solve [inversions~ H0; false* empty_push_inv].
+  - gen u. dependent induction H1; intros.
+    + symmetry in x. false* empty_push_inv.
+    + destruct (eq_push_inv x) as [? [? ?]]. subst.
+      f_equal. specialize (IHmax_ec' _ H1).
+      eapply (proj41 open_fresh_trm_val_def_defs_injective); eauto.
+  - dependent induction H1.
+    + symmetry in x. false* empty_push_inv.
+    + destruct (eq_push_inv x) as [? [? ?]]. subst.
+      f_equal. specialize (IHmax_ec' _ H1).
+      eapply (proj41 open_fresh_trm_val_def_defs_injective); eauto.
+Qed.
 
 Lemma ec_trm_helper_e: forall s s' s'' t t',
     ec_trm_helper (e_hole s') s t = ec_trm_helper (e_hole s'') s t /\
@@ -139,19 +231,38 @@ Proof.
   - destruct a. destruct IHs. simpl. rewrite H. rewrite H0. split~.
 Qed.
 
-Lemma ec_preserves_lc: forall e t u,
-    ok (ec_sto e) ->
-    ec_trm e t = u ->
+Lemma close_open_avar: forall x a n,
+    lc_var a ->
+    open_rec_avar n x (close_rec_avar n x a) = a.
+Proof.
+  intros. destruct a; simpl; case_if~; subst; inversion H; simpl; case_if~.
+Qed.
+
+Lemma max_ec_preserves_lc: forall u e t,
     lc_trm u ->
+    (e, t) = max_ec u ->
     lc_term e t.
 Proof.
-(*   introv Hok Heq Hlc. rewrite <- Heq in Hlc. destruct e. *)
-(*   - simpl in *. gen t u. induction s; intros. *)
-(*     + split~. apply lc_ec_hole. rewrite <- empty_def. apply lc_sto_empty. *)
-(*     + destruct a. simpl in *. inversions Hlc. *)
-(*       * *)
+  intros.
+  induction u; simpl in *;
+    try solve [inversions H0; split~; rewrite~ <- empty_def].
+  destruct u1;
+    try solve [inversions H; inversions H0; split~; constructor~; rewrite~ <- empty_def].
+  destruct (max_ec u2). inversions H0.
+
+(* Lemma ec_preserves_lc: forall e t, *)
+(*     ok (ec_sto e) -> *)
+(*     lc_ec e -> *)
+(*     lc_trm (ec_trm e t) -> *)
+(*     lc_term e t. *)
+(* Proof. *)
+(*   introv Hok Hlc_ec Hlc. destruct e. *)
+(*   - simpl in *. gen t. induction s; intros. *)
+(*     + split~. *)
+(*     + destruct a as [x v]. simpl in *. inversions Hlc. *)
+(*       split. *)
 (* Qed. *)
-Admitted.
+(* Admitted. *)
 
 (*
 Definition ctx_sto (s: sto) (G: ctx): Prop :=
@@ -163,16 +274,21 @@ closer to what we already have, so it will be less work.
 *)
 
 Definition ctx_sto (s: sto) (G: ctx): Prop := G ~~ s.
+Hint Unfold ctx_sto.
 
-Lemma ctx_sto_exists: forall e t u U,
-    ec_trm e t = u ->
-    empty |- u : U ->
+Lemma ctx_sto_exists: forall e t U,
+    empty |- ec_trm e t : U ->
     exists G, inert G /\ ctx_sto (ec_sto e) G.
 (* Use the fact that all the (let x=v in) in u have to type. Use
 val_typing lemma from the existing proof to show that they have a precise
 type. This type is inert.
 *)
-Admitted.
+Proof.
+  intros. dependent induction H.
+  - destruct e.
+    + gen t. induction s; intros; inversions x.
+      * exists (@empty typ). split~. rewrite~ <- empty_def.
+      * destruct a as [x v]. simpl in *. Admitted.
 
 Lemma hole_type : forall s t u U G,
     ec_trm (e_hole s) t = u ->
@@ -197,22 +313,22 @@ Proof.
   - intros t u.
     unfold ec_trm_helper; rewrite? empty_def; auto.
   - intros t u.
-  replace (ec_trm_helper (e_hole (s & x ~ v)) (s & x ~ v) (trm_let t u))
-    with (ec_trm_helper (e_hole empty) (s & x ~ v) (trm_let t u))
-    by (apply ec_trm_helper_e; auto).
-  replace (ec_trm_helper (e_term (s & x ~ v) u) (s & x ~ v) t)
-    with (ec_trm_helper (e_term empty u) (s & x ~ v) t)
-    by (apply ec_trm_helper_e; auto).
+    replace (ec_trm_helper (e_hole (s & x ~ v)) (s & x ~ v) (trm_let t u))
+      with (ec_trm_helper (e_hole empty) (s & x ~ v) (trm_let t u))
+      by (apply ec_trm_helper_e; auto).
+    replace (ec_trm_helper (e_term (s & x ~ v) u) (s & x ~ v) t)
+      with (ec_trm_helper (e_term empty u) (s & x ~ v) t)
+      by (apply ec_trm_helper_e; auto).
     unfold ec_trm_helper; rewrite? single_def, concat_def; unfold LibList.append; simpl.
     apply f_equal, f_equal.
     replace (fix ec_trm_helper (e : ec) (s0 : sto) (t0 : trm) {struct s0} : trm :=
-     match s0 with
-     | nil => match e with
-              | e_hole _ => t0
-              | e_term _ u0 => trm_let t0 u0
-              end
-     | ((x0, v0) :: s1)%list => trm_let (trm_val v0) (close_trm x0 (ec_trm_helper e s1 t0))
-     end) with ec_trm_helper by auto.
+               match s0 with
+               | nil => match e with
+                       | e_hole _ => t0
+                       | e_term _ u0 => trm_let t0 u0
+                       end
+               | ((x0, v0) :: s1)%list => trm_let (trm_val v0) (close_trm x0 (ec_trm_helper e s1 t0))
+               end) with ec_trm_helper by auto.
     replace (ec_trm_helper (e_hole empty) s (trm_let t u))
       with (ec_trm_helper (e_hole s) s (trm_let t u))
       by (apply ec_trm_helper_e; auto).
@@ -249,7 +365,7 @@ where "t1 '/' st1 '||->' t2 '/' st2" := (red' t1 st1 t2 st2).
 
 Lemma progress : forall u T e t,
   empty |- u : T ->
-  (e,t) = max_ec u ->
+  (e, t) = max_ec u ->
   normal_form e t \/ exists e' t', e / t ||-> e' / t'.
 (* Proof sketch:
 

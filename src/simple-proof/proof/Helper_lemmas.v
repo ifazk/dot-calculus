@@ -128,6 +128,84 @@ Proof.
     + assumption.
 Qed.
 
+Lemma open_fresh_trm_val_def_defs_injective:
+  (forall t t' k x,
+      x \notin fv_trm t ->
+      x \notin fv_trm t' ->
+      open_rec_trm k x t = open_rec_trm k x t' ->
+      t = t') /\
+  (forall v v' k x,
+      x \notin fv_val v ->
+      x \notin fv_val v' ->
+      open_rec_val k x v = open_rec_val k x v' ->
+      v = v') /\
+  (forall d d' k x,
+      x \notin fv_def d ->
+      x \notin fv_def d' ->
+      open_rec_def k x d = open_rec_def k x d' ->
+      d = d') /\
+  (forall ds ds' k x,
+      x \notin fv_defs ds ->
+      x \notin fv_defs ds' ->
+      open_rec_defs k x ds = open_rec_defs k x ds' ->
+      ds = ds').
+Proof.
+  apply trm_mutind; intros; simpl in *.
+  - destruct t'; inversions H1.
+    apply (open_fresh_avar_injective _ _ _ H H0) in H3. subst~.
+  - destruct t'; inversions H2.
+    specialize (H _ _ _ H0 H1 H4). subst~.
+  - destruct t'; inversions H1.
+    apply (open_fresh_avar_injective _ _ _ H H0) in H3. subst~.
+  - destruct t'; inversions H1. simpl in *.
+    assert (a = a1). {
+      eapply open_fresh_avar_injective; eauto.
+    }
+    assert (a0 = a2). {
+      eapply open_fresh_avar_injective; eauto.
+    }
+    subst~.
+  - destruct t'; inversions H3. simpl in *.
+    assert (t = t'1). {
+      eapply H; eauto.
+    }
+    assert (t0 = t'2). {
+      eapply H0; eauto.
+    }
+    subst~.
+  - destruct v'; inversions H2. simpl in *.
+    assert (t = t0). {
+      eapply (proj21 open_fresh_typ_dec_injective); eauto.
+    }
+    assert (d = d0). {
+      eapply H; eauto.
+    }
+    subst~.
+  - destruct v'; inversions H2. simpl in *.
+    assert (t = t1). {
+      eapply (proj21 open_fresh_typ_dec_injective); eauto.
+    }
+    assert (t0 = t2). {
+      eapply H; eauto.
+    }
+    subst~.
+  - destruct d'; inversions H1. simpl in *.
+    apply ((proj21 open_fresh_typ_dec_injective) _ _ _ _ H H0) in H4.
+    subst~.
+  - destruct d'; inversions H2. simpl in *.
+    specialize (H _ _ _ H0 H1 H5).
+    subst~.
+  - destruct ds'; inversions H1. reflexivity.
+  - destruct ds'; inversions H3. simpl in *.
+    assert (d = ds'). {
+      eapply H; eauto.
+    }
+    assert (d0 = d1). {
+      eapply H0; eauto.
+    }
+    subst~.
+Qed.
+
 (** The following [open_comm_XYZ] lemmas state that opening two
     symbols (variables, types, terms, etc.) at different indices commute. *)
 
