@@ -62,24 +62,24 @@ Proof.
   + apply_fresh ty_all_intro as z.
     assert (zL: z \notin L) by auto.
     specialize (H z zL G1 G2 (G3 & z ~ T)).
-    repeat rewrite concat_assoc in H.
-    apply* H.
+    rewrite? concat_assoc in H.
+    apply~ H.
   + apply_fresh ty_new_intro as z; assert (zL: z \notin L) by auto.
     specialize (H z zL G1 G2 (G3 & z ~ open_typ z T)).
-    repeat rewrite concat_assoc in H.
-    apply* H.
+    rewrite? concat_assoc in H.
+    apply~ H.
   + apply_fresh ty_let as z.
     - auto.
     - assert (zL: z \notin L) by auto.
       specialize (H0 z zL G1 G2 (G3 & z ~ T)).
-      repeat rewrite concat_assoc in H0.
-      apply* H0.
+      rewrite? concat_assoc in H0.
+      apply~ H0.
   + apply_fresh subtyp_all as z.
     - auto.
     - assert (zL: z \notin L) by auto.
       specialize (H0 z zL G1 G2 (G3 & z ~ S2)).
-      repeat rewrite concat_assoc in H0.
-      apply* H0.
+      rewrite? concat_assoc in H0.
+      apply~ H0.
 Qed.
 
 (** Weakening lemma specialized to term typing. *)
@@ -89,12 +89,10 @@ Lemma weaken_ty_trm: forall G1 G2 t T,
     G1 & G2 |- t : T.
 Proof.
   intros.
-    assert (G1 & G2 = G1 & G2 & empty) as EqG. {
-    rewrite concat_empty_r. reflexivity.
-  }
-  rewrite EqG. apply* weaken_rules.
-  rewrite concat_empty_r. reflexivity.
-  rewrite <- EqG. assumption.
+  assert (G1 & G2 = G1 & G2 & empty) as EqG by rewrite~ concat_empty_r.
+  rewrite EqG. apply~ weaken_rules.
+  - rewrite concat_empty_r. assumption.
+  - rewrite <- EqG. assumption.
 Qed.
 
 (** Weakening lemma specialized to subtyping. *)
@@ -104,10 +102,8 @@ Lemma weaken_subtyp: forall G1 G2 S U,
   G1 & G2 |- S <: U.
 Proof.
   intros.
-    assert (G1 & G2 = G1 & G2 & empty) as EqG. {
-    rewrite concat_empty_r. reflexivity.
-  }
-  rewrite EqG. apply* weaken_rules.
-  rewrite concat_empty_r. reflexivity.
-  rewrite <- EqG. assumption.
+  assert (G1 & G2 = G1 & G2 & empty) as EqG by rewrite~ concat_empty_r.
+  rewrite EqG. apply~ weaken_rules.
+  - rewrite concat_empty_r. assumption.
+  - rewrite <- EqG. assumption.
 Qed.

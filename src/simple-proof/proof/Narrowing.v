@@ -116,26 +116,22 @@ Lemma narrow_rules:
 Proof.
   apply rules_mutind; intros; eauto 4.
   - Case "ty_var".
-    subst. unfold subenv in H0. specialize (H0 x T b).
+    unfold subenv in H0. specialize (H0 x T b).
     destruct H0.
-    + eauto.
+    + auto.
     + destruct H0 as [T' [Bi Hsub]].
       eapply ty_sub; eauto.
   - Case "ty_all_intro".
-    subst.
-    apply_fresh ty_all_intro as y; eauto using subenv_push.
+    apply_fresh ty_all_intro as y; auto using subenv_push.
   - Case "ty_new_intro".
-    subst.
-    apply_fresh ty_new_intro as y; eauto using subenv_push.
+    apply_fresh ty_new_intro as y; auto using subenv_push.
   - Case "ty_let".
-    subst.
-    apply_fresh ty_let as y; eauto using subenv_push.
+    apply_fresh ty_let as y; auto using subenv_push.
   - Case "subtyp_all".
-    subst.
     apply_fresh subtyp_all as y.
-    + eauto.
-    + assert (H5: ok (G' & y ~ S2)) by auto.
-      eauto using subenv_push.
+    + auto.
+    + assert (ok (G' & y ~ S2)) by auto.
+      auto using subenv_push.
 Qed.
 
 (** The narrowing lemma, formulated only for term typing. *)
