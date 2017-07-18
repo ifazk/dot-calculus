@@ -3,8 +3,6 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import Weakening.
-Require Import Helper_lemmas.
 Require Import Substitution.
 
 Lemma ok_extend: forall E F x (v: typ),
