@@ -233,8 +233,8 @@ Qed.
 (* Admitted. *)
 
 Definition ctx_sto (s: sto) (G: ctx): Prop :=
-  ok s ->
-  ok G ->
+  ok s /\
+  ok G /\
   forall x v,
     binds x v s ->
     exists T,
@@ -253,8 +253,13 @@ closer to what we already have, so it will be less work.
 (* Definition ctx_sto (s: sto) (G: ctx): Prop := G ~~ s. *)
 (* Hint Unfold ctx_sto. *)
 
-Lemma ctx_sto_empty: forall G, ctx_sto empty G.
-Proof. unfold ctx_sto. intros. false* binds_empty_inv. Qed.
+Lemma ctx_sto_empty: forall G,
+    ok G -> ctx_sto empty G.
+Proof.
+  unfold ctx_sto. intros. repeat split~. intros.
+  false* binds_empty_inv.
+Qed.
+
 Hint Resolve ctx_sto_empty.
 
 Lemma ctx_sto_push: forall s G x v T,
@@ -264,12 +269,14 @@ Lemma ctx_sto_push: forall s G x v T,
     x # s ->
     ctx_sto (s & x ~ v) (G & x ~ T).
 Proof.
-  unfold ctx_sto. intros. destruct (classicT (x0 = x)).
-  - subst. apply binds_push_eq_inv in H5. subst. exists T.
+  unfold ctx_sto. intros. destruct H as [Hoks [HokG ?]].
+  repeat split~. intros.
+  destruct (classicT (x0 = x)).
+  - subst. apply binds_push_eq_inv in H3. subst. exists T.
     repeat split~. apply~ weaken_ty_trm.
-  - apply (binds_push_neq_inv H5) in n.
+  - apply (binds_push_neq_inv H3) in n.
     assert (ok s) by auto. assert (ok G) by auto.
-    destruct (H H6 H7 x0 v0 n) as [T' [Hbi Ht]].
+    destruct (H x0 v0 n) as [T' [Hbi Ht]].
     exists T'. repeat split~.
     + apply~ binds_concat_left_ok.
     + apply~ weaken_ty_trm.
@@ -277,6 +284,7 @@ Qed.
 
 Lemma ctx_sto_exists: forall e t' t U G,
     ec_trm' e t' t ->
+    ok G ->
     G |- t : U ->
     exists G' T,
       inert G' /\
@@ -287,27 +295,31 @@ val_typing lemma from the existing proof to show that they have a precise
 type. This type is inert.
 *)
 Proof.
-
-  introv Hec Ht. gen G U. dependent induction Hec; intros.
+  introv Hec Hok Ht. gen G U. dependent induction Hec; intros.
   - exists (@empty typ) U. rewrite concat_empty_r. repeat split~.
   - dependent induction Ht.
     + exists (@empty typ) T. rewrite concat_empty_r. repeat split~.
     + apply~ IHHt.
   - dependent induction Ht.
-    + clear IHHt. destruct (val_typing Ht) as [V [Hv Hs]].
+    + clear IHHt H0. destruct (val_typing Ht) as [V [Hv Hs]].
       pick_fresh z.
       assert (Hz: z \notin L) by auto.
       specialize (H1 z Hz).
       assert (G & x ~ T |- open_trm x t' : U) by admit.
-      destruct (IHHec _ _ H2) as [G' [T' [Hin' [Hwf Ht']]]].
-      exists (x ~ V & G') T'. repeat split~.
-      * admit.
-      * simpl in *. admit.
-      * admit. (*narrowing *)
+      assert (x # G) by admit.
+      assert (Hok': ok (G & x ~ T)) by auto.
+      destruct (IHHec _ Hok' _ H0) as [G' [T' [Hin' [Hwf Ht']]]].
+      exists (G' & x ~ V) T'. repeat split~.
+      * constructor.
+        { assumption. }
+        { eapply precise_inert_typ; eauto. }
+        { unfold ctx_sto in Hwf. (* TODO *) admit. }
+      * simpl in *. (* TODO *) admit.
+      * admit. (* TODO *)
+      * intros. (* TODO *) admit.
+      * admit. (* narrowing? *)
     + eapply IHHt; eauto.
-  - dependent induction Ht.
-    + admit.
-    + eapply IHHt; eauto.
+  - admit. (* same as prev case *)
 Qed.
 
 Lemma hole_type : forall s t u U G,
@@ -408,7 +420,8 @@ In their place, use the fact that max_ec never returns a let term that would nee
 *)
 Proof.
   introv Ht Hmax.
-  destruct (ctx_sto_exists (max_ec_trm Hmax) Ht) as [G [T' [Hin [Hwf Ht']]]].
+  assert (ok (@empty typ)) by auto.
+  destruct (ctx_sto_exists (max_ec_trm Hmax) H Ht) as [G [T' [Hin [Hwf Ht']]]].
   rewrite concat_empty_l in Ht'.
   destruct e; simpl in *.
   {
@@ -484,7 +497,8 @@ Lemma preservation : forall u T e t e' t' u',
     empty |- u' : T /\ lc_trm u'.
 Proof.
   introv Hlc Ht Hec Hred Hec'.
-  destruct (ctx_sto_exists Hec Ht) as [G [T' [Hin [Hwf Ht']]]].
+  assert (ok (@empty typ)) by auto.
+  destruct (ctx_sto_exists Hec H Ht) as [G [T' [Hin [Hwf Ht']]]].
   rewrite concat_empty_l in Ht'. destruct e.
   {
     destruct e'; try solve [inversions Hred].
