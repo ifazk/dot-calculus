@@ -206,31 +206,18 @@ Proof.
       eapply (proj41 open_fresh_trm_val_def_defs_injective); eauto.
 Qed.
 
-(* Lemma max_ec_preserves_lc: forall u e t, *)
-(*     lc_trm u -> *)
-(*     (e, t) = max_ec u -> *)
-(*     lc_term e t. *)
-(* Proof. *)
-(*   intros. *)
-(*   induction u; simpl in *; *)
-(*     try solve [inversions H0; split~; rewrite~ <- empty_def]. *)
-(*   destruct u1; *)
-(*     try solve [inversions H; inversions H0; split~; constructor~; rewrite~ <- empty_def]. *)
-(*   destruct (max_ec u2). inversions H0. *)
-
-(* Lemma ec_preserves_lc: forall e t, *)
-(*     ok (ec_sto e) -> *)
-(*     lc_ec e -> *)
-(*     lc_trm (ec_trm e t) -> *)
-(*     lc_term e t. *)
-(* Proof. *)
-(*   introv Hok Hlc_ec Hlc. destruct e. *)
-(*   - simpl in *. gen t. induction s; intros. *)
-(*     + split~. *)
-(*     + destruct a as [x v]. simpl in *. inversions Hlc. *)
-(*       split. *)
-(* Qed. *)
-(* Admitted. *)
+Lemma max_ec_preserves_lc: forall u e t,
+    lc_trm u ->
+    max_ec' u e t ->
+    lc_term e t.
+Proof.
+  intros.
+  dependent induction H0; inversions H; try solve [constructor~].
+  - specialize (H5 x). specialize (IHmax_ec' H5).
+    inversions IHmax_ec'. inversions H. inversions H4. constructor~.
+  - specialize (H5 x). specialize (IHmax_ec' H5).
+    inversions IHmax_ec'. inversions H. inversions H4. constructor~.
+Qed.
 
 Definition ctx_sto (s: sto) (G: ctx): Prop :=
   ok s /\
@@ -241,45 +228,59 @@ Definition ctx_sto (s: sto) (G: ctx): Prop :=
       binds x T G /\
       G |- trm_val v : T.
 
-(*
-Definition ctx_sto (s: sto) (G: ctx): Prop :=
-    forall x v, binds x v s -> exists T, binds x T G /\ G |- (trm_val v) : T
-.
-
-I would prefer to use the above definition, but the definition below is
-closer to what we already have, so it will be less work.
-*)
-
-(* Definition ctx_sto (s: sto) (G: ctx): Prop := G ~~ s. *)
-(* Hint Unfold ctx_sto. *)
-
-Lemma ctx_sto_empty: forall G,
-    ok G -> ctx_sto empty G.
-Proof.
-  unfold ctx_sto. intros. repeat split~. intros.
-  false* binds_empty_inv.
-Qed.
-
-Hint Resolve ctx_sto_empty.
-
-Lemma ctx_sto_push: forall s G x v T,
-    ctx_sto s G ->
-    G |- trm_val v : T ->
+Inductive ctx_sto' : ctx -> ctx -> sto -> Prop :=
+| ctx_sto_empty: forall G,
+    ok G ->
+    ctx_sto' G empty empty
+| ctx_sto_push: forall G G' s x v T,
+    ctx_sto' G G' s ->
     x # G ->
+    x # G' ->
     x # s ->
-    ctx_sto (s & x ~ v) (G & x ~ T).
+    G & G' |- trm_val v : T ->
+    ctx_sto' G (G' & x ~ T) (s & x ~ v).
+
+Hint Constructors ctx_sto'.
+
+(* Lemma ctx_sto_empty: forall G, *)
+(*     ok G -> ctx_sto empty G. *)
+(* Proof. *)
+(*   unfold ctx_sto. intros. repeat split~. intros. *)
+(*   false* binds_empty_inv. *)
+(* Qed. *)
+
+(* Hint Resolve ctx_sto_empty. *)
+
+(* Lemma ctx_sto_push: forall s G x v T, *)
+(*     ctx_sto s G -> *)
+(*     G |- trm_val v : T -> *)
+(*     x # G -> *)
+(*     x # s -> *)
+(*     ctx_sto (s & x ~ v) (G & x ~ T). *)
+(* Proof. *)
+(*   unfold ctx_sto. intros. destruct H as [Hoks [HokG ?]]. *)
+(*   repeat split~. intros. *)
+(*   destruct (classicT (x0 = x)). *)
+(*   - subst. apply binds_push_eq_inv in H3. subst. exists T. *)
+(*     repeat split~. apply~ weaken_ty_trm. *)
+(*   - apply (binds_push_neq_inv H3) in n. *)
+(*     assert (ok s) by auto. assert (ok G) by auto. *)
+(*     destruct (H x0 v0 n) as [T' [Hbi Ht]]. *)
+(*     exists T'. repeat split~. *)
+(*     + apply~ binds_concat_left_ok. *)
+(*     + apply~ weaken_ty_trm. *)
+(* Qed. *)
+
+Lemma ok_switch: forall (A : Type) (E F : env A) x T,
+    ok (E & x ~ T & F) ->
+    ok (E & F & x ~ T).
 Proof.
-  unfold ctx_sto. intros. destruct H as [Hoks [HokG ?]].
-  repeat split~. intros.
-  destruct (classicT (x0 = x)).
-  - subst. apply binds_push_eq_inv in H3. subst. exists T.
-    repeat split~. apply~ weaken_ty_trm.
-  - apply (binds_push_neq_inv H3) in n.
-    assert (ok s) by auto. assert (ok G) by auto.
-    destruct (H x0 v0 n) as [T' [Hbi Ht]].
-    exists T'. repeat split~.
-    + apply~ binds_concat_left_ok.
-    + apply~ weaken_ty_trm.
+  intros. induction F using env_ind.
+  - rewrite concat_empty_r in *. assumption.
+  - rewrite concat_assoc in *.
+    destruct (ok_push_inv H).
+    specialize (IHF H0). destruct (ok_push_inv IHF).
+    apply~ ok_push.
 Qed.
 
 Lemma ctx_sto_exists: forall e t' t U G,
@@ -288,58 +289,44 @@ Lemma ctx_sto_exists: forall e t' t U G,
     G |- t : U ->
     exists G' T,
       inert G' /\
-      ctx_sto (ec_sto e) (G & G') /\
+      ctx_sto' G G' (ec_sto e) /\
       G & G' |- t' : T.
 (* Use the fact that all the (let x=v in) in u have to type. Use
 val_typing lemma from the existing proof to show that they have a precise
 type. This type is inert.
 *)
 Proof.
-  introv Hec Hok Ht. gen G U. dependent induction Hec; intros.
-  - exists (@empty typ) U. rewrite concat_empty_r. repeat split~.
-  - dependent induction Ht.
-    + exists (@empty typ) T. rewrite concat_empty_r. repeat split~.
-    + apply~ IHHt.
-  - dependent induction Ht.
-    + clear IHHt H0. destruct (val_typing Ht) as [V [Hv Hs]].
-      pick_fresh z.
-      assert (Hz: z \notin L) by auto.
-      specialize (H1 z Hz).
-      assert (G & x ~ T |- open_trm x t' : U) by admit.
-      assert (x # G) by admit.
-      assert (Hok': ok (G & x ~ T)) by auto.
-      destruct (IHHec _ Hok' _ H0) as [G' [T' [Hin' [Hwf Ht']]]].
-      exists (G' & x ~ V) T'. repeat split~.
-      * constructor.
-        { assumption. }
-        { eapply precise_inert_typ; eauto. }
-        { unfold ctx_sto in Hwf. (* TODO *) admit. }
-      * simpl in *. (* TODO *) admit.
-      * admit. (* TODO *)
-      * intros. (* TODO *) admit.
-      * admit. (* narrowing? *)
-    + eapply IHHt; eauto.
-  - admit. (* same as prev case *)
-Qed.
-
-Lemma hole_type : forall s t u U G,
-    ec_trm' (e_hole s) t u ->
-    empty |- u : U ->
-    ctx_sto s G ->
-    G |- t : U.
-Proof.
-  introv Hec Ht Hwf. gen G U.
-  dependent induction Hec; intros.
-  - admit.
-  -
 Admitted.
-
-Lemma term_type : forall s t' t u U G,
-    ec_trm (e_term s t') t = u ->
-    empty |- u : U ->
-    ctx_sto s G ->
-    exists U', G |- t : U'.
-Admitted.
+(* introv Hec Hok Ht. gen G U. dependent induction Hec; intros. *)
+(*   - exists (@empty typ) U. rewrite concat_empty_r. repeat split~. *)
+(*   - dependent induction Ht. *)
+(*     + exists (@empty typ) T. rewrite concat_empty_r. repeat split~. *)
+(*     + apply~ IHHt. *)
+(*   - dependent induction Ht. *)
+(*     + clear IHHt H0. destruct (val_typing Ht) as [V [Hv Hs]]. *)
+(*       pick_fresh z. *)
+(*       assert (Hz: z \notin L) by auto. *)
+(*       specialize (H1 z Hz). *)
+(*       assert (G & x ~ T |- open_trm x t' : U) by admit. *)
+(*       assert (x # G) by admit. *)
+(*       assert (Hok': ok (G & x ~ T)) by auto. *)
+(*       destruct (IHHec _ Hok' _ H0) as [G' [T' [Hin' [Hwf Ht']]]]. *)
+(*       exists (G' & x ~ V) T'. repeat split~. *)
+(*       * constructor. *)
+(*         { assumption. } *)
+(*         { eapply precise_inert_typ; eauto. } *)
+(*         { unfold ctx_sto in Hwf. destruct Hwf as [_ [HokG _]]. *)
+(*           apply ok_middle_inv in HokG. destruct HokG. assumption. } *)
+(*       * simpl in *. unfold ctx_sto in Hwf. destruct Hwf as [Hoks _]. *)
+(*         constructor~. *)
+(*       * unfold ctx_sto in Hwf. destruct Hwf as [_ [HokG _]]. *)
+(*         rewrite concat_assoc. eapply ok_middle_change in HokG. *)
+(*         apply ok_switch. eauto. *)
+(*       * intros. (* TODO *) admit. *)
+(*       * admit. (* narrowing? *) *)
+(*     + eapply IHHt; eauto. *)
+(*   - admit. (* same as prev case *) *)
+(* Qed. *)
 
 (* Lemma hole_term: forall s t u, *)
 (*     ec_trm (e_hole s) (trm_let t u) = ec_trm (e_term s u) t. *)
@@ -383,22 +370,44 @@ Inductive red' : ec -> trm -> ec -> trm -> Prop :=
     [――――――――――――]  #<br>#
     [e | x y |-> e | t^y]  *)
 | red_apply : forall x y e T t,
+    lc_ec e ->
+    lc_trm t ->
     binds x (val_lambda T t) (ec_sto e) ->
     e / trm_app (avar_f x) (avar_f y) ||-> e / open_trm y t
 (** [e(x) = nu(T)...{a = t}...]  #<br>#
     [――――――――――――――――――――――――]  #<br>#
     [e | x.a |-> e | t]  *)
 | red_project : forall x a e T ds t,
+    lc_ec e ->
+    lc_trm t ->
     binds x (val_new T ds) (ec_sto e) ->
     defs_has (open_defs x ds) (def_trm a t) ->
     e / trm_sel (avar_f x) a ||-> e / t
 (** [e[let x = [ ] in t] | y |-> e[ ] | t^y] *)
 | red_let_var : forall x t s,
+    lc_trm (open_trm x t) ->
     e_term s t / trm_var (avar_f x) ||-> e_hole s / open_trm x t
 (** [e[let x = [ ] in t1] | let t2 in t3 |-> e[let x = [ ] in let t3 in t1] | t2] *)
-| red_let_let : forall s t1 t2 t3,
+| red_let_let : forall x s t1 t2 t3,
+    lc_trm (open_trm x t1) ->
+    lc_trm t2 ->
+    lc_trm (open_trm x t3) ->
     e_term s t1 / trm_let t2 t3 ||-> e_term s (trm_let t3 t1) / t2
 where "t1 '/' st1 '||->' t2 '/' st2" := (red' t1 st1 t2 st2).
+
+(* Lemma canonical_forms_fun': forall G s x T U, *)
+(*     inert G -> *)
+(*     ctx_sto s G -> *)
+(*     G |- trm_var (avar_f x) : typ_all T U -> *)
+(*     exists L T' t, *)
+(*       binds x (val_lambda T' t) s /\ *)
+(*       G |- T <: T' /\ *)
+(*       (forall y, y \notin L -> G & y ~ T |- open_trm y t : open_typ y U). *)
+(* Proof. *)
+(*   introv Hin Hcs Ht. *)
+(*   unfold ctx_sto in Hcs. *)
+(*   destruct (var_typ_all_to_binds Hin Ht) as [L [S [T' [BiG [Hs1 Hs2]]]]]. *)
+(*   destruct (val_ *)
 
 Lemma max_ec_trm: forall u e t,
     max_ec' u e t ->
@@ -407,10 +416,12 @@ Proof.
   intros. dependent induction H; try constructor; eauto.
 Qed.
 
+(* lc u -> lc t *)
 Lemma progress : forall u T e t,
-  empty |- u : T ->
-  max_ec' u e t ->
-  normal_form e t \/ exists e' t', e / t ||-> e' / t'.
+    lc_trm u ->
+    empty |- u : T ->
+    max_ec' u e t ->
+    normal_form e t \/ exists e' t', e / t ||-> e' / t'.
 (* Proof sketch:
 
 Use ctx_sto_exists on (ec_sto e) to get G.
@@ -419,7 +430,7 @@ We no longer have congruence reduction rules.
 In their place, use the fact that max_ec never returns a let term that would need them.
 *)
 Proof.
-  introv Ht Hmax.
+  introv Hlc Ht Hmax.
   assert (ok (@empty typ)) by auto.
   destruct (ctx_sto_exists (max_ec_trm Hmax) H Ht) as [G [T' [Hin [Hwf Ht']]]].
   rewrite concat_empty_l in Ht'.
@@ -434,14 +445,25 @@ Proof.
   {
     dependent induction Ht'; right.
     - repeat eexists; apply red_let_var.
+      apply (max_ec_preserves_lc Hlc) in Hmax. inversions Hmax.
+      inversions H1. apply H6.
     - false* ec_term_val.
     - admit.
     - false* ec_term_val.
     - admit.
-    - repeat eexists; apply red_let_let.
+    - apply (max_ec_preserves_lc Hlc) in Hmax. inversions Hmax.
+      inversions H2. inversions H3.
+      pick_fresh z.
+      repeat eexists; apply red_let_let with (x:=z); auto.
     - repeat eexists; apply red_let_var.
+      apply (max_ec_preserves_lc Hlc) in Hmax. inversions Hmax.
+      inversions H0. apply H5.
     - repeat eexists; apply red_let_var.
+      apply (max_ec_preserves_lc Hlc) in Hmax. inversions Hmax.
+      inversions H0. apply H5.
     - repeat eexists; apply red_let_var.
+      apply (max_ec_preserves_lc Hlc) in Hmax. inversions Hmax.
+      inversions H0. apply H5.
     - destruct* (IHHt' Hmax Hin Hwf).
   }
 Qed.
