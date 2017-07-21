@@ -10,6 +10,7 @@ Require Import Precise_types.
 Require Import Substitution.
 Require Import Canonical_forms.
 Require Import Safety.
+Require Import Renaming.
 
 
 (* TODO move to definitions *)
@@ -237,10 +238,25 @@ Inductive ctx_sto' : ctx -> ctx -> sto -> Prop :=
     x # G ->
     x # G' ->
     x # s ->
+    x \notin (fv_ctx_types G) ->
     G & G' |- trm_val v : T ->
     ctx_sto' G (G' & x ~ T) (s & x ~ v).
 
 Hint Constructors ctx_sto'.
+
+Lemma ctx_sto_ctx_ok : forall G G' s,
+    ctx_sto' G G' s ->
+    ok G'.
+Proof.
+  introv Hcs. induction Hcs; auto.
+Qed.
+
+Lemma ctx_sto_sto_ok : forall G G' s,
+    ctx_sto' G G' s ->
+    ok s.
+Proof.
+  introv Hcs. induction Hcs; auto.
+Qed.
 
 (* Lemma ctx_sto_empty: forall G, *)
 (*     ok G -> ctx_sto empty G. *)
