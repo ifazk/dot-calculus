@@ -838,6 +838,12 @@ Proof.
   intros. dependent induction H; constructor~.
 Qed.
 
+Lemma lc_open_var_change: forall x y t,
+    lc_trm (open_trm x t) ->
+    lc_trm (open_trm y t).
+Proof.
+Admitted.
+
 Lemma preservation : forall u U e t e' t' u',
     lc_trm u ->
     empty |- u : U ->
@@ -849,26 +855,34 @@ Proof.
   introv Hlc Ht Hec Hred Hec'.
   assert (ok (@empty typ)) by auto.
   destruct (ctx_sto_exists Hec H Ht) as [G [T [Hok [Hin [Hcs Ht']]]]].
+  lets Hcs': (ctx_sto_correspondence Hcs).
   rewrite concat_empty_l in *. destruct e.
   {
     destruct e'; try solve [inversions Hred].
     pose proof (red_preserves_sto Hred). simpl in *. subst s0.
     dependent induction Ht'; try solve [inversion Hred].
-    - inversions Hred. apply (ec_preserves_type' Hec Hec' Ht Hcs).
+    - inversions Hred. simpl in *.
+      apply (ec_preserves_type' Hec Hec' Ht Hcs).
       intros. rewrite concat_empty_l in *.
-
       dependent induction H0.
       + clear IHty_trm1 IHty_trm2.
-
-        (* apply ctx_sto_correspondence in Hcs. *)
-        (* unfold ctx_sto'' in Hcs. destruct Hcs. *)
-        (* destruct (var_typ_all_to_binds Hin H0_) as [? [? [? [? [? ?]]]]]. *)
-        (* apply H0 in H3. destruct H3 as [? [? ?]]. *)
-
-        (* apply (val_typ_all_to_lambda Hin) in H8. *)
-        admit.
+        destruct (canonical1 Hin Hcs' H0_) as [L [T' [t' [Bis [Hs Ht']]]]].
+        apply (binds_func H5) in Bis. inversions Bis.
+        pick_fresh y. assert (HL: y \notin L) by auto.
+        specialize (Ht' y HL).
+        rewrite subst_intro_typ with (x:=y); auto.
+        rewrite subst_intro_trm with (x:=y); auto.
+        eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
       + eapply ty_sub; eauto.
-    - admit.
+    - inversions Hred. simpl in *.
+      apply (ec_preserves_type' Hec Hec' Ht Hcs).
+      intros. rewrite concat_empty_l in *.
+      dependent induction H0.
+      + clear IHty_trm.
+        destruct (canonical2 Hin Hcs' H0) as [S [ds' [t [Bis [Has Ht'']]]]].
+        apply (binds_func H5) in Bis. inversions Bis.
+        rewrite <- (defs_has_inv Has H6). assumption.
+      + eapply ty_sub; eauto.
     - eapply IHHt'; eauto.
   }
   {
@@ -885,59 +899,50 @@ Proof.
       + eapply ty_sub; eauto.
     - inversions Hred.
       + apply (ec_preserves_type' Hec Hec' Ht Hcs).
-        intros. rewrite concat_empty_l in *. admit.
+        intros. rewrite concat_empty_l in *.
+        dependent induction H0.
+        * clear IHty_trm1 IHty_trm2.
+          destruct (canonical1 Hin Hcs' H0_) as [L [T' [t' [Bis [Hs Ht'']]]]].
+          apply (binds_func H7) in Bis. inversions Bis.
+          pick_fresh z. assert (HL: z \notin L) by auto.
+          specialize (Ht'' z HL).
+          rewrite subst_intro_typ with (x:=z); auto.
+          rewrite subst_intro_trm with (x:=z); auto.
+          eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
+        * eapply ty_sub; eauto.
       + apply (ec_preserves_type' Hec Hec' Ht Hcs).
-        intros. rewrite concat_empty_l in *. admit.
+        intros. rewrite concat_empty_l in *.
+        dependent induction H0.
+        * clear IHty_trm.
+          destruct (canonical2 Hin Hcs' H0) as [S [ds' [t [Bis [Has Ht'']]]]].
+          apply (binds_func H6) in Bis. inversions Bis.
+          rewrite <- (defs_has_inv Has H8). assumption.
+        * eapply ty_sub; eauto.
       + apply term_to_hole in Hec.
         apply term_to_hole in Hec'.
         apply (ec_preserves_type' Hec Hec' Ht Hcs).
         intros. rewrite concat_empty_l in *.
         dependent induction H0.
-        * clear H2 IHty_trm. admit.
+        * clear H2 IHty_trm. gen L. dependent induction H0; intros.
+          {
+            clear H2 IHty_trm.
+            apply_fresh ty_let as y; eauto.
+            assert (HL: y \notin L) by auto.
+            unfold open_trm. simpl. specialize (H1 y HL).
+            apply_fresh ty_let as z; eauto.
+            unfold open_trm.
+            rewrite~ (proj41 (open_comm_trm_val_def_defs z y)).
+            apply lc_open_var_change with (y:=z) in H6.
+            apply (lc_opening 1 y) in H6. unfold open_trm in H6. rewrite H6.
+            assert (HL0: z \notin L0) by auto.
+            specialize (H3 z HL0). eapply weaken_rules; eauto.
+          }
+          {
+            eapply IHty_trm with (L:=L \u (dom G)); eauto. intros.
+            assert (HL: x0 \notin L) by auto.
+            specialize (H2 x0 HL). eapply narrow_typing; eauto.
+            apply~ subenv_last.
+          }
         * eapply ty_sub; eauto.
   }
 Qed.
-    (* destruct t. *)
-    (* - inversions Hred. *)
-    (*   inversions Hec'. *)
-    (*   + inversions Hec. *)
-    (*     * simpl in *. apply ctx_sto_empty_sto_inv in Hcs. subst. *)
-    (*       admit. *)
-    (*     * admit. *)
-    (*   + inversions Hec. *)
-    (*     * admit. *)
-    (*     * apply eq_before_inv in H0. destruct H0 as [? [? ?]]. subst. *)
-    (*       dependent induction Ht. *)
-    (*       { *)
-    (*         (* clear H0 IHHt. apply_fresh ty_let as z; eauto. *) *)
-    (*         (* rewrite subst_intro_trm with (x:=x0); auto. *) *)
-    (*         (* rewrite <- subst_fresh_typ with (x:=x0) (y:=z). *) *)
-    (*         (* eapply subst_ty_trm; auto. rewrite~ subst_fresh_typ. *) *)
-    (*         admit. *)
-    (*       } *)
-    (*       { eapply ty_sub; eauto. } *)
-    (* - inversions Hred. *)
-    (* - inversions Hred. apply (ec_preserves_type' Hec Hec' Ht Hcs). *)
-    (*   intros. rewrite concat_empty_l in *. *)
-    (*   dependent induction H0. *)
-    (*   + clear IHty_trm. admit. *)
-    (*   + eapply ty_sub; eauto. *)
-    (* - inversions Hred. apply (ec_preserves_type' Hec Hec' Ht Hcs). *)
-    (*   intros. rewrite concat_empty_l in *. *)
-    (*   dependent induction H0. *)
-    (*   + admit. *)
-    (*   + eapply ty_sub; eauto. *)
-    (* - inversions Hred. *)
-    (*   dependent induction Ht'. *)
-    (*   + clear H1 IHHt'. admit. *)
-    (*   + eapply IHHt'; eauto. *)
-
-(*
-1) apply ctx_sto_exists
-2) case-split on e (e_hole vs e_term)
-3) for e_hole case, apply hole_type to get typing for t
-4) induct on typing for t, inverting the ||-> in each case, like in the old proof
-5) apply hole_preserves_type to go from type of t' to type of u'
-6) for e_term case, apply term_type and/or hole_term and ???
-*)
-Admitted.
