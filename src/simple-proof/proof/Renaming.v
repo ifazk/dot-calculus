@@ -99,13 +99,12 @@ Lemma renaming_gen: forall x y,
     y # G ->
     rename_ctx x y G |- subst_trm x y t: subst_typ x y T) /\
   (forall G d D, G /- d: D ->
-    ok (G) ->
-    y # (G) ->
-    rename_ctx x y G /-
-          subst_def x y d : subst_dec x y D) /\
+    ok G ->
+    y # G ->
+    rename_ctx x y G /- subst_def x y d : subst_dec x y D) /\
   (forall G ds T, G /- ds :: T ->
-    ok (G) ->
-    y # (G) ->
+    ok G ->
+    y # G ->
     rename_ctx x y G /- subst_defs x y ds :: subst_typ x y T) /\
   (forall G T U, G |- T <: U ->
     ok G ->

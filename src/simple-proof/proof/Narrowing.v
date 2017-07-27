@@ -58,6 +58,18 @@ Proof.
   - destruct Bi. left. eauto.
 Qed.
 
+Lemma subenv_concat: forall G G' G'',
+    subenv G' G ->
+    ok (G & G'') ->
+    ok (G' & G'') ->
+    subenv (G' & G'') (G & G'').
+Proof.
+  intros. unfold subenv in *. intros y T Bi. apply binds_concat_inv in Bi.
+  destruct~ Bi. destruct H2. specialize (H y T H3). destruct~ H.
+  destruct H as [T' [Bi Hs]]. right. exists T'. split~.
+  apply~ weaken_subtyp.
+Qed.
+
 (** * Narrowing Lemma *)
 (** The narrowing lemma states that typing is preserved under subenvironments.
     The lemma corresponds to Lemma 3.11 in the paper.

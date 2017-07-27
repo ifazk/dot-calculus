@@ -111,7 +111,7 @@ Qed.
     [forall fresh y, G, y: T |- t^y: U^y] *)
 Lemma val_typ_all_to_lambda: forall G v T U,
     inert G ->
-    G |- (trm_val v) : typ_all T U ->
+    G |- trm_val v : typ_all T U ->
     (exists L T' t,
         v = val_lambda T' t /\
         G |- T <: T' /\
