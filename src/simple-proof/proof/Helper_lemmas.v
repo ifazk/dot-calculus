@@ -383,6 +383,85 @@ Proof.
   intros. apply* lc_opening_trm_val_def_defs.
 Qed.
 
+Lemma lc_opening_change_var_typ_dec: forall x x',
+    (forall T, lc_typ T -> forall n T',
+            T = open_rec_typ n x T' ->
+            lc_typ (open_rec_typ n x' T')) /\
+    (forall D, lc_dec D -> forall n D',
+            D = open_rec_dec n x D' ->
+            lc_dec (open_rec_dec n x' D')).
+Proof.
+  intros. apply lc_typ_mutind; intros; simpl in *.
+  - destruct T'; inversions H. constructor.
+  - destruct T'; inversions H. constructor.
+  - destruct T'; inversions H0. simpl. constructor~.
+  - destruct T'; inversions H1. simpl. constructor~.
+  - destruct T'; inversions H. simpl. constructor.
+    destruct~ a; inversions l; case_if; subst~; simpl; case_if~.
+  - destruct T'; inversions H0. simpl. constructor.
+    intros. pose proof (O_S n).
+    rewrite ((proj21 (open_comm_typ_dec x0 x')) _ _ _ H0).
+    eapply H.
+    rewrite ((proj21 (open_comm_typ_dec x0 x)) _ _ _ H0). reflexivity.
+  - destruct T'; inversions H1. simpl. constructor~.
+    intros. pose proof (O_S n).
+    rewrite ((proj21 (open_comm_typ_dec x0 x')) _ _ _ H1).
+    eapply H.
+    rewrite ((proj21 (open_comm_typ_dec x0 x)) _ _ _ H1). reflexivity.
+  - destruct D'; inversions H1. simpl. constructor~.
+  - destruct D'; inversions H0. simpl. constructor~.
+Qed.
+
+Lemma lc_opening_change_var_trm_val_def_defs: forall x x',
+    (forall t, lc_trm t -> forall n t',
+            t = open_rec_trm n x t' ->
+            lc_trm (open_rec_trm n x' t')) /\
+    (forall v, lc_val v -> forall n v',
+            v = open_rec_val n x v' ->
+            lc_val (open_rec_val n x' v')) /\
+    (forall d, lc_def d -> forall n d',
+            d = open_rec_def n x d' ->
+            lc_def (open_rec_def n x' d')) /\
+    (forall ds, lc_defs ds -> forall n ds',
+             ds = open_rec_defs n x ds' ->
+             lc_defs (open_rec_defs n x' ds')).
+Proof.
+  intros. apply lc_mutind; intros; simpl in *.
+  - destruct t'; inversions H.
+    destruct a0; simpl in *; auto; case_if~.
+  - destruct t'; inversions H0. simpl. constructor~.
+  - destruct t'; inversions H. simpl. constructor~.
+    destruct a0; simpl in *; auto; case_if~.
+  - destruct t'; inversions H. simpl. constructor~.
+    + destruct a0; simpl in *; auto; case_if~.
+    + destruct a1; simpl in *; auto; case_if~.
+  - destruct t'; inversions H1. simpl. constructor~.
+    intros. pose proof (O_S n).
+    rewrite ((proj41 (open_comm_trm_val_def_defs x0 x')) _ _ _ H1).
+    eapply H0.
+    rewrite ((proj41 (open_comm_trm_val_def_defs x0 x)) _ _ _ H1). reflexivity.
+  - destruct v'; inversions H0. simpl. constructor~.
+    + intros. specialize (l x0). pose proof (O_S n).
+      rewrite ((proj21 (open_comm_typ_dec x0 x)) _ _ _ H0) in l.
+      rewrite ((proj21 (open_comm_typ_dec x0 x')) _ _ _ H0).
+      eapply ((proj21 (lc_opening_change_var_typ_dec x x'))); eauto.
+    + intros. specialize (l0 x0). pose proof (O_S n).
+      rewrite ((proj44 (open_comm_trm_val_def_defs x0 x')) _ _ _ H0).
+      eapply H.
+      rewrite ((proj44 (open_comm_trm_val_def_defs x0 x)) _ _ _ H0). reflexivity.
+  - destruct v'; inversions H0. simpl. constructor~.
+    + eapply (proj21 (lc_opening_change_var_typ_dec _ _)); eauto.
+    + intros. pose proof (O_S n).
+      rewrite ((proj41 (open_comm_trm_val_def_defs x0 x')) _ _ _ H0).
+      eapply H.
+      rewrite ((proj41 (open_comm_trm_val_def_defs x0 x)) _ _ _ H0). reflexivity.
+  - destruct d'; inversions H. simpl. constructor~.
+    eapply (proj21 (lc_opening_change_var_typ_dec _ _)); eauto.
+  - destruct d'; inversions H0. simpl. constructor~.
+  - destruct ds'; inversions H. simpl. constructor~.
+  - destruct ds'; inversions H1. simpl. constructor~.
+Qed.
+
 (** * Lemmas About Local Closure *)
 
 (** When a binding is removed from a locally closed store, the

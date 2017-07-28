@@ -819,30 +819,12 @@ Proof.
   - symmetry in H0. false* empty_push_inv.
 Qed.
 
-Lemma ctx_sto'_test: forall s t u G G' U,
-    ec_trm' (e_hole s) t u ->
-    ctx_sto' G G' s ->
-    G & G' |- t : U ->
-    G |- u : U.
-Proof.
-  intros. gen G G' U. dependent induction H; intros.
-  - apply ctx_sto_empty_sto_inv in H0. subst.
-    rewrite~ concat_empty_r in H1.
-  - admit.
-Qed.
-
 Lemma term_to_hole: forall s t t' u,
     ec_trm' (e_term s t') t u ->
     ec_trm' (e_hole s) (trm_let t t') u.
 Proof.
   intros. dependent induction H; constructor~.
 Qed.
-
-Lemma lc_open_var_change: forall x y t,
-    lc_trm (open_trm x t) ->
-    lc_trm (open_trm y t).
-Proof.
-Admitted.
 
 Lemma preservation : forall u U e t e' t' u',
     lc_trm u ->
@@ -932,7 +914,7 @@ Proof.
             apply_fresh ty_let as z; eauto.
             unfold open_trm.
             rewrite~ (proj41 (open_comm_trm_val_def_defs z y)).
-            apply lc_open_var_change with (y:=z) in H6.
+            apply (proj41 (lc_opening_change_var_trm_val_def_defs x z)) with (n:=0) (t':=t0) in H6; auto.
             apply (lc_opening 1 y) in H6. unfold open_trm in H6. rewrite H6.
             assert (HL0: z \notin L0) by auto.
             specialize (H3 z HL0). eapply weaken_rules; eauto.
