@@ -101,6 +101,35 @@ Proof.
     (apply* subst_fresh_avar || apply* subst_fresh_typ_dec).
 Qed.
 
+Lemma fv_ctx_types_push_eq : forall G x T,
+    fv_ctx_types (G & x ~ T) = fv_ctx_types G \u fv_typ T.
+Proof.
+  intros.
+  rewrite concat_def, single_def.
+  unfold fv_ctx_types, fv_in_values; rewrite values_def.
+  rewrite union_comm. simpl. reflexivity.
+Qed.
+
+Lemma fv_ctx_types_concat_eq : forall G1 G2,
+    fv_ctx_types (G1 & G2) = fv_ctx_types G1 \u fv_ctx_types G2.
+Proof.
+  intros G1 G2. induction G2 using env_ind.
+  - unfold fv_ctx_types, fv_in_values; rewrite values_def.
+    rewrite concat_empty_r, empty_def, union_empty_r; reflexivity.
+  - rewrite concat_assoc. rewrite fv_ctx_types_push_eq.
+    rewrite IHG2. rewrite <- union_assoc. f_equal.
+    symmetry. apply fv_ctx_types_push_eq.
+Qed.
+
+Lemma notin_fv_ctx_concat : forall x G2 G1,
+    x \notin fv_ctx_types (G1 & G2) <->
+    x \notin fv_ctx_types G1 /\ x \notin fv_ctx_types G2.
+Proof.
+  intros. rewrite <- notin_union.
+  rewrite <- fv_ctx_types_concat_eq.
+  split; intros; assumption.
+Qed.
+
 (** [x \notin fv(T)]           #<br>#
     [x \notin fv(G)]       #<br>#
     [―――――――――――――――――――――――] #<br>#
@@ -110,14 +139,7 @@ Lemma fv_ctx_types_push: forall x z T G,
     x \notin fv_ctx_types G ->
     x \notin fv_ctx_types (G & z ~ T).
 Proof.
-  intros.
-  unfold fv_ctx_types in *.
-  unfold fv_in_values in *.
-  rewrite <- cons_to_push in *.
-  rewrite values_def in *.
-  unfold LibList.map in *.
-  do 2 rewrite LibList.fold_right_cons in *.
-  simpl in *.
+  intros. rewrite fv_ctx_types_push_eq.
   apply notin_union. split~.
 Qed.
 
@@ -128,15 +150,8 @@ Qed.
 Lemma invert_fv_ctx_types_push: forall x z T G,
   x \notin fv_ctx_types (G & z ~ T) -> x \notin fv_typ T /\ x \notin (fv_ctx_types G).
 Proof.
-  introv N.
-  unfold fv_ctx_types in *.
-  unfold fv_in_values in *.
-  rewrite <- cons_to_push in *.
-  rewrite values_def in *.
-  unfold LibList.map in *.
-  do 2 rewrite LibList.fold_right_cons in *.
-  simpl in *.
-  apply notin_union in N. exact N.
+  introv H. rewrite fv_ctx_types_push_eq in H.
+  apply~ notin_union.
 Qed.
 
 (** [x \notin fv(G)]         #<br>#
@@ -464,12 +479,12 @@ Lemma subst_ty_trm: forall y S G x t T,
 Proof.
   intros.
   apply (proj51 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H.
-  unfold subst_ctx in H. rewrite map_empty in H. rewrite concat_empty_r in H.
+  unfold subst_ctx in H. rewrite map_empty, concat_empty_r in H.
   apply H.
   rewrite concat_empty_r. reflexivity.
   rewrite concat_empty_r. assumption.
   assumption.
-  unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption.
+  unfold subst_ctx. rewrite map_empty, concat_empty_r. assumption.
 Qed.
 
 (** The substitution lemma for definition typing. *)
@@ -483,7 +498,7 @@ Proof.
   intros.
   apply (proj53 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H;
     try rewrite concat_empty_r; auto.
-  - unfold subst_ctx in H. rewrite map_empty in H. rewrite concat_empty_r in H.
+  - unfold subst_ctx in H. rewrite map_empty, concat_empty_r in H.
     auto.
   - unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption.
 Qed.
