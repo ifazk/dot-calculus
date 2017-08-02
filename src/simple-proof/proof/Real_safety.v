@@ -221,6 +221,38 @@ Proof.
       specialize (IHE1 _ H1) as [? [? ?]]. subst~.
 Qed.
 
+Lemma notin_before_inv: forall A x (v : A) E,
+    x # (x ~ v & E) -> False.
+Proof.
+  intros. induction E using env_ind.
+  - rewrite concat_empty_r in H.
+    rewrite dom_single in H. false* notin_same.
+  - rewrite concat_assoc in H. apply~ IHE.
+Qed.
+
+Lemma binds_before_eq: forall (A : Type) (x : var) (v : A) (E : env A),
+    ok (x ~ v & E) ->
+    binds x v (x ~ v & E).
+Proof.
+  intros. induction E using env_ind.
+  - rewrite concat_empty_r. apply binds_single_eq.
+  - rewrite concat_assoc in *. destruct (classicT (x = x0)).
+    + subst. apply ok_push_inv in H. destruct H. auto.
+    + apply~ binds_push_neq.
+Qed.
+
+Lemma binds_before_eq_inv: forall (A : Type) (x : var) (v1 v2 : A) (E : env A),
+    ok (x ~ v2 & E) ->
+    binds x v1 (x ~ v2 & E) -> v1 = v2.
+Proof.
+  intros. induction E using env_ind.
+  - rewrite concat_empty_r in *. apply binds_single_eq_inv in H0. assumption.
+  - rewrite concat_assoc in H. destruct (classicT (x = x0)).
+    + subst. apply ok_push_inv in H. destruct H. auto.
+      false~ notin_before_inv.
+    + rewrite concat_assoc in H0. apply binds_push_neq_inv in H0; auto.
+Qed.
+
 Lemma ec_inverse'': forall e t u u',
     max_ec' u e t ->
     ec_trm' e t u' ->
@@ -356,6 +388,15 @@ Proof.
   }
 Qed.
 
+Lemma ok_before_inv: forall (A : Type) (E : env A) (x : var) (v : A),
+    ok (x ~ v & E) -> ok E /\ x # E.
+Proof.
+  intros. induction E using env_ind.
+  - auto.
+  - rewrite concat_assoc in H. apply ok_push_inv in H. destruct H.
+    destruct (IHE H). split~.
+Qed.
+
 Lemma inert_push_inv: forall G x T,
     inert (G & x ~ T) -> inert G /\ inert_typ T /\ x # G.
 Proof.
@@ -387,6 +428,7 @@ Lemma move_ctx_sto: forall G G' s x v T V,
     x # G ->
     x # G' ->
     x # s ->
+    x \notin (fv_ctx_types G) ->
     ok G ->
     ok G' ->
     ok s ->
@@ -396,52 +438,37 @@ Lemma move_ctx_sto: forall G G' s x v T V,
     ctx_sto' (G & x ~ T) G' s ->
     ctx_sto' G (x ~ V & G') (x ~ v & s).
 Proof.
-  introv HnotinG HnotinG' Hnotins HokG HokG' Hoks HokGG' Ht Hs Hcs.
+  introv HnotinG HnotinG' Hnotins HnotinGTypes HokG HokG' Hoks HokGG' Ht Hs.
+  introv Hcs.
   dependent induction Hcs.
   - repeat rewrite concat_empty_r.
     replace (x ~ V) with (empty & x ~ V); try solve [rewrite~ concat_empty_l].
     replace (x ~ v) with (empty & x ~ v); try solve [rewrite~ concat_empty_l].
-    constructor~. admit. rewrite~ concat_empty_r.
+    constructor~. rewrite~ concat_empty_r.
   - assert (x # G'0) by auto. assert (x # s0) by auto.
     assert (ok G'0) by auto. assert (ok s0) by auto.
     rewrite concat_assoc in HokGG'. assert (ok (G & G'0)) by auto.
-    specialize (IHHcs T x s0 H5 H7 G'0 H4 H6 G HnotinG HokG H8 Ht Hs JMeq_refl JMeq_refl JMeq_refl).
+    specialize (IHHcs T x s0 H5 H7 G'0 H4 H6 G HnotinG HnotinGTypes HokG H8 Ht Hs JMeq_refl JMeq_refl JMeq_refl).
     repeat rewrite concat_assoc.
-    constructor~. admit. rewrite concat_assoc.
-    eapply (proj41 narrow_rules); eauto.
-    + apply ok_switch. constructor~.
-    + apply subenv_concat.
-      * apply~ subenv_last.
-      * apply ok_switch. constructor~.
-      * apply ok_switch. constructor~.
+    constructor~.
+    { rewrite~ fv_ctx_types_push_eq in H2. }
+    {
+      rewrite concat_assoc.
+      eapply (proj41 narrow_rules); eauto.
+      + apply ok_switch. constructor~.
+      + apply subenv_concat.
+        * apply~ subenv_last.
+        * apply ok_switch. constructor~.
+        * apply ok_switch. constructor~.
+    }
 Qed.
-
-(* Lemma sto_var_notin: forall e t u G U x v, *)
-(*     ec_trm' e t u -> *)
-(*     ok G -> *)
-(*     G |- u : U -> *)
-(*     binds x v (ec_sto e) -> *)
-(*     x \notin (fv_typ U). *)
-(* Proof. *)
-(*   intros. gen x v U G. dependent induction H; intros. *)
-(*   - admit. *)
-(*   - admit. *)
-(*   - destruct (classicT (x0 = x)). *)
-(*     + simpl in *. subst. clear IHec_trm'. *)
-(*       assert (v0 = v) by admit. subst. *)
-(*       clear H2. *)
-(*       admit. *)
-(*     + admit. *)
-(*   - admit. *)
-(* Qed. *)
 
 Lemma ctx_sto_exists: forall e t u U G,
     ec_trm' e t u ->
     ok G ->
-    (* (dom (ec_sto e)) \n (dom G) = \{} -> *)
-    (* (dom (ec_sto e)) \n (fv_typ U) = \{} -> *)
-    (* e intersect G empty *)
-    (* e intersect U empty *)
+    ok (ec_sto e) ->
+    (forall x v, binds x v (ec_sto e) -> x # G) ->
+    (forall x v, binds x v (ec_sto e) -> x \notin (fv_ctx_types G)) ->
     G |- u : U ->
     exists G' T,
       ok (G & G') /\
@@ -453,7 +480,7 @@ val_typing lemma from the existing proof to show that they have a precise
 type. This type is inert.
 *)
 Proof.
-  introv Hec Hok Ht. gen G U. dependent induction Hec; intros.
+  introv Hec HokG Hoks HeG HeGT Ht. gen G U Hoks. dependent induction Hec; intros.
   - exists (@empty typ) U. rewrite concat_empty_r. repeat split~.
   - dependent induction Ht.
     + exists (@empty typ) T. rewrite concat_empty_r. repeat split~.
@@ -463,31 +490,55 @@ Proof.
       pick_fresh z.
       assert (Hz: z \notin L) by auto.
       specialize (H1 z Hz).
-      assert (x # G).
+      assert (HG: x # G).
       {
-        admit.
+        apply HeG with (v0:=v). simpl in *. apply~ binds_before_eq.
       }
- (* TODO *)
-      assert (x \notin (fv_typ U)) by admit. (* TODO *)
-      assert (G & x ~ T |- open_trm x t' : U).
+      assert (Ht': G & x ~ T |- open_trm x t' : U).
       {
-        assert (z \notin (fv_trm (open_trm x t'))).
+        assert (Hopent: z \notin (fv_trm (open_trm x t'))) by admit.
+        assert (G = (map_keys (rename_var z x) G)) by rewrite~ map_keys_notin.
+        assert (G = rename_ctx z x G).
         {
-          admit.
+          unfold rename_ctx. rewrite <- H0. rewrite~ subst_fresh_ctx.
         }
+        assert (x = (rename_var z x z)).
+        {
+          unfold rename_var. case_if~.
+        }
+        assert (G & x ~ T = rename_ctx z x (G & z ~ T)).
+        {
+          unfold rename_ctx.
+          rewrite map_keys_push. rewrite <- H0. rewrite <- H3.
+          rewrite~ subst_fresh_ctx.
+          rewrite~ fv_ctx_types_push_eq.
+        }
+
         rewrite <- subst_fresh_typ with (x:=z) (y:=x); auto.
-        rewrite <- (proj41 (subst_fresh_trm_val_def_defs z x)) with (t:=(open_trm x t')); auto.
-        rewrite <- map_keys_notin with (x:=z) (y:=x) (G:=G); auto.
-        admit.
+        rewrite subst_intro_trm with (x:=z); auto.
+        rewrite H4.
+        eapply (proj41 (renaming_gen z x)); eauto.
       }
       assert (x # s) by auto.
-      assert (Hok': ok (G & x ~ T)) by auto.
-      destruct (IHHec _ Hok' _ H3) as [G' [T' [Hok'' [Hin' [Hcs Ht']]]]].
-      pose proof (ctx_sto_notin_dom H4 Hcs).
+      assert (HokG': ok (G & x ~ T)) by auto.
+      assert (Hoks': ok s).
+      {
+        apply ok_before_inv in Hoks. destruct~ Hoks.
+      }
+      assert (HeG': (forall x' v, binds x' v (ec_sto (e_hole s)) -> x' # (G & x ~ T))).
+      {
+        intros. destruct (classicT (x' = x)).
+        - subst. (* x in s, and s & x is ok? *) admit.
+        - admit.
+      }
+      assert (HeGT': (forall x' v, binds x' v (ec_sto (e_hole s)) -> x' \notin fv_ctx_types (G & x ~ T))) by admit.
+      destruct (IHHec _ HokG' HeG' HeGT' _ Ht' Hoks') as [G' [T' [Hok'' [Hin' [Hcs Ht'']]]]].
+      pose proof (ctx_sto_notin_dom H0 Hcs).
       exists (x ~ V & G') T'. repeat split~.
       * rewrite concat_assoc. eapply ok_middle_change; eauto.
       * apply inert_switch. constructor~. eapply precise_inert_typ; eauto.
-      * eapply move_ctx_sto; eauto. admit.
+      * eapply move_ctx_sto; eauto.
+        apply HeGT with (v0:=v). apply~ binds_before_eq.
         apply~ precise_to_general.
       * rewrite concat_assoc. eapply (proj41 narrow_rules); eauto.
         eapply ok_middle_change; eauto.
