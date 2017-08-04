@@ -324,6 +324,15 @@ Inductive ctx_sto' : ctx -> ctx -> sto -> Prop :=
 
 Hint Constructors ctx_sto'.
 
+Inductive ctx_sto_typing : ctx -> ctx -> sto -> trm -> typ -> Prop :=
+| ctx_sto_typing_empty : forall G t U,
+    (G |- t : U) ->
+    ctx_sto_typing G empty empty t U
+| ctx_sto_typing_push : forall G G' s x v t T U,
+    (G |- (trm_val v) : T) ->
+    ctx_sto_typing (G & x ~ T) G' s t U ->
+    ctx_sto_typing G (x ~ T & G') (x ~ v & s) t U.
+
 Lemma ctx_sto_ctx_ok : forall G G' s,
     ctx_sto' G G' s ->
     ok G'.
