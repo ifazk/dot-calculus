@@ -48,25 +48,128 @@ Inductive norm_form: trm -> Prop :=
 
 Hint Constructors norm_form.
 
-Theorem safety : forall s t T,
-    |- s, t: T ->
-    (norm_form t \/ exists s' t', s // t |-> s' // t' /\ |- s', t': T).
+Lemma preservation: forall G s t s' t' T,
+    G ~~ s ->
+    inert G ->
+    s // t |-> s' // t' ->
+    G |- t : T ->
+    exists G', inert G' /\
+          G & G' ~~ s' /\
+          G & G' |- t' : T.
 Proof.
-  destruct 1 as [* Hi Hwf Ht].
-  induction Ht; try solve [left; eauto].
-  - Case "All-E".
-    right. destruct (canonical_forms_fun Hi Hwf Ht1) as [L [T' [t [Hb [Hs Hy]]]]].
-    Admitted.
+  introv Hwf Hin Hred Ht.
+  gen t'.
+  dependent induction Ht; intros; try solve [inversions Hred].
+  - pose proof (canonical_forms_fun Hin Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+    inversions Hred.
+    apply (binds_func H4) in Bis. inversions Bis.
+    exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
+    rewrite subst_intro_typ with (x:=y); auto.
+    rewrite subst_intro_trm with (x:=y); auto.
+    eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
+  - pose proof (canonical_forms_obj Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+    inversions Hred.
+    apply (binds_func H1) in Bis. inversions Bis.
+    exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    rewrite <- (defs_has_inv Has H5). assumption.
+  - destruct t.
+    + inversions Hred; try solve [inversion H6].
+      pick_fresh y.
+      exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+      rewrite subst_intro_trm with (x:=y); auto.
+      rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
+      eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
+    + inversions Hred; try solve [inversion H6].
+      pose proof (wf_sto_notin_dom Hwf H6).
+      pose proof (val_typing Ht) as [V [Hv Hs]].
+      pick_fresh y. assert (y \notin L) by auto.
+      specialize (H y H2).
+      exists (x ~ V). repeat split.
+      * rewrite <- concat_empty_l. constructor~.
+        apply (precise_inert_typ Hv).
+      * constructor~.
+        apply (precise_to_general Hv).
+      * rewrite subst_intro_trm with (x:=y); auto.
+        rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
+        eapply subst_ty_trm; eauto.
+        { eapply weaken_rules; eauto. }
+        { apply~ fv_ctx_types_push. }
+        { rewrite~ subst_fresh_typ.
+          pose proof (ty_var (binds_tail x V G)).
+          apply (ty_sub H3). apply (weaken_subtyp Hs); eauto.
+        }
+    + inversions Hred.
+      specialize (IHHt Hwf Hin t0' H6) as [G' [Hin' [Hwf' Ht']]].
+      exists G'. repeat split; auto.
+      apply_fresh ty_let as z; eauto.
+      eapply weaken_rules; eauto.
+    + inversions Hred.
+      specialize (IHHt Hwf Hin t0' H6) as [G' [Hin' [Hwf' Ht']]].
+      exists G'. repeat split; auto.
+      apply_fresh ty_let as z; eauto.
+      eapply weaken_rules; eauto.
+    + inversions Hred.
+      specialize (IHHt Hwf Hin t0' H6) as [G' [Hin' [Hwf' Ht']]].
+      exists G'. repeat split; auto.
+      apply_fresh ty_let as z; eauto.
+      eapply weaken_rules; eauto.
+  - specialize (IHHt Hwf Hin t' Hred) as [G' [Hin' [Hwf' Ht']]].
+    exists G'. repeat split; auto.
+    apply weaken_subtyp with (G2:=G') in H.
+    + apply (ty_sub Ht' H).
+    + eauto.
+Qed.
 
-Theorem preservation : forall s s' t t' T,
+Theorem preservation' : forall s s' t t' T,
     |- s, t : T ->
     s // t |-> s' // t' ->
-    exists s' t', |- s', t' : T.
-Proof. eauto using safety. Qed.
+    |- s', t' : T.
+Proof.
+  introv Ht Hr. destruct Ht as [* Hi Hwf Ht].
+  lets Hp: (preservation Hwf Hi Hr Ht). destruct Hp as [G' [Hi' [Hwf' Ht']]].
+  apply sto_trm_typ_c with (G:=G&G'); auto. admit.
+Qed.
+
+Lemma var_typing_implies_avar_f: forall G a T,
+  G |- trm_var a : T ->
+  exists x, a = avar_f x.
+Proof.
+  intros. dependent induction H; try solve [eexists; reflexivity].
+  apply IHty_trm; auto.
+Qed.
 
 Theorem progress: forall s t T,
     |- s, t : T ->
-    (exists s' t', s // t |-> s' // t') \/ norm_form t.
+    norm_form t \/ exists s' t', s // t |-> s' // t'.
 Proof.
-  intros. destruct (safety H) as [Hn | [s'' [t'' [Hred Hty]]]]; eauto.
+  introv Ht. destruct Ht as [* Hin Hwf Ht].
+  induction Ht; try solve [left; auto].
+  - pose proof (canonical_forms_fun Hin Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+    right. exists s (open_trm z t).
+    eapply red_app; eauto.
+  - pose proof (canonical_forms_obj Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+    right. exists s t.
+    eapply red_sel; eauto.
+  - right. destruct t.
+    + pose proof (var_typing_implies_avar_f Ht) as [x A]. subst.
+      exists s (open_trm x u). apply red_let_var.
+    + pick_fresh x.
+      exists (s & x ~ v) (open_trm x u).
+      eapply red_let; auto.
+    + specialize (IHHt Hin Hwf) as [IH | [s' [t' Hred]]].
+      * inversion IH.
+      * exists s' (trm_let t' u).
+        apply~ red_let_tgt.
+    + specialize (IHHt Hin Hwf) as [IH | [s' [t' Hred]]].
+      * inversion IH.
+      * exists s' (trm_let t' u).
+        apply~ red_let_tgt.
+    + specialize (IHHt Hin Hwf) as [IH | [s' [t' Hred]]].
+      * inversion IH.
+      * exists s' (trm_let t' u).
+        apply~ red_let_tgt.
+  - specialize (IHHt Hin Hwf) as [IH | [s' [t' Hred]]].
+    + left. assumption.
+    + right. exists s' t'. assumption.
 Qed.
