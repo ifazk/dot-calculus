@@ -773,3 +773,11 @@ Proof.
     try solve [inversion Heqt; eapply IHty_trm1; eauto].
   - inversion Heqt. subst. exists T. assumption.
 Qed.
+
+Lemma var_typing_implies_avar_f: forall G a T,
+  G |- trm_var a : T ->
+  exists x, a = avar_f x.
+Proof.
+  intros. dependent induction H; try solve [eexists; reflexivity].
+  apply IHty_trm; auto.
+Qed.

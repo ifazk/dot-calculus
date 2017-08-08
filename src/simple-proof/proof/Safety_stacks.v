@@ -9,7 +9,6 @@ Require Import Helper_lemmas.
 Require Import Precise_types.
 Require Import Substitution.
 Require Import Canonical_forms.
-Require Import Safety.
 Require Import Invertible_typing.
 Require Import General_to_tight.
 
@@ -48,7 +47,7 @@ Inductive norm_form: trm -> Prop :=
 
 Hint Constructors norm_form.
 
-Lemma preservation: forall G s t s' t' T,
+Lemma preservation_ty: forall G s t s' t' T,
     G ~~ s ->
     inert G ->
     s // t |-> s' // t' ->
@@ -121,22 +120,14 @@ Proof.
     + eauto.
 Qed.
 
-Theorem preservation' : forall s s' t t' T,
+Theorem preservation : forall s s' t t' T,
     |- s, t : T ->
     s // t |-> s' // t' ->
     |- s', t' : T.
 Proof.
   introv Ht Hr. destruct Ht as [* Hi Hwf Ht].
-  lets Hp: (preservation Hwf Hi Hr Ht). destruct Hp as [G' [Hi' [Hwf' Ht']]].
-  apply sto_trm_typ_c with (G:=G&G'); auto. admit.
-Qed.
-
-Lemma var_typing_implies_avar_f: forall G a T,
-  G |- trm_var a : T ->
-  exists x, a = avar_f x.
-Proof.
-  intros. dependent induction H; try solve [eexists; reflexivity].
-  apply IHty_trm; auto.
+  lets Hp: (preservation_ty Hwf Hi Hr Ht). destruct Hp as [G' [Hi' [Hwf' Ht']]].
+  apply sto_trm_typ_c with (G:=G&G'); auto. apply* inert_concat.
 Qed.
 
 Theorem progress: forall s t T,
