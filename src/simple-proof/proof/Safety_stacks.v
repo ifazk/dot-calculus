@@ -56,11 +56,10 @@ Proof.
   induction Ht; try solve [left; eauto].
   - Case "All-E".
     right. destruct (canonical_forms_fun Hi Hwf Ht1) as [L [T' [t [Hb [Hs Hy]]]]].
+    Admitted.
 
 Theorem preservation : forall s s' t t' T,
     |- s, t : T ->
     s // t |-> s' // t' ->
     exists s' t', |- s', t' : T.
-Proof.
-  introv Ht Hr. destruct Ht as [* Hwf Ht].
-  induction Ht. Admitted.
+Proof. eauto using safety. Qed.
