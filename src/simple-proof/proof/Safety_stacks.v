@@ -63,3 +63,10 @@ Theorem preservation : forall s s' t t' T,
     s // t |-> s' // t' ->
     exists s' t', |- s', t' : T.
 Proof. eauto using safety. Qed.
+
+Theorem progress: forall s t T,
+    |- s, t : T ->
+    (exists s' t', s // t |-> s' // t') \/ norm_form t.
+Proof.
+  intros. destruct (safety H) as [Hn | [s'' [t'' [Hred Hty]]]]; eauto.
+Qed.
