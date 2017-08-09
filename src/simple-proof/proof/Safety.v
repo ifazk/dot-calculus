@@ -38,6 +38,12 @@ Definition normal_form (e : ec) (t : trm) : Prop :=
 Hint Unfold normal_form.
 Hint Constructors normal_form_trm.
 
+Inductive closed_ec_typing : ec -> trm -> typ -> Prop :=
+| cet: forall G e t T, ty_ec_trm G e t T ->
+  closed_ec_typing e t T.
+
+Notation "'|-' e '[' t ']:' T" := (closed_ec_typing e t T) (at level 40, t at level 59).
+
 (** If the term [(let x = v in)* let x = [t] in u] represented by an
     evaluation context is locally closed, so is the term
     [(let x = v in)* [t]]. *)
@@ -71,11 +77,11 @@ Qed.
 (** ** Progress Theorem
     If [|- e[t] : T], then either [e[t]] is a normal form,
     or [e[t]] reduces to some [e'[t']]. *)
-Lemma progress: forall G e t T,
-    ty_ec_trm G e t T ->
+Lemma progress: forall e t T,
+    |- e[t]: T ->
     (normal_form e t \/ exists e' t', e / t |-> e' / t').
 Proof.
-  introv Ht. destruct e; inversions Ht.
+  introv Ht. destruct Ht as [* Ht]. destruct e; inversions Ht.
   - rename H0 into Hi. rename H3 into Ht. rename H1 into Hwf.
     dependent induction Ht; try solve [left; auto].
     * destruct (canonical_forms_fun Hi Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
@@ -256,30 +262,13 @@ Qed.
 
     If [e] and [t] are locally closed, [|- e[t]: T], and [e[t] |-> e'[t']], then
     [e'] and [t'] are locally closed and [|- e'[t']: T]. *)
-Lemma preservation: forall G e t e' t' T,
+Lemma preservation: forall e t e' t' T,
     lc_term e t ->
     e / t |-> e' / t' ->
-    ty_ec_trm G e t T ->
-    lc_term e' t' /\ exists G', ty_ec_trm (G & G') e' t' T.
+    |- e [t]: T ->
+    lc_term e' t' /\ |- e' [t']: T.
 Proof.
-  introv Hl Hr Ht. split. apply* red_preserves_lc. apply* red_preserves_type.
-Qed.
-
-(** * Type Safety
-    This theorem corresponds to Theorem 3.12 in the paper.
-
-    If [e[t]] is locally closed and [|- e[t]: T], then [e[t]] is a normal form or
-    [e[t] |-> e'[t']], and [|- e'[t']: T].
-    *)
-Theorem safety: forall G e t T,
-    lc_term e t ->
-    ty_ec_trm G e t T ->
-    normal_form e t \/ (exists e' t' G', e / t |-> e' / t' /\ ty_ec_trm G' e' t' T).
-Proof.
-  introv Hl Ht.
-  lets Progress: (progress Ht). destruct Progress as [Hn | [e' [t' Red]]].
-  - left*.
-  - right.
-    lets Preservation: (preservation Hl Red Ht).
-    destruct Preservation as [Hl' [G' Ht']]. exists*.
+  introv Hl Hr Ht. split. apply* red_preserves_lc. destruct Ht.
+  destruct (red_preserves_type Hl Hr H) as [G' Hty].
+  econstructor. eauto.
 Qed.

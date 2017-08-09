@@ -22,15 +22,17 @@ Inductive sto_red : trm -> sto -> trm -> sto -> Prop :=
 | red_app : forall f a s T t,
     binds f (val_lambda T t) s ->
     s // trm_app (avar_f f) (avar_f a) |-> s // open_trm a t
-| red_let : forall v t s x,
-    x # s ->
-    s // trm_let (trm_val v) t |-> s & x ~ v // open_trm x t
 | red_let_var : forall t s x,
     s // trm_let (trm_var (avar_f x)) t |-> s // open_trm x t
 | red_let_tgt : forall t0 t s t0' s',
     s // t0 |-> s' // t0' ->
     s // trm_let t0 t |-> s' // trm_let t0' t
 where "s1 // t1 |-> s2 // t2" := (sto_red t1 s1 t2 s2).
+
+Inductive sto_red_cong : trm -> sto -> trm -> sto -> Prop :=
+| red_let : forall v t s x,
+  x # s ->
+  sto_red_cong (trm_let (trm_val v) t) s (open_trm x t) (s & x ~ v).
 
 Inductive sto_trm_typ : sto -> trm -> typ -> Prop :=
 | sto_trm_typ_c : forall G s t T,
