@@ -154,3 +154,57 @@ Proof.
     rewrite~ rename_ctx_other_var. rewrite? subst_open_commut_typ in H0.
     unfold subst_fvar in H0. case_if~.
 Qed.
+
+Lemma rename_ctx_empty: forall x y,
+  rename_ctx x y empty = empty.
+Proof.
+  intros. unfold rename_ctx.
+  rewrite map_keys_empty.
+  unfold subst_ctx.
+  rewrite map_empty.
+  reflexivity.
+Qed.
+
+Lemma rename_ctx_concat : forall G1 G2 x y,
+  rename_ctx x y (G1 & G2) = rename_ctx x y G1 & rename_ctx x y G2.
+Proof.
+  intros.
+  unfold rename_ctx.
+  rewrite map_keys_concat.
+  unfold subst_ctx.
+  rewrite map_concat.
+  reflexivity.
+Qed.
+
+Lemma rename_fresh : forall G x y,
+  x \notin fv_ctx_types G ->
+  x # G ->
+  rename_ctx x y G = G.
+Proof.
+  induction G using env_ind.
+  + intros.
+    apply rename_ctx_empty.
+  + intros. rewrite rename_ctx_concat.
+    assert (x0 # G) by auto.
+    rewrite notin_fv_ctx_concat in H; destruct H as [? ?].
+    rewrite IHG; auto; f_equal.
+    unfold rename_ctx.
+    rewrite map_keys_notin; auto.
+    rewrite subst_fresh_ctx; auto.
+Qed.
+
+Lemma rename_push: forall G x T z,
+  x \notin fv_ctx_types G ->
+  x \notin fv_typ T ->
+  x # G ->
+  (rename_ctx x z (G & x ~ T) = G & z ~ T).
+Proof.
+  intros. rewrite rename_ctx_concat.
+  rewrite rename_fresh; auto.
+  f_equal. unfold rename_ctx.
+  rewrite map_keys_single.
+  unfold rename_var; case_if.
+  unfold subst_ctx.
+  rewrite map_single.
+  rewrite subst_fresh_typ; auto.
+Qed.
