@@ -22,15 +22,16 @@ Notation "'|-' t ':' T" := (empty |- t: T) (at level 40, t at level 59).
 
 (** todo: doc*)
 Lemma progress_ec: forall G e t T,
-    G |- e[t]: T ->
+    G ~~ e ->
+    inert G ->
+    G |- t: T ->
     (normal_form t \/ exists t', e[t |-> t']).
 Proof.
-  destruct 1 as [* Hwf Ht]. induction Ht; eauto.
+  induction 3; eauto.
   - Case "ty_all_elim". admit.
   - Case "ty_new_elim". admit.
   - Case "ty_let". admit.
 Qed.
-
 
 (** ** Progress Theorem
     If [|- t : T], then either [t] is a normal form,
@@ -39,27 +40,22 @@ Theorem progress: forall t T,
     |- t: T ->
     normal_form t \/ (exists t', t |-> t').
 Proof.
-  introv Ht. assert (empty |- empty[t]: T) as He by (repeat constructor*).
-  apply* progress_ec.
+  intros. apply* progress_ec. constructor.
 Qed.
 
 (** * Preservation *)
 
 Lemma preservation_ec: forall G e t t' T,
-  G |- e[t]: T ->
+  G ~~ e ->
+  inert G ->
+  G |- t: T ->
   e[t |-> t'] ->
-  G |- e[t']: T.
+  G |- t': T.
 Proof.
-  destruct 1 as [* Hwf Ht]. induction Ht.
-  - Case "ty_var". admit.
-  - Case "ty_all_intro". admit.
+  introv Hwf Hi Ht Hr. induction Ht; try solve [inversions Hr].
   - Case "ty_all_elim". admit.
-  - Case "ty_new_intro". admit.
   - Case "ty_new_elim". admit.
-  - Case "tylet". admit.
-  - Case "ty_rec_intro". admit.
-  - Case "ty_rec_elim". admit.
-  - Case "ty_and_intro". admit.
+  - Case "ty_let". admit.
   - Case "ty_sub". admit.
 Qed.
 
@@ -70,7 +66,5 @@ Theorem preservation: forall (t t' : trm) T,
   t |-> t' ->
   |- t' : T.
 Proof.
-  introv Ht Hr.
-  assert (empty |- empty[t]: T) as He by (repeat constructor*).
-  destruct* (preservation_ec He Hr).
+  intros. apply* preservation_ec. constructor.
 Qed.

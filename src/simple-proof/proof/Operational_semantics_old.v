@@ -228,7 +228,7 @@ Inductive ty_ec_trm: ctx -> ec -> trm -> typ -> Prop :=
     ty_ec_trm G (e_term s u) t U.
 
 Hint Constructors
-     wf_sto lc_ec.
+     red wf_sto lc_ec.
 
 (** The store of a locally closed evaluation context is also
     locally closed. *)

@@ -33,23 +33,11 @@ Inductive red : sto -> trm -> trm -> Prop :=
 | red_let_trm : forall e t t' u,
     e [ t |-> t' ] ->
     e [ trm_let t u |-> trm_let t' u ]
-(** [e[t] |-> e[t']]                            #<br>#
+(** [(e, x = v) [t] |-> (e, x = v) [t']]                            #<br>#
     ――――――――――――――――――――――――――――――――――――――――――― #<br>#
     e[let x = v in t] |-> e[let x = v in t']]     *)
-| red_let_val: forall e t t' v,
-    e [ t  |-> t' ] ->
+| red_let_val: forall e t t' v L,
+    (forall x, x \notin L  ->
+      (e & x ~ v) [ t  |-> t' ]) ->
     e [ trm_let (trm_val v) t |-> trm_let (trm_val v) t' ]
 where "e [ t |-> t' ]" := (red e t t').
-
-(** ** Typing of Evaluation Contexts *)
-
-(** We define a typing relation for pairs [e] and [t] of an evaluation context and a term. *)
-
-Reserved Notation "G '|-' e '[' t ']:' T" (at level 40, e at level 59).
-
-Inductive ty_ec : ctx -> sto -> trm -> typ -> Prop :=
-| ty_ec_c : forall G e t T,
-    G ~~ e ->
-    G |- t : T ->
-    G |- e[t]: T
- where "G '|-' e '[' t ']:' T" := (ty_ec G e t T).

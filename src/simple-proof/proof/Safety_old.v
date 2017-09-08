@@ -77,33 +77,38 @@ Lemma progress: forall e t T,
     (normal_form e t \/ exists e' t', e / t |-> e' / t').
 Proof.
   introv Ht. destruct Ht as [* Ht]. destruct e; inversions Ht.
-  - rename H0 into Hi. rename H3 into Ht. rename H1 into Hwf.
-    dependent induction Ht; try solve [left; auto].
-    * destruct (canonical_forms_fun Hi Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+  - Case "ty_e_hole".
+    rename H0 into Hi. rename H3 into Ht. rename H1 into Hwf.
+    induction Ht; try solve [left; auto].
+    * SCase "ty_all_elim".
+      destruct (canonical_forms_fun Hi Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
       right. repeat eexists. apply* red_apply.
-    * destruct (canonical_forms_obj Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+    * SCase "ty_new_elim".
+      destruct (canonical_forms_obj Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
       right. repeat eexists. apply* red_project.
-    * right. exists (e_term s u) t.
+    * SCase "ty_let".
+      right. exists (e_term s u) t.
       apply red_congruence_let.
-    * specialize (IHHt Hi) as [IH | [t' [s' Hred]]].
+    * SCase "ty_sub".
+      specialize (IHHt Hi) as [IH | [t' [s' Hred]]].
       + assumption.
       + left. assumption.
       + right. exists t' s'. assumption.
   - clear H7.
     rename H1 into Hin. rename H2 into Hwf. rename H4 into Ht.
-    dependent induction Ht; right.
-    * repeat eexists; apply red_let_var.
-    * pick_fresh x. repeat eexists; apply red_congruence_val with (x:=x); auto.
-    * destruct (canonical_forms_fun Hin Hwf Ht1) as [L' [T' [t [Bis [Hsub Hty]]]]].
+    induction Ht; right; try solve [repeat eexists; auto].
+    * Case "ty_all_intro".
+      pick_fresh x. repeat eexists; apply red_congruence_val with (x:=x); auto.
+    * Case "ty_all_elim".
+      destruct (canonical_forms_fun Hin Hwf Ht1) as [L' [T' [t [Bis [Hsub Hty]]]]].
       repeat eexists. apply* red_apply.
-    * pick_fresh x. repeat eexists; apply red_congruence_val with (x:=x); auto.
-    * destruct (canonical_forms_obj Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
-      repeat eexists. apply* red_project.
-    * repeat eexists; apply red_let_let.
-    * repeat eexists; apply red_let_var.
-    * repeat eexists; apply red_let_var.
-    * repeat eexists; apply red_let_var.
-    * specialize (IHHt Hin) as [IH | [t' [s' Hred]]]; eauto.
+    * Case "ty_new_intro".
+      pick_fresh x. repeat eexists; apply red_congruence_val with (x:=x); auto.
+    * Case "ty_new_elim".
+      destruct (canonical_forms_obj Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+      repeat eexists. eauto.
+    * Case "ty_sub".
+      specialize (IHHt Hin) as [IH | [t' [s' Hred]]]; eauto.
       inversion IH.
 Qed.
 
@@ -117,14 +122,16 @@ Lemma red_preserves_lc :
     lc_term e' t'.
 Proof.
   intros.
-  destruct H0.
-  dependent induction H; try solve [inversions H1; inversions H0; split*].
-  - pose proof (lc_ec_sto_inv H0).
+  destruct H0. induction H; try solve [inversions H1; inversions H0; split*].
+  - Case "red_apply".
+    pose proof (lc_ec_sto_inv H0).
     pose proof (lc_ec_sto_binds_inv H0 H).
     inversions H3. split~.
-  - pose proof (lc_ec_sto_binds_inv H1 H). inversions H3.
-    pose proof (lc_defs_has (H7 x) H0). inversions H3. split~.
-  - inversions H0. inversions H1.
+  - Case "red_project".
+    pose proof (lc_ec_sto_binds_inv H0 H). inversions H3.
+    pose proof (lc_defs_has (H7 x) H2). inversions H3. split~.
+  - Case "red_let_let".
+    inversions H0. inversions H1.
     split; auto. eapply lc_ec_term; auto.
     intros x. unfold open_trm.
     simpl. eapply lc_trm_let; auto.
@@ -148,8 +155,9 @@ Proof.
   inversions Ht.
   rename H0 into Hin. rename H1 into Hwf. rename H3 into Ht.
   lets Hlc': (red_preserves_lc Hred Hlc).
-  dependent induction Ht; try solve [inversion Hred].
-  - destruct (canonical_forms_fun Hin Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+  induction Ht; try solve [inversion Hred].
+  - Case "ty_all_elim".
+    destruct (canonical_forms_fun Hin Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
     inversions Hred.
     apply (binds_func H4) in Bis. inversions Bis.
     exists (@empty typ). rewrite concat_empty_r.
@@ -157,16 +165,19 @@ Proof.
     constructor*. rewrite subst_intro_typ with (x:=y); auto.
     rewrite subst_intro_trm with (x:=y); auto.
     eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
-  - destruct (canonical_forms_obj Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+  - Case "ty_new_elim".
+    destruct (canonical_forms_obj Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
     inversions Hred.
     apply (binds_func H2) in Bis. inversions Bis.
     exists (@empty typ). rewrite concat_empty_r.
     rewrite <- (defs_has_inv Has H5). constructor*.
-  - inversions Hred.
+  - Case "ty_let".
+    inversions Hred.
     exists (@empty typ). rewrite concat_empty_r.
     eapply ty_e_term; eauto.
-  - specialize (IHHt Hlc Hred Hin Hwf Hlc') as [G' IHHt].
-    exists G'. inversions IHHt.
+  - Case "ty_sub".
+    destruct (IHHt Hlc Hred Hin Hwf) as [G' Htec].
+    exists G'. inversions Htec.
     + eapply ty_e_hole; auto.
       apply weaken_subtyp with (G2:=G') in H; eauto.
     + apply_fresh ty_e_term as z; eauto; intros. assert (z \notin L) by auto.
@@ -188,14 +199,16 @@ Proof.
   inversion Hlc as [Hlc_ec Hlc_trm].
   apply* red_preserves_type_hole. constructor~.
   destruct t.
-  - inversions Hred.
+  - Case "trm_var".
+    inversions Hred.
     pick_fresh y.
     exists (@empty typ). rewrite concat_empty_r.
     apply ty_e_hole; auto.
     rewrite subst_intro_trm with (x:=y); auto.
     rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
     eapply subst_ty_trm; auto. rewrite~ subst_fresh_typ.
-  - inversions Hred.
+  - Case "trm_val".
+    inversions Hred.
     pose proof (wf_sto_notin_dom Hwf H5).
     pose proof (val_typing Ht) as [V [Hv Hs]].
     pick_fresh y. assert (y \notin L) by auto.
@@ -215,7 +228,8 @@ Proof.
         pose proof (ty_var (binds_tail x V G)).
         apply (ty_sub H1). apply (weaken_subtyp Hs); eauto.
       }
-  - inversion Hred. rewrite <- H4 in Hred. apply red_term_to_hole in Hred. subst.
+  - Case "trm_sel".
+    inversion Hred. rewrite <- H4 in Hred. apply red_term_to_hole in Hred. subst.
     apply lc_term_to_hole in Hlc.
     pose proof (red_preserves_type_hole Hlc Hred (ty_e_hole Hin Hwf Ht)) as [G' Ht'].
     inversions Ht'. exists G'.
@@ -223,7 +237,8 @@ Proof.
     assert (x0 \notin L) by auto.
     specialize (H2 x0 H4).
     eapply (proj41 weaken_rules); eauto.
-  - inversion Hred. rewrite <- H1 in Hred.
+  - Case "trm_app".
+    inversion Hred. rewrite <- H1 in Hred.
     apply red_term_to_hole in Hred. subst.
     apply lc_term_to_hole in Hlc.
     pose proof (red_preserves_type_hole Hlc Hred (ty_e_hole Hin Hwf Ht)) as [G' Ht'].
