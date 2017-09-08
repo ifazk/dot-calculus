@@ -9,19 +9,28 @@ COQINCLUDE=-R $(TLCDIR) $(TLCNAME) -R . \"\"
 COQMAKEFILE=$(COQBIN)coq_makefile
 
 PROOFMAKEFILE=Makefile.coq
+PROOFS=$(wildcard *.v)
 
 ##############
 # Main Rules #
 ##############
 
-.PHONY: all doc proofs clean
+.PHONY: all doc proofs clean cleanall
 all: proofs doc
 
-proofs:
+proofs: $(PROOFMAKEFILE)
 	$(MAKE) -f $(PROOFMAKEFILE) $(OBJECTS)
 
-clean:
+clean: $(PROOFMAKEFILE)
 	$(MAKE) -f $(PROOFMAKEFILE) cleanall
+
+cleanall:: clean
+cleanall::
+	-rm .*.aux
+	-rm *.vo
+	-rm *.glob
+	-rm *.v.d
+	-rm $(PROOFMAKEFILE)
 
 doc:
 	$(MAKE) -f $(PROOFMAKEFILE) html
@@ -54,6 +63,14 @@ $(LIBLN):
 ###################
 # Forced Rebuilds #
 ###################
+
+.PHONY: $(PROOFMAKEFILE)
+
+$(PROOFMAKEFILE):
+	$(COQMAKEFILE) $(COQINCLUDE) -install none -o $(PROOFMAKEFILE) $(PROOFS)
+	sed -i "s|mkdir -p html|mkdir -p ../doc|g" $(PROOFMAKEFILE)
+	sed -i "s|-d html|-d ../doc|g" $(PROOFMAKEFILE)
+#sed -i "s|rm -rf html|rm -rf ../doc|g" $(PROOFMAKEFILE)
 
 graph.png: $(PROOFS)
 	coqdep -dumpgraph graph.dot *.v
