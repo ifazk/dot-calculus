@@ -493,27 +493,6 @@ Proof.
       apply (lc_sto_push_inv H).
 Qed.
 
-(** The store of a locally closed evaluation context is also
-    locally closed. *)
-Lemma lc_ec_sto_inv : forall e,
-    lc_ec e ->
-    lc_sto (ec_sto e).
-Proof.
-  intros e H.
-  induction H; auto.
-Qed.
-
-(** A value that is part of a binding in a locally closed evaluation
-    context is also locally closed. *)
-Lemma lc_ec_sto_binds_inv : forall e x v,
-    lc_ec e ->
-    binds x v (ec_sto e) ->
-    lc_val v.
-Proof.
-  intros.
-  inversions H; eauto using lc_sto_binds_inv.
-Qed.
-
 (** A definition in a locally closed list of definitions is also
     locally closed. *)
 Lemma lc_defs_has : forall ds d,
