@@ -28,8 +28,12 @@ Lemma progress_ec: forall G e t T,
     (normal_form t \/ exists t', e[t |-> t']).
 Proof.
   introv Hwf Hi Ht. gen e. induction Ht; eauto; intros.
-  - Case "ty_all_elim". admit.
-  - Case "ty_new_elim". admit.
+  - Case "ty_all_elim".
+    destruct (canonical_forms_fun Hi Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+    right. repeat eexists. apply* red_apply.
+  - Case "ty_new_elim".
+    destruct (canonical_forms_obj Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+    right. repeat eexists. apply* red_project.
   - Case "ty_let".
     destruct t.
     * SCase "t = trm_var a".
@@ -68,11 +72,31 @@ Lemma preservation_ec: forall G e t t' T,
   e[t |-> t'] ->
   G |- t': T.
 Proof.
-  introv Hwf Hi Ht Hr. induction Ht; try solve [inversions Hr].
-  - Case "ty_all_elim". admit.
-  - Case "ty_new_elim". admit.
-  - Case "ty_let". admit.
-  - Case "ty_sub". admit.
+  introv Hwf Hi Ht Hr. gen e. induction Ht; introv Hwf Hr; try solve [inversions Hr]; eauto.
+  - Case "ty_all_elim".
+    destruct (canonical_forms_fun Hi Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+    inversions Hr.
+    apply (binds_func H3) in Bis. inversions Bis.
+    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
+    rewrite subst_intro_typ with (x:=y); auto.
+    rewrite subst_intro_trm with (x:=y); auto.
+    eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
+  - Case "ty_new_elim".
+    destruct (canonical_forms_obj Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+    inversions Hr.
+    apply (binds_func H2) in Bis. inversions Bis.
+    rewrite <- (defs_has_inv Has H4). assumption.
+  - Case "ty_let".
+    inversions Hr.
+    * SCase "red_let_var".
+      pick_fresh z. assert (z \notin L) as FrL by auto. specialize (H0 z FrL).
+      admit.
+    * SCase "red_let_let".
+      admit.
+    * SCase "red_let_trm".
+      admit.
+    * SCase "red_let_val".
+      admit.
 Qed.
 
 (** ** Preservation Theorem
