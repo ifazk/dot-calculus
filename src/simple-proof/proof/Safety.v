@@ -27,10 +27,26 @@ Lemma progress_ec: forall G e t T,
     G |- t: T ->
     (normal_form t \/ exists t', e[t |-> t']).
 Proof.
-  induction 3; eauto.
+  introv Hwf Hi Ht. gen e. induction Ht; eauto; intros.
   - Case "ty_all_elim". admit.
   - Case "ty_new_elim". admit.
-  - Case "ty_let". admit.
+  - Case "ty_let".
+    destruct t.
+    * SCase "t = trm_var a".
+      destruct (var_typing_implies_avar_f Ht); subst.
+      right. exists (open_trm x u). constructor.
+    * SCase "t = trm_val".
+      destruct (val_typing Ht) as [T' [Htp Hs]].
+      pick_fresh y. assert (y \notin L) as Hy by auto.
+      admit.
+    * SCase "t = trm_sel".
+      right. destruct (IHHt Hi e Hwf) as [Hnf | [t' Hr]]. inversion Hnf.
+      eexists. constructor*.
+    * SCase "t = trm_app".
+      right. destruct (IHHt Hi e Hwf) as [Hnf | [t' Hr]]. inversion Hnf.
+      eexists. constructor*.
+    * SCase "t = trm_let".
+      right. eexists. constructor.
 Qed.
 
 (** ** Progress Theorem

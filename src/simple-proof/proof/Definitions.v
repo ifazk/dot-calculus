@@ -132,19 +132,6 @@ Definition ctx := env typ.
      is represented as a value environment that maps variables to values: *)
 Definition sto := env val.
 
-(** * Normal Forms
-A normal form is defined in the WadlerFest DOT paper as:
-
-[n ::= x | v | let x = v in n]
-
-This corresponds to an evaluation context of the form
-[(let x = v in)* [ ]] whose hole is filled by a variable [x]
-or value [v]. *)
-
-Inductive normal_form: trm -> Prop :=
-| nf_var: forall x, normal_form (trm_var x)
-| nf_val: forall v, normal_form (trm_val v).
-
 (** * Opening *)
 (** Opening takes a bound variable that is represented with a de Bruijn index [k]
     and replaces it by a named variable [u].
@@ -1115,7 +1102,7 @@ Inductive inert : ctx -> Prop :=
 (** * Infrastructure *)
 
 Hint Constructors
-     normal_form inert_typ inert record_has
+     inert_typ inert record_has
      ty_trm ty_def ty_defs subtyp ty_trm_p
      ty_trm_t subtyp_t ty_var_inv ty_val_inv
      lc_var lc_typ lc_dec lc_trm lc_val

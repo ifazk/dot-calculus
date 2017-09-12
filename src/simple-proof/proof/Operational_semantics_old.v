@@ -3,6 +3,19 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Definitions Helper_lemmas.
 
+(** * Normal Forms
+A normal form is defined in the WadlerFest DOT paper as:
+
+[n ::= x | v | let x = v in n]
+
+This corresponds to an evaluation context of the form
+[(let x = v in)* [ ]] whose hole is filled by a variable [x]
+or value [v]. *)
+
+Inductive normal_form: trm -> Prop :=
+| nf_var: forall x, normal_form (trm_var x)
+| nf_val: forall v, normal_form (trm_val v).
+
 (** ** Evaluation Contexts
 
 The paper defines an evaluation context with the following context-free grammar:

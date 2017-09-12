@@ -68,9 +68,9 @@ $(LIBLN):
 
 $(PROOFMAKEFILE):
 	$(COQMAKEFILE) $(COQINCLUDE) -install none -o $(PROOFMAKEFILE) $(PROOFS)
-	sed -i "s|mkdir -p html|mkdir -p ../doc|g" $(PROOFMAKEFILE)
-	sed -i "s|-d html|-d ../doc|g" $(PROOFMAKEFILE)
-#sed -i "s|rm -rf html|rm -rf ../doc|g" $(PROOFMAKEFILE)
+	sed -i -e "s|mkdir -p html|mkdir -p ../doc|g" $(PROOFMAKEFILE)
+	sed -i -e "s|-d html|-d ../doc|g" $(PROOFMAKEFILE)
+#sed -i -e "s|rm -rf html|rm -rf ../doc|g" $(PROOFMAKEFILE)
 
 graph.png: $(PROOFS)
 	coqdep -dumpgraph graph.dot *.v

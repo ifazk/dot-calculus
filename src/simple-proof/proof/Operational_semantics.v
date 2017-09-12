@@ -3,6 +3,20 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Definitions.
 
+(** * Normal Forms
+A normal form is defined in the WadlerFest DOT paper as:
+
+[n ::= x | v | let x = v in n]
+
+This corresponds to an evaluation context of the form
+[(let x = v in)* [ ]] whose hole is filled by a variable [x]
+or value [v]. *)
+
+Inductive normal_form: trm -> Prop :=
+| nf_var: forall x, normal_form (trm_var x)
+| nf_val: forall v, normal_form (trm_val v)
+| nf_let: forall v t, normal_form t -> normal_form (trm_let (trm_val v) t).
+
 (** * Operational Semantics *)
 
 Reserved Notation "e '[' t1 '|->' t2 ']'" (at level 60, t1 at level 39).
@@ -38,6 +52,8 @@ Inductive red : sto -> trm -> trm -> Prop :=
     e[let x = v in t] |-> e[let x = v in t']]     *)
 | red_let_val: forall e t t' v L,
     (forall x, x \notin L  ->
-      (e & x ~ v) [ t  |-> t' ]) ->
+      (e & x ~ v) [ open_trm x t |-> open_trm x t' ]) ->
     e [ trm_let (trm_val v) t |-> trm_let (trm_val v) t' ]
 where "e [ t |-> t' ]" := (red e t t').
+
+Hint Constructors red normal_form.
