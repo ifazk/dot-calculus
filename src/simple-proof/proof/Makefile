@@ -16,7 +16,7 @@ PROOFS=$(wildcard *.v)
 ##############
 
 .PHONY: all doc proofs clean cleanall
-all: proofs doc
+all: proofs #doc
 
 proofs: $(PROOFMAKEFILE)
 	$(MAKE) -f $(PROOFMAKEFILE) $(OBJECTS)
