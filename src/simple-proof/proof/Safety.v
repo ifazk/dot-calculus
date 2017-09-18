@@ -20,6 +20,15 @@ Notation "'|-' t ':' T" := (empty |- t: T) (at level 40, t at level 59).
 
 (** * Progress *)
 
+Lemma val_typing_inert: forall G v T,
+    inert G ->
+    G |- trm_val v: T ->
+    inert_typ T.
+Proof.
+  introv Hi Hv. dependent induction Hv; auto.
+  - pick_fresh y. assert (y \notin L) as Hy by auto. specialize (H y Hy).
+    Admitted.
+
 (** todo: doc*)
 Lemma progress_ec: forall G e t T,
     G ~~ e ->
