@@ -42,6 +42,17 @@ Inductive precise_flow : var -> ctx -> typ -> typ -> Prop :=
 
 Hint Constructors precise_flow.
 
+
+Lemma pf_top_top: forall x G T,
+    precise_flow x G typ_top T ->
+    T = typ_top.
+Proof.
+  introv Pf.
+  dependent induction Pf; auto;
+    specialize (IHPf eq_refl);
+    inversion IHPf.
+Qed.
+
 (** If [precise_flow x G T U] then [G(x) = T]. *)
 Lemma pf_binds: forall G x T U,
     precise_flow x G T U ->
@@ -141,7 +152,9 @@ Lemma pf_inert_bnd_U: forall G x T U,
     T = typ_bnd U.
 Proof.
   introv Hi Pf.
-  lets HT: (pf_inert_T Hi Pf). inversions HT; dependent induction Pf; auto.
+  lets HT: (pf_inert_T Hi Pf).
+  inversions HT; dependent induction Pf; auto;
+    try (solve [apply pf_top_top in Pf; inversion Pf]).
   - destruct U0; inversions x.
     apply precise_flow_all_inv in Pf. inversion* Pf.
   - apply precise_flow_all_inv in Pf. inversion Pf.
@@ -166,7 +179,9 @@ Lemma pf_inert_rcd_U: forall G x T D,
     exists U, T = typ_bnd U.
 Proof.
   introv Hi Pf.
-  lets HT: (pf_inert_T Hi Pf). inversions HT; dependent induction Pf; auto.
+  lets HT: (pf_inert_T Hi Pf).
+  inversions HT; dependent induction Pf; auto;
+    try (solve [apply pf_top_top in Pf; inversion Pf]).
   - apply precise_flow_all_inv in Pf. inversion Pf.
   - apply precise_flow_all_inv in Pf. inversion Pf.
   - apply precise_flow_all_inv in Pf. inversion Pf.
@@ -174,6 +189,7 @@ Proof.
   - exists* T0.
   - exists* T0.
 Qed.
+
 
 (** If [x]'s precise type is a record type, then [G(x)] is a recursive type. *)
 Lemma pf_inert_rcd_typ_U: forall G x T Ds,
@@ -183,7 +199,12 @@ Lemma pf_inert_rcd_typ_U: forall G x T Ds,
     exists U, T = typ_bnd U.
 Proof.
   introv Hi Pf Hr.
-  lets HT: (pf_inert_T Hi Pf). inversions HT; dependent induction Pf; auto.
+  lets HT: (pf_inert_T Hi Pf).
+  inversions HT;
+    try (solve [apply pf_top_top in Pf; subst;
+                unfold record_type in *;
+                destruct Hr; remember typ_top; destruct H; inversion Heqt]);
+    dependent induction Pf; auto.
   - inversion Hr. inversion H0.
   - apply precise_flow_all_inv in Pf. inversion Pf.
   - apply precise_flow_all_inv in Pf. inversion Pf.
@@ -209,6 +230,7 @@ Proof.
   - apply precise_flow_all_inv in Pf. inversion* Pf.
   - destruct (pf_inert_or_rcd Hi Pf) as [H1 | H1]; inversions H1.
     inversion H0.
+  - apply pf_top_top in Pf. inversion Pf.
 Qed.
 
 (** See [pf_inert_lambda_U]. *)
@@ -234,6 +256,7 @@ Proof.
   lets HT: (pf_inert_T Hi Pf). inversions HT.
   - apply precise_flow_all_inv in Pf. inversion Pf.
   - destruct (pf_inert_or_rcd Hi Pf); inversion H0. inversion H1.
+  - apply pf_top_top in Pf. inversion Pf.
 Qed.
 
 (** See [pf_bot_false]. *)
@@ -257,6 +280,7 @@ Proof.
   lets HT: (pf_inert_T Hi Pf). inversions HT.
   - apply precise_flow_all_inv in Pf. inversion Pf.
   - destruct (pf_inert_or_rcd Hi Pf); inversion H0. inversion H1.
+  - apply pf_top_top in Pf. inversion Pf.
 Qed.
 
 (** See [pf_psel_false]. *)

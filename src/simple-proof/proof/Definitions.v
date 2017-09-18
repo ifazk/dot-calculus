@@ -1088,7 +1088,8 @@ Inductive inert_typ : typ -> Prop :=
   | inert_typ_all : forall S T, inert_typ (typ_all S T)
   | inert_typ_bnd : forall T,
       record_type T ->
-      inert_typ (typ_bnd T).
+      inert_typ (typ_bnd T)
+  | inert_typ_top : inert_typ typ_top.
 
 (** An inert context is a typing context whose range consists only of inert types. *)
 Inductive inert : ctx -> Prop :=
