@@ -1,7 +1,7 @@
-(** printing |-#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
-(** printing |-##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
-(** printing |-##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
-(** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
+(** printing ⊢#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
+(** printing ⊢##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
+(** printing ⊢##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
+(** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
 Set Implicit Arguments.
@@ -16,13 +16,13 @@ Require Import Weakening Narrowing Helper_lemmas Precise_types Substitution Cano
 Notation "t '|->' u" := (empty [t |-> u]) (at level 50).
 
 (** Typing in an empty context *)
-Notation "'|-' t ':' T" := (empty |- t: T) (at level 40, t at level 59).
+Notation "'⊢' t ':' T" := (empty ⊢ t: T) (at level 40, t at level 59).
 
 (** * Progress *)
 
 Lemma val_typing_inert: forall G v T,
     inert G ->
-    G |- trm_val v: T ->
+    G ⊢ trm_val v: T ->
     inert_typ T.
 Proof.
   introv Hi Hv. dependent induction Hv; auto.
@@ -33,7 +33,7 @@ Proof.
 Lemma progress_ec: forall G e t T,
     G ~~ e ->
     inert G ->
-    G |- t: T ->
+    G ⊢ t: T ->
     (normal_form t \/ exists t', e[t |-> t']).
 Proof.
   introv Hwf Hi Ht. gen e. induction Ht; eauto; intros.
@@ -63,10 +63,10 @@ Proof.
 Qed.
 
 (** ** Progress Theorem
-    If [|- t : T], then either [t] is a normal form,
+    If [⊢ t : T], then either [t] is a normal form,
     or [t]] reduces to some [t']. *)
 Theorem progress: forall t T,
-    |- t: T ->
+    ⊢ t: T ->
     normal_form t \/ (exists t', t |-> t').
 Proof.
   intros. apply* progress_ec. constructor.
@@ -77,9 +77,9 @@ Qed.
 Lemma preservation_ec: forall G e t t' T,
   G ~~ e ->
   inert G ->
-  G |- t: T ->
+  G ⊢ t: T ->
   e[t |-> t'] ->
-  G |- t': T.
+  G ⊢ t': T.
 Proof.
   introv Hwf Hi Ht Hr. gen e. induction Ht; introv Hwf Hr; try solve [inversions Hr]; eauto.
   - Case "ty_all_elim".
@@ -109,11 +109,11 @@ Proof.
 Qed.
 
 (** ** Preservation Theorem
-    If [|- t : T] and [t |-> t'], then [|- t': T]. *)
+    If [⊢ t : T] and [t |-> t'], then [⊢ t': T]. *)
 Theorem preservation: forall (t t' : trm) T,
-  |- t: T ->
+  ⊢ t: T ->
   t |-> t' ->
-  |- t' : T.
+  ⊢ t' : T.
 Proof.
   intros. apply* preservation_ec. constructor.
 Qed.

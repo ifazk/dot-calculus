@@ -1,7 +1,7 @@
-(** printing |-#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
-(** printing |-##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
-(** printing |-##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
-(** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
+(** printing ⊢#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
+(** printing ⊢##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
+(** printing ⊢##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
+(** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
 (** This module defines various helper lemmas used throughout the proof. *)
@@ -12,7 +12,7 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 
-(** [G |- ds :: U]                          #<br>#
+(** [G ⊢ ds :: U]                          #<br>#
     [U] is a record type with labels [ls]  #<br>#
     [ds] are definitions with label [ls']  #<br>#
     [l \notin ls']                          #<br>#
@@ -684,8 +684,8 @@ Qed.
 
 (** Precise typing implies general typing. *)
 Lemma precise_to_general: forall G t T,
-    G |-! t : T ->
-    G |- t : T.
+    G ⊢! t : T ->
+    G ⊢ t : T.
 Proof.
   intros. induction H; intros; subst; eauto.
 Qed.
@@ -693,11 +693,11 @@ Qed.
 (** Tight typing implies general typing. *)
 Lemma tight_to_general:
   (forall G t T,
-     G |-# t : T ->
-     G |- t : T) /\
+     G ⊢# t : T ->
+     G ⊢ t : T) /\
   (forall G S U,
-     G |-# S <: U ->
-     G |- S <: U).
+     G ⊢# S <: U ->
+     G ⊢ S <: U).
 Proof.
   apply ts_mutind_t; intros; subst; eauto using precise_to_general.
 Qed.
@@ -726,9 +726,9 @@ Hint Resolve wf_sto_to_ok_G.
     that is a subtype of [T].
     This lemma corresponds to Lemma 3.13 in the paper. *)
 Lemma val_typing: forall G v T,
-  G |- trm_val v : T ->
-  exists T', G |-! trm_val v : T' /\
-        G |- T' <: T.
+  G ⊢ trm_val v : T ->
+  exists T', G ⊢! trm_val v : T' /\
+        G ⊢ T' <: T.
 Proof.
   intros G v T H. dependent induction H.
   - exists (typ_all T U). split.
@@ -742,7 +742,7 @@ Qed.
 (** If a variable can be typed in an environment,
     then it is bound in that environment. *)
 Lemma typing_implies_bound: forall G x T,
-  G |- trm_var (avar_f x) : T ->
+  G ⊢ trm_var (avar_f x) : T ->
   exists S, binds x S G.
 Proof.
   intros. remember (trm_var (avar_f x)) as t.
@@ -754,7 +754,7 @@ Proof.
 Qed.
 
 Lemma var_typing_implies_avar_f: forall G a T,
-  G |- trm_var a : T ->
+  G ⊢ trm_var a : T ->
   exists x, a = avar_f x.
 Proof.
   intros. dependent induction H; try solve [eexists; reflexivity].

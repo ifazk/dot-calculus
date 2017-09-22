@@ -1,11 +1,11 @@
-(** printing |-#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
-(** printing |-##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
-(** printing |-##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
-(** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
+(** printing ⊢#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
+(** printing ⊢##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
+(** printing ⊢##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
+(** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
 (** This module contains lemmas related to invertible typing
-    ([ty_var_inv], [|-##] and [ty_val_inv], [|-##v]). *)
+    ([ty_var_inv], [⊢##] and [ty_val_inv], [⊢##v]). *)
 
 Set Implicit Arguments.
 
@@ -17,15 +17,15 @@ Require Import Helper_lemmas.
 Require Import Precise_types.
 
 (** Invertible-to-precise typing for field declarations: #<br>#
-    [G |-## x: {a: T}]            #<br>#
+    [G ⊢## x: {a: T}]            #<br>#
     [――――――――――――――――――――――]      #<br>#
-    [exists T', G |-! x: {a: T'}]      #<br>#
-    [G |-# T' <: T]. *)
+    [exists T', G ⊢! x: {a: T'}]      #<br>#
+    [G ⊢# T' <: T]. *)
 Lemma invertible_to_precise_trm_dec: forall G x a T,
-  G |-## x : typ_rcd (dec_trm a T) ->
+  G ⊢## x : typ_rcd (dec_trm a T) ->
   exists T',
-    G |-! trm_var (avar_f x) : typ_rcd (dec_trm a T') /\
-    G |-# T' <: T.
+    G ⊢! trm_var (avar_f x) : typ_rcd (dec_trm a T') /\
+    G ⊢# T' <: T.
 Proof.
   introv Hinv.
   dependent induction Hinv.
@@ -37,20 +37,20 @@ Qed.
 
 (** Invertible-to-precise typing for function types: #<br>#
     [ok G]                        #<br>#
-    [G |-## x: forall(S)T]             #<br>#
+    [G ⊢## x: forall(S)T]             #<br>#
     [――――――――――――――――――――――――――]  #<br>#
-    [exists S', T'. G |-! x: forall(S')T']  #<br>#
-    [G |-# S <: S']               #<br>#
-    [G |-# T'^y <: T^y], where [y] is fresh. *)
+    [exists S', T'. G ⊢! x: forall(S')T']  #<br>#
+    [G ⊢# S <: S']               #<br>#
+    [G ⊢# T'^y <: T^y], where [y] is fresh. *)
 Lemma invertible_to_precise_typ_all: forall G x S T,
   ok G ->
-  G |-## x : typ_all S T ->
+  G ⊢## x : typ_all S T ->
   exists S' T' L,
-    G |-! trm_var (avar_f x) : typ_all S' T' /\
-    G |-# S <: S' /\
+    G ⊢! trm_var (avar_f x) : typ_all S' T' /\
+    G ⊢# S <: S' /\
     (forall y,
         y \notin L ->
-            G & y ~ S |- open_typ y T' <: open_typ y T).
+            G & y ~ S ⊢ open_typ y T' <: open_typ y T).
 Proof.
   introv HG Hinv.
   dependent induction Hinv.
@@ -59,14 +59,14 @@ Proof.
     destruct IHHinv as [S' [T' [L' [Hpt [HSsub HTsub]]]]].
     exists S' T' (dom G \u L \u L').
     split; auto.
-    assert (Hsub2 : G |-# typ_all S0 T0 <: typ_all S T).
+    assert (Hsub2 : G ⊢# typ_all S0 T0 <: typ_all S T).
     { apply subtyp_all_t with (L:=L); assumption. }
     split.
     + eapply subtyp_trans_t; eauto.
     + intros y Fr.
       assert (Hok: ok (G & y ~ S)) by auto using ok_push.
       apply tight_to_general in H; auto.
-      assert (Hnarrow: G & y ~ S |- open_typ y T' <: open_typ y T0).
+      assert (Hnarrow: G & y ~ S ⊢ open_typ y T' <: open_typ y T0).
       { eapply narrow_subtyping; auto using subenv_last. }
       eauto.
 Qed.
@@ -76,9 +76,9 @@ Qed.
 (** Invertible typing is closed under tight subtyping. *)
 Lemma invertible_typing_closure_tight: forall G x T U,
   inert G ->
-  G |-## x : T ->
-  G |-# T <: U ->
-  G |-## x : U.
+  G ⊢## x : T ->
+  G ⊢# T <: U ->
+  G ⊢## x : U.
 Proof.
   intros G x T U Hgd HT Hsub.
   dependent induction Hsub; eauto.
@@ -96,14 +96,14 @@ Qed.
        This lemma corresponds to Theorem 3.6 in the paper.
 
        [inert G]            #<br>#
-       [G |-# x: U]         #<br>#
+       [G ⊢# x: U]         #<br>#
        [―――――――――――――――]    #<br>#
-       [G |-## x: U] *)
+       [G ⊢## x: U] *)
 Lemma tight_to_invertible :
   forall G U x,
     inert G ->
-    G |-# trm_var (avar_f x) : U ->
-    G |-## x : U.
+    G ⊢# trm_var (avar_f x) : U ->
+    G ⊢## x : U.
 Proof.
   intros G U x Hgd Hty.
   dependent induction Hty.
@@ -122,9 +122,9 @@ Qed.
 (** Invertible value typing is closed under tight subtyping. *)
 Lemma invertible_typing_closure_tight_v: forall G v T U,
   inert G ->
-  G |-##v v : T ->
-  G |-# T <: U ->
-  G |-##v v : U.
+  G ⊢##v v : T ->
+  G ⊢# T <: U ->
+  G ⊢##v v : U.
 Proof.
   introv Hgd HT Hsub.
   dependent induction Hsub; eauto; inversions HT; auto; try solve [inversion* H].
@@ -135,13 +135,13 @@ Qed.
 (** ** Tight-to-Invertible Lemma for Values
 
        [inert G]            #<br>#
-       [G |-# v: T]         #<br>#
+       [G ⊢# v: T]         #<br>#
        [――――――――――――――――]   #<br>#
-       [G |-##v v: T] *)
+       [G ⊢##v v: T] *)
 Lemma tight_to_invertible_v : forall G v T,
     inert G ->
-    G |-# trm_val v : T ->
-    G |-##v v : T.
+    G ⊢# trm_val v : T ->
+    G ⊢##v v : T.
 Proof.
   introv Hgd Hty.
   dependent induction Hty; eauto.

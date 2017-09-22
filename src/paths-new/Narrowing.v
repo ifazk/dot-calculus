@@ -1,7 +1,7 @@
-(** printing ⊢#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
-(** printing ⊢##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
-(** printing ⊢##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
-(** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
+(** printing |-#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
+(** printing |-##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
+(** printing |-##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
+(** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
 Set Implicit Arguments.
@@ -13,7 +13,7 @@ Require Import Weakening.
 
 (** [G1] is a subenvironment of [G2], denoted [G1 subG G2],
      if for each [x] s.t. [G2(x)=T2],
-    [G1(x) = T1] and [G1 ⊢ T1 <: T2]. *)
+    [G1(x) = T1] and [G1 |- T1 <: T2]. *)
 Definition subenv(G1 G2: ctx) :=
   forall x T2, binds x T2 G2 ->
     binds x T2 G1 \/
@@ -113,14 +113,14 @@ Lemma narrow_rules:
     ok G' ->
     subenv G' G ->
     G' ⊢ t : T)
-/\ (forall G d D, G /- d : D -> forall G',
+/\ (forall p P G d D, p; P; G ⊢ d : D -> forall G',
     ok G' ->
     subenv G' G ->
-    G' /- d : D)
-/\ (forall G ds T, G /- ds :: T -> forall G',
+    p; P; G' ⊢ d : D)
+/\ (forall p P G ds T, p; P; G ⊢ ds :: T -> forall G',
     ok G' ->
     subenv G' G ->
-    G' /- ds :: T)
+    p; P; G' ⊢ ds :: T)
 /\ (forall G S U, G ⊢ S <: U -> forall G',
     ok G' ->
     subenv G' G ->

@@ -94,10 +94,10 @@ Proof.
 Qed.
 
 Lemma renaming_gen: forall x y,
-  (forall G t T, G |- t: T ->
+  (forall G t T, G ⊢ t: T ->
     ok G ->
     y # G ->
-    rename_ctx x y G |- subst_trm x y t: subst_typ x y T) /\
+    rename_ctx x y G ⊢ subst_trm x y t: subst_typ x y T) /\
   (forall G d D, G /- d: D ->
     ok G ->
     y # G ->
@@ -106,10 +106,10 @@ Lemma renaming_gen: forall x y,
     ok G ->
     y # G ->
     rename_ctx x y G /- subst_defs x y ds :: subst_typ x y T) /\
-  (forall G T U, G |- T <: U ->
+  (forall G T U, G ⊢ T <: U ->
     ok G ->
     y # G ->
-    rename_ctx x y G |- subst_typ x y T <: subst_typ x y U).
+    rename_ctx x y G ⊢ subst_typ x y T <: subst_typ x y U).
 Proof.
   intros.
   apply rules_mutind; intros; subst; simpl; auto; try (econstructor; apply H; auto).

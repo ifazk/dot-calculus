@@ -341,180 +341,129 @@ with fv_defs(ds: defs) : vars :=
 (** Free variables in the range (types) of a context *)
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
 
-(** * Tactics *)
-
-(** Tactics for generating fresh variables. *)
-
-Ltac gather_vars :=
-  let A := gather_vars_with (fun x : vars      => x         ) in
-  let B := gather_vars_with (fun x : var       => \{ x }    ) in
-  let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_ctx_types x)) in
-  let D := gather_vars_with (fun x : sto       => dom x     ) in
-  let E := gather_vars_with (fun x : avar      => fv_avar  x) in
-  let F := gather_vars_with (fun x : trm       => fv_trm   x) in
-  let G := gather_vars_with (fun x : val       => fv_val   x) in
-  let H := gather_vars_with (fun x : def       => fv_def   x) in
-  let I := gather_vars_with (fun x : defs      => fv_defs  x) in
-  let J := gather_vars_with (fun x : typ       => fv_typ   x) in
-  (* let K := gather_vars_with (fun x : ec        => fv_ec    x) in *)
-  constr:(A \u B \u C \u D \u E \u F \u G \u H \u I \u J (* \u K *) ).
-
-Ltac pick_fresh x :=
-  let L := gather_vars in (pick_fresh_gen L x).
-
-Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
-  apply_fresh_base T gather_vars x.
-
-(** Tactics for naming cases in case analysis. *)
-
-Open Scope string_scope.
-
-Ltac move_to_top x :=
-  match reverse goal with
-  | H : _ |- _ => try move x after H
-  end.
-
-Tactic Notation "assert_eq" ident(x) constr(v) :=
-  let H := fresh in
-  assert (x = v) as H by reflexivity;
-  clear H.
-
-Tactic Notation "Case_aux" ident(x) constr(name) :=
-  first [
-    set (x := name); move_to_top x
-  | assert_eq x name; move_to_top x
-  | fail 1 "because we are working on a different case" ].
-
-Tactic Notation "Case" constr(name) := Case_aux Case name.
-Tactic Notation "SCase" constr(name) := Case_aux SCase name.
-Tactic Notation "SSCase" constr(name) := Case_aux SSCase name.
-Tactic Notation "SSSCase" constr(name) := Case_aux SSSCase name.
-Tactic Notation "SSSSCase" constr(name) := Case_aux SSSSCase name.
-Tactic Notation "SSSSSCase" constr(name) := Case_aux SSSSSCase name.
-
 (** * Typing Rules *)
 
-Reserved Notation "G '|-' t ':' T" (at level 40, t at level 59).
-Reserved Notation "G '|-' T '<:' U" (at level 40, T at level 59).
+Reserved Notation "G '⊢' t ':' T" (at level 40, t at level 59).
+Reserved Notation "G '⊢' T '<:' U" (at level 40, T at level 59).
 Reserved Notation "G '/-' d : D" (at level 40, d at level 59).
 Reserved Notation "G '/-' ds :: D" (at level 40, ds at level 59).
 
-(** ** Term typing [G |- t: T] *)
+(** ** Term typing [G ⊢ t: T] *)
 Inductive ty_trm : ctx -> trm -> typ -> Prop :=
 
 (** [G(x) = T]  #<br>#
     [――――――――]  #<br>#
-    [G |- x: T]  *)
+    [G ⊢ x: T]  *)
 | ty_var : forall G x T,
     binds x T G ->
-    G |- trm_var (avar_f x) : T
+    G ⊢ trm_var (avar_f x) : T
 
-(** [G, x: T |- t^x: U^x]     #<br>#
+(** [G, x: T ⊢ t^x: U^x]     #<br>#
     [x fresh]                #<br>#
     [――――――――――――――――――――――] #<br>#
-    [G |- lambda(T)t: forall(T)U]      *)
+    [G ⊢ lambda(T)t: forall(T)U]      *)
 | ty_all_intro : forall L G T t U,
     (forall x, x \notin L ->
-      G & x ~ T |- open_trm x t : open_typ x U) ->
-    G |- trm_val (val_lambda T t) : typ_all T U
+      G & x ~ T ⊢ open_trm x t : open_typ x U) ->
+    G ⊢ trm_val (val_lambda T t) : typ_all T U
 
-(** [G |- x: forall(S)T] #<br>#
-    [G |- z: S]     #<br>#
+(** [G ⊢ x: forall(S)T] #<br>#
+    [G ⊢ z: S]     #<br>#
     [――――――――――――] #<br>#
-    [G |- x z: T^z]     *)
+    [G ⊢ x z: T^z]     *)
 | ty_all_elim : forall G x z S T,
-    G |- trm_var (avar_f x) : typ_all S T ->
-    G |- trm_var (avar_f z) : S ->
-    G |- trm_app (avar_f x) (avar_f z) : open_typ z T
+    G ⊢ trm_var (avar_f x) : typ_all S T ->
+    G ⊢ trm_var (avar_f z) : S ->
+    G ⊢ trm_app (avar_f x) (avar_f z) : open_typ z T
 
-(** [G, x: T^x |- ds^x :: T^x]  #<br>#
+(** [G, x: T^x ⊢ ds^x :: T^x]  #<br>#
     [x fresh]                  #<br>#
     [―――――――――――――――――――――――]  #<br>#
-    [G |- nu(T)ds :: mu(T)]          *)
+    [G ⊢ nu(T)ds :: mu(T)]          *)
 | ty_new_intro : forall L G T ds,
     (forall x, x \notin L ->
       G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
-    G |- trm_val (val_new T ds) : typ_bnd T
+    G ⊢ trm_val (val_new T ds) : typ_bnd T
 
-(** [G |- x: {a: T}] #<br>#
+(** [G ⊢ x: {a: T}] #<br>#
     [―――――――――――――] #<br>#
-    [G |- x.a: T]        *)
+    [G ⊢ x.a: T]        *)
 | ty_new_elim : forall G x a T,
-    G |- trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
-    G |- trm_sel (avar_f x) a : T
+    G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
+    G ⊢ trm_sel (avar_f x) a : T
 
-(** [G |- t: T]          #<br>#
-    [G, x: T |- u^x: U]  #<br>#
+(** [G ⊢ t: T]          #<br>#
+    [G, x: T ⊢ u^x: U]  #<br>#
     [x fresh]           #<br>#
     [―――――――――――――――――] #<br>#
-    [G |- let t in u: U]     *)
+    [G ⊢ let t in u: U]     *)
 | ty_let : forall L G t u T U,
-    G |- t : T ->
+    G ⊢ t : T ->
     (forall x, x \notin L ->
-      G & x ~ T |- open_trm x u : U) ->
-    G |- trm_let t u : U
+      G & x ~ T ⊢ open_trm x u : U) ->
+    G ⊢ trm_let t u : U
 
-(** [G |- x: T^x]   #<br>#
+(** [G ⊢ x: T^x]   #<br>#
     [――――――――――――] #<br>#
-    [G |- x: mu(T)]     *)
+    [G ⊢ x: mu(T)]     *)
 | ty_rec_intro : forall G x T,
-    G |- trm_var (avar_f x) : open_typ x T ->
-    G |- trm_var (avar_f x) : typ_bnd T
+    G ⊢ trm_var (avar_f x) : open_typ x T ->
+    G ⊢ trm_var (avar_f x) : typ_bnd T
 
-(** [G |- x: mu(T)] #<br>#
+(** [G ⊢ x: mu(T)] #<br>#
     [――――――――――――] #<br>#
-    [G |- x: T^x]   *)
+    [G ⊢ x: T^x]   *)
 | ty_rec_elim : forall G x T,
-    G |- trm_var (avar_f x) : typ_bnd T ->
-    G |- trm_var (avar_f x) : open_typ x T
+    G ⊢ trm_var (avar_f x) : typ_bnd T ->
+    G ⊢ trm_var (avar_f x) : open_typ x T
 
-(** [G |- x: T]     #<br>#
-    [G |- x: U]     #<br>#
+(** [G ⊢ x: T]     #<br>#
+    [G ⊢ x: U]     #<br>#
     [――――――――――――] #<br>#
-    [G |- x: T /\ U]     *)
+    [G ⊢ x: T /\ U]     *)
 | ty_and_intro : forall G x T U,
-    G |- trm_var (avar_f x) : T ->
-    G |- trm_var (avar_f x) : U ->
-    G |- trm_var (avar_f x) : typ_and T U
+    G ⊢ trm_var (avar_f x) : T ->
+    G ⊢ trm_var (avar_f x) : U ->
+    G ⊢ trm_var (avar_f x) : typ_and T U
 
-(** [G |- t: T]   #<br>#
-    [G |- T <: U] #<br>#
+(** [G ⊢ t: T]   #<br>#
+    [G ⊢ T <: U] #<br>#
     [――――――――――] #<br>#
-    [G |- t: U]   *)
+    [G ⊢ t: U]   *)
 | ty_sub : forall G t T U,
-    G |- t : T ->
-    G |- T <: U ->
-    G |- t : U
-where "G '|-' t ':' T" := (ty_trm G t T)
+    G ⊢ t : T ->
+    G ⊢ T <: U ->
+    G ⊢ t : U
+where "G '⊢' t ':' T" := (ty_trm G t T)
 
-(** ** Single-definition typing [G |- d: D] *)
+(** ** Single-definition typing [G ⊢ d: D] *)
 with ty_def : ctx -> def -> dec -> Prop :=
-(** [G |- {A = T}: {A: T..T}]   *)
+(** [G ⊢ {A = T}: {A: T..T}]   *)
 | ty_def_typ : forall G A T,
     G /- def_typ A T : dec_typ A T T
 
-(** [G |- t: T]            #<br>#
+(** [G ⊢ t: T]            #<br>#
     [―――――――――――――――――――] #<br>#
-    [G |- {a = t}: {a: T}] *)
+    [G ⊢ {a = t}: {a: T}] *)
 | ty_def_trm : forall G a t T,
-    G |- t : T ->
+    G ⊢ t : T ->
     G /- def_trm a t : dec_trm a T
 where "G '/-' d ':' D" := (ty_def G d D)
 
-(** ** Multiple-definition typing [G |- ds :: T] *)
+(** ** Multiple-definition typing [G ⊢ ds :: T] *)
 with ty_defs : ctx -> defs -> typ -> Prop :=
-(** [G |- d: D]              #<br>#
+(** [G ⊢ d: D]              #<br>#
     [―――――――――――――――――――――] #<br>#
-    [G |- d ++ defs_nil : D] *)
+    [G ⊢ d ++ defs_nil : D] *)
 | ty_defs_one : forall G d D,
     G /- d : D ->
     G /- defs_cons defs_nil d :: typ_rcd D
 
-(** [G |- ds :: T]         #<br>#
-    [G |- d: D]            #<br>#
+(** [G ⊢ ds :: T]         #<br>#
+    [G ⊢ d: D]            #<br>#
     [d \notin ds]         #<br>#
     [―――――――――――――――――――] #<br>#
-    [G |- ds ++ d : T /\ D] *)
+    [G ⊢ ds ++ d : T /\ D] *)
 | ty_defs_cons : forall G ds d T D,
     G /- ds :: T ->
     G /- d : D ->
@@ -522,98 +471,98 @@ with ty_defs : ctx -> defs -> typ -> Prop :=
     G /- defs_cons ds d :: typ_and T (typ_rcd D)
 where "G '/-' ds '::' T" := (ty_defs G ds T)
 
-(** ** Subtyping [G |- T <: U] *)
+(** ** Subtyping [G ⊢ T <: U] *)
 with subtyp : ctx -> typ -> typ -> Prop :=
 
-(** [G |- T <: top] *)
+(** [G ⊢ T <: top] *)
 | subtyp_top: forall G T,
-    G |- T <: typ_top
+    G ⊢ T <: typ_top
 
-(** [G |- bot <: T] *)
+(** [G ⊢ bot <: T] *)
 | subtyp_bot: forall G T,
-    G |- typ_bot <: T
+    G ⊢ typ_bot <: T
 
-(** [G |- T <: T] *)
+(** [G ⊢ T <: T] *)
 | subtyp_refl: forall G T,
-    G |- T <: T
+    G ⊢ T <: T
 
-(** [G |- S <: T]     #<br>#
-    [G |- T <: U]     #<br>#
+(** [G ⊢ S <: T]     #<br>#
+    [G ⊢ T <: U]     #<br>#
     [――――――――――]     #<br>#
-    [G |- S <: U]         *)
+    [G ⊢ S <: U]         *)
 | subtyp_trans: forall G S T U,
-    G |- S <: T ->
-    G |- T <: U ->
-    G |- S <: U
+    G ⊢ S <: T ->
+    G ⊢ T <: U ->
+    G ⊢ S <: U
 
-(** [G |- T /\ U <: T] *)
+(** [G ⊢ T /\ U <: T] *)
 | subtyp_and11: forall G T U,
-    G |- typ_and T U <: T
+    G ⊢ typ_and T U <: T
 
-(** [G |- T /\ U <: U] *)
+(** [G ⊢ T /\ U <: U] *)
 | subtyp_and12: forall G T U,
-    G |- typ_and T U <: U
+    G ⊢ typ_and T U <: U
 
-(** [G |- S <: T]       #<br>#
-    [G |- S <: U]       #<br>#
+(** [G ⊢ S <: T]       #<br>#
+    [G ⊢ S <: U]       #<br>#
     [――――――――――――――]   #<br>#
-    [G |- S <: T /\ U]          *)
+    [G ⊢ S <: T /\ U]          *)
 | subtyp_and2: forall G S T U,
-    G |- S <: T ->
-    G |- S <: U ->
-    G |- S <: typ_and T U
+    G ⊢ S <: T ->
+    G ⊢ S <: U ->
+    G ⊢ S <: typ_and T U
 
-(** [G |- T <: U]           #<br>#
+(** [G ⊢ T <: U]           #<br>#
     [――――――――――――――――――――] #<br>#
-    [G |- {a: T} <: {a: U}] *)
+    [G ⊢ {a: T} <: {a: U}] *)
 | subtyp_fld: forall G a T U,
-    G |- T <: U ->
-    G |- typ_rcd (dec_trm a T) <: typ_rcd (dec_trm a U)
+    G ⊢ T <: U ->
+    G ⊢ typ_rcd (dec_trm a T) <: typ_rcd (dec_trm a U)
 
-(** [G |- S2 <: S1]                   #<br>#
-    [G |- T1 <: T2]                   #<br>#
+(** [G ⊢ S2 <: S1]                   #<br>#
+    [G ⊢ T1 <: T2]                   #<br>#
     [――――――――――――――――――――――――――――――] #<br>#
-    [G |- {A: S1..T1} <: {A: S2..T2}]     *)
+    [G ⊢ {A: S1..T1} <: {A: S2..T2}]     *)
 | subtyp_typ: forall G A S1 T1 S2 T2,
-    G |- S2 <: S1 ->
-    G |- T1 <: T2 ->
-    G |- typ_rcd (dec_typ A S1 T1) <: typ_rcd (dec_typ A S2 T2)
+    G ⊢ S2 <: S1 ->
+    G ⊢ T1 <: T2 ->
+    G ⊢ typ_rcd (dec_typ A S1 T1) <: typ_rcd (dec_typ A S2 T2)
 
-(** [G |- x: {A: S..T}] #<br>#
+(** [G ⊢ x: {A: S..T}] #<br>#
     [――――――――――――――――] #<br>#
-    [G |- S <: x.A]     *)
+    [G ⊢ S <: x.A]     *)
 | subtyp_sel2: forall G x A S T,
-    G |- trm_var (avar_f x) : typ_rcd (dec_typ A S T) ->
-    G |- S <: typ_sel (avar_f x) A
+    G ⊢ trm_var (avar_f x) : typ_rcd (dec_typ A S T) ->
+    G ⊢ S <: typ_sel (avar_f x) A
 
-(** [G |- x: {A: S..T}] #<br>#
+(** [G ⊢ x: {A: S..T}] #<br>#
     [――――――――――――――――] #<br>#
-    [G |- x.A <: T]     *)
+    [G ⊢ x.A <: T]     *)
 | subtyp_sel1: forall G x A S T,
-    G |- trm_var (avar_f x) : typ_rcd (dec_typ A S T) ->
-    G |- typ_sel (avar_f x) A <: T
+    G ⊢ trm_var (avar_f x) : typ_rcd (dec_typ A S T) ->
+    G ⊢ typ_sel (avar_f x) A <: T
 
-(** [G |- S2 <: S1]                #<br>#
-    [G, x: S2 |- T1^x <: T2^x]     #<br>#
+(** [G ⊢ S2 <: S1]                #<br>#
+    [G, x: S2 ⊢ T1^x <: T2^x]     #<br>#
     [x fresh]                     #<br>#
     [―――――――――――――――――――――――]     #<br>#
-    [G |- forall(S1)T1 <: forall(S2)T2]      *)
+    [G ⊢ forall(S1)T1 <: forall(S2)T2]      *)
 | subtyp_all: forall L G S1 T1 S2 T2,
-    G |- S2 <: S1 ->
+    G ⊢ S2 <: S1 ->
     (forall x, x \notin L ->
-       G & x ~ S2 |- open_typ x T1 <: open_typ x T2) ->
-    G |- typ_all S1 T1 <: typ_all S2 T2
-where "G '|-' T '<:' U" := (subtyp G T U).
+       G & x ~ S2 ⊢ open_typ x T1 <: open_typ x T2) ->
+    G ⊢ typ_all S1 T1 <: typ_all S2 T2
+where "G '⊢' T '<:' U" := (subtyp G T U).
 
 (** ** Well-formed Stores *)
 
-(** Given a typing [G |- e[t]: T], [wf_sto] establishes a correspondence
+(** Given a typing [G ⊢ e[t]: T], [wf_sto] establishes a correspondence
     between [G] and the store [s] that is used to define the
     evaluation context [e].
     We say that [s] is well-formed with respect to [G], denoted [G ~~ s], if
     - [G = {(xi mapsto Ti) | i = 1, ..., n}]
     - [s = {(xi mapsto vi) | i = 1, ..., n}]
-    - [G |- vi: Ti].
+    - [G ⊢ vi: Ti].
 *)
 
 Reserved Notation "G '~~' s" (at level 40).
@@ -624,7 +573,7 @@ Inductive wf_sto: ctx -> sto -> Prop :=
     G ~~ s ->
     x # G ->
     x # s ->
-    G |- trm_val v : T ->
+    G ⊢ trm_val v : T ->
     G & x ~ T ~~ s & x ~ v
 where "G '~~' s" := (wf_sto G s).
 
@@ -632,264 +581,264 @@ where "G '~~' s" := (wf_sto G s).
 (** The following typing relations are not part of the DOT calculus, but are used
     in the proof of DOT's safety theorems. *)
 
-Reserved Notation "G '|-!' t ':' T" (at level 40, t at level 59).
+Reserved Notation "G '⊢!' t ':' T" (at level 40, t at level 59).
 
-(** ** Precise typing [G |-! t: T] *)
+(** ** Precise typing [G ⊢! t: T] *)
 (** Precise typing is used to reason about the types of variables and values.
     Precise typing does not "modify" a variable's or value's type through subtyping.
     - For values, precise typing allows to only retrieve the "immediate" type of the value.
       It types objects with recursive types, and functions with dependent-function types. #<br>#
       For example, if a value is the object [nu(x: {a: T}){a = x.a}], the only way to type
-      the object through precise typing is [G |-! nu(x: {a: T}){a = x.a}: mu(x: {a: T})].
+      the object through precise typing is [G ⊢! nu(x: {a: T}){a = x.a}: mu(x: {a: T})].
     - For variables, we start out with a type [T=G(x)] (the type to which the variable is
       bound in [G]). Then we use precise typing to additionally deconstruct [T]
       by using recursion elimination and intersection elimination. #<br>#
       For example, if [G(x)=mu(x: {a: T} /\ {B: S..U})], then we can derive the following
       precise types for [x]:               #<br>#
-      [G |-! x: mu(x: {a: T} /\ {B: S..U})] #<br>#
-      [G |-! x: {a: T} /\ {B: S..U}]        #<br>#
-      [G |-! x: {a: T}]                    #<br>#
-      [G |-! x: {B: S..U}].                *)
+      [G ⊢! x: mu(x: {a: T} /\ {B: S..U})] #<br>#
+      [G ⊢! x: {a: T} /\ {B: S..U}]        #<br>#
+      [G ⊢! x: {a: T}]                    #<br>#
+      [G ⊢! x: {B: S..U}].                *)
 
 Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
 
 (** [G(x) = T]      #<br>#
     [―――――――――――――] #<br>#
-    [G |-! x: T] *)
+    [G ⊢! x: T] *)
 | ty_var_p : forall G x T,
     binds x T G ->
-    G |-! trm_var (avar_f x) : T
+    G ⊢! trm_var (avar_f x) : T
 
-(** [G, x: T |- t^x: U^x]       #<br>#
+(** [G, x: T ⊢ t^x: U^x]       #<br>#
     [x fresh]                  #<br>#
     [――――――――――――――――――――――――] #<br>#
-    [G |-! lambda(T)t: forall(T) U]     *)
+    [G ⊢! lambda(T)t: forall(T) U]     *)
 | ty_all_intro_p : forall L G T t U,
     (forall x, x \notin L ->
-      G & x ~ T |- open_trm x t : open_typ x U) ->
-    G |-! trm_val (val_lambda T t) : typ_all T U
+      G & x ~ T ⊢ open_trm x t : open_typ x U) ->
+    G ⊢! trm_val (val_lambda T t) : typ_all T U
 
-(** [G, x: T^x |- ds^x :: T^x]   #<br>#
+(** [G, x: T^x ⊢ ds^x :: T^x]   #<br>#
     [x fresh]                   #<br>#
     [―――――――――――――――――――――――]   #<br>#
-    [G |-! nu(T)ds :: mu(T)]        *)
+    [G ⊢! nu(T)ds :: mu(T)]        *)
 | ty_new_intro_p : forall L G T ds,
     (forall x, x \notin L ->
       G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
-    G |-! trm_val (val_new T ds) : typ_bnd T
+    G ⊢! trm_val (val_new T ds) : typ_bnd T
 
-(** [G |-! x: mu(T)] #<br>#
+(** [G ⊢! x: mu(T)] #<br>#
     [――――――――――――――] #<br>#
-    [G |-! x: T^x]       *)
+    [G ⊢! x: T^x]       *)
 | ty_rec_elim_p : forall G x T,
-    G |-! trm_var (avar_f x) : typ_bnd T ->
-    G |-! trm_var (avar_f x) : open_typ x T
+    G ⊢! trm_var (avar_f x) : typ_bnd T ->
+    G ⊢! trm_var (avar_f x) : open_typ x T
 
-(** [G |-! x: T /\ U] #<br>#
+(** [G ⊢! x: T /\ U] #<br>#
     [――――――――――――――] #<br>#
-    [G |-! x: T]     *)
+    [G ⊢! x: T]     *)
 | ty_and1_p : forall G x T U,
-    G |-! trm_var (avar_f x) : typ_and T U ->
-    G |-! trm_var (avar_f x) : T
+    G ⊢! trm_var (avar_f x) : typ_and T U ->
+    G ⊢! trm_var (avar_f x) : T
 
-(** [G |-! x: T /\ U] #<br>#
+(** [G ⊢! x: T /\ U] #<br>#
     [――――――――――――――] #<br>#
-    [G |-! x: U]     *)
+    [G ⊢! x: U]     *)
 | ty_and2_p : forall G x T U,
-    G |-! trm_var (avar_f x) : typ_and T U ->
-    G |-! trm_var (avar_f x) : U
-where "G '|-!' t ':' T" := (ty_trm_p G t T).
+    G ⊢! trm_var (avar_f x) : typ_and T U ->
+    G ⊢! trm_var (avar_f x) : U
+where "G '⊢!' t ':' T" := (ty_trm_p G t T).
 
 
 (** ** Tight typing *)
 
-Reserved Notation "G '|-#' t ':' T" (at level 40, t at level 59).
-Reserved Notation "G '|-#' T '<:' U" (at level 40, T at level 59).
+Reserved Notation "G '⊢#' t ':' T" (at level 40, t at level 59).
+Reserved Notation "G '⊢#' T '<:' U" (at level 40, T at level 59).
 
-(** *** Tight term typing [G |-# t: T] *)
+(** *** Tight term typing [G ⊢# t: T] *)
 (** Tight typing is very similar to general typing, and could be obtained by replacing
-    all occurrences of [|-] with [|-#], except for the following:
+    all occurrences of [⊢] with [⊢#], except for the following:
     - in the type selection subtyping rules Sel-<: and <:-Sel ([subtyp_sel1] and [subtyp_sel2]),
       the premise is precise typing of a type declaration with equal bounds;
     - whenever a typing judgement in a premise extends the environment (for example, [ty_all_intro_t]),
-      it is typed under general typing [|-] and not tight typing [|-#]. *)
+      it is typed under general typing [⊢] and not tight typing [⊢#]. *)
 
 Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
 
 (** [G(x) = T]   #<br>#
     [――――――――――] #<br>#
-    [G |-# x: T]  *)
+    [G ⊢# x: T]  *)
 | ty_var_t : forall G x T,
     binds x T G ->
-    G |-# trm_var (avar_f x) : T
+    G ⊢# trm_var (avar_f x) : T
 
-(** [G, x: T |- t^x: U^x]       #<br>#
+(** [G, x: T ⊢ t^x: U^x]       #<br>#
     [x fresh]                  #<br>#
     [――――――――――――――――――――――――] #<br>#
-    [G |-# lambda(T)t: forall(T)U]     *)
+    [G ⊢# lambda(T)t: forall(T)U]     *)
 | ty_all_intro_t : forall L G T t U,
     (forall x, x \notin L ->
-      G & x ~ T |- open_trm x t : open_typ x U) ->
-    G |-# trm_val (val_lambda T t) : typ_all T U
+      G & x ~ T ⊢ open_trm x t : open_typ x U) ->
+    G ⊢# trm_val (val_lambda T t) : typ_all T U
 
-(** [G |-# x: forall(S)T] #<br>#
-    [G |-# z: S]     #<br>#
+(** [G ⊢# x: forall(S)T] #<br>#
+    [G ⊢# z: S]     #<br>#
     [――――――――――――――] #<br>#
-    [G |-# x z: T^z]     *)
+    [G ⊢# x z: T^z]     *)
 | ty_all_elim_t : forall G x z S T,
-    G |-# trm_var (avar_f x) : typ_all S T ->
-    G |-# trm_var (avar_f z) : S ->
-    G |-# trm_app (avar_f x) (avar_f z) : open_typ z T
+    G ⊢# trm_var (avar_f x) : typ_all S T ->
+    G ⊢# trm_var (avar_f z) : S ->
+    G ⊢# trm_app (avar_f x) (avar_f z) : open_typ z T
 
-(** [G, x: T^x |- ds^x :: T^x]    #<br>#
+(** [G, x: T^x ⊢ ds^x :: T^x]    #<br>#
     [x fresh]                    #<br>#
     [―――――――――――――――――――――――]    #<br>#
-    [G |-# nu(T)ds :: mu(T)]         *)
+    [G ⊢# nu(T)ds :: mu(T)]         *)
 | ty_new_intro_t : forall L G T ds,
     (forall x, x \notin L ->
       G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
-    G |-# trm_val (val_new T ds) : typ_bnd T
+    G ⊢# trm_val (val_new T ds) : typ_bnd T
 
-(** [G |-# x: {a: T}] #<br>#
+(** [G ⊢# x: {a: T}] #<br>#
     [―――――――――――――――] #<br>#
-    [G |-# x.a: T]        *)
+    [G ⊢# x.a: T]        *)
 | ty_new_elim_t : forall G x a T,
-    G |-# trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
-    G |-# trm_sel (avar_f x) a : T
+    G ⊢# trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
+    G ⊢# trm_sel (avar_f x) a : T
 
-(** [G |-# t: T]             #<br>#
-    [G, x: T |- u^x: U]       #<br>#
+(** [G ⊢# t: T]             #<br>#
+    [G, x: T ⊢ u^x: U]       #<br>#
     [x fresh]                #<br>#
     [――――――――――――――――]       #<br>#
-    [G |-# let t in u: U]        *)
+    [G ⊢# let t in u: U]        *)
 | ty_let_t : forall L G t u T U,
-    G |-# t : T ->
+    G ⊢# t : T ->
     (forall x, x \notin L ->
-      G & x ~ T |- open_trm x u : U) ->
-    G |-# trm_let t u : U
+      G & x ~ T ⊢ open_trm x u : U) ->
+    G ⊢# trm_let t u : U
 
-(** [G |-# x: T^x]   #<br>#
+(** [G ⊢# x: T^x]   #<br>#
     [――――――――――――――] #<br>#
-    [G |-# x: mu(T)] *)
+    [G ⊢# x: mu(T)] *)
 | ty_rec_intro_t : forall G x T,
-    G |-# trm_var (avar_f x) : open_typ x T ->
-    G |-# trm_var (avar_f x) : typ_bnd T
+    G ⊢# trm_var (avar_f x) : open_typ x T ->
+    G ⊢# trm_var (avar_f x) : typ_bnd T
 
-(** [G |-# x: mu(T)] #<br>#
+(** [G ⊢# x: mu(T)] #<br>#
     [――――――――――――――] #<br>#
-    [G |-# x: T^x]       *)
+    [G ⊢# x: T^x]       *)
 | ty_rec_elim_t : forall G x T,
-    G |-# trm_var (avar_f x) : typ_bnd T ->
-    G |-# trm_var (avar_f x) : open_typ x T
+    G ⊢# trm_var (avar_f x) : typ_bnd T ->
+    G ⊢# trm_var (avar_f x) : open_typ x T
 
-(** [G |-# x: T]      #<br>#
-    [G |-# x: U]      #<br>#
+(** [G ⊢# x: T]      #<br>#
+    [G ⊢# x: U]      #<br>#
     [―――――――――――――]   #<br>#
-    [G |-# x: T /\ U]      *)
+    [G ⊢# x: T /\ U]      *)
 | ty_and_intro_t : forall G x T U,
-    G |-# trm_var (avar_f x) : T ->
-    G |-# trm_var (avar_f x) : U ->
-    G |-# trm_var (avar_f x) : typ_and T U
+    G ⊢# trm_var (avar_f x) : T ->
+    G ⊢# trm_var (avar_f x) : U ->
+    G ⊢# trm_var (avar_f x) : typ_and T U
 
-(** [G |-# t: T]    #<br>#
-    [G |-# T <: U]  #<br>#
+(** [G ⊢# t: T]    #<br>#
+    [G ⊢# T <: U]  #<br>#
     [―――――――――――――] #<br>#
-    [G |-# t: U]        *)
+    [G ⊢# t: U]        *)
 | ty_sub_t : forall G t T U,
-    G |-# t : T ->
-    G |-# T <: U ->
-    G |-# t : U
-where "G '|-#' t ':' T" := (ty_trm_t G t T)
+    G ⊢# t : T ->
+    G ⊢# T <: U ->
+    G ⊢# t : U
+where "G '⊢#' t ':' T" := (ty_trm_t G t T)
 
-(** *** Tight subtyping [G |-# T <: U] *)
+(** *** Tight subtyping [G ⊢# T <: U] *)
 with subtyp_t : ctx -> typ -> typ -> Prop :=
 
-(** [G |-# T <: top] *)
+(** [G ⊢# T <: top] *)
 | subtyp_top_t: forall G T,
-    G |-# T <: typ_top
+    G ⊢# T <: typ_top
 
-(** [G |-# bot <: T] *)
+(** [G ⊢# bot <: T] *)
 | subtyp_bot_t: forall G T,
-    G |-# typ_bot <: T
+    G ⊢# typ_bot <: T
 
-(** [G |-# T <: T] *)
+(** [G ⊢# T <: T] *)
 | subtyp_refl_t: forall G T,
-    G |-# T <: T
+    G ⊢# T <: T
 
-(** [G |-# S <: T]     #<br>#
-    [G |-# T <: U]     #<br>#
+(** [G ⊢# S <: T]     #<br>#
+    [G ⊢# T <: U]     #<br>#
     [―――――――――――――]    #<br>#
-    [G |-# S <: U]         *)
+    [G ⊢# S <: U]         *)
 | subtyp_trans_t: forall G S T U,
-    G |-# S <: T ->
-    G |-# T <: U ->
-    G |-# S <: U
+    G ⊢# S <: T ->
+    G ⊢# T <: U ->
+    G ⊢# S <: U
 
-(** [G |-# T /\ U <: T] *)
+(** [G ⊢# T /\ U <: T] *)
 | subtyp_and11_t: forall G T U,
-    G |-# typ_and T U <: T
+    G ⊢# typ_and T U <: T
 
-(** [G |-# T /\ U <: U] *)
+(** [G ⊢# T /\ U <: U] *)
 | subtyp_and12_t: forall G T U,
-    G |-# typ_and T U <: U
+    G ⊢# typ_and T U <: U
 
-(** [G |-# S <: T]       #<br>#
-    [G |-# S <: U]       #<br>#
+(** [G ⊢# S <: T]       #<br>#
+    [G ⊢# S <: U]       #<br>#
     [――――――――――――――――]   #<br>#
-    [G |-# S <: T /\ U]       *)
+    [G ⊢# S <: T /\ U]       *)
 | subtyp_and2_t: forall G S T U,
-    G |-# S <: T ->
-    G |-# S <: U ->
-    G |-# S <: typ_and T U
+    G ⊢# S <: T ->
+    G ⊢# S <: U ->
+    G ⊢# S <: typ_and T U
 
-(** [G |-# T <: U]           #<br>#
+(** [G ⊢# T <: U]           #<br>#
     [――――――――――――――――――――――] #<br>#
-    [G |-# {a: T} <: {a: U}]     *)
+    [G ⊢# {a: T} <: {a: U}]     *)
 | subtyp_fld_t: forall G a T U,
-    G |-# T <: U ->
-    G |-# typ_rcd (dec_trm a T) <: typ_rcd (dec_trm a U)
+    G ⊢# T <: U ->
+    G ⊢# typ_rcd (dec_trm a T) <: typ_rcd (dec_trm a U)
 
-(** [G |-# S2 <: S1]                   #<br>#
-    [G |-# T1 <: T2]                   #<br>#
+(** [G ⊢# S2 <: S1]                   #<br>#
+    [G ⊢# T1 <: T2]                   #<br>#
     [――――――――――――――――――――――――――――――――] #<br>#
-    [G |-# {A: S1..T1} <: {A: S2..T2}]     *)
+    [G ⊢# {A: S1..T1} <: {A: S2..T2}]     *)
 | subtyp_typ_t: forall G A S1 T1 S2 T2,
-    G |-# S2 <: S1 ->
-    G |-# T1 <: T2 ->
-    G |-# typ_rcd (dec_typ A S1 T1) <: typ_rcd (dec_typ A S2 T2)
+    G ⊢# S2 <: S1 ->
+    G ⊢# T1 <: T2 ->
+    G ⊢# typ_rcd (dec_typ A S1 T1) <: typ_rcd (dec_typ A S2 T2)
 
-(** [G |-! x: {A: T..T}] #<br>#
+(** [G ⊢! x: {A: T..T}] #<br>#
     [――――――――――――――――――] #<br>#
-    [G |-# T <: x.A]         *)
+    [G ⊢# T <: x.A]         *)
 | subtyp_sel2_t: forall G x A T,
-    G |-! trm_var (avar_f x) : typ_rcd (dec_typ A T T) ->
-    G |-# T <: typ_sel (avar_f x) A
+    G ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A T T) ->
+    G ⊢# T <: typ_sel (avar_f x) A
 
-(** [G |-! x: {A: T..T}] #<br>#
+(** [G ⊢! x: {A: T..T}] #<br>#
     [――――――――――――――――――] #<br>#
-    [G |-# x.A <: T]         *)
+    [G ⊢# x.A <: T]         *)
 | subtyp_sel1_t: forall G x A T,
-    G |-! trm_var (avar_f x) : typ_rcd (dec_typ A T T) ->
-    G |-# typ_sel (avar_f x) A <: T
+    G ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A T T) ->
+    G ⊢# typ_sel (avar_f x) A <: T
 
-(** [G |-# S2 <: S1]                #<br>#
-    [G, x: S2 |- T1^x <: T2^x]       #<br>#
+(** [G ⊢# S2 <: S1]                #<br>#
+    [G, x: S2 ⊢ T1^x <: T2^x]       #<br>#
     [x fresh]                       #<br>#
     [――――――――――――――――――――――――]      #<br>#
-    [G |-# forall(S1)T1 <: forall(S2)T2]          *)
+    [G ⊢# forall(S1)T1 <: forall(S2)T2]          *)
 | subtyp_all_t: forall L G S1 T1 S2 T2,
-    G |-# S2 <: S1 ->
+    G ⊢# S2 <: S1 ->
     (forall x, x \notin L ->
-       G & x ~ S2 |- open_typ x T1 <: open_typ x T2) ->
-    G |-# typ_all S1 T1 <: typ_all S2 T2
-where "G '|-#' T '<:' U" := (subtyp_t G T U).
+       G & x ~ S2 ⊢ open_typ x T1 <: open_typ x T2) ->
+    G ⊢# typ_all S1 T1 <: typ_all S2 T2
+where "G '⊢#' T '<:' U" := (subtyp_t G T U).
 
 
 (** ** Invertible typing *)
 
 (** The invertible-typing relation describes the possible types that a variable or value
-can be typed with in an inert context. For example, if [G] is inert, [G |-! x: {a: T}],
-and [G |- T <: T'], then [G |-## x: {a: T'}].
+can be typed with in an inert context. For example, if [G] is inert, [G ⊢! x: {a: T}],
+and [G ⊢ T <: T'], then [G ⊢## x: {a: T'}].
 
 The purpose of invertible typing is to be easily invertible into a precise typing relation.
 To achieve that, invertible typing avoids typing cycles that could result from, for example,
@@ -897,136 +846,136 @@ repeated applications of recursion introduction and elimination.
 For this case, invertible typing defines only recursion introduction (whereas precise typing
 defines only recursion elimination). *)
 
-(** *** Invertible typing of variables [G |-## x: T] *)
+(** *** Invertible typing of variables [G ⊢## x: T] *)
 
-Reserved Notation "G '|-##' x ':' T" (at level 40, x at level 59).
+Reserved Notation "G '⊢##' x ':' T" (at level 40, x at level 59).
 
 Inductive ty_var_inv : ctx -> var -> typ -> Prop :=
 
-(** [G |-! x: T]  #<br>#
+(** [G ⊢! x: T]  #<br>#
     [―――――――――――] #<br>#
-    [G |-## x: T]     *)
+    [G ⊢## x: T]     *)
 | ty_precise_inv : forall G x T,
-  G |-! trm_var (avar_f x) : T ->
-  G |-## x : T
+  G ⊢! trm_var (avar_f x) : T ->
+  G ⊢## x : T
 
-(** [G |-## x: {a: T}] #<br>#
-    [G |-# T <: U]     #<br>#
+(** [G ⊢## x: {a: T}] #<br>#
+    [G ⊢# T <: U]     #<br>#
     [――――――――――――――――] #<br>#
-    [G |-## x: {a: U}]     *)
+    [G ⊢## x: {a: U}]     *)
 | ty_dec_trm_inv : forall G x a T U,
-  G |-## x : typ_rcd (dec_trm a T) ->
-  G |-# T <: U ->
-  G |-## x : typ_rcd (dec_trm a U)
+  G ⊢## x : typ_rcd (dec_trm a T) ->
+  G ⊢# T <: U ->
+  G ⊢## x : typ_rcd (dec_trm a U)
 
-(** [G |-## x: {A: T..U}]   #<br>#
-    [G |-# T' <: T]         #<br>#
-    [G |-# U <: U']         #<br>#
+(** [G ⊢## x: {A: T..U}]   #<br>#
+    [G ⊢# T' <: T]         #<br>#
+    [G ⊢# U <: U']         #<br>#
     [―――――――――――――――――――――] #<br>#
-    [G |-## x: {A: T'..U'}]     *)
+    [G ⊢## x: {A: T'..U'}]     *)
 | ty_dec_typ_inv : forall G x A T T' U' U,
-  G |-## x : typ_rcd (dec_typ A T U) ->
-  G |-# T' <: T ->
-  G |-# U <: U' ->
-  G |-## x : typ_rcd (dec_typ A T' U')
+  G ⊢## x : typ_rcd (dec_typ A T U) ->
+  G ⊢# T' <: T ->
+  G ⊢# U <: U' ->
+  G ⊢## x : typ_rcd (dec_typ A T' U')
 
-(** [G |-## x: T^x]   #<br>#
+(** [G ⊢## x: T^x]   #<br>#
     [―――――――――――――――] #<br>#
-    [G |-## x: mu(T)] *)
+    [G ⊢## x: mu(T)] *)
 | ty_bnd_inv : forall G x T,
-  G |-## x : open_typ x T ->
-  G |-## x : typ_bnd T
+  G ⊢## x : open_typ x T ->
+  G ⊢## x : typ_bnd T
 
-(** [G |-## x: forall(S)T]          #<br>#
-    [G |-# S' <: S]            #<br>#
-    [G, y: S' |- T^y <: T'^y]   #<br>#
+(** [G ⊢## x: forall(S)T]          #<br>#
+    [G ⊢# S' <: S]            #<br>#
+    [G, y: S' ⊢ T^y <: T'^y]   #<br>#
     [y fresh]                  #<br>#
     [――――――――――――――――――――――]   #<br>#
-    [G |-## x: forall(S')T']            *)
+    [G ⊢## x: forall(S')T']            *)
 | ty_all_inv : forall L G x S T S' T',
-  G |-## x : typ_all S T ->
-  G |-# S' <: S ->
+  G ⊢## x : typ_all S T ->
+  G ⊢# S' <: S ->
   (forall y, y \notin L ->
-   G & y ~ S' |- open_typ y T <: open_typ y T') ->
-  G |-## x : typ_all S' T'
+   G & y ~ S' ⊢ open_typ y T <: open_typ y T') ->
+  G ⊢## x : typ_all S' T'
 
-(** [G |-## x : T]     #<br>#
-    [G |-## x : U]     #<br>#
+(** [G ⊢## x : T]     #<br>#
+    [G ⊢## x : U]     #<br>#
     [――――――――――――――――] #<br>#
-    [G |-## x : T /\ U]      *)
+    [G ⊢## x : T /\ U]      *)
 | ty_and_inv : forall G x S1 S2,
-  G |-## x : S1 ->
-  G |-## x : S2 ->
-  G |-## x : typ_and S1 S2
+  G ⊢## x : S1 ->
+  G ⊢## x : S2 ->
+  G ⊢## x : typ_and S1 S2
 
-(** [G |-## x: S]        #<br>#
-    [G |-! y: {A: S..S}] #<br>#
+(** [G ⊢## x: S]        #<br>#
+    [G ⊢! y: {A: S..S}] #<br>#
     [――――――――――――――――――] #<br>#
-    [G |-## x: y.A           *)
+    [G ⊢## x: y.A           *)
 | ty_sel_inv : forall G x y A S,
-  G |-## x : S ->
-  G |-! trm_var y : typ_rcd (dec_typ A S S) ->
-  G |-## x : typ_sel y A
+  G ⊢## x : S ->
+  G ⊢! trm_var y : typ_rcd (dec_typ A S S) ->
+  G ⊢## x : typ_sel y A
 
-(** [G |-## x: T]   #<br>#
+(** [G ⊢## x: T]   #<br>#
     [―――――――――――――] #<br>#
-    [G |-## x: top]     *)
+    [G ⊢## x: top]     *)
 | ty_top_inv : forall G x T,
-  G |-## x : T ->
-  G |-## x : typ_top
-where "G '|-##' x ':' T" := (ty_var_inv G x T).
+  G ⊢## x : T ->
+  G ⊢## x : typ_top
+where "G '⊢##' x ':' T" := (ty_var_inv G x T).
 
-(** *** Invertible typing of values [G |-##v v: T] *)
+(** *** Invertible typing of values [G ⊢##v v: T] *)
 
-Reserved Notation "G '|-##v' v ':' T" (at level 40, v at level 59).
+Reserved Notation "G '⊢##v' v ':' T" (at level 40, v at level 59).
 
 Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
 
-(** [G |-! v: T]    #<br>#
+(** [G ⊢! v: T]    #<br>#
     [―――――――――――――] #<br>#
-    [G |-##v v: T] *)
+    [G ⊢##v v: T] *)
 | ty_precise_inv_v : forall G v T,
-  G |-! trm_val v : T ->
-  G |-##v v : T
+  G ⊢! trm_val v : T ->
+  G ⊢##v v : T
 
-(** [G |-##v v: forall(S)T]          #<br>#
-    [G |-# S' <: S]             #<br>#
-    [G, y: S' |- T^y <: T'^y]    #<br>#
+(** [G ⊢##v v: forall(S)T]          #<br>#
+    [G ⊢# S' <: S]             #<br>#
+    [G, y: S' ⊢ T^y <: T'^y]    #<br>#
     [y fresh]                   #<br>#
     [――――――――――――――――――――――]    #<br>#
-    [G |-##v v: forall(S')T']            *)
+    [G ⊢##v v: forall(S')T']            *)
 | ty_all_inv_v : forall L G v S T S' T',
-  G |-##v v : typ_all S T ->
-  G |-# S' <: S ->
+  G ⊢##v v : typ_all S T ->
+  G ⊢# S' <: S ->
   (forall y, y \notin L ->
-   G & y ~ S' |- open_typ y T <: open_typ y T') ->
-  G |-##v v : typ_all S' T'
+   G & y ~ S' ⊢ open_typ y T <: open_typ y T') ->
+  G ⊢##v v : typ_all S' T'
 
-(** [G |-##v v: S]       #<br>#
-    [G |-! y: {A: S..S}] #<br>#
+(** [G ⊢##v v: S]       #<br>#
+    [G ⊢! y: {A: S..S}] #<br>#
     [――――――――――――――――――] #<br>#
-    [G |-##v v: y.A]         *)
+    [G ⊢##v v: y.A]         *)
 | ty_sel_inv_v : forall G v y A S,
-  G |-##v v : S ->
-  G |-! trm_var y : typ_rcd (dec_typ A S S) ->
-  G |-##v v : typ_sel y A
+  G ⊢##v v : S ->
+  G ⊢! trm_var y : typ_rcd (dec_typ A S S) ->
+  G ⊢##v v : typ_sel y A
 
-(** [G |-##v v : T]        #<br>#
-    [G |-##v v : U]        #<br>#
+(** [G ⊢##v v : T]        #<br>#
+    [G ⊢##v v : U]        #<br>#
     [―――――――――――――]        #<br>#
-    [G |-##v v : T /\ U]        *)
+    [G ⊢##v v : T /\ U]        *)
 | ty_and_inv_v : forall G v T U,
-  G |-##v v : T ->
-  G |-##v v : U ->
-  G |-##v v : typ_and T U
+  G ⊢##v v : T ->
+  G ⊢##v v : U ->
+  G ⊢##v v : typ_and T U
 
-(** [G |-##v v: T]   #<br>#
+(** [G ⊢##v v: T]   #<br>#
     [――――――――――――――] #<br>#
-    [G |-##v v: top]     *)
+    [G ⊢##v v: top]     *)
 | ty_top_inv_v : forall G v T,
-  G |-##v v : T ->
-  G |-##v v : typ_top
-where "G '|-##v' v ':' T" := (ty_val_inv G v T).
+  G ⊢##v v : T ->
+  G ⊢##v v : typ_top
+where "G '⊢##v' v ':' T" := (ty_val_inv G v T).
 
 (** ** Record types *)
 (** In the proof, it is useful to be able to distinguish record types from
@@ -1144,3 +1093,68 @@ Combined Scheme lc_mutind from lc_trm_mut, lc_val_mut, lc_def_mut, lc_defs_mut.
 Scheme lc_typ_mut := Induction for lc_typ Sort Prop
 with   lc_dec_mut := Induction for lc_dec Sort Prop.
 Combined Scheme lc_typ_mutind from lc_typ_mut, lc_dec_mut.
+
+(** * Tactics *)
+
+(** Tactics for generating fresh variables. *)
+
+Ltac gather_vars :=
+  let A := gather_vars_with (fun x : vars      => x         ) in
+  let B := gather_vars_with (fun x : var       => \{ x }    ) in
+  let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_ctx_types x)) in
+  let D := gather_vars_with (fun x : sto       => dom x     ) in
+  let E := gather_vars_with (fun x : avar      => fv_avar  x) in
+  let F := gather_vars_with (fun x : trm       => fv_trm   x) in
+  let G := gather_vars_with (fun x : val       => fv_val   x) in
+  let H := gather_vars_with (fun x : def       => fv_def   x) in
+  let I := gather_vars_with (fun x : defs      => fv_defs  x) in
+  let J := gather_vars_with (fun x : typ       => fv_typ   x) in
+  (* let K := gather_vars_with (fun x : ec        => fv_ec    x) in *)
+  constr:(A \u B \u C \u D \u E \u F \u G \u H \u I \u J (* \u K *) ).
+
+Ltac pick_fresh x :=
+  let L := gather_vars in (pick_fresh_gen L x).
+
+Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
+  apply_fresh_base T gather_vars x.
+
+Ltac fresh_constructor :=
+  apply_fresh ty_new_intro as z ||
+  apply_fresh ty_all_intro as z ||
+  apply_fresh ty_let as z ||
+  apply_fresh subtyp_all as z.
+
+(** Tactics for naming cases in case analysis. *)
+
+Open Scope string_scope.
+
+Ltac move_to_top x :=
+  match reverse goal with
+  | H : _ |- _ => try move x after H
+  end.
+
+Tactic Notation "assert_eq" ident(x) constr(v) :=
+  let H := fresh in
+  assert (x = v) as H by reflexivity;
+  clear H.
+
+Tactic Notation "Case_aux" ident(x) constr(name) :=
+  first [
+    set (x := name); move_to_top x
+  | assert_eq x name; move_to_top x
+  | fail 1 "because we are working on a different case" ].
+
+Tactic Notation "Case" constr(name) := Case_aux Case name.
+Tactic Notation "SCase" constr(name) := Case_aux SCase name.
+Tactic Notation "SSCase" constr(name) := Case_aux SSCase name.
+Tactic Notation "SSSCase" constr(name) := Case_aux SSSCase name.
+Tactic Notation "SSSSCase" constr(name) := Case_aux SSSSCase name.
+Tactic Notation "SSSSSCase" constr(name) := Case_aux SSSSSCase name.
+
+(** Automatically destruct premises *)
+Ltac destruct_all :=
+  repeat match goal with
+  | [ H : exists x, _ |- _ ]  => destruct H
+  | [ H : ?A /\ ?B |- _ ] => destruct H
+  | [ H : ?A \/ ?B |- _ ] => destruct H
+  end.

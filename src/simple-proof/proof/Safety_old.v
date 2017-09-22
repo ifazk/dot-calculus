@@ -1,7 +1,7 @@
-(** printing |-#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
-(** printing |-##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
-(** printing |-##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
-(** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
+(** printing ⊢#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
+(** printing ⊢##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
+(** printing ⊢##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
+(** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
 Set Implicit Arguments.
@@ -37,7 +37,7 @@ Inductive closed_ec_typing : ec -> trm -> typ -> Prop :=
 | cet: forall G e t T, ty_ec_trm G e t T ->
   closed_ec_typing e t T.
 
-Notation "'|-' e '[' t ']:' T" := (closed_ec_typing e t T) (at level 40, t at level 59).
+Notation "'⊢' e '[' t ']:' T" := (closed_ec_typing e t T) (at level 40, t at level 59).
 
 (** If the term [(let x = v in)* let x = [t] in u] represented by an
     evaluation context is locally closed, so is the term
@@ -59,8 +59,8 @@ Qed.
     This lemma is used to reduce cases involving [let y = [t] in u]
     into simpler cases involving [[t]]. *)
 Lemma red_term_to_hole: forall s u t t',
-    e_term s u / t |-> e_term s u / t' ->
-    e_hole s / t |-> e_hole s / t'.
+    e_term s u / t ⊢> e_term s u / t' ->
+    e_hole s / t ⊢> e_hole s / t'.
 Proof.
   intros. dependent induction H.
   - eapply red_apply; eauto.
@@ -70,11 +70,11 @@ Proof.
 Qed.
 
 (** ** Progress Theorem
-    If [|- e[t] : T], then either [e[t]] is a normal form,
+    If [⊢ e[t] : T], then either [e[t]] is a normal form,
     or [e[t]] reduces to some [e'[t']]. *)
 Lemma progress: forall e t T,
-    |- e[t]: T ->
-    (normal_form e t \/ exists e' t', e / t |-> e' / t').
+    ⊢ e[t]: T ->
+    (normal_form e t \/ exists e' t', e / t ⊢> e' / t').
 Proof.
   introv Ht. destruct Ht as [* Ht]. destruct e; inversions Ht.
   - Case "ty_e_hole".
@@ -117,7 +117,7 @@ Qed.
 (** Reduction preserves local closure. *)
 Lemma red_preserves_lc :
   forall e t e' t',
-    e / t |-> e' / t' ->
+    e / t ⊢> e' / t' ->
     lc_term e t ->
     lc_term e' t'.
 Proof.
@@ -143,11 +143,11 @@ Qed.
 (** Special case of type preservation for evaluation contexts of the
     form [(let x=v in)* [ ]].
 
-    If [e] and [t] are locally closed, [|- e[t]: T],
-    and [e[t] |-> e'[t']], then [|- e'[t']: T]. *)
+    If [e] and [t] are locally closed, [⊢ e[t]: T],
+    and [e[t] ⊢> e'[t']], then [⊢ e'[t']: T]. *)
 Lemma red_preserves_type_hole: forall G s t e' t' T,
     lc_term (e_hole s) t ->
-    e_hole s / t |-> e' / t' ->
+    e_hole s / t ⊢> e' / t' ->
     ty_ec_trm G (e_hole s) t T ->
     exists G', ty_ec_trm (G & G') e' t' T.
 Proof.
@@ -186,11 +186,11 @@ Proof.
 Qed.
 
 (** Type Preservation:
-    If [e] and [t] are locally closed, [|- e[t]: T], and [e[t] |-> e'[t']],
-    then [|- e'[t']: T]. *)
+    If [e] and [t] are locally closed, [⊢ e[t]: T], and [e[t] ⊢> e'[t']],
+    then [⊢ e'[t']: T]. *)
 Lemma red_preserves_type: forall G e t e' t' T,
     lc_term e t ->
-    e / t |-> e' / t' ->
+    e / t ⊢> e' / t' ->
     ty_ec_trm G e t T ->
     exists G', ty_ec_trm (G & G') e' t' T.
 Proof.
@@ -270,13 +270,13 @@ Qed.
 (** ** Preservation Theorem
     Reduction preserves both local closure and the type of the term being reduced.
 
-    If [e] and [t] are locally closed, [|- e[t]: T], and [e[t] |-> e'[t']], then
-    [e'] and [t'] are locally closed and [|- e'[t']: T]. *)
+    If [e] and [t] are locally closed, [⊢ e[t]: T], and [e[t] ⊢> e'[t']], then
+    [e'] and [t'] are locally closed and [⊢ e'[t']: T]. *)
 Lemma preservation: forall e t e' t' T,
     lc_term e t ->
-    e / t |-> e' / t' ->
-    |- e [t]: T ->
-    lc_term e' t' /\ |- e' [t']: T.
+    e / t ⊢> e' / t' ->
+    ⊢ e [t]: T ->
+    lc_term e' t' /\ ⊢ e' [t']: T.
 Proof.
   introv Hl Hr Ht. split. apply* red_preserves_lc. destruct Ht.
   destruct (red_preserves_type Hl Hr H) as [G' Hty].

@@ -1,7 +1,7 @@
-(** printing |-#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
-(** printing |-##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
-(** printing |-##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
-(** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
+(** printing ⊢#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
+(** printing ⊢##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
+(** printing ⊢##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
+(** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
 Set Implicit Arguments.
@@ -16,18 +16,18 @@ Require Import Invertible_typing.
     This lemma corresponds to Lemma 3.5 in the paper.
 
     [inert G]                    #<br>#
-    [G |-## x: {A: S..U}]        #<br>#
+    [G ⊢## x: {A: S..U}]        #<br>#
     [――――――――――――――――――――――――――――]   #<br>#
-    [exists T. G |-## x: {A: T..T}]   #<br>#
-    [G |-# T <: U]               #<br>#
-    [G |-# S <: T]                    *)
+    [exists T. G ⊢## x: {A: T..T}]   #<br>#
+    [G ⊢# T <: U]               #<br>#
+    [G ⊢# S <: T]                    *)
 Lemma sel_premise: forall G x A S U,
   inert G ->
-  G |-## x : typ_rcd (dec_typ A S U) ->
+  G ⊢## x : typ_rcd (dec_typ A S U) ->
   exists T,
-    G |-! trm_var (avar_f x) : typ_rcd (dec_typ A T T) /\
-    G |-# T <: U /\
-    G |-# S <: T.
+    G ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A T T) /\
+    G ⊢# T <: U /\
+    G ⊢# S <: T.
 Proof.
   introv HG Hinv.
   dependent induction Hinv.
@@ -42,15 +42,15 @@ Qed.
     This lemma corresponds to Lemma 3.4 in the paper.
 
     [inert G]              #<br>#
-    [G |-# x: {A: S..U}]   #<br>#
+    [G ⊢# x: {A: S..U}]   #<br>#
     [――――――――――――――――――――――]   #<br>#
-    [G |-# x.A <: U]       #<br>#
-    [G |-# S <: x.A]            *)
+    [G ⊢# x.A <: U]       #<br>#
+    [G ⊢# S <: x.A]            *)
 Lemma sel_replacement: forall G x A S U,
     inert G ->
-    G |-# trm_var (avar_f x) : typ_rcd (dec_typ A S U) ->
-    (G |-# typ_sel (avar_f x) A <: U /\
-     G |-# S <: typ_sel (avar_f x) A).
+    G ⊢# trm_var (avar_f x) : typ_rcd (dec_typ A S U) ->
+    (G ⊢# typ_sel (avar_f x) A <: U /\
+     G ⊢# S <: typ_sel (avar_f x) A).
 Proof.
   introv HG Hty.
   pose proof (tight_to_invertible HG Hty) as Hinv.
@@ -60,32 +60,32 @@ Proof.
   - apply subtyp_sel2_t in Ht. apply subtyp_trans_t with (T:=T); auto.
 Qed.
 
-(** * General to Tight [|- to |-#] *)
+(** * General to Tight [⊢ to ⊢#] *)
 (** The following lemma corresponds to Theorem 3.3 in the paper.
-    It says that in an inert environment, general typing ([ty_trm] [|-]) can
-    be reduced to tight typing ([ty_trm_t] [|-#]).
+    It says that in an inert environment, general typing ([ty_trm] [⊢]) can
+    be reduced to tight typing ([ty_trm_t] [⊢#]).
     The proof is by mutual induction on the typing and subtyping judgements.
 
     [inert G]           #<br>#
-    [G |- t: T]          #<br>#
+    [G ⊢ t: T]          #<br>#
     [――――――――――――――]    #<br>#
-    [G |-# t: T] #<br># #<br>#
+    [G ⊢# t: T] #<br># #<br>#
 
     and                 #<br># #<br>#
     [inert G]           #<br>#
-    [G |- S <: U]        #<br>#
+    [G ⊢ S <: U]        #<br>#
     [――――――――――――――――]  #<br>#
-    [G |-# S <: U]         *)
+    [G ⊢# S <: U]         *)
 Lemma general_to_tight: forall G0,
   inert G0 ->
   (forall G t T,
-     G |- t : T ->
+     G ⊢ t : T ->
      G = G0 ->
-     G |-# t : T) /\
+     G ⊢# t : T) /\
   (forall G S U,
-     G |- S <: U ->
+     G ⊢ S <: U ->
      G = G0 ->
-     G |-# S <: U).
+     G ⊢# S <: U).
 Proof.
   intros G0 HG.
   apply ts_mutind; intros; subst; try solve [eapply sel_replacement; auto]; eauto.
@@ -94,8 +94,8 @@ Qed.
 (** The general-to-tight lemma, formulated for term typing. *)
 Lemma general_to_tight_typing: forall G t T,
   inert G ->
-  G |- t : T ->
-  G |-# t : T.
+  G ⊢ t : T ->
+  G ⊢# t : T.
 Proof.
   intros. apply* general_to_tight.
 Qed.

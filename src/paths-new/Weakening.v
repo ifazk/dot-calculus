@@ -1,7 +1,7 @@
-(** printing ⊢#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
-(** printing ⊢##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
-(** printing ⊢##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
-(** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
+(** printing |-#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
+(** printing |-##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
+(** printing |-##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
+(** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
 Set Implicit Arguments.
@@ -12,50 +12,59 @@ Require Import Definitions.
 (** * Weakening Lemma *)
 (** Weakening states that typing is preserved in extended environments. *)
 
-(** [G1, G3 ⊢ t: T]                    #<br>#
+(** [G1, G3 |- t: T]                    #<br>#
     [ok(G1, G2, G3)]                   #<br>#
     [――――――――――――――――――――]             #<br>#
-    [G1, G2, G3 ⊢ t: T] #<br># #<br>#
+    [G1, G2, G3 |- t: T] #<br># #<br>#
 
     and
 
-    [G1, G3 ⊢ d: D]                    #<br>#
+    [G1, G3 |- d: D]                    #<br>#
     [ok(G1, G2, G3)]                   #<br>#
     [――――――――――――――――――――]             #<br>#
-    [G1, G2, G3 ⊢ d: D] #<br># #<br>#
+    [G1, G2, G3 |- d: D] #<br># #<br>#
 
     and
 
-    [G1, G3 ⊢ ds :: T]                 #<br>#
+    [G1, G3 |- ds :: T]                 #<br>#
     [ok(G1, G2, G3)]                   #<br>#
     [――――――――――――――――――――]             #<br>#
-    [G1, G2, G3 ⊢ ds :: T] #<br># #<br>#
+    [G1, G2, G3 |- ds :: T] #<br># #<br>#
 
     and
 
-    [G1, G3 ⊢ T <: U]                  #<br>#
+    [G1, G3 |- T <: U]                  #<br>#
     [ok(G1, G2, G3)]                   #<br>#
     [――――――――――――――――――――]             #<br>#
-    [G1, G2, G3 ⊢ T <: U] #<br># #<br>#
+    [G1, G2, G3 |- T <: U] #<br># #<br>#
 
     The proof is by mutual induction on term typing, definition typing, and subtyping. *)
+
 Lemma weaken_rules:
-  (forall G t T, G ⊢ t : T -> forall G1 G2 G3,
-    G = G1 & G3 ->
-    ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 ⊢ t : T) /\
-  (forall G d D, G /- d : D -> forall G1 G2 G3,
-    G = G1 & G3 ->
-    ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 /- d : D) /\
-  (forall G ds T, G /- ds :: T -> forall G1 G2 G3,
-    G = G1 & G3 ->
-    ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 /- ds :: T) /\
-  (forall G T U, G ⊢ T <: U -> forall G1 G2 G3,
-    G = G1 & G3 ->
-    ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 ⊢ T <: U).
+  (forall G t T,
+      G ⊢ t : T ->
+      forall G1 G2 G3,
+        G = G1 & G3 ->
+        ok (G1 & G2 & G3) ->
+        G1 & G2 & G3 ⊢ t : T) /\
+  (forall p P G d D,
+      p; P; G ⊢ d : D ->
+      forall G1 G2 G3,
+        G = G1 & G3 ->
+        ok (G1 & G2 & G3) ->
+        p; P; G1 & G2 & G3 ⊢ d : D) /\
+  (forall p P G ds T,
+      p; P; G ⊢ ds :: T ->
+      forall G1 G2 G3,
+        G = G1 & G3 ->
+        ok (G1 & G2 & G3) ->
+        p; P; G1 & G2 & G3 ⊢ ds :: T) /\
+  (forall G T U,
+      G ⊢ T <: U ->
+      forall G1 G2 G3,
+        G = G1 & G3 ->
+        ok (G1 & G2 & G3) ->
+        G1 & G2 & G3 ⊢ T <: U).
 Proof.
   apply rules_mutind; intros; subst;
   eauto 4 using binds_weaken;
