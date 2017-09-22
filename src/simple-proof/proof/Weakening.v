@@ -82,6 +82,9 @@ Proof.
       apply~ H0.
 Qed.
 
+
+
+
 (** Weakening lemma specialized to term typing. *)
 Lemma weaken_ty_trm: forall G1 G2 t T,
     G1 |- t : T ->
