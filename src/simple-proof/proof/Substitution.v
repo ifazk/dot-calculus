@@ -387,10 +387,10 @@ Proof.
       rewrite <- subst_open_commut_typ;
       assert (subst_ctx x y G2 & z ~ subst_typ x y T = subst_ctx x y (G2 & z ~ T)) as B
           by (unfold subst_ctx; rewrite map_concat, map_single; reflexivity);
-      rewrite <- concat_assoc; rewrite B;
+      rewrite <- concat_assoc, B;
       apply~ H;
       try (rewrite concat_assoc; auto);
-      rewrite <- B; rewrite concat_assoc; unfold subst_ctx;
+      rewrite <- B,concat_assoc; unfold subst_ctx;
       auto using weaken_ty_trm, ok_push, ok_concat_map
     end.
   - Case "ty_all_elim".
@@ -412,41 +412,17 @@ Proof.
       try (rewrite <- A at 4);
       try (rewrite <- subst_open_commut_trm);
       try (rewrite <- subst_open_commut_defs);
-      rewrite <- subst_open_commut_typ;
-      try (match goal with
-           | [ |- _ & ?z ~ open_typ z (subst_typ _ _ ?T) ] =>
-             remember To as (open_typ z T)
-           end)
-          end.
-
-
-
-      assert (subst_ctx x y G2 & z ~ subst_typ x y T = subst_ctx x y (G2 & z ~ T)) as B
-          by (unfold subst_ctx; rewrite map_concat, map_single; reflexivity);
-      rewrite <- concat_assoc; rewrite B;
-      apply~ H;
-      try (rewrite concat_assoc; auto);
-      rewrite <- B; rewrite concat_assoc; unfold subst_ctx;
-      auto using weaken_ty_trm, ok_push, ok_concat_map
-  end.
-
-
-
-
-
-
-    rewrite <- A at 2. rewrite <- A at 3. rewrite <- A at 4.
-    rewrite <- subst_open_commut_typ. rewrite <- subst_open_commut_defs.
+      rewrite <- subst_open_commut_typ
+    end.
     assert (subst_ctx x y G2 & z ~ subst_typ x y (open_typ z T)
                                = subst_ctx x y (G2 & z ~ open_typ z T)) as B. {
       unfold subst_ctx. rewrite map_concat, map_single. reflexivity.
     }
     rewrite <- concat_assoc. rewrite B.
-    apply H; auto.
-    rewrite concat_assoc. reflexivity.
-    rewrite concat_assoc. apply ok_push. assumption. auto.
-    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
-    apply ok_push. apply ok_concat_map. auto. unfold subst_ctx. auto.
+    apply~ H;
+      try (rewrite concat_assoc; auto);
+      rewrite <- B,concat_assoc; unfold subst_ctx;
+        auto using weaken_ty_trm, ok_push, ok_concat_map.
   - Case "ty_new_elim".
     eauto 4.
   - Case "ty_let".
