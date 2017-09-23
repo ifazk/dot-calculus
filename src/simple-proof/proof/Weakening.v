@@ -59,7 +59,7 @@ Lemma weaken_rules:
 Proof.
   apply rules_mutind; intros; subst;
   eauto 4 using binds_weaken;
-  fresh_constructor; auto;
+  fresh_constructor;
     match goal with
     | [ H: forall z, z \notin ?L -> forall G, _,
         Hok: ok (?G1 & ?G2 & ?G3)

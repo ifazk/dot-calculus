@@ -361,127 +361,60 @@ Lemma subst_rules: forall y S,
     G1 & (subst_ctx x y G2) ⊢ trm_var (avar_f y) : subst_typ x y S ->
     G1 & (subst_ctx x y G2) ⊢ subst_typ x y T <: subst_typ x y U).
 Proof.
-  intros y S. apply rules_mutind; intros; subst; simpl; try solve [econstructor; auto 2].
-  - Case "ty_var".
-    cases_if.
-    + apply binds_middle_eq_inv in b; subst; assumption.
-    + apply subst_fresh_ctx with (y:=y) in H1.
-      apply binds_subst in b; auto.
-      apply ty_var. rewrite <- H1.
-      unfold subst_ctx. rewrite <- map_concat.
-      apply binds_map; auto.
-  - Case "ty_all_intro".
-    fresh_constructor.
+
+  Ltac subst_solver :=
+    fresh_constructor;
     match goal with
     | [ L : fset var,
         Frz: ?z \notin _ \u _,
+        H: forall x, x \notin ?L -> forall G3, _,
         Hok: ok (?G1 & ?x ~ ?S & ?G2)
-        |- context [subst_typ x ?y ?T] ] =>
+        |- context [subst_typ ?x ?y ?T] ] =>
       assert (z \notin L) as FrL by auto;
       assert (subst_fvar x y z = z) as A by (unfold subst_fvar; rewrite~ If_r);
       rewrite <- A at 2;
-      rewrite <- A at 3;
+      try (rewrite <- A at 3);
       try (rewrite <- A at 4);
-      try (rewrite <- subst_open_commut_trm);
-      try (rewrite <- subst_open_commut_defs);
-      rewrite <- subst_open_commut_typ;
-      assert (subst_ctx x y G2 & z ~ subst_typ x y T = subst_ctx x y (G2 & z ~ T)) as B
-          by (unfold subst_ctx; rewrite map_concat, map_single; reflexivity);
-      rewrite <- concat_assoc, B;
-      apply~ H;
+      rewrite_all <- subst_open_commut_trm;
+      rewrite_all <- subst_open_commut_defs;
+      rewrite_all <- subst_open_commut_typ;
+      match goal with
+      | [ |- context [z ~ subst_typ _ _ ?V] ] =>
+        assert (subst_ctx x y G2 & z ~ subst_typ x y V = subst_ctx x y (G2 & z ~ V)) as B
+            by (unfold subst_ctx; rewrite map_concat, map_single; reflexivity);
+          rewrite <- concat_assoc; rewrite B;
+            apply~ H;
       try (rewrite concat_assoc; auto);
       rewrite <- B,concat_assoc; unfold subst_ctx;
       auto using weaken_ty_trm, ok_push, ok_concat_map
+      end
     end.
-  - Case "ty_all_elim".
-    rewrite subst_open_commut_typ.
-    simpl in H.
-    apply~ ty_all_elim.
-    apply~ H0.
-  - Case "ty_new_intro".
-    fresh_constructor.
-    match goal with
-    | [ L : fset var,
-        Frz: ?z \notin _ \u _,
-        Hok: ok (?G1 & ?x ~ ?S & ?G2)
-        |- context [subst_typ x ?y ?T] ] =>
-      assert (z \notin L) as FrL by auto;
-      assert (subst_fvar x y z = z) as A by (unfold subst_fvar; rewrite~ If_r);
-      rewrite <- A at 2;
-      rewrite <- A at 3;
-      try (rewrite <- A at 4);
-      try (rewrite <- subst_open_commut_trm);
-      try (rewrite <- subst_open_commut_defs);
-      rewrite <- subst_open_commut_typ
-    end.
-    assert (subst_ctx x y G2 & z ~ subst_typ x y (open_typ z T)
-                               = subst_ctx x y (G2 & z ~ open_typ z T)) as B. {
-      unfold subst_ctx. rewrite map_concat, map_single. reflexivity.
-    }
-    rewrite <- concat_assoc. rewrite B.
-    apply~ H;
-      try (rewrite concat_assoc; auto);
-      rewrite <- B,concat_assoc; unfold subst_ctx;
-        auto using weaken_ty_trm, ok_push, ok_concat_map.
-  - Case "ty_new_elim".
-    eauto 4.
-  - Case "ty_let".
-    simpl. apply_fresh ty_let as z; auto.
-    assert (subst_ctx x y G2 & z ~ subst_typ x y T
-                               = subst_ctx x y (G2 & z ~ T)) as B. {
-      unfold subst_ctx. rewrite map_concat, map_single. reflexivity.
-    }
-    rewrite <- concat_assoc. rewrite B.
-    assert (subst_fvar x y z = z) as A by (unfold subst_fvar; rewrite~ If_r).
-    rewrite <- A at 2. rewrite <- subst_open_commut_trm.
-    apply H0 with (x0:=z); auto.
-    rewrite concat_assoc. reflexivity.
-    rewrite concat_assoc. apply ok_push. assumption. auto.
-    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
-    apply ok_push. apply ok_concat_map. auto. unfold subst_ctx. auto.
+
+  introv. apply rules_mutind; intros; subst; simpl;
+                try solve [subst_solver || rewrite subst_open_commut_typ; eauto]; eauto 4.
+  - Case "ty_var".
+    cases_if.
+    + apply binds_middle_eq_inv in b; subst; assumption.
+    + eapply subst_fresh_ctx in H1.
+      apply binds_subst in b; auto.
+      constructor. rewrite <- H1.
+      unfold subst_ctx. rewrite <- map_concat.
+      apply binds_map; auto.
   - Case "ty_rec_intro".
     apply ty_rec_intro.
-    assert (trm_var (avar_f (If x = x0 then y else x))
-            = subst_trm x0 y (trm_var (avar_f x))) as A. {
-      simpl. reflexivity.
-    }
-    rewrite A.
-    assert (open_typ (If x = x0 then y else x) (subst_typ x0 y T)
-            = subst_typ x0 y (open_typ x T)) as B. {
-      rewrite subst_open_commut_typ. unfold subst_fvar. reflexivity.
-    }
-    rewrite B.
-    apply H; auto.
-  - Case "ty_rec_elim".
-    rewrite subst_open_commut_typ.
-    apply ty_rec_elim.
-    apply H; auto.
-  - Case "ty_and_intro".
-    apply ty_and_intro; eauto 2.
+    asserts_rewrite (trm_var (avar_f (If x = x0 then y else x))
+            = subst_trm x0 y (trm_var (avar_f x))). auto.
+    asserts_rewrite (open_typ (If x = x0 then y else x) (subst_typ x0 y T)
+                     = subst_typ x0 y (open_typ x T)).
+    rewrite subst_open_commut_typ. auto. auto.
   - Case "ty_defs_cons".
-    simpl. apply ty_defs_cons; auto.
+    constructor*.
     rewrite <- subst_label_of_def.
     apply subst_defs_hasnt. assumption.
   - Case "subtyp_sel2".
     eapply subtyp_sel2. apply H; auto.
   - Case "subtyp_sel1".
     eapply subtyp_sel1. apply H; auto.
-  - Case "subtyp_all".
-    apply_fresh subtyp_all as z; auto.
-    assert (z \notin L) as FrL by auto.
-    assert (subst_fvar x y z = z) as A by (unfold subst_fvar; rewrite~ If_r).
-    rewrite <- A at 2. rewrite <- A at 3.
-    rewrite <- subst_open_commut_typ. rewrite <- subst_open_commut_typ.
-    assert (subst_ctx x y G2 & z ~ subst_typ x y S2
-                               = subst_ctx x y (G2 & z ~ S2)) as B. {
-      unfold subst_ctx. rewrite map_concat, map_single. reflexivity.
-    }
-    rewrite <- concat_assoc. rewrite B.
-    apply H0; auto.
-    rewrite concat_assoc; reflexivity.
-    rewrite concat_assoc; apply ok_push. assumption. auto.
-    rewrite <- B. rewrite concat_assoc. apply weaken_ty_trm. assumption.
-    apply ok_push. apply ok_concat_map. auto. unfold subst_ctx. auto.
 Qed.
 
 (** The substitution lemma for term typing.
