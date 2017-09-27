@@ -279,6 +279,22 @@ Proof.
   unfold subst_fvar. case_var~.
 Qed.
 
+Ltac subst_open_fresh :=
+  repeat match goal with
+    | [ |- context [ open_typ ?z (subst_typ ?x ?y ?T) ] ] =>
+        replace (open_typ z (subst_typ x y T)) with (open_typ (subst_fvar x y z) (subst_typ x y T))
+          by (unfold subst_fvar; rewrite~ If_r);
+        rewrite_all <- subst_open_commut_typ
+    | [ |- context [ open_defs ?z (subst_defs ?x ?y ?ds) ] ] =>
+        replace (open_defs z (subst_defs x y ds)) with (open_defs (subst_fvar x y z) (subst_defs x y ds))
+          by (unfold subst_fvar; rewrite~ If_r);
+        rewrite_all <- subst_open_commut_defs
+     | [ |- context [ open_trm ?z (subst_trm ?x ?y ?t) ] ] =>
+        replace (open_trm z (subst_trm x y t)) with (open_trm (subst_fvar x y z) (subst_trm x y t))
+          by (unfold subst_fvar; rewrite~ If_r);
+        rewrite_all <- subst_open_commut_trm
+    end.
+
 (** Substitution preserves labels of definitions: [label(d) = label(d[y/x])] *)
 Lemma subst_label_of_def: forall x y d,
   label_of_def d = label_of_def (subst_def x y d).
@@ -298,6 +314,21 @@ Proof.
   - unfold get_def. simpl. rewrite <- subst_label_of_def.
     simpl in Eq. case_if~.
 Qed.
+
+Ltac subst_solver :=
+    fresh_constructor;
+    subst_open_fresh;
+    match goal with
+    | [ H: forall z, z \notin ?L -> forall G, _
+        |- context [_ & subst_ctx ?x ?y ?G2 & ?z ~ subst_typ ?x ?y ?V] ] =>
+        assert (subst_ctx x y G2 & z ~ subst_typ x y V = subst_ctx x y (G2 & z ~ V)) as B
+            by (unfold subst_ctx; rewrite map_concat, map_single; reflexivity);
+        rewrite <- concat_assoc; rewrite B;
+        apply~ H;
+        try (rewrite concat_assoc; auto);
+        rewrite <- B,concat_assoc; unfold subst_ctx;
+        auto using weaken_ty_trm, ok_push, ok_concat_map
+    end.
 
 (** * Substitution Lemma *)
 (** [G1, x: S, G2 ⊢ t: T]            #<br>#
@@ -361,35 +392,6 @@ Lemma subst_rules: forall y S,
     G1 & (subst_ctx x y G2) ⊢ trm_var (avar_f y) : subst_typ x y S ->
     G1 & (subst_ctx x y G2) ⊢ subst_typ x y T <: subst_typ x y U).
 Proof.
-
-  Ltac subst_solver :=
-    fresh_constructor;
-    match goal with
-    | [ L : fset var,
-        Frz: ?z \notin _ \u _,
-        H: forall x, x \notin ?L -> forall G3, _,
-        Hok: ok (?G1 & ?x ~ ?S & ?G2)
-        |- context [subst_typ ?x ?y ?T] ] =>
-      assert (z \notin L) as FrL by auto;
-      assert (subst_fvar x y z = z) as A by (unfold subst_fvar; rewrite~ If_r);
-      rewrite <- A at 2;
-      try (rewrite <- A at 3);
-      try (rewrite <- A at 4);
-      rewrite_all <- subst_open_commut_trm;
-      rewrite_all <- subst_open_commut_defs;
-      rewrite_all <- subst_open_commut_typ;
-      match goal with
-      | [ |- context [z ~ subst_typ _ _ ?V] ] =>
-        assert (subst_ctx x y G2 & z ~ subst_typ x y V = subst_ctx x y (G2 & z ~ V)) as B
-            by (unfold subst_ctx; rewrite map_concat, map_single; reflexivity);
-          rewrite <- concat_assoc; rewrite B;
-            apply~ H;
-      try (rewrite concat_assoc; auto);
-      rewrite <- B,concat_assoc; unfold subst_ctx;
-      auto using weaken_ty_trm, ok_push, ok_concat_map
-      end
-    end.
-
   introv. apply rules_mutind; intros; subst; simpl;
                 try solve [subst_solver || rewrite subst_open_commut_typ; eauto]; eauto 4.
   - Case "ty_var".
