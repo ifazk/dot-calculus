@@ -113,14 +113,14 @@ Lemma narrow_rules:
     ok G' ->
     subenv G' G ->
     G' ⊢ t : T)
-/\ (forall p P G d D, p; P; G ⊢ d : D -> forall G',
+/\ (forall x bs P G d D, x; bs; P; G ⊢ d : D -> forall G',
     ok G' ->
     subenv G' G ->
-    p; P; G' ⊢ d : D)
-/\ (forall p P G ds T, p; P; G ⊢ ds :: T -> forall G',
+    x; bs; P; G' ⊢ d : D)
+/\ (forall x bs P G ds T, x; bs; P; G ⊢ ds :: T -> forall G',
     ok G' ->
     subenv G' G ->
-    p; P; G' ⊢ ds :: T)
+    x; bs; P; G' ⊢ ds :: T)
 /\ (forall G S U, G ⊢ S <: U -> forall G',
     ok G' ->
     subenv G' G ->

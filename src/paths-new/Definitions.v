@@ -35,6 +35,14 @@ Inductive label: Set :=
 | label_typ: typ_label -> label
 | label_trm: trm_label -> label.
 
+(** The fields of a path in reverse order.
+    E.g. for a path x.a1.a2...an, a list [an, ..., a2, a1]. *)
+Definition fields := list trm_label.
+
+(** todo *)
+Inductive path :=
+  | p_sel : avar -> fields ->  path.
+
 (** *** Types
     Types ([typ], [S], [T], [U]) and type declarations ([dec], [D]):
     - [typ_top] represents [top];
@@ -61,11 +69,7 @@ Inductive typ : Set :=
   - [dec_trm a T] represents a field declaration [{a: T}] . *)
 with dec : Set :=
   | dec_typ  : typ_label -> typ -> typ -> dec
-  | dec_trm  : trm_label -> typ -> dec
-(** todo *)
-with path : Set :=
-  | p_var : avar -> path
-  | p_sel : path -> trm_label -> path.
+  | dec_trm  : trm_label -> typ -> dec.
 
 Notation "'{' a ':' T '}'" := (dec_trm a T) (T at level 50).
 Notation "'{' A '>:' S '<:' T '}'" := (dec_typ A S T) (S at level 58).
@@ -108,9 +112,14 @@ with defs : Set :=
   | defs_nil : defs
   | defs_cons : defs -> def -> defs.
 
-Definition pvar (x: var) := p_var (avar_f x).
+Definition pavar (x: avar) := p_sel x nil.
+Definition pvar (x: var) := p_sel (avar_f x) nil.
 Definition tvar (x: var) := trm_path (pvar x).
-Notation "p '..' a" := (p_sel p a) (at level 5).
+Definition sel_field (p : path) (b : trm_label) :=
+  match p with
+  | p_sel x bs => p_sel x (b :: bs)
+  end.
+Notation "p '•' a" := (sel_field p a) (at level 5).
 
 (** Helper functions to retrieve labels of declarations and definitions *)
 
@@ -137,8 +146,9 @@ Definition defs_hasnt(ds: defs)(l: label) := get_def l ds = None.
 (** Typing environment ([G]) *)
 Definition ctx := env typ.
 
-(** todo *)
-Definition paths := list path.
+(** A list of field paths, representing a list of paths
+    that start with the same variable. *)
+Definition paths := list fields.
 
 (** The sequence of variable-to-value let bindings, [(let x = v in)*],
      is represented as a value environment that maps variables to values: *)
@@ -160,8 +170,7 @@ end.
 
 Fixpoint open_rec_path (k: nat) (u: var) (p: path): path :=
   match p with
-  | p_var x   => p_var (open_rec_avar k u x)
-  | q..a      => (open_rec_path k u q)..a
+  | p_sel x bs => p_sel (open_rec_avar k u x) bs
   end.
 
 Fixpoint open_rec_typ (k: nat) (u: var) (T: typ): typ :=
@@ -219,14 +228,19 @@ Definition open_paths u ps := map (open_path u) ps.
 
 Definition open_rec_avar_p (k: nat) (u: path) (a: avar) : path :=
   match a with
-  | avar_b i => If k = i then u else p_var (avar_b i)
-  | avar_f x => p_var (avar_f x)
+  | avar_b i => If k = i then u else pavar (avar_b i)
+  | avar_f x => pvar x
   end.
 
+(* example:            (0.a.b    ^ y.c.d    == y.c.d.a.b
+   our representation: (0 [b, a] ^ y [d, c] == y [b, a, d, c] *)
 Fixpoint open_rec_path_p (k: nat) (u: path) (p: path): path :=
-  match p with
-  | p_var x   => open_rec_avar_p k u x
-  | q..a      => (open_rec_path_p k u q)..a
+  match p, u with
+  | p_sel x bs, p_sel y cs=>
+    match x with
+    | avar_b i => If k = i then p_sel y (bs ++ cs) else p (* maintaining reverse order of fields *)
+    | avar_f x => p
+    end
   end.
 
 Fixpoint open_rec_typ_p (k: nat) (u: path) (T: typ): typ :=
@@ -384,8 +398,7 @@ Definition fv_avar (a: avar) : vars :=
 (** Free variable in a path. *)
 Fixpoint fv_path (p: path) : vars :=
   match p with
-  | p_var x   => fv_avar x
-  | q..a      => fv_path q
+  | p_sel x bs => fv_avar x
   end.
 
 (** Free variables in a type or declaration. *)
@@ -436,25 +449,21 @@ Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
 
 Reserved Notation "G '⊢' t ':' T" (at level 40, t at level 59).
 Reserved Notation "G '⊢' T '<:' U" (at level 40, T at level 59).
-Reserved Notation "p ';' P ';' G '⊢' d : D" (at level 40, P at level 39, G at level 39, d at level 59).
-Reserved Notation "p ';' P ';' G '⊢' ds :: D" (at level 40, P at level 39, G at level 39, ds at level 59).
+Reserved Notation "x ';' bs ';' P ';' G '⊢' d ':' D"
+         (at level 40, bs at level 39, P at level 39, G at level 39, d at level 59).
+Reserved Notation "x ';' bs ';' P ';' G '⊢' ds '::' D"
+         (at level 40, bs at level 39, P at level 39, G at level 39, ds at level 59).
 (* Reserved Notation "P '⊢' p '<' q" (at level 40, p at level 59). *)
 
 Definition uniq := LibList.No_duplicates.
 
-Inductive path_precedes : paths -> path -> path -> Prop :=
+Inductive path_precedes : paths -> fields -> fields -> Prop :=
 | pp: forall P P1 P2 p q,
     P = app P1 P2 ->
     uniq P ->
     In p P1 ->
     In q P2 ->
     path_precedes P p q.
-
-Fixpoint path_head (p: path): avar :=
-  match p with
-  | p_var x => x
-  | p'.._    => path_head p'
-  end.
 
 (** ** Term typing [G ⊢ t: T] *)
 Inductive ty_trm : ctx -> trm -> typ -> Prop :=
@@ -492,7 +501,7 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     [G ⊢ nu(T)ds :: mu(T)]             *)
 | ty_new_intro : forall L G T ds P,
     (forall z, z \notin L ->
-      pvar z; P; G & (z ~ open_typ z T) ⊢ open_defs z ds :: open_typ z T) ->
+      z; nil; P; G & (z ~ open_typ z T) ⊢ open_defs z ds :: open_typ z T) ->
     G ⊢ trm_val (val_new T ds) : typ_bnd T
 
 (** [G ⊢ p: {a: T}] #<br>#
@@ -500,7 +509,7 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     [G ⊢ p.a: T]        *)
 | ty_new_elim : forall G p a T,
     G ⊢ trm_path p : typ_rcd (dec_trm a T) ->
-    G ⊢ trm_path p..a : T
+    G ⊢ trm_path p•a : T
 
 (** [G ⊢ t: T]          #<br>#
     [G, x: T ⊢ u^x: U]  #<br>#
@@ -546,57 +555,59 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     G ⊢ t : U
 where "G '⊢' t ':' T" := (ty_trm G t T)
 
-(** ** Single-definition typing [p; P; G ⊢ d: D] *)
-with ty_def : path -> paths -> ctx -> def -> dec -> Prop :=
-(** [G ⊢ {A = T}: {A: T..T}]   *)
-| ty_def_typ : forall p P G A T,
-    p; P; G ⊢ def_typ A T : dec_typ A T T
+(** ** Single-definition typing [x; bs; P; G ⊢ d: D] *)
+with ty_def : var -> fields -> paths -> ctx -> def -> dec -> Prop :=
+(** [x; bs; G ⊢ {A = T}: {A: T..T}]   *)
+| ty_def_typ : forall x bs P G A T,
+    x; bs; P; G ⊢ def_typ A T : dec_typ A T T
 
 (** [G ⊢ lambda(T)t: U]                     #<br>#
     [―――――――――――――――――――――――――――――――――――――] #<br>#
-    [p; P; G ⊢ {a = lambda(T)t: U}: {a: T}] *)
- | ty_def_all : forall p P G T t a U,
+    [x; bs; P; G ⊢ {b = lambda(T)t: U}: {b: T}] *)
+ | ty_def_all : forall x bs P G T t b U,
     G ⊢ trm_val (val_lambda T t) : U ->
-    p; P; G ⊢ def_trm a (trm_val (val_lambda T t)) : dec_trm a U
+    x; bs; P; G ⊢ def_trm b (trm_val (val_lambda T t)) : dec_trm b U
 
-(** [p.a; P; G ⊢ ds^p.a: T^p.a]             #<br>#
+(** [x; (b, bs); P; G ⊢ ds^p.b: T^p.b]             #<br>#
     [―――――――――――――――――――――――――――――――――――――] #<br>#
-    [p; P; G ⊢ {a = nu(T)ds}: {a: T}]    *)
-| ty_def_new : forall p a P G ds T,
-    p..a; P; G ⊢ open_defs_p (p..a) ds :: open_typ_p (p..a) T ->
-    p; P; G ⊢ def_trm a (trm_val (val_new T ds)) : dec_trm a T
+    [x; bs; P; G ⊢ {b = nu(T)ds}: {b: T}]    *)
+ | ty_def_new : forall x bs b P G ds T p,
+    p = p_sel (avar_f x) bs ->
+    x; (b :: bs); P; G ⊢ open_defs_p (p•b) ds :: open_typ_p (p•b) T ->
+    x; bs; P; G ⊢ def_trm b (trm_val (val_new T ds)) : dec_trm b T
 
-(** if [head(p) = head(q)] then [P ⊢ p.a < q]  #<br>#
-    [G ⊢ q: T]                                 #<br>#
-    [―――――――――――――――――――――――――――――――――――――――] #<br>#
-    [p; P; G ⊢ {a = q}: {a: T}]    *)
-| ty_def_path : forall P G q p a T,
+(** if [x == head(q)] then [P ⊢ (b, bs) < fields(q)] #<br>#
+    [G ⊢ q: T]                                       #<br>#
+    [――――――――――――――――――――――――――――――――――――――――――――――] #<br>#
+    [x; bs; P; G ⊢ {a = q}: {a: T}]                  *)
+| ty_def_path : forall x bs P G q y cs b T,
     G ⊢ trm_path q: T ->
-    (path_head p = path_head q -> path_precedes P p..a q) ->
-    p; P; G ⊢ def_trm a (trm_path q) : dec_trm a T
+    q = p_sel (avar_f y) cs ->
+    (x = y -> path_precedes P (b :: bs) cs) ->
+    x; bs; P; G ⊢ def_trm b (trm_path q) : dec_trm b T
 
-where "p ';' P ';' G '⊢' d ':' D" := (ty_def p P G d D)
+where "x ';' bs ';' P ';' G '⊢' d ':' D" := (ty_def x bs P G d D)
 
-(** ** Multiple-definition typing [p; P; G ⊢ ds :: T] *)
-with ty_defs : path -> paths -> ctx -> defs -> typ -> Prop :=
-(** [G ⊢ d: D]              #<br>#
-    [―――――――――――――――――――――] #<br>#
-    [G ⊢ d ++ defs_nil : D] *)
-| ty_defs_one : forall p P G d D,
-    p; P; G ⊢ d : D ->
-    p; P; G ⊢ defs_cons defs_nil d :: typ_rcd D
+(** ** Multiple-definition typing [x; bs; P; G ⊢ ds :: T] *)
+with ty_defs : var -> fields -> paths -> ctx -> defs -> typ -> Prop :=
+(** [x; bs; P G ⊢ d: D]                #<br>#
+    [――――――――――――――――――――――――――――――――] #<br>#
+    [x; bs; P; G ⊢ d ++ defs_nil : D]   *)
+| ty_defs_one : forall x bs P G d D,
+    x; bs; P; G ⊢ d : D ->
+    x; bs; P; G ⊢ defs_cons defs_nil d :: typ_rcd D
 
-(** [G ⊢ ds :: T]         #<br>#
-    [G ⊢ d: D]            #<br>#
-    [d \notin ds]         #<br>#
-    [―――――――――――――――――――] #<br>#
-    [G ⊢ ds ++ d : T /\ D] *)
-| ty_defs_cons : forall p P G d ds D T,
-    p; P; G ⊢ ds :: T ->
-    p; P; G ⊢ d : D ->
+(** [x; bs; G ⊢ ds :: T]           #<br>#
+    [x; bs; G ⊢ d: D]              #<br>#
+    [d \notin ds]                  #<br>#
+    [―――――――――――――――――――――――――――]  #<br>#
+    [x; bs; G ⊢ ds ++ d : T /\ D]   *)
+| ty_defs_cons : forall x bs P G d ds D T,
+    x; bs; P; G ⊢ ds :: T ->
+    x; bs; P; G ⊢ d : D ->
     defs_hasnt ds (label_of_def d) ->
-    p; P; G ⊢ defs_cons ds d :: typ_and T (typ_rcd D)
-where "p ';' P ';' G '⊢' ds '::' T" := (ty_defs p P G ds T)
+    x; bs; P; G ⊢ defs_cons ds d :: typ_and T (typ_rcd D)
+where "x ';' bs ';' P ';' G '⊢' ds '::' T" := (ty_defs x bs P G ds T)
 
 (** ** Subtyping [ G ⊢ T <: U] *)
 with subtyp : ctx -> typ -> typ -> Prop :=
@@ -751,7 +762,7 @@ Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
     [G ⊢! nu(T)ds :: mu(T)]        *)
 | ty_new_intro_p : forall G P ds T L,
     (forall z, z \notin L ->
-      pvar z; P; G & (z ~ open_typ z T) ⊢ open_defs z ds :: open_typ z T) ->
+      z; nil; P; G & (z ~ open_typ z T) ⊢ open_defs z ds :: open_typ z T) ->
     G ⊢! trm_val (val_new T ds) : typ_bnd T
 
 (** [G ⊢! p: mu(T)] #<br>#
@@ -822,7 +833,7 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     [G ⊢# nu(T)ds :: mu(T)]             *)
 | ty_new_intro_t : forall G P ds T L,
     (forall z, z \notin L ->
-      pvar z; P; G & (z ~ open_typ z T) ⊢ open_defs z ds :: open_typ z T) ->
+      z; nil; P; G & (z ~ open_typ z T) ⊢ open_defs z ds :: open_typ z T) ->
     G ⊢# trm_val (val_new T ds) : typ_bnd T
 
 (** [G ⊢# p: {a: T}] #<br>#
@@ -830,7 +841,7 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     [G ⊢# p.a: T]        *)
 | ty_new_elim_t : forall G p a T,
     G ⊢# trm_path p : typ_rcd (dec_trm a T) ->
-    G ⊢# trm_path p..a : T
+    G ⊢# trm_path p • a : T
 
 (** [G ⊢# t: T]             #<br>#
     [G, x: T ⊢ u^x: U]       #<br>#
@@ -1187,9 +1198,8 @@ Hint Constructors
 (** ** Mutual Induction Principles *)
 
 Scheme typ_mut := Induction for typ Sort Prop
-with   dec_mut := Induction for dec Sort Prop
-with   path_mut := Induction for path Sort Prop.
-Combined Scheme typ_mutind from typ_mut, dec_mut, path_mut.
+with   dec_mut := Induction for dec Sort Prop.
+Combined Scheme typ_mutind from typ_mut, dec_mut.
 
 Scheme trm_mut  := Induction for trm  Sort Prop
 with   val_mut  := Induction for val Sort Prop

@@ -47,18 +47,18 @@ Lemma weaken_rules:
         G = G1 & G3 ->
         ok (G1 & G2 & G3) ->
         G1 & G2 & G3 ⊢ t : T) /\
-  (forall p P G d D,
-      p; P; G ⊢ d : D ->
+  (forall x bs P G d D,
+      x; bs; P; G ⊢ d : D ->
       forall G1 G2 G3,
         G = G1 & G3 ->
         ok (G1 & G2 & G3) ->
-        p; P; G1 & G2 & G3 ⊢ d : D) /\
-  (forall p P G ds T,
-      p; P; G ⊢ ds :: T ->
+        x; bs; P; G1 & G2 & G3 ⊢ d : D) /\
+  (forall x bs P G ds T,
+      x; bs; P; G ⊢ ds :: T ->
       forall G1 G2 G3,
         G = G1 & G3 ->
         ok (G1 & G2 & G3) ->
-        p; P; G1 & G2 & G3 ⊢ ds :: T) /\
+        x; bs; P; G1 & G2 & G3 ⊢ ds :: T) /\
   (forall G T U,
       G ⊢ T <: U ->
       forall G1 G2 G3,
