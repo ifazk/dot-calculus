@@ -330,6 +330,15 @@ Ltac subst_solver :=
         auto using weaken_ty_trm, ok_push, ok_concat_map
     end.
 
+Ltac fold_subst :=
+  repeat match goal with
+    | [ |- context [ trm_var (avar_f (If ?x = ?y then ?z else ?x)) ] ] =>
+        asserts_rewrite (trm_var (avar_f (If x = y then z else x))
+                         = subst_trm y z (trm_var (avar_f x))); auto
+    | [ |- context [ open_typ (If ?x = ?y then ?z else ?x) (subst_typ ?y ?z ?T) ] ] =>
+        asserts_rewrite (open_typ (If x = y then z else x) (subst_typ y z T)
+                     = subst_typ y z (open_typ x T)); auto  end.
+
 (** * Substitution Lemma *)
 (** [G1, x: S, G2 ⊢ t: T]            #<br>#
     [ok(G1, x: S, G2)]               #<br>#
@@ -393,7 +402,8 @@ Lemma subst_rules: forall y S,
     G1 & (subst_ctx x y G2) ⊢ subst_typ x y T <: subst_typ x y U).
 Proof.
   introv. apply rules_mutind; intros; subst; simpl;
-                try solve [subst_solver || rewrite subst_open_commut_typ; eauto]; eauto 4.
+            try (subst_solver || rewrite subst_open_commut_typ);
+            simpl in *; eauto 4.
   - Case "ty_var".
     cases_if.
     + apply binds_middle_eq_inv in b; subst; assumption.
@@ -403,20 +413,10 @@ Proof.
       unfold subst_ctx. rewrite <- map_concat.
       apply binds_map; auto.
   - Case "ty_rec_intro".
-    apply ty_rec_intro.
-    asserts_rewrite (trm_var (avar_f (If x = x0 then y else x))
-            = subst_trm x0 y (trm_var (avar_f x))). auto.
-    asserts_rewrite (open_typ (If x = x0 then y else x) (subst_typ x0 y T)
-                     = subst_typ x0 y (open_typ x T)).
-    rewrite subst_open_commut_typ. auto. auto.
+    apply ty_rec_intro. fold_subst.
+    rewrite subst_open_commut_typ. auto. eauto.
   - Case "ty_defs_cons".
-    constructor*.
-    rewrite <- subst_label_of_def.
-    apply subst_defs_hasnt. assumption.
-  - Case "subtyp_sel2".
-    eapply subtyp_sel2. apply H; auto.
-  - Case "subtyp_sel1".
-    eapply subtyp_sel1. apply H; auto.
+    constructor*. rewrite <- subst_label_of_def. apply* subst_defs_hasnt.
 Qed.
 
 (** The substitution lemma for term typing.

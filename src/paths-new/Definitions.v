@@ -152,111 +152,130 @@ Definition sto := env val.
 
     We will denote an identifier [X] opened with a variable [y] as [X^y]. *)
 
-(** ** Generic functions for opening with a variable or path *)
+Definition open_rec_avar (k: nat) (u: var) (a: avar) : avar :=
+  match a with
+  | avar_b i => If k = i then avar_f u else avar_b i
+  | avar_f x => avar_f x
+end.
 
-Section Generic_opening.
-
-Variables A B: Type.
-
-Definition open_var_type := nat -> A -> avar -> B.
-Definition open_path_type := nat -> A -> avar -> path.
-
-Variable open_var_function : open_var_type.
-Variable open_path_function : open_path_type.
-
-Fixpoint open_rec_path_gen (k: nat) (u: A) (p: path) : path :=
+Fixpoint open_rec_path (k: nat) (u: var) (p: path): path :=
   match p with
-  | p_var x   => open_path_function k u x
-  | q..a      => (open_rec_path_gen k u q)..a
+  | p_var x   => p_var (open_rec_avar k u x)
+  | q..a      => (open_rec_path k u q)..a
   end.
 
-Fixpoint open_rec_typ_gen (k: nat) (u: A) (T: typ): typ :=
+Fixpoint open_rec_typ (k: nat) (u: var) (T: typ): typ :=
   match T with
   | typ_top        => typ_top
   | typ_bot        => typ_bot
-  | typ_rcd D      => typ_rcd (open_rec_dec_gen k u D)
-  | typ_and T1 T2  => typ_and (open_rec_typ_gen k u T1) (open_rec_typ_gen k u T2)
-  | typ_path p L   => typ_path (open_rec_path_gen k u p) L
-  | typ_bnd T      => typ_bnd (open_rec_typ_gen (S k) u T)
-  | typ_all T1 T2  => typ_all (open_rec_typ_gen k u T1) (open_rec_typ_gen (S k) u T2)
+  | typ_rcd D      => typ_rcd (open_rec_dec k u D)
+  | typ_and T1 T2  => typ_and (open_rec_typ k u T1) (open_rec_typ k u T2)
+  | typ_path p L   => typ_path (open_rec_path k u p) L
+  | typ_bnd T      => typ_bnd (open_rec_typ (S k) u T)
+  | typ_all T1 T2  => typ_all (open_rec_typ k u T1) (open_rec_typ (S k) u T2)
   end
-with open_rec_dec_gen (k: nat) (u: A) (D: dec): dec :=
+with open_rec_dec (k: nat) (u: var) (D: dec): dec :=
   match D with
-  | { L >: T <: U } => { L >: open_rec_typ_gen k u T <: open_rec_typ_gen k u U }
-  | { a : T } => dec_trm a (open_rec_typ_gen k u T)
+  | { L >: T <: U } => { L >: open_rec_typ k u T <: open_rec_typ k u U }
+  | { a : T } => dec_trm a (open_rec_typ k u T)
   end.
 
-Fixpoint open_rec_trm_gen (k: nat) (u: A) (t: trm): trm :=
+Fixpoint open_rec_trm (k: nat) (u: var) (t: trm): trm :=
   match t with
-  | trm_val v      => trm_val (open_rec_val_gen k u v)
-  | trm_path p     => trm_path (open_rec_path_gen k u p)
-  | trm_app p q    => trm_app (open_rec_path_gen k u p) (open_rec_path_gen k u q)
-  | trm_let t1 t2  => trm_let (open_rec_trm_gen k u t1) (open_rec_trm_gen (S k) u t2)
+  | trm_val v      => trm_val (open_rec_val k u v)
+  | trm_path p     => trm_path (open_rec_path k u p)
+  | trm_app p q    => trm_app (open_rec_path k u p) (open_rec_path k u q)
+  | trm_let t1 t2  => trm_let (open_rec_trm k u t1) (open_rec_trm (S k) u t2)
   end
-with open_rec_val_gen (k: nat) (u: A) (v: val): val :=
+with open_rec_val (k: nat) (u: var) (v: val): val :=
   match v with
-  | val_new T ds => val_new (open_rec_typ_gen (S k) u T) (open_rec_defs_gen (S k) u ds)
-  | val_lambda T e => val_lambda (open_rec_typ_gen k u T) (open_rec_trm_gen (S k) u e)
+  | val_new T ds => val_new (open_rec_typ (S k) u T) (open_rec_defs (S k) u ds)
+  | val_lambda T e => val_lambda (open_rec_typ k u T) (open_rec_trm (S k) u e)
   end
-with open_rec_def_gen (k: nat) (u: A) (d: def): def :=
+with open_rec_def (k: nat) (u: var) (d: def): def :=
   match d with
-  | def_typ L T => def_typ L (open_rec_typ_gen k u T)
-  | def_trm m e => def_trm m (open_rec_trm_gen k u e)
+  | def_typ L T => def_typ L (open_rec_typ k u T)
+  | def_trm m e => def_trm m (open_rec_trm k u e)
   end
-with open_rec_defs_gen (k: nat) (u: A) (ds: defs): defs :=
+with open_rec_defs (k: nat) (u: var) (ds: defs): defs :=
   match ds with
   | defs_nil => defs_nil
-  | defs_cons tl d => defs_cons (open_rec_defs_gen k u tl) (open_rec_def_gen k u d)
+  | defs_cons tl d => defs_cons (open_rec_defs k u tl) (open_rec_def k u d)
   end.
 
-End Generic_opening.
+Definition open_avar u a := open_rec_avar  0 u a.
+Definition open_typ  u t := open_rec_typ   0 u t.
+Definition open_dec  u D := open_rec_dec   0 u D.
+Definition open_trm  u e := open_rec_trm   0 u e.
+Definition open_val  u v := open_rec_val   0 u v.
+Definition open_def  u d := open_rec_def   0 u d.
+Definition open_defs u l := open_rec_defs  0 u l.
+Definition open_path u p := open_rec_path  0 u p.
 
-(** ** Opening with variables *)
-
-Definition open_var_with_var : (open_var_type var avar) :=
-  fun k u a =>
-    match a with
-    | avar_b i => If k = i then avar_f u else avar_b i
-    | avar_f x => avar_f x
-    end.
-
-Definition open_path_with_var : (open_path_type var) :=
-  fun k u a =>
-    p_var (open_var_with_var k u a).
-
-Definition open_avar u a := open_var_with_var                    0 u a.
-Definition open_typ  u t := open_rec_typ_gen  open_path_with_var 0 u t.
-Definition open_dec  u D := open_rec_dec_gen  open_path_with_var 0 u D.
-Definition open_trm  u e := open_rec_trm_gen  open_path_with_var 0 u e.
-Definition open_val  u v := open_rec_val_gen  open_path_with_var 0 u v.
-Definition open_def  u d := open_rec_def_gen  open_path_with_var 0 u d.
-Definition open_defs u l := open_rec_defs_gen open_path_with_var 0 u l.
-Definition open_path u p := open_rec_path_gen open_path_with_var 0 u p.
-
-(** ** Opening with paths *)
+Definition open_paths u ps := map (open_path u) ps.
 
 (** Path opening replaces in some syntax a bound variable with dangling index (k)
     by a path p. *)
 
-Definition open_var_with_path : (open_var_type path path) :=
-  fun k u a =>
-    match a with
-    | avar_b i => If k = i then u else p_var (avar_b i)
-    | avar_f x => p_var (avar_f x)
-    end.
+Definition open_rec_avar_p (k: nat) (u: path) (a: avar) : path :=
+  match a with
+  | avar_b i => If k = i then u else p_var (avar_b i)
+  | avar_f x => p_var (avar_f x)
+  end.
 
-Definition open_path_with_path : (open_path_type path) :=
-  fun k u a =>
-    open_var_with_path k u a.
+Fixpoint open_rec_path_p (k: nat) (u: path) (p: path): path :=
+  match p with
+  | p_var x   => open_rec_avar_p k u x
+  | q..a      => (open_rec_path_p k u q)..a
+  end.
 
-Definition open_avar_p u a := open_var_with_path                    0 u a.
-Definition open_typ_p  u t := open_rec_typ_gen open_path_with_path  0 u t.
-Definition open_dec_p  u D := open_rec_dec_gen open_path_with_path  0 u D.
-Definition open_path_p u p := open_rec_path_gen open_path_with_path 0 u p.
-Definition open_trm_p  u t := open_rec_trm_gen open_path_with_path  0 u t.
-Definition open_val_p  u v := open_rec_val_gen open_path_with_path  0 u v.
-Definition open_def_p  u d := open_rec_def_gen open_path_with_path  0 u d.
-Definition open_defs_p u l := open_rec_defs_gen open_path_with_path 0 u l.
+Fixpoint open_rec_typ_p (k: nat) (u: path) (T: typ): typ :=
+  match T with
+  | typ_top        => typ_top
+  | typ_bot        => typ_bot
+  | typ_rcd D      => typ_rcd (open_rec_dec_p k u D)
+  | typ_and T1 T2  => typ_and (open_rec_typ_p k u T1) (open_rec_typ_p k u T2)
+  | typ_path p L   => typ_path (open_rec_path_p k u p) L
+  | typ_bnd T      => typ_bnd (open_rec_typ_p (S k) u T)
+  | typ_all T1 T2  => typ_all (open_rec_typ_p k u T1) (open_rec_typ_p (S k) u T2)
+  end
+with open_rec_dec_p (k: nat) (u: path) (D: dec): dec :=
+  match D with
+  | { L >: T <: U } => { L >: open_rec_typ_p k u T <: open_rec_typ_p k u U }
+  | { a : T} => dec_trm a (open_rec_typ_p k u T)
+  end.
+
+Fixpoint open_rec_trm_p (k: nat) (u: path) (t: trm): trm :=
+  match t with
+  | trm_val v      => trm_val (open_rec_val_p k u v)
+  | trm_path p     => trm_path (open_rec_path_p k u p)
+  | trm_app p q    => trm_app (open_rec_path_p k u p) (open_rec_path_p k u q)
+  | trm_let t1 t2  => trm_let (open_rec_trm_p k u t1) (open_rec_trm_p (S k) u t2)
+  end
+with open_rec_val_p (k: nat) (u: path) (v: val): val :=
+  match v with
+  | val_new T ds => val_new (open_rec_typ_p (S k) u T) (open_rec_defs_p (S k) u ds)
+  | val_lambda T e => val_lambda (open_rec_typ_p k u T) (open_rec_trm_p (S k) u e)
+  end
+with open_rec_def_p (k: nat) (u: path) (d: def): def :=
+  match d with
+  | def_typ L T => def_typ L (open_rec_typ_p k u T)
+  | def_trm m e => def_trm m (open_rec_trm_p k u e)
+  end
+with open_rec_defs_p (k: nat) (u: path) (ds: defs): defs :=
+  match ds with
+  | defs_nil => defs_nil
+  | defs_cons tl d => defs_cons (open_rec_defs_p k u tl) (open_rec_def_p k u d)
+  end.
+
+Definition open_avar_p u a := open_rec_avar_p  0 u a.
+Definition open_typ_p  u t := open_rec_typ_p   0 u t.
+Definition open_dec_p  u D := open_rec_dec_p   0 u D.
+Definition open_path_p u p := open_rec_path_p  0 u p.
+Definition open_trm_p  u t := open_rec_trm_p   0 u t.
+Definition open_val_p  u v := open_rec_val_p   0 u v.
+Definition open_def_p  u d := open_rec_def_p   0 u d.
+Definition open_defs_p u l := open_rec_defs_p 0 u l.
 
 (**
 (** * Local Closure
@@ -1241,7 +1260,7 @@ Ltac fresh_constructor :=
   apply_fresh ty_new_intro as z ||
   apply_fresh ty_all_intro as z ||
   apply_fresh ty_let as z ||
-  apply_fresh subtyp_all as z.
+  apply_fresh subtyp_all as z; auto.
 
 (** Tactics for naming cases in case analysis. *)
 
