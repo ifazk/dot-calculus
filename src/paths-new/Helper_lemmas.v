@@ -1,7 +1,7 @@
-(** printing ⊢#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
-(** printing ⊢##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
-(** printing ⊢##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
-(** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
+(** printing |-#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
+(** printing |-##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
+(** printing |-##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
+(** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
 (** This module defines various helper lemmas used throughout the proof. *)
@@ -9,17 +9,17 @@
 Set Implicit Arguments.
 
 Require Import LibLN.
-Require Import Coq.Program.Equality.
+Require Import Coq.Program.Equality List.
 Require Import Definitions.
 
-(** [G ⊢ ds :: U]                          #<br>#
+(** [G |- ds :: U]                          #<br>#
     [U] is a record type with labels [ls]  #<br>#
     [ds] are definitions with label [ls']  #<br>#
     [l \notin ls']                          #<br>#
     [―――――――――――――――――――――――――――――――――――]  #<br>#
     [l \notin ls] *)
-Lemma hasnt_notin : forall G ds ls l U,
-    G /- ds :: U ->
+Lemma hasnt_notin : forall x bs P G ds ls l U,
+    x; bs; P; G ⊢ ds :: U ->
     record_typ U ls ->
     defs_hasnt ds l ->
     l \notin ls.
@@ -27,7 +27,7 @@ Proof.
 
   Ltac inversion_def_typ :=
     match goal with
-    | [ H: _ /- _ : _ |- _ ] => inversions H
+    | H: _; _; _; _ ⊢ _ : _ |- _ => inversions H
     end.
 
   introv Hds Hrec Hhasnt.
@@ -40,13 +40,6 @@ Qed.
 
 (** * Lemmas About Opening *)
 
-Ltac avar_solve :=
-  repeat match goal with
-  | [ a: avar |- _ ] =>
-    destruct a; simpl; auto; repeat case_if; subst; simpls; repeat case_if*;
-    subst; simpls; repeat case_if*
-  end.
-
 (** The following [open_fresh_XYZ_injective] lemmas state that given two
     symbols (variables, types, terms, etc.) [X] and [Y] and a variable [z],
     if [z \notin fv(X)] and [z \notin fv(Y)], then [X^z = Y^z] implies [X = Y]. *)
@@ -58,8 +51,19 @@ Lemma open_fresh_avar_injective : forall x y k z,
     open_rec_avar k z x = open_rec_avar k z y ->
     x = y.
 Proof.
-  intros. avar_solve; inversion* H1; try (inversions H3; false* notin_same).
+  intros. destruct x, y; inversion* H1; case_if; simpl in *;
+            try solve [inversions H3; false* notin_same];
+            case_if*. subst*.
 Qed.
+
+Lemma open_fresh_path_injective : forall p q k z,
+    z \notin fv_path p ->
+    z \notin fv_path q ->
+    open_rec_path k z p = open_rec_path k z q ->
+    p = q.
+Proof.
+  intros. destruct p, q. inversions* H1. simpl in *; f_equal.
+  Admitted.
 
 (** - types and declarations *)
 Lemma open_fresh_typ_dec_injective:
@@ -84,7 +88,7 @@ Proof.
     end.
 
   apply typ_mutind; intros; invert_open; simpl in *;
-    f_equal; eauto using open_fresh_avar_injective.
+    f_equal; eauto using open_fresh_avar_injective, open_fresh_path_injective.
 Qed.
 
 Lemma open_fresh_trm_val_def_defs_injective:
@@ -115,21 +119,21 @@ Proof.
     | [ H: _ = open_rec_trm _ _ ?t |- _ ] =>
       destruct t; inversions H;
       try (f_equal; simpl in *);
-      try apply* open_fresh_avar_injective;
-        match goal with
-        | [ Ho: open_rec_avar _ _ _ = open_rec_avar _ _ _ |- _ ] =>
-          apply open_fresh_avar_injective in Ho; subst*
-        | [ Heq: forall _ _ _, _ -> _ -> _ -> ?u = _ |- ?u = _ ] =>
-          apply* Heq
-        end
-     | [ H: _ = open_rec_val _ _ ?v |- _ ] =>
-       destruct v; inversions H; f_equal; simpl in *;
-       try apply* open_fresh_typ_dec_injective; eauto
-     | [ H: _ = open_rec_def _ _ ?d |- _ ] =>
-       destruct d; inversions H; f_equal;
-       try apply* open_fresh_typ_dec_injective; eauto
-     | [ H: _ = open_rec_defs _ _ ?ds |- _ ] =>
-       destruct ds; inversions H; f_equal; simpl in *; eauto
+           try (apply* open_fresh_avar_injective || apply* open_fresh_path_injective);
+           match goal with
+           | [ Ho: open_rec_avar _ _ _ = open_rec_avar _ _ _ |- _ ] =>
+             apply open_fresh_avar_injective in Ho; subst*
+           | [ Heq: forall _ _ _, _ -> _ -> _ -> ?u = _ |- ?u = _ ] =>
+             apply* Heq
+           end
+    | [ H: _ = open_rec_val _ _ ?v |- _ ] =>
+      destruct v; inversions H; f_equal; simpl in *;
+      try apply* open_fresh_typ_dec_injective; eauto
+    | [ H: _ = open_rec_def _ _ ?d |- _ ] =>
+      destruct d; inversions H; f_equal;
+      try apply* open_fresh_typ_dec_injective; eauto
+    | [ H: _ = open_rec_defs _ _ ?ds |- _ ] =>
+      destruct ds; inversions H; f_equal; simpl in *; eauto
     end.
 
   apply trm_mutind; intros; try solve [injective_solver].
@@ -137,6 +141,12 @@ Qed.
 
 (** The following [open_comm_XYZ] lemmas state that opening two
     symbols (variables, types, terms, etc.) at different indices commute. *)
+
+Lemma open_comm_path: forall p x y n m,
+  n <> m ->
+  open_rec_path n x (open_rec_path m y p) =
+  open_rec_path m y (open_rec_path n x p).
+Proof. Admitted.
 
 (** - types and declarations *)
 Lemma open_comm_typ_dec: forall x y,
@@ -150,7 +160,7 @@ Lemma open_comm_typ_dec: forall x y,
         open_rec_dec m y (open_rec_dec n x D)).
 Proof.
   intros. apply typ_mutind; intros; subst*; simpl; try solve [rewrite* H; rewrite* H0].
-  avar_solve.
+  f_equal. apply* open_comm_path.
 Qed.
 
 (** - terms, values, definitions, and lists of definitions *)
@@ -172,17 +182,16 @@ Lemma open_comm_trm_val_def_defs : forall x y,
         open_rec_defs n x (open_rec_defs m y ds) =
         open_rec_defs m y (open_rec_defs n x ds)).
 Proof.
-  intros. apply trm_mutind; intros; subst; simpl; auto; avar_solve;
-            try solve [try rewrite* H; rewrite* H0
-                                       || rewrite* (proj21 (open_comm_typ_dec x y))].
+  intros. apply trm_mutind; intros; subst; simpl; auto;
+            try solve [f_equal; try rewrite~ H; rewrite H0 || rewrite* open_comm_path];
+            try solve [try rewrite* H; rewrite* H0 || rewrite* (proj21 (open_comm_typ_dec x y))].
 Qed.
 
 (** The following [lc_open_rec_open_XYZ] lemmas state that if opening
     a symbol (variables, types, terms, etc.) at index [n] that is
     already opened at index [m] results in the same opened symbol,
     opening the symbol itself at index [n] results in the same symbol. *)
-
-
+(*
 (** - types and declarations *)
 Lemma lc_open_rec_open_typ_dec: forall x y,
     (forall T n m,
@@ -194,11 +203,16 @@ Lemma lc_open_rec_open_typ_dec: forall x y,
         open_rec_dec n x (open_rec_dec m y D) = open_rec_dec m y D ->
         open_rec_dec n x D = D).
 Proof.
-  introv. apply typ_mutind; intros; simpls; auto; avar_solve;
-            try solve [(inversions H1; erewrite H; eauto)
-                      || (inversions H2; erewrite H; eauto; erewrite H0; eauto)].
+  introv. apply typ_mutind; intros; simpls; auto.
+  - inversions H1. rewrite H with (m:=m); auto.
+  - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=m); auto.
+  - inversions H0. destruct a; simpl; auto.
+    case_if; simpls; case_if; subst; simpl in *; repeat case_if~.
+    reflexivity.
   - inversions H1. rewrite H with (m:=S m); auto.
-  - inversions H2. erewrite H; eauto. rewrite H0 with (m:=S m); auto.
+  - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=S m); auto.
+  - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=m); auto.
+  - inversions H1. rewrite H with (m:=m); auto.
 Qed.
 
 (** - terms, values, definitions, and list of definitions *)
@@ -415,7 +429,7 @@ Proof.
     cases_if.
     + inversions H0. inversion H; auto.
     + apply IHds; auto. inversion H; auto.
-Qed.
+Qed.*)
 
 (** * Lemmas About Records and Record Types *)
 
@@ -463,19 +477,17 @@ Proof.
 Qed.
 
 (** The type of definitions is a record type. *)
-Lemma ty_defs_record_type : forall G ds T,
-    G /- ds :: T ->
+Lemma ty_defs_record_type : forall z bs P G ds T,
+    z; bs; P; G ⊢ ds :: T ->
     record_type T.
 Proof.
-
-
- intros. induction H; destruct D;
+  intros. induction H; destruct D;
     repeat match goal with
         | [ H: record_type _ |- _ ] =>
           destruct H
-        | [ Hd: _ /- _ : dec_typ _ _ _ |- _ ] =>
+        | [ Hd: _; _; _; _ ⊢ _ : { _ >: _ <: _ } |- _ ] =>
           inversions Hd
-        | [ Hd: _ /- _ : dec_trm _ _ |- _ ] =>
+        | [ Hd: _; _; _; _ ⊢ _ : dec_trm _ _  |- _ ] =>
           inversions Hd
     end;
     match goal with
@@ -618,7 +630,7 @@ Lemma tight_to_general:
      G ⊢# S <: U ->
      G ⊢ S <: U).
 Proof.
-  apply ts_mutind_t; intros; subst; eauto using precise_to_general.
+  apply ts_mutind_ts; intros; subst; eauto using precise_to_general.
 Qed.
 
 (** * Well-formedness *)
@@ -635,7 +647,7 @@ Qed.
 Lemma wf_sto_to_ok_G: forall s G,
     G ~~ s -> ok G.
 Proof.
-  intros. induction H; jauto.
+  induction 1; jauto.
 Qed.
 Hint Resolve wf_sto_to_ok_G.
 
@@ -653,18 +665,29 @@ Proof.
   destruct (IHty_trm _ eq_refl) as [T' [Hty Hsub]]. eauto.
 Qed.
 
+Lemma last_field : forall p a x bs,
+    p • a = p_sel x bs ->
+    exists bs', bs = a :: bs'.
+Proof.
+  introv Heq. destruct* p. inversion* Heq.
+Qed.
+
 (** If a variable can be typed in an environment,
     then it is bound in that environment. *)
-Lemma typing_implies_bound: forall G x T,
-  G ⊢ trm_var (avar_f x) : T ->
+Lemma typing_implies_bound: forall G x bs T,
+  G ⊢ trm_path (p_sel (avar_f x) bs) : T ->
   exists S, binds x S G.
 Proof.
   introv Ht. dependent induction Ht; eauto.
+  destruct (last_field _ _ x) as [bs' Hbs]. subst.
+  eapply IHHt. destruct p. inversion* x.
 Qed.
 
-Lemma var_typing_implies_avar_f: forall G a T,
-  G ⊢ trm_var a : T ->
+Lemma var_typing_implies_avar_f: forall G a bs T,
+  G ⊢ trm_path (p_sel a bs) : T ->
   exists x, a = avar_f x.
 Proof.
   intros. dependent induction H; eauto.
+  destruct (last_field _ _ x) as [bs' Hbs]. subst.
+  eapply IHty_trm. destruct p. inversion* x.
 Qed.

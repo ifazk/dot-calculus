@@ -71,7 +71,7 @@ with dec : Set :=
   | dec_typ  : typ_label -> typ -> typ -> dec
   | dec_trm  : trm_label -> typ -> dec.
 
-Notation "'{' a ':' T '}'" := (dec_trm a T) (T at level 50).
+(*Notation "'{' a ':' T '}'" := (dec_trm a T) (T at level 50).*)
 Notation "'{' A '>:' S '<:' T '}'" := (dec_typ A S T) (S at level 58).
 
 (** *** Terms
@@ -186,7 +186,7 @@ Fixpoint open_rec_typ (k: nat) (u: var) (T: typ): typ :=
 with open_rec_dec (k: nat) (u: var) (D: dec): dec :=
   match D with
   | { L >: T <: U } => { L >: open_rec_typ k u T <: open_rec_typ k u U }
-  | { a : T } => dec_trm a (open_rec_typ k u T)
+  | dec_trm a T => dec_trm a (open_rec_typ k u T)
   end.
 
 Fixpoint open_rec_trm (k: nat) (u: var) (t: trm): trm :=
@@ -256,7 +256,7 @@ Fixpoint open_rec_typ_p (k: nat) (u: path) (T: typ): typ :=
 with open_rec_dec_p (k: nat) (u: path) (D: dec): dec :=
   match D with
   | { L >: T <: U } => { L >: open_rec_typ_p k u T <: open_rec_typ_p k u U }
-  | { a : T} => dec_trm a (open_rec_typ_p k u T)
+  | dec_trm a T => dec_trm a (open_rec_typ_p k u T)
   end.
 
 Fixpoint open_rec_trm_p (k: nat) (u: path) (t: trm): trm :=
@@ -415,7 +415,7 @@ Fixpoint fv_typ (T: typ) : vars :=
 with fv_dec (D: dec) : vars :=
   match D with
   | { L >: T <: U } => (fv_typ T) \u (fv_typ U)
-  | { a : T } => fv_typ T
+  | dec_trm a T => fv_typ T
   end.
 
 (** Free variables in a term, value, or definition. *)
@@ -745,6 +745,7 @@ Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
     [G ⊢! x: T] *)
 | ty_var_p : forall G x T,
     binds x T G ->
+    ok G ->
     G ⊢! tvar x : T
 
 (** [G, x: T ⊢ t^x: U^x]       #<br>#
@@ -807,6 +808,7 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     [G ⊢# x: T]  *)
 | ty_var_t : forall G x T,
     binds x T G ->
+    ok G ->
     G ⊢# tvar x : T
 
 (** [G, x: T ⊢ t^x: U^x]       #<br>#

@@ -509,7 +509,7 @@ Proof.
     subst_tydef_solver.
   - Case "ty_def_path".
     subst_tydef_solver.
-    apply* ty_def_path. intro. case_if; case_if; subst; eauto.
+    apply* ty_def_path. intro. case_if; case_if*.
   - Case "ty_defs_cons".
     constructor*.
     rewrite <- subst_label_of_def.
