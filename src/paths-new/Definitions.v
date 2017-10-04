@@ -445,6 +445,77 @@ with fv_defs(ds: defs) : vars :=
 (** Free variables in the range (types) of a context *)
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
 
+(** ** Record types *)
+(** In the proof, it is useful to be able to distinguish record types from
+    other types. A record type is a concatenation of type declarations with equal
+    bounds [{A: T..T}] and field declarations [{a: T}]. *)
+
+(** A record declaration is either a type declaration with equal bounds,
+    or a field declaration.*)
+Inductive record_dec : dec -> Prop :=
+| rd_typ : forall A T, record_dec (dec_typ A T T)
+| rd_trm : forall a T, inert_typ T -> record_dec (dec_trm a T)
+
+(** Given a record declaration, a [record_typ] keeps track of the declaration's
+    field member labels (i.e. names of fields) and type member labels
+    (i.e. names of abstract type members). [record_typ] also requires that the
+    labels are distinct.  *)
+with record_typ : typ -> fset label -> Prop :=
+| rt_one : forall D l,
+  record_dec D ->
+  l = label_of_dec D ->
+  record_typ (typ_rcd D) \{l}
+| rt_cons: forall T ls D l,
+  record_typ T ls ->
+  record_dec D ->
+  l = label_of_dec D ->
+  l \notin ls ->
+  record_typ (typ_and T (typ_rcd D)) (union ls \{l})
+
+(** ** Inert types
+       A type is inert if it is either a dependent function type, or a recursive type
+       whose type declarations have equal bounds (enforced through [record_type]). #<br>#
+       For example, the following types are inert:
+       - [lambda(x: S)T]
+       - [mu(x: {a: T} /\ {B: U..U})]
+       - [mu(x: {C: {A: T..U}..{A: T..U}})]
+       And the following types are not inert:
+       - [{a: T}]
+       - [{B: U..U}]
+       - [top]
+       - [x.A]
+       - [mu(x: {B: S..T})], where [S <> T]. *)
+with inert_typ : typ -> Prop :=
+  | inert_typ_all : forall S T, inert_typ (typ_all S T)
+  | inert_typ_bnd : forall T ls,
+      record_typ T ls ->
+      inert_typ (typ_bnd T).
+
+(** Given a type [T = D1 /\ D2 /\ ... /\ Dn] and member declaration [D], [record_has T D] tells whether
+    [D] is contained in the intersection of [Di]'s. *)
+Inductive record_has: typ -> dec -> Prop :=
+| rh_one : forall D,
+    record_has (typ_rcd D) D
+| rh_andl : forall T U D,
+    record_has T D ->
+    record_has (typ_and T U) D
+| rh_andr : forall T U D,
+    record_has U D ->
+    record_has (typ_and T U) D.
+
+(** A [record_type] is a [record_typ] with an unspecified set of labels. The meaning
+    of [record_type] is an intersection of type/field declarations with distinct labels. *)
+Definition record_type T := exists ls, record_typ T ls.
+
+(** An inert context is a typing context whose range consists only of inert types. *)
+Inductive inert : ctx -> Prop :=
+  | inert_empty : inert empty
+  | inert_all : forall G x T,
+      inert G ->
+      inert_typ T ->
+      x # G ->
+      inert (G & x ~ T).
+
 (** * Typing Rules *)
 
 Reserved Notation "G '⊢' t ':' T" (at level 40, t at level 59).
@@ -566,22 +637,25 @@ with ty_def : var -> fields -> paths -> ctx -> def -> dec -> Prop :=
     [x; bs; P; G ⊢ {b = lambda(T)t: U}: {b: T}] *)
  | ty_def_all : forall x bs P G T t b U,
     G ⊢ trm_val (val_lambda T t) : U ->
+    inert_typ U ->
     x; bs; P; G ⊢ def_trm b (trm_val (val_lambda T t)) : dec_trm b U
 
 (** [x; (b, bs); P; G ⊢ ds^p.b: T^p.b]             #<br>#
     [―――――――――――――――――――――――――――――――――――――] #<br>#
     [x; bs; P; G ⊢ {b = nu(T)ds}: {b: T}]    *)
  | ty_def_new : forall x bs b P G ds T p,
-    p = p_sel (avar_f x) bs ->
-    x; (b :: bs); P; G ⊢ open_defs_p (p•b) ds :: open_typ_p (p•b) T ->
-    x; bs; P; G ⊢ def_trm b (trm_val (val_new T ds)) : dec_trm b T
+     p = p_sel (avar_f x) bs ->
+     inert_typ (typ_bnd T) ->
+     x; (b :: bs); P; G ⊢ open_defs_p p•b ds :: open_typ_p p•b T ->
+     x; bs; P; G ⊢ def_trm b (trm_val (val_new T ds)) : dec_trm b (typ_bnd T)
 
 (** if [x == head(q)] then [P ⊢ (b, bs) < fields(q)] #<br>#
     [G ⊢ q: T]                                       #<br>#
     [――――――――――――――――――――――――――――――――――――――――――――――] #<br>#
     [x; bs; P; G ⊢ {a = q}: {a: T}]                  *)
-| ty_def_path : forall x bs P G q y cs b T,
+ | ty_def_path : forall x bs P G q y cs b T,
     G ⊢ trm_path q: T ->
+    inert_typ T ->
     q = p_sel (avar_f y) cs ->
     (x = y -> path_precedes P (b :: bs) cs) ->
     x; bs; P; G ⊢ def_trm b (trm_path q) : dec_trm b T
@@ -786,6 +860,9 @@ Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
 | ty_and2_p : forall G p T U,
     G ⊢! trm_path p : typ_and T U ->
     G ⊢! trm_path p : U
+| ty_fld_elim_p : forall G p a T,
+    G ⊢! trm_path p: typ_rcd (dec_trm a T) ->
+    G ⊢! trm_path (p • a): T
 where "G '⊢!' t ':' T" := (ty_trm_p G t T).
 
 (** ** Tight typing *)
@@ -1116,123 +1193,58 @@ Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
   G ⊢##v v : typ_top
 where "G '⊢##v' v ':' T" := (ty_val_inv G v T).
 
-(** ** Record types *)
-(** In the proof, it is useful to be able to distinguish record types from
-    other types. A record type is a concatenation of type declarations with equal
-    bounds [{A: T..T}] and field declarations [{a: T}]. *)
-
-(** A record declaration is either a type declaration with equal bounds,
-    or a field declaration.*)
-Inductive record_dec : dec -> Prop :=
-| rd_typ : forall A T, record_dec (dec_typ A T T)
-| rd_trm : forall a T, record_dec (dec_trm a T).
-
-(** Given a record declaration, a [record_typ] keeps track of the declaration's
-    field member labels (i.e. names of fields) and type member labels
-    (i.e. names of abstract type members). [record_typ] also requires that the
-    labels are distinct.  *)
-Inductive record_typ : typ -> fset label -> Prop :=
-| rt_one : forall D l,
-  record_dec D ->
-  l = label_of_dec D ->
-  record_typ (typ_rcd D) \{l}
-| rt_cons: forall T ls D l,
-  record_typ T ls ->
-  record_dec D ->
-  l = label_of_dec D ->
-  l \notin ls ->
-  record_typ (typ_and T (typ_rcd D)) (union ls \{l}).
-
-(** A [record_type] is a [record_typ] with an unspecified set of labels. The meaning
-    of [record_type] is an intersection of type/field declarations with distinct labels. *)
-Definition record_type T := exists ls, record_typ T ls.
-
-(** Given a type [T = D1 /\ D2 /\ ... /\ Dn] and member declaration [D], [record_has T D] tells whether
-    [D] is contained in the intersection of [Di]'s. *)
-Inductive record_has: typ -> dec -> Prop :=
-| rh_one : forall D,
-    record_has (typ_rcd D) D
-| rh_andl : forall T U D,
-    record_has T D ->
-    record_has (typ_and T U) D
-| rh_andr : forall T U D,
-    record_has U D ->
-    record_has (typ_and T U) D.
-
-(** ** Inert types
-       A type is inert if it is either a dependent function type, or a recursive type
-       whose type declarations have equal bounds (enforced through [record_type]). #<br>#
-       For example, the following types are inert:
-       - [lambda(x: S)T]
-       - [mu(x: {a: T} /\ {B: U..U})]
-       - [mu(x: {C: {A: T..U}..{A: T..U}})]
-       And the following types are not inert:
-       - [{a: T}]
-       - [{B: U..U}]
-       - [top]
-       - [x.A]
-       - [mu(x: {B: S..T})], where [S <> T]. *)
-Inductive inert_typ : typ -> Prop :=
-  | inert_typ_all : forall S T, inert_typ (typ_all S T)
-  | inert_typ_bnd : forall T,
-      record_type T ->
-      inert_typ (typ_bnd T)
-  | inert_typ_top : inert_typ typ_top.
-
-(** An inert context is a typing context whose range consists only of inert types. *)
-Inductive inert : ctx -> Prop :=
-  | inert_empty : inert empty
-  | inert_all : forall G x T,
-      inert G ->
-      inert_typ T ->
-      x # G ->
-      inert (G & x ~ T).
-
 (** * Infrastructure *)
 
 Hint Constructors
-     inert_typ inert record_has
+     inert_typ inert record_has record_dec record_typ
      ty_trm ty_def ty_defs subtyp ty_trm_p
      ty_trm_t subtyp_t ty_var_inv ty_val_inv
      (*lc_var lc_typ lc_dec lc_trm lc_val
      lc_dec lc_defs lc_sto*).
 
+Hint Unfold record_type.
+
 (** ** Mutual Induction Principles *)
 
 Scheme typ_mut := Induction for typ Sort Prop
-with   dec_mut := Induction for dec Sort Prop.
+  with   dec_mut := Induction for dec Sort Prop.
 Combined Scheme typ_mutind from typ_mut, dec_mut.
 
 Scheme trm_mut  := Induction for trm  Sort Prop
-with   val_mut  := Induction for val Sort Prop
-with   def_mut  := Induction for def  Sort Prop
-with   defs_mut := Induction for defs Sort Prop.
+  with   val_mut  := Induction for val Sort Prop
+  with   def_mut  := Induction for def  Sort Prop
+  with   defs_mut := Induction for defs Sort Prop.
 Combined Scheme trm_mutind from trm_mut, val_mut, def_mut, defs_mut.
 
 Scheme ty_trm_mut    := Induction for ty_trm    Sort Prop
-with   ty_def_mut    := Induction for ty_def    Sort Prop
-with   ty_defs_mut   := Induction for ty_defs   Sort Prop.
+  with   ty_def_mut    := Induction for ty_def    Sort Prop
+  with   ty_defs_mut   := Induction for ty_defs   Sort Prop.
 Combined Scheme ty_mutind from ty_trm_mut, ty_def_mut, ty_defs_mut.
 
 Scheme tds_ty_trm_mut  := Induction for ty_trm    Sort Prop
-with   tds_ty_def_mut  := Induction for ty_def    Sort Prop
-with   tds_ty_defs_mut := Induction for ty_defs   Sort Prop
-with   tds_subtyp      := Induction for subtyp    Sort Prop.
+  with   tds_ty_def_mut  := Induction for ty_def    Sort Prop
+  with   tds_ty_defs_mut := Induction for ty_defs   Sort Prop
+  with   tds_subtyp      := Induction for subtyp    Sort Prop.
 Combined Scheme tds_mutind from tds_ty_trm_mut, tds_ty_def_mut, tds_ty_defs_mut, tds_subtyp.
 
 Scheme ts_ty_trm_mut  := Induction for ty_trm    Sort Prop
-with   ts_subtyp      := Induction for subtyp    Sort Prop.
+  with   ts_subtyp      := Induction for subtyp    Sort Prop.
 Combined Scheme ts_mutind from ts_ty_trm_mut, ts_subtyp.
 
 Scheme ts_ty_trm_mut_ts  := Induction for ty_trm_t    Sort Prop
-with   ts_subtyp_ts      := Induction for subtyp_t    Sort Prop.
+  with   ts_subtyp_ts      := Induction for subtyp_t    Sort Prop.
 Combined Scheme ts_mutind_ts from ts_ty_trm_mut_ts, ts_subtyp_ts.
 
 Scheme rules_trm_mut    := Induction for ty_trm    Sort Prop
-with   rules_def_mut    := Induction for ty_def    Sort Prop
-with   rules_defs_mut   := Induction for ty_defs   Sort Prop
-with   rules_subtyp     := Induction for subtyp    Sort Prop.
+  with   rules_def_mut    := Induction for ty_def    Sort Prop
+  with   rules_defs_mut   := Induction for ty_defs   Sort Prop
+  with   rules_subtyp     := Induction for subtyp    Sort Prop.
 Combined Scheme rules_mutind from rules_trm_mut, rules_def_mut, rules_defs_mut, rules_subtyp.
+
+Scheme rcd_dec_mut := Induction for record_dec Sort Prop
+  with rcd_typ_mut := Induction for record_typ Sort Prop
+  with inert_mut   := Induction for inert_typ Sort Prop.
+Combined Scheme rcd_mutind from rcd_dec_mut, rcd_typ_mut, inert_mut.
 (*
 Scheme lc_trm_mut  := Induction for lc_trm Sort Prop
 with   lc_val_mut  := Induction for lc_val Sort Prop

@@ -65,6 +65,14 @@ Proof.
   intros. destruct p, q. inversions* H1. simpl in *; f_equal.
   Admitted.
 
+ Ltac invert_open :=
+    match goal with
+    | [ H: _ = open_rec_typ _ _ ?T' |- _ ] =>
+       destruct T'; inversions* H
+    | [ H: _ = open_rec_dec _ _ ?D' |- _ ] =>
+       destruct D'; inversions* H
+    end.
+
 (** - types and declarations *)
 Lemma open_fresh_typ_dec_injective:
   (forall T T' k x,
@@ -78,15 +86,6 @@ Lemma open_fresh_typ_dec_injective:
     open_rec_dec k x D = open_rec_dec k x D' ->
     D = D').
 Proof.
-
-  Ltac invert_open :=
-    match goal with
-    | [ H: open_rec_typ _ _ _ = open_rec_typ _ _ ?T' |- _ ] =>
-       destruct T'; inversions* H
-    | [ H: open_rec_dec _ _ _ = open_rec_dec _ _ ?D' |- _ ] =>
-       destruct D'; inversions* H
-    end.
-
   apply typ_mutind; intros; invert_open; simpl in *;
     f_equal; eauto using open_fresh_avar_injective, open_fresh_path_injective.
 Qed.
@@ -440,13 +439,51 @@ Proof.
   intros. induction D; simpl; reflexivity.
 Qed.
 
+Lemma open_dec_preserves_label_p: forall D p i,
+  label_of_dec D = label_of_dec (open_rec_dec_p i p D).
+Proof.
+  intros. induction D; simpl; reflexivity.
+Qed.
+
+Lemma open_record:
+  (forall D, record_dec D ->
+        forall x k, record_dec (open_rec_dec k x D)) /\
+  (forall T ls , record_typ T ls ->
+        forall x k, record_typ (open_rec_typ k x T) ls) /\
+  (forall T, inert_typ T ->
+        forall x k, inert_typ (open_rec_typ k x T)).
+Proof.
+  apply rcd_mutind; intros; try constructor; auto;
+    try solve [erewrite open_dec_preserves_label in e; eauto].
+  unfold open_typ. simpl. eauto.
+Qed.
+
+Lemma open_record_p:
+  (forall D, record_dec D ->
+        forall p k, record_dec (open_rec_dec_p k p D)) /\
+  (forall T ls , record_typ T ls ->
+        forall p k, record_typ (open_rec_typ_p k p T) ls) /\
+  (forall T, inert_typ T ->
+        forall p k, inert_typ (open_rec_typ_p k p T)).
+Proof.
+  apply rcd_mutind; intros; try constructor; auto;
+    try solve [erewrite open_dec_preserves_label_p in e; eauto].
+  unfold open_typ. simpl. eauto.
+Qed.
+
 (** [record_dec D]   #<br>#
     [――――――――――――――] #<br>#
     [record_dec D^x] *)
 Lemma open_record_dec: forall D x,
   record_dec D -> record_dec (open_dec x D).
 Proof.
-  intros. inversion H; unfold open_dec; simpl; constructor.
+  intros. apply* open_record.
+Qed.
+
+Lemma open_record_dec_p: forall D x,
+  record_dec D -> record_dec (open_dec_p x D).
+Proof.
+  intros. apply* open_record_p.
 Qed.
 
 (** [record_typ T]   #<br>#
@@ -455,15 +492,13 @@ Qed.
 Lemma open_record_typ: forall T x ls,
   record_typ T ls -> record_typ (open_typ x T) ls.
 Proof.
-  intros. induction H.
-  - unfold open_typ. simpl.
-    apply rt_one.
-    apply open_record_dec. assumption.
-    rewrite <- open_dec_preserves_label. assumption.
-  - unfold open_typ. simpl.
-    apply rt_cons; try assumption.
-    apply open_record_dec. assumption.
-    rewrite <- open_dec_preserves_label. assumption.
+  intros. apply* open_record.
+Qed.
+
+Lemma open_record_typ_p: forall T p ls,
+  record_typ T ls -> record_typ (open_typ_p p T) ls.
+Proof.
+  intros. apply* open_record_p.
 Qed.
 
 (** [record_typ T]   #<br>#
@@ -473,6 +508,13 @@ Lemma open_record_type: forall T x,
   record_type T -> record_type (open_typ x T).
 Proof.
   intros. destruct H as [ls H]. exists ls. eapply open_record_typ.
+  eassumption.
+Qed.
+
+Lemma open_record_type_p: forall T p,
+  record_type T -> record_type (open_typ_p p T).
+Proof.
+  intros. destruct H as [ls H]. exists ls. eapply open_record_typ_p.
   eassumption.
 Qed.
 
@@ -518,44 +560,27 @@ Proof.
     specialize (IHHt ls0 H4). rewrite* IHHt.
 Qed.
 
-(** Opening does not affect the labels of a [record_type]. *)
-Lemma record_type_open : forall z T,
-    z \notin fv_typ T ->
-    record_type (open_typ z T) ->
-    record_type T.
+Lemma record_open:
+  (forall D, record_dec D ->
+        forall x k D',
+          x \notin fv_dec D' ->
+          D = open_rec_dec k x D' ->
+          record_dec D') /\
+  (forall T ls , record_typ T ls ->
+            forall x k T',
+              x \notin fv_typ T' ->
+              T = open_rec_typ k x T' ->
+              record_typ T' ls) /\
+  (forall T, inert_typ T ->
+        forall x k T',
+          x \notin fv_typ T' ->
+          T = open_rec_typ k x T' ->
+          inert_typ T').
 Proof.
-  introv Hz H. destruct H. dependent induction H.
-  - exists \{ l }. destruct T; inversions x. constructor.
-    + destruct d; inversions H.
-      * apply (proj21 open_fresh_typ_dec_injective) in H3.
-        { subst. constructor. }
-        { simpl in Hz; auto. }
-        { simpl in Hz; auto. }
-      * constructor.
-    + destruct d; inversions H.
-      * apply (proj21 open_fresh_typ_dec_injective) in H3.
-        { subst. constructor. }
-        { simpl in Hz; auto. }
-        { simpl in Hz; auto. }
-      * constructor.
-  - destruct T; inversions x. simpl in Hz.
-    assert (Hz': z \notin fv_typ T1) by auto.
-    destruct (IHrecord_typ T1 z Hz' eq_refl) as [ls' ?]. clear Hz'.
-    destruct T2; inversions H5.
-    destruct d; inversions H0.
-    + exists (ls' \u \{ label_typ t }). apply (proj21 open_fresh_typ_dec_injective) in H6.
-      * subst. constructor*.
-        { constructor. }
-        {
-          simpl in H2. pose proof (opening_preserves_labels z H1 H).
-          rewrite* H0.
-        }
-      * simpl in Hz; auto.
-      * simpl in Hz; auto.
-    + exists (ls' \u \{ label_trm t }). constructor*.
-      * constructor.
-      * simpl in H2. pose proof (opening_preserves_labels z H1 H).
-        rewrite* H0.
+  apply rcd_mutind; intros; invert_open; simpls.
+  - apply open_fresh_typ_dec_injective in H4; auto. subst. constructor.
+  - constructor*. rewrite* <- open_dec_preserves_label.
+  - invert_open. simpls. constructor*. rewrite* <- open_dec_preserves_label.
 Qed.
 
 (** If [T] is a record type with labels [ls], and [T = ... /\ D /\ ...],
@@ -596,6 +621,27 @@ Proof.
   - inversions H5. inversions* H9.
 Qed.
 
+Lemma unique_rcd_trm: forall T a U1 U2,
+    record_type T ->
+    record_has T (dec_trm a U1) ->
+    record_has T (dec_trm a U2) ->
+    U1 = U2.
+Proof.
+  introv Htype Has1 Has2.
+  gen U1 U2 a.
+  destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Has1; inversion Has2; subst.
+  - inversion* H3.
+  - inversion* H5.
+  - eapply record_typ_has_label_in with (D:=dec_trm a U1) in Htyp.
+    + inversions H9. false* H1.
+    + assumption.
+  - apply record_typ_has_label_in with (D:=dec_trm a U2) in Htyp.
+    + inversions H5. false* H1.
+    + inversions H5. lets Hr: (record_typ_has_label_in Htyp H9).
+      false* H1.
+  - inversions H5. inversions* H9.
+Qed.
+
 (** [ds = ... /\ {a = t} /\ ...]  #<br>#
     [ds = ... /\ {a = t'} /\ ...] #<br>#
     [―――――――――――――――――――――――――] #<br>#
@@ -619,6 +665,13 @@ Lemma precise_to_general: forall G t T,
     G ⊢ t : T.
 Proof.
   intros. induction H; intros; subst; eauto.
+Qed.
+
+Lemma inv_to_tight: forall G p T,
+    G ⊢## p: T ->
+    G ⊢# trm_path p: T.
+Proof.
+  introv Ht. induction Ht; eauto. dependent induction H; eauto. constructor; auto.
 Qed.
 
 (** Tight typing implies general typing. *)
@@ -670,6 +723,13 @@ Lemma last_field : forall p a x bs,
     exists bs', bs = a :: bs'.
 Proof.
   introv Heq. destruct* p. inversion* Heq.
+Qed.
+
+Lemma invert_path_sel : forall p q a b,
+    p • a = q • b -> p = q /\ a = b.
+Proof.
+  introv Heq. destruct p as [x1 bs1]. destruct q as [x2 bs2].
+  induction bs1; inversion* Heq.
 Qed.
 
 (** If a variable can be typed in an environment,
