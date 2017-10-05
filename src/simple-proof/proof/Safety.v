@@ -86,10 +86,7 @@ Proof.
     destruct (canonical_forms_fun Hi Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
     inversions Hr.
     apply (binds_func H3) in Bis. inversions Bis.
-    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
-    rewrite subst_intro_typ with (x:=y); auto.
-    rewrite subst_intro_trm with (x:=y); auto.
-    eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
+    pick_fresh y. apply* renaming_typ.
   - Case "ty_new_elim".
     destruct (canonical_forms_obj Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
     inversions Hr.

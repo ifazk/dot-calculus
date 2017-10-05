@@ -40,6 +40,38 @@ Qed.
 
 (** * Lemmas About Opening *)
 
+Lemma open_var_path_eq : forall x p n,
+    open_rec_path n x p = open_rec_path_p n (pvar x) p.
+Proof.
+  intros. destruct p, a. simpl. repeat case_if*. rewrite* app_nil_r.
+  simpl. reflexivity.
+Qed.
+
+Lemma open_var_typ_dec_eq: forall x,
+    (forall T : typ, forall n : nat,
+          open_rec_typ n x T = open_rec_typ_p n (pvar x) T) /\
+    (forall D : dec, forall n : nat,
+          open_rec_dec n x D = open_rec_dec_p n (pvar x) D).
+Proof.
+  intros. apply typ_mutind; unfold open_typ, open_typ_p; simpl; intros; auto;
+            try solve [rewrite* H; rewrite* H0].
+  unfold open_rec_avar, open_rec_avar_p. rewrite* open_var_path_eq.
+Qed.
+
+Lemma open_var_typ_eq: forall x T,
+  open_typ x T = open_typ_p (pvar x) T.
+Proof.
+  intros. apply open_var_typ_dec_eq.
+Qed.
+
+Lemma open_var_dec_eq: forall x D,
+  open_dec x D = open_dec_p (pvar x) D.
+Proof.
+  intros. apply open_var_typ_dec_eq.
+Qed.
+
+Hint Rewrite open_var_typ_eq open_var_dec_eq open_var_path_eq.
+
 (** The following [open_fresh_XYZ_injective] lemmas state that given two
     symbols (variables, types, terms, etc.) [X] and [Y] and a variable [z],
     if [z \notin fv(X)] and [z \notin fv(Y)], then [X^z = Y^z] implies [X = Y]. *)

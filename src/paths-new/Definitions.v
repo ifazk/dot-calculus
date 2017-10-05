@@ -168,7 +168,7 @@ Definition open_rec_avar (k: nat) (u: var) (a: avar) : avar :=
   | avar_f x => avar_f x
 end.
 
-Fixpoint open_rec_path (k: nat) (u: var) (p: path): path :=
+Definition open_rec_path (k: nat) (u: var) (p: path): path :=
   match p with
   | p_sel x bs => p_sel (open_rec_avar k u x) bs
   end.
@@ -234,7 +234,7 @@ Definition open_rec_avar_p (k: nat) (u: path) (a: avar) : path :=
 
 (* example:            (0.a.b    ^ y.c.d    == y.c.d.a.b
    our representation: (0 [b, a] ^ y [d, c] == y [b, a, d, c] *)
-Fixpoint open_rec_path_p (k: nat) (u: path) (p: path): path :=
+Definition open_rec_path_p (k: nat) (u: path) (p: path): path :=
   match p, u with
   | p_sel x bs, p_sel y cs=>
     match x with
@@ -291,7 +291,7 @@ Definition open_val_p  u v := open_rec_val_p   0 u v.
 Definition open_def_p  u d := open_rec_def_p   0 u d.
 Definition open_defs_p u l := open_rec_defs_p 0 u l.
 
-(**
+
 (** * Local Closure
 
   Our definition of [trm] accepts terms that contain de Bruijn indices that are unbound.
@@ -304,6 +304,11 @@ Inductive lc_var : avar -> Prop :=
 | lc_var_x : forall x,
     lc_var (avar_f x).
 
+Inductive lc_path : path -> Prop :=
+| lc_p: forall x bs,
+    lc_var x ->
+    lc_path (p_sel x bs).
+
 (** Locally closed types and declarations. *)
 Inductive lc_typ : typ -> Prop :=
 | lc_typ_top : lc_typ typ_top
@@ -315,9 +320,9 @@ Inductive lc_typ : typ -> Prop :=
     lc_typ T1 ->
     lc_typ T2 ->
     lc_typ (typ_and T1 T2)
-| lc_typ_sel : forall x L,
-    lc_var x ->
-    lc_typ (typ_sel x L)
+| lc_typ_path : forall p L,
+    lc_path p ->
+    lc_typ (typ_path p L)
 | lc_typ_bnd : forall T,
     (forall x, lc_typ (open_typ x T)) ->
     lc_typ (typ_bnd T)
@@ -336,19 +341,16 @@ with lc_dec : dec -> Prop :=
 
 (** Locally closed terms, values, and definitions. *)
 Inductive lc_trm : trm -> Prop :=
-| lc_trm_var : forall a,
-    lc_var a ->
-    lc_trm (trm_var a)
+| lc_trm_path : forall p,
+    lc_path p ->
+    lc_trm (trm_path p)
 | lc_trm_val : forall v,
     lc_val v ->
     lc_trm (trm_val v)
-| lc_trm_sel : forall x a,
-    lc_var x ->
-    lc_trm (trm_sel x a)
-| lc_trm_app : forall f a,
-    lc_var f ->
-    lc_var a ->
-    lc_trm (trm_app f a)
+| lc_trm_app : forall f p,
+    lc_path f ->
+    lc_path p ->
+    lc_trm (trm_app f p)
 | lc_trm_let : forall t1 t2,
     lc_trm t1 ->
     (forall x, lc_trm (open_trm x t2)) ->
@@ -383,7 +385,6 @@ Inductive lc_sto : sto -> Prop :=
     lc_sto s ->
     lc_val v ->
     lc_sto (s & x ~ v).
-*)
 
 (** * Free variables
       Functions that retrieve the free variables of a symbol. *)

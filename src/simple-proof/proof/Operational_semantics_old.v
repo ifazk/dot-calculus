@@ -231,13 +231,13 @@ Inductive ty_ec_trm: ctx -> ec -> trm -> typ -> Prop :=
 | ty_e_hole : forall G s t T,
     inert G ->
     G ~~ s ->
-    G |- t : T ->
+    G ⊢ t : T ->
     ty_ec_trm G (e_hole s) t T
 | ty_e_term : forall L G s u t T U,
     inert G ->
     G ~~ s ->
-    G |- t : T ->
-    (forall x, x \notin L -> G & x ~ T |- (open_trm x u) : U) ->
+    G ⊢ t : T ->
+    (forall x, x \notin L -> G & x ~ T ⊢ (open_trm x u) : U) ->
     ty_ec_trm G (e_term s u) t U.
 
 Hint Constructors
@@ -280,4 +280,4 @@ Inductive closed_ec_typing : ec -> trm -> typ -> Prop :=
 | cet: forall G e t T, ty_ec_trm G e t T ->
   closed_ec_typing e t T.
 
-Notation "'|-' e '[' t ']:' T" := (closed_ec_typing e t T) (at level 40, t at level 59).
+Notation "'⊢' e '[' t ']:' T" := (closed_ec_typing e t T) (at level 40, t at level 59).

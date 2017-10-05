@@ -8,8 +8,8 @@ Set Implicit Arguments.
 
 Require Import Coq.Program.Equality.
 Require Import LibLN.
-Require Import Definitions Weakening Narrowing Helper_lemmas Precise_types.
-Require Import Substitution Canonical_forms Operational_semantics_old.
+Require Import Definitions Weakening Narrowing Helper_lemmas Precise_types
+               Substitution Canonical_forms Operational_semantics_old.
 
 (** * Normal Forms
 A normal form is defined in the WadlerFest DOT paper as:
