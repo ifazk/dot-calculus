@@ -115,11 +115,11 @@ with defs : Set :=
 Definition pavar (x: avar) := p_sel x nil.
 Definition pvar (x: var) := p_sel (avar_f x) nil.
 Definition tvar (x: var) := trm_path (pvar x).
-Definition sel_field (p : path) (b : trm_label) :=
+Definition sel_fields (p : path) (bs : list trm_label) :=
   match p with
-  | p_sel x bs => p_sel x (b :: bs)
+  | p_sel x bs' => p_sel x (bs ++ bs')
   end.
-Notation "p '•' a" := (sel_field p a) (at level 5).
+Notation "p '•' a" := (sel_fields p (a :: nil)) (at level 5).
 
 (** Helper functions to retrieve labels of declarations and definitions *)
 

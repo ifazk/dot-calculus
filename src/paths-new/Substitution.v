@@ -6,42 +6,44 @@
 
 Set Implicit Arguments.
 
+Require Import List.
 Require Import LibLN.
-Require Import Definitions.
-Require Import Weakening.
+Require Import Definitions Weakening.
 
 (** * Definitions *)
 
 (** Substitution on variables: [a[u/z]] (substituting [z] with [u] in [a]). *)
 
-Definition subst_var (z: var) (u: var) (x: var): var :=
-  If x = z then u else x.
+Definition subst_var (z: var) (u: path) (x: var): path :=
+  If x = z then u else (pvar x).
 
 Hint Unfold subst_var.
 
-Definition subst_avar (z: var) (u: var) (a: avar) : avar :=
+Definition subst_avar (z: var) (u: path) (a: avar) : path :=
   match a with
-  | avar_b i => avar_b i
-  | avar_f x => avar_f (subst_var z u x)
+  | avar_b i => p_sel (avar_b i) nil
+  | avar_f x => subst_var z u x
   end.
 
-Fixpoint subst_path (z: var) (u: var) (p: path) : path :=
+(* p    [u / z] where p = x.bs:
+   x.bs [u / z] == x [u / z] . bs *)
+Fixpoint subst_path (z: var) (u: path) (p: path) : path :=
   match p with
-  | p_sel x bs => p_sel (subst_avar z u x) bs
+  | p_sel x bs => sel_fields (subst_avar z u x) bs
   end.
 
 (** Substitution on types and declarations: [T[u/z]] and [D[u/z]]. *)
-Fixpoint subst_typ (z: var) (u: var) (T: typ) { struct T } : typ :=
+Fixpoint subst_typ (z: var) (u: path) (T: typ) { struct T } : typ :=
   match T with
   | typ_top        => typ_top
   | typ_bot        => typ_bot
   | typ_rcd D      => typ_rcd (subst_dec z u D)
   | typ_and T1 T2  => typ_and (subst_typ z u T1) (subst_typ z u T2)
-  | typ_path x L    => typ_path (subst_path z u x) L
+  | typ_path q L    => typ_path (subst_path z u q) L
   | typ_bnd T      => typ_bnd (subst_typ z u T)
   | typ_all T U    => typ_all (subst_typ z u T) (subst_typ z u U)
   end
-with subst_dec (z: var) (u: var) (D: dec) { struct D } : dec :=
+with subst_dec (z: var) (u: path) (D: dec) { struct D } : dec :=
   match D with
   | dec_typ L T U => dec_typ L (subst_typ z u T) (subst_typ z u U)
   | dec_trm L U => dec_trm L (subst_typ z u U)
@@ -49,31 +51,31 @@ with subst_dec (z: var) (u: var) (D: dec) { struct D } : dec :=
 
 (** Substitution on terms, values, and definitions:
     [t[u/z]], [v[u/z]], [d[u/z]]. *)
-Fixpoint subst_trm (z: var) (u: var) (t: trm) : trm :=
+Fixpoint subst_trm (z: var) (u: path) (t: trm) : trm :=
   match t with
   | trm_val v        => trm_val (subst_val z u v)
   | trm_path p       => trm_path (subst_path z u p)
   | trm_app x1 x2    => trm_app (subst_path z u x1) (subst_path z u x2)
   | trm_let t1 t2    => trm_let (subst_trm z u t1) (subst_trm z u t2)
   end
-with subst_val (z: var) (u: var) (v: val) : val :=
+with subst_val (z: var) (u: path) (v: val) : val :=
   match v with
   | val_new T ds     => val_new (subst_typ z u T) (subst_defs z u ds)
   | val_lambda T t   => val_lambda (subst_typ z u T) (subst_trm z u t)
   end
-with subst_def (z: var) (u: var) (d: def) : def :=
+with subst_def (z: var) (u: path) (d: def) : def :=
   match d with
   | def_typ L T => def_typ L (subst_typ z u T)
   | def_trm L t => def_trm L (subst_trm z u t)
   end
-with subst_defs (z: var) (u: var) (ds: defs) : defs :=
+with subst_defs (z: var) (u: path) (ds: defs) : defs :=
   match ds with
   | defs_nil => defs_nil
   | defs_cons rest d => defs_cons (subst_defs z u rest) (subst_def z u d)
   end.
 
 (** Substitution on the types of a typing environment: [G[u/z]]. *)
-Definition subst_ctx (z: var) (u: var) (G: ctx) : ctx :=
+Definition subst_ctx (z: var) (u: path) (G: ctx) : ctx :=
   map (subst_typ z u) G.
 
 (** * Lemmas *)
@@ -84,7 +86,7 @@ Definition subst_ctx (z: var) (u: var) (G: ctx) : ctx :=
 (** Fresh substitution
     - in variables *)
 Lemma subst_fresh_avar: forall x y,
-  (forall a: avar, x \notin fv_avar a -> subst_avar x y a = a).
+  (forall a: avar, x \notin fv_avar a -> subst_avar x y a = p_sel a nil).
 Proof.
   intros. destruct* a. simpl. autounfold. case_var*. simpls. notin_false.
 Qed.
@@ -93,8 +95,7 @@ Lemma subst_fresh_path : forall x y p,
     x \notin fv_path p ->
     subst_path x y p = p.
 Proof.
-  intros. destruct p. simpl. f_equal. apply* subst_fresh_avar.
-Qed.
+  intros. destruct p. simpls. unfold subst_path. destruct a. Admitted.
 
 (** - in types, declarations, paths *)
 Lemma subst_fresh_typ_dec: forall x y,
@@ -104,7 +105,7 @@ Proof.
   intros x y. apply typ_mutind; intros; simpls; f_equal*. apply* subst_fresh_path.
 Qed.
 
-Definition subst_fresh_typ(x y: var) := proj1 (subst_fresh_typ_dec x y).
+Definition subst_fresh_typ x p := proj1 (subst_fresh_typ_dec x p).
 
 (** - in terms, values, and definitions *)
 Lemma subst_fresh_trm_val_def_defs: forall x y,
