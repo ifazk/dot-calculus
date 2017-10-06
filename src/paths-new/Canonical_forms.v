@@ -255,18 +255,10 @@ Proof.
   lets Htt: (general_to_tight_typing Hi Ht).
   lets Hinv: (tight_to_invertible_v Hi Htt).
   inversions Hinv. inversions H.
-  pick_fresh z. assert (z \notin L) as Hz by auto.
+  pick_fresh z.
+  assert (z \notin L) as Hz by auto.
   specialize (H3 z Hz).
-
-  Lemma renaming: forall ,
-      z; bs; P; G & z ~ open_typ z T ⊢ open_defs z ds :: open_typ z T ->
-      x; bs; P; G ⊢ open_defs x ds :: open_typ x T.
-
-  assert (x; nil; P; G ⊢ open_defs x ds :: open_typ x T) as Hds. {
-    rewrite open_var_typ_eq. rewrite subst_intro_typ with (x:=z). rewrite subst_intro_defs with (x:=z).
-    eapply subst_ty_defs. eapply H3. apply* ok_push. auto.
-    rewrite* <- subst_intro_typ. auto. auto.
-  }
+  assert (x; nil; P; G ⊢ open_defs x ds :: open_typ x T) as Hds by apply* renaming_def.
   destruct (record_has_ty_defs Hds Hr) as [d [Hh Hd]]. inversions Hd.
   exists t ds. split*.
 Qed.

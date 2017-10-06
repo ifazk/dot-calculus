@@ -76,6 +76,32 @@ Hint Rewrite open_var_typ_eq open_var_dec_eq open_var_path_eq.
     symbols (variables, types, terms, etc.) [X] and [Y] and a variable [z],
     if [z \notin fv(X)] and [z \notin fv(Y)], then [X^z = Y^z] implies [X = Y]. *)
 
+Lemma open_var_trm_val_def_eq : forall x,
+  (forall t n,
+      open_rec_trm n x t = open_rec_trm_p n (pvar x) t) /\
+  (forall v n,
+      open_rec_val n x v = open_rec_val_p n (pvar x) v) /\
+  (forall d n,
+      open_rec_def n x d = open_rec_def_p n (pvar x) d) /\
+  (forall ds n,
+      open_rec_defs n x ds = open_rec_defs_p n (pvar x) ds).
+Proof.
+  introv. apply trm_mutind; intros; simpl; f_equal*;
+            try (rewrite* open_var_path_eq); rewrite* (proj1 (open_var_typ_dec_eq x)).
+Qed.
+
+Lemma open_var_defs_eq: forall x ds,
+    open_defs x ds = open_defs_p (pvar x) ds.
+Proof.
+  intros. apply* open_var_trm_val_def_eq.
+Qed.
+
+Lemma open_var_trm_eq: forall x t,
+    open_trm x t = open_trm_p (pvar x) t.
+Proof.
+  intros. apply* open_var_trm_val_def_eq.
+Qed.
+
 (** - variables *)
 Lemma open_fresh_avar_injective : forall x y k z,
     z \notin fv_avar x ->
