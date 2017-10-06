@@ -593,3 +593,27 @@ Proof.
     auto.
   - unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption.
 Qed.*)
+
+Lemma renaming_def: forall G z T ds x,
+    ok G ->
+    z # G ->
+    z \notin (fv_ctx_types G \u fv_defs ds \u fv_typ T) ->
+    y; bs; P; G & z ~ open_typ z T ⊢ open_defs z ds :: open_typ z T ->
+    G ⊢ trm_var (avar_f x) : open_typ x T ->
+    y; bs; P; G ⊢ open_defs x ds :: open_typ x T.
+Proof.
+  introv Hok Hnz Hnz' Hz Hx. rewrite subst_intro_typ with (x:=z). rewrite subst_intro_defs with (x:=z).
+  eapply subst_ty_defs; auto. eapply Hz. rewrite* <- subst_intro_typ. all: auto.
+Qed.
+
+Lemma renaming_typ: forall G z T U t x,
+    ok G ->
+    z # G ->
+    z \notin (fv_ctx_types G \u fv_typ U \u fv_typ T \u fv_trm t) ->
+    G & z ~ U ⊢ open_trm z t : open_typ z T ->
+    G ⊢ trm_var (avar_f x) : U ->
+    G ⊢ open_trm x t : open_typ x T.
+Proof.
+  introv Hok Hnz Hnz' Hz Hx. rewrite subst_intro_typ with (x:=z). rewrite subst_intro_trm with (x:=z).
+  eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ. all: auto.
+Qed.
