@@ -320,7 +320,7 @@ Ltac subst_solver :=
     subst_open_fresh;
     match goal with
     | [ H: forall z, z \notin ?L -> forall G, _
-        |- context [_ & subst_ctx ?x ?y ?G2 & ?z ~ subst_typ ?x ?y ?V] ] =>
+        |- context [ _ & subst_ctx ?x ?y ?G2 & ?z ~ subst_typ ?x ?y ?V] ] =>
         assert (subst_ctx x y G2 & z ~ subst_typ x y V = subst_ctx x y (G2 & z ~ V)) as B
             by (unfold subst_ctx; rewrite map_concat, map_single; reflexivity);
         rewrite <- concat_assoc; rewrite B;
