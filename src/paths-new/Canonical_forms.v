@@ -9,16 +9,10 @@
 
 Set Implicit Arguments.
 
-Require Import Coq.Program.Equality.
+Require Import Coq.Program.Equality List.
 Require Import LibLN.
-Require Import Definitions.
-Require Import Narrowing.
-Require Import Helper_lemmas.
-Require Import Precise_types.
-Require Import Invertible_typing.
-Require Import General_to_tight.
-Require Import Substitution.
-Require Import Weakening.
+Require Import Definitions Narrowing Helper_lemmas Precise_types Invertible_typing
+        General_to_tight Substitution Weakening.
 
 (** [G ~~ s]            #<br>#
     [G(x) = T]          #<br>#
@@ -259,8 +253,11 @@ Proof.
   assert (z \notin L) as Hz by auto.
   specialize (H3 z Hz).
   assert (x; nil; P; G ⊢ open_defs x ds :: open_typ x T) as Hds by apply* renaming_def.
-  destruct (record_has_ty_defs Hds Hr) as [d [Hh Hd]]. inversions Hd.
-  exists t ds. split*.
+  destruct (record_has_ty_defs Hds Hr) as [d [Hh Hd]]. inversions Hd; eauto.
+  exists (trm_val (val_new T0 ds0)) ds. repeat split*.
+  econstructor. intros. rewrite open_var_defs_eq. rewrite open_var_typ_eq.
+  simpls.  lets Hrs: (record_has_sel_typ Hx Hr). apply ty_rec_elim in Hrs.
+
 Qed.
 
 (** * Canonical Forms for Objects

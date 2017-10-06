@@ -106,3 +106,11 @@ Lemma weaken_subtyp: forall G1 G2 S U,
 Proof.
   weaken_specialize.
 Qed.
+
+Lemma weaken_ty_defs: forall G1 G2 z bs P ds T,
+    z; bs; P; G1 ⊢ ds :: T ->
+    ok (G1 & G2) ->
+    z; bs; P; G1 & G2 ⊢ ds :: T.
+Proof.
+  weaken_specialize.
+Qed.

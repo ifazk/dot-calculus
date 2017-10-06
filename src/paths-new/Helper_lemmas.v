@@ -715,6 +715,14 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma record_has_sel_typ: forall G p T a U,
+    G ⊢ trm_path p : T ->
+    record_has T (dec_trm a U) ->
+    G ⊢ trm_path (p • a) : U.
+Proof.
+  introv Hp Hr. dependent induction Hr; eauto.
+Qed.
+
 (** * Conversion into General Typing *)
 
 (** Precise typing implies general typing. *)
