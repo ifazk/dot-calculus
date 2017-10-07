@@ -64,15 +64,272 @@ Proof with auto.
       apply IHds...
 Qed.
 
-Lemma open_rec_eval_to_open_rec : forall k e x t t' L,
-  x \notin L ->
-  e[ open_rec_trm k x t |-> t'] ->
-  exists f, (x \notin (fv_trm f)) /\ t' = open_rec_trm k x f.
+
+Lemma open_bound_lc_typ : forall k x T,
+    (forall y, lc_typ (open_typ y T)) ->
+    open_rec_typ (S k) x T = T.
 Proof.
-  intros. generalize dependent k.
-  generalize dependent e. generalize dependent x.
-  generalize dependent t'. generalize dependent L.
-  induction t; intros; try (solve [inversion H0]).
+  intros. specialize (H x).
+  apply (proj1 (lc_opening_typ_dec x)) with (n:=S k) in H.
+  eapply (proj1 (lc_open_rec_open_typ_dec x _)).
+  - instantiate (1 := 0). auto.
+  - eassumption.
+Qed.
+Hint Resolve open_bound_lc_typ.
+
+Lemma open_bound_lc_trm : forall k x t,
+    (forall y, lc_trm (open_trm y t)) ->
+    open_rec_trm (S k) x t = t.
+Proof.
+  intros. specialize (H x).
+  apply lc_opening with (n:=S k) (x:=x) in H.
+  eapply (proj1 (lc_open_rec_open_trm_val_def_defs x _)).
+  - instantiate (1 := 0). auto.
+  - eassumption.
+Qed.
+Hint Resolve open_bound_lc_trm.
+
+
+Lemma close_rec_typ_dec_no_capture : forall x,
+    (forall T k, x \notin fv_typ (close_rec_typ k x T)) /\
+    (forall D k, x \notin fv_dec (close_rec_dec k x D)).
+Proof.
+  intros x.
+  apply typ_mutind; intros; simpl; auto;
+    match goal with
+    | [ |- _ \notin fv_avar (close_rec_avar _ _ ?a) ] => destruct a
+    end; simpl;
+      try case_if; unfold fv_avar; auto.
+Qed.
+
+
+Lemma close_rec_trm_val_def_defs_no_capture: forall x,
+    (forall t k, x \notin fv_trm (close_rec_trm k x t)) /\
+    (forall v k, x \notin fv_val (close_rec_val k x v)) /\
+    (forall d k, x \notin fv_def (close_rec_def k x d)) /\
+    (forall ds k, x \notin fv_defs (close_rec_defs k x ds)).
+Proof.
+  intro x.
+  apply trm_mutind; intros; simpl; auto;
+    try apply notin_union; 
+    repeat split;
+    try applys close_rec_typ_dec_no_capture;
+    repeat
+      match goal with
+      | [ |- _ \notin fv_avar (close_rec_avar _ _ ?a) ] => destruct a; simpl
+      end;
+    repeat case_if; unfold fv_avar; auto.
+Qed.
+
+
+Lemma open_left_inverse_close_typ_dec: forall k,
+  (forall T x, lc_typ T -> x \notin fv_typ T -> open_rec_typ k x (close_rec_typ k x T) = T) /\
+  (forall D x, lc_dec D -> x \notin fv_dec D -> open_rec_dec k x (close_rec_dec k x D) = D).
+Proof with auto.
+  intro k. apply typ_mutind; intros; simpl in *; auto.
+  - inversion H0. rewrite H...
+  - inversion H1. rewrite H... rewrite H0...
+  - inversion H. inversion H2.
+    simpl. case_if; simpl; subst; try case_if...
+  - inversion H0. 
+    specialize (H3 x).
+    apply (proj1 (lc_opening_typ_dec x)) with (n:=S k) in H3.
+    admit.
+  - inversion H1. rewrite H... admit.
+  - inversion H1. rewrite H... rewrite H0...
+  - inversion H0. rewrite H...
+Qed.
+
+
+Lemma open_left_inverse_close_trm_val_def_defs :
+  (forall t k x, lc_trm t -> x \notin fv_trm t -> open_rec_trm k x (close_rec_trm k x t) = t) /\
+  (forall v k x, lc_val v -> x \notin fv_val v -> open_rec_val k x (close_rec_val k x v) = v) /\
+  (forall d k x, lc_def d -> x \notin fv_def d -> open_rec_def k x (close_rec_def k x d) = d) /\
+  (forall ds k x, lc_defs ds -> x \notin fv_defs ds -> open_rec_defs k x (close_rec_defs k x ds) = ds).
+Proof with auto.
+  apply trm_mutind; intros; simpl in *; auto;
+    repeat
+      match goal with
+      | [ H : _ \notin _ \u _ |- _ ] => apply notin_union in H; destruct H
+      end;
+    try solve [
+          repeat
+            match goal with
+            | [ H: lc_trm (trm_var _) |- _ ] => inversion H; clear H
+            | [ H: lc_trm (trm_sel _ _) |- _ ] => inversion H; clear H
+            | [ H: lc_trm (trm_app _ _) |- _ ] => inversion H; clear H
+            | [ H: lc_var _ |- _ ] => inversion H; clear H
+            end; simpl; repeat case_if; simpl; subst; try case_if; auto].
+  - inversion H0. rewrite H...
+  - inversion H1. rewrite H... admit.
+  - inversion H0. admit.
+  - inversion H0. subst. rewrite (proj1 (open_left_inverse_close_typ_dec _))...
+    admit.
+  - inversion H. rewrite (proj1 (open_left_inverse_close_typ_dec _))...
+  - inversion H0. rewrite H...
+  - inversion H1. rewrite H... rewrite H0...
+Qed.
+    
+(* Ltac optrm_struct H := *)
+(*   (try match type of H with *)
+(*        | open_trm _ _ => unfold open_trm in H *)
+(*        end); *)
+(*   (try match type of H with *)
+(*        | _ = open_rec_trm _ _ _ => symmetry in H *)
+(*        end); *)
+(*   match type of H with *)
+(*   | open_rec_trm _ _ ?t = _ => destruct t; simpl in H; inversion H *)
+(*   end. *)
+
+(* Lemma open_rec_eval_to_open_rec : forall k e x t t' v, *)
+(*     x \notin dom e \u fv_trm t \u fv_val v -> *)
+(*     lc_sto e -> lc_val v -> *)
+(*     e & x ~ v[ open_rec_trm k x t |-> t'] -> *)
+(*     exists f, (* (x \notin (fv_trm f)) /\ *) t' = open_rec_trm k x f. *)
+(* Proof. *)
+  (* intros. gen k e x t' v. *)
+  (* induction t; intros; inversion H2; subst. *)
+  (*   (* try solve [ *) *)
+  (*   (*       match goal with *) *)
+  (*   (*       | [ H : _ [ _ |-> _ ] |- _ ] => inversion H *) *)
+  (*   (*       end]. *) *)
+  (* - pose proof H9 as Hop. *)
+  (*   apply open_rec_defs_has_open_rec_trm in H9. destruct_all. subst. *)
+  (*   apply binds_push_inv in H7; destruct_all; subst; *)
+  (*     repeat *)
+  (*       match goal with *)
+  (*       | [ H : binds _ _ e |- _ ] => apply lc_sto_binds_inv in H; auto *)
+  (*       | [ H : lc_val (val_new _ _) |- _ ] => inversion H; clear H; subst *)
+  (*       | [ H : forall _, lc_defs _, *)
+  (*             Hdefs : defs_has (open_defs ?x _) _ |- _ ] => *)
+  (*         specialize (H x); apply (lc_defs_has H) in Hdefs; inversion Hdefs; subst *)
+  (*       end; *)
+  (*     eexists; rewrite (proj1 (lc_opening_trm_val_def_defs _)) with (n:=k); auto. *)
+  (* - apply binds_push_inv in H8; destruct_all; subst; *)
+  (*     repeat *)
+  (*       match goal with *)
+  (*       | [ H : binds _ _ e |- _ ] => apply lc_sto_binds_inv in H; auto *)
+  (*       | [ H : lc_val (val_lambda _ _) |- _ ] => inversion H; clear H *)
+  (*       | [ H : forall _, lc_trm _ |- _ ] => specialize (H y) *)
+  (*       end; *)
+  (*     eexists; rewrite (proj1 (lc_opening_trm_val_def_defs x)); auto. *)
+  (* - optrm_struct H3. unfold open_rec_avar in H5. *)
+
+Lemma open_rec_eval_to_open_rec : forall e x t t' v,
+    x \notin dom e \u fv_trm t \u fv_val v ->
+    lc_sto e -> lc_val v ->
+    e & x ~ v[ open_trm x t |-> t'] ->
+    exists f, (x \notin (fv_trm f)) /\ t' = open_trm x f.
+Proof.
+(*   intros. gen e x t' v. *)
+(*   induction t; intros; inversion H2; subst. *)
+(*     (* try solve [ *) *)
+(*     (*       match goal with *) *)
+(*     (*       | [ H : _ [ _ |-> _ ] |- _ ] => inversion H *) *)
+(*     (*       end]. *) *)
+(*   - pose proof H9 as Hop. *)
+(*     apply open_rec_defs_has_open_rec_trm in H9. destruct_all. subst. *)
+(*     apply binds_push_inv in H7; destruct_all; subst; *)
+(*       repeat *)
+(*         match goal with *)
+(*         | [ H : binds _ _ e |- _ ] => apply lc_sto_binds_inv in H; auto *)
+(*         | [ H : lc_val (val_new _ _) |- _ ] => inversion H; clear H; subst *)
+(*         | [ H : forall _, lc_defs _, *)
+(*               Hdefs : defs_has (open_defs ?x _) _ |- _ ] => *)
+(*           specialize (H x); apply (lc_defs_has H) in Hdefs; inversion Hdefs; subst *)
+(*         end. *)
+(*     + exists x1. *)
+    
+  (*     match goal with *)
+  (*     | [ |- exists _, _ /\ ?l = (open_trm ?x _) ] => exists l; split; *)
+  (*                                               [ |symmetry; *)
+  (*                                               apply (proj1 (lc_opening_trm_val_def_defs x)); auto] *)
+  (*     end. *)
+  (* - apply binds_push_inv in H8; destruct_all; subst; *)
+  (*     repeat *)
+  (*       match goal with *)
+  (*       | [ H : binds _ _ e |- _ ] => apply lc_sto_binds_inv in H; auto *)
+  (*       | [ H : lc_val (val_lambda _ _) |- _ ] => inversion H; clear H *)
+  (*       | [ H : forall _, lc_trm _ |- _ ] => specialize (H y) *)
+  (*       end; *)
+  (*     match goal with *)
+  (*     | [ |- exists _, ?l = (open_trm ?x _) ] => exists l; symmetry; *)
+  (*                                           apply (proj1 (lc_opening_trm_val_def_defs x)); auto *)
+  (*     end. *)
+  (* - inversion H7. specialize (H8 y). *)
+  (*   match goal with *)
+  (*   | [ |- exists _, ?l = (open_trm ?x _) ] => exists l; symmetry; *)
+  (*                                         apply (proj1 (lc_opening_trm_val_def_defs x)); auto *)
+  (*   end. *)
+  (* - *)
+    
+
+    
+  (* introv Hx Hlce Hlcv He. dependent induction He. *)
+  (* - exists (open_trm y t0). *)
+  (*   split. *)
+  (*   + admit. *)
+  (*   + *)
+  (*   apply binds_push_inv in H0; destruct_all; subst; *)
+  (*     repeat *)
+  (*       match goal with *)
+  (*       | [ H : binds _ _ e |- _ ] => apply lc_sto_binds_inv in H; auto *)
+  (*       | [ H : lc_val (val_lambda _ _) |- _ ] => inversion H; clear H *)
+  (*       | [ H : forall _, lc_trm _ |- _ ] => specialize (H y) *)
+  (*       end; *)
+  (*     rewrite (proj1 (lc_opening_trm_val_def_defs x1)); auto. *)
+  (* - admit. *)
+  (*   (* pose proof H1. apply open_rec_defs_has_open_rec_trm in H1. *) *)
+  (*   (* apply binds_push_inv in H0; destruct_all; subst; *) *)
+  (*   (*   repeat *) *)
+  (*   (*     match goal with *) *)
+  (*   (*     | [ H : binds _ _ e |- _ ] => apply lc_sto_binds_inv in H; auto *) *)
+  (*   (*     | [ H : lc_val (val_new _ _) |- _ ] => inversion H; clear H; subst *) *)
+  (*   (*     | [ H : forall _, lc_defs _, Hdefs : defs_has (open_defs ?x _) _ |- _ ] => *) *)
+  (*   (*       specialize (H x); apply (lc_defs_has H) in Hdefs; inversion Hdefs; subst *) *)
+  (*   (*     | [ |- exists _, open_rec_trm _ ?x ?t = open_rec_trm ?k ?y _ ] => *) *)
+  (*   (*       exists (open_trm x t); rewrite (proj1 (lc_opening_trm_val_def_defs y)) with (n:= k); auto *) *)
+  (*   (*     end. *) *)
+  (* - rename x into Hop. destruct t; simpl in Hop; inversion Hop. *)
+
+(*     admit. *)
+(*   - admit. *)
+(*   - admit. *)
+(*   - admit. *)
+(* Qed. *)
+  
+(*   intros. gen k e x t' v. induction t; intros. *)
+(*   - inversion H2. *)
+(*   - inversion H2. *)
+(*   - unfold open_rec_trm in H2. unfold open_rec_avar in H2. *)
+(*     destruct a; [case_if |]; inversion H2; subst. *)
+(*     + apply binds_push_eq_inv in H7. subst. *)
+(*       exists t'. destruct (open_rec_defs_has_open_rec_trm _ _ _ H9). *)
+(*       subst. *)
+
+
+(*       split. *)
+(*       * unfold fv_val in H. fold fv_defs in H. *)
+(*         assert (ds = open_defs x ds). { *)
+          
+(*         } *)
+    
+
+(*   (*   inversion H0. subst. *) *)
+    
+(*   (* intros. dependent induction H0; intros. *) *)
+(*   (* - exists t. split; auto. *) *)
+    
+  
+(* Lemma open_rec_eval_to_open_rec : forall e x t t' v, *)
+(*   x \notin dom e \u fv_trm t \u fv_val v -> *)
+(*   e & x ~ v[ open_trm x t |-> t'] -> *)
+(*   exists f, (x \notin (fv_trm f)) /\ t' = open_trm x f. *)
+(* Proof. *)
+(*   introv Hx He. dependent induction He. *)
+(*   -  *)
+  
+(*   (* induction t; intros; try (solve [inversion H0]). *) *)
 Admitted.
 
 Lemma subenv_empty_supremum : forall G, subenv G empty.
@@ -160,32 +417,43 @@ Proof.
 Qed.
 Hint Resolve indc_subenv_push.
 
-Lemma open_lc_let_body : forall k t u x,
-    k >= 1 ->
-    lc_trm (trm_let t u) ->
-    open_rec_trm k x u = u.
+
+Lemma eval_renaming_subst : forall x y e1 e2 v t1 t2,
+    x \notin dom e1 ->
+    y \notin dom e1 \u fv_sto_vals e1 \u fv_val v \u fv_trm t1 ->
+    (e1 & x ~ v & e2)[t1 |-> t2] ->
+    (e1 & y ~ subst_val x y v & e2)[subst_trm x y t1 |-> subst_trm x y t2].
 Proof.
-  introv Hk H. inversion H.
-  specialize (H3 x).
-  pose proof H3 as H4.
-  apply lc_opening with (n:=k) (x:=x) in H3.
-  eapply (proj1 (lc_open_rec_open_trm_val_def_defs x _)).
-  - intro Contra. instantiate (1 := 0) in Contra. Coq.omega.Omega.omega.
-  - eassumption.
-Qed.
-Hint Rewrite open_lc_let_body.
-Hint Resolve open_lc_let_body.      
-  
-  
-Lemma eval_renaming: forall x y e t t1 t2,
-    x \notin (dom e) \u (fv_val t) \u (fv_trm t1) \u (fv_trm t2) ->
-    (e & x ~ t)[ open_trm x t1 |-> open_trm x t2 ] ->
-    y \notin (dom e) \u (fv_val t) \u (fv_trm t1) \u (fv_trm t2) ->
-    (e & y ~ t)[ open_trm y t1 |-> open_trm y t2 ].
-Proof. Admitted.
+  intros. dependent induction H1.
+  (* - apply binds_concat_inv in H1. *)
+
+  (*   apply binds_push_inv in H1. rewrite subst_open_commut_trm. *)
+  (*   unfold subst_fvar. simpl in *. *)
+  (*   (* destruct_all. *) *)
+  (*   (* case_if. case_if. subst. *) *)
+  (*   (* econstructor. auto. unfold subst_val. fold subst_trm. auto. *) *)
+  (*   destruct_all; repeat case_if; subst; *)
+  (*     econstructor; auto; *)
+  (*       try solve [unfold subst_val; fold subst_trm; auto]. *)
+  (*   all: instantiate (1 := T). Focus 2. *)
+    (* not enough! values in e cannot capture x! *)
+Admitted.
+
+Lemma eval_renaming: forall x y e1 v t1 t2,
+    x \notin (dom e1) \u (fv_val v) \u (fv_trm t1) \u (fv_trm t2) ->
+    (e1 & x ~ v)[ open_trm x t1 |-> open_trm x t2 ] ->
+    y \notin (dom e1) \u (fv_val v) \u (fv_trm t1) \u (fv_trm t2) ->
+    (e1 & y ~ v)[ open_trm y t1 |-> open_trm y t2 ].
+Proof.
+  intros. dependent induction H0; intros.
+  - destruct t1; inversion x2.
+
+
+Admitted.
  
 
 Lemma progress_ec: forall G' G e t T,
+    lc_sto e ->
     lc_trm t ->
     indc_subenv G' G ->
     inert G' ->
@@ -194,7 +462,7 @@ Lemma progress_ec: forall G' G e t T,
     ok G ->
     (normal_form t \/ exists t', e[t |-> t']).
 Proof with auto.
-  introv Hlc Hsenv Hig Hwf Ht Hokg. gen G' e.
+  introv Hlce Hlc Hsenv Hig Hwf Ht Hokg. gen G' e.
   induction Ht; eauto; intros.
   - Case "ty_all_elim".
     apply narrow_typing with (G':=G') in Ht1; auto.
@@ -210,33 +478,41 @@ Proof with auto.
       apply narrow_typing with (G':=G') in Ht; auto.
       destruct (var_typing_implies_avar_f Ht); subst.
       right. exists (open_trm x u). constructor...      
-    + apply val_typing in Ht.
+    + SCase "t = trm_val v".
+      apply val_typing in Ht.
       destruct Ht as [T' [H1 H2]].
       pose proof (precise_inert_typ H1) as Hpit.
       pick_fresh x.
       destruct H0 with (x:=x) (G' := G' & x ~ T') (e := e & x ~ v); auto.
       * inversion Hlc. trivial.
       * intros. eapply indc_subenv_trans; econstructor; eauto.
+      * constructor; auto. inversion Hlc. inversion H5. trivial.
       * intros. apply precise_to_general in H1.
         constructor; auto. eapply narrow_typing in H1; eauto.
       * left.
         destruct u; auto; apply open_preserve_normal_form in H3; auto.
       * right. destruct H3.
+
+        (* exists. eapply red_let_val; auto. *)
+        (* intros. *)
+        
+        
         pose proof H3.
-        apply (open_rec_eval_to_open_rec _ _ Fr) in H3.
-        destruct H3. destruct H3. subst.
+        apply open_rec_eval_to_open_rec in H3; auto.
+        destruct_all. subst.
         eexists. eapply red_let_val; auto.
         intros.
         eapply eval_renaming with (x:=x); eauto.
+        inversion Hlc. inversion H7. trivial.
     + SCase "t = trm_sel a t".
       right.
       inversion Hlc.
-      destruct (IHHt H3 Hokg G' Hsenv Hig e Hwf) as [Hnf | [t' Hr]]. inversion Hnf.
+      destruct (IHHt H3 Hokg G' Hsenv Hig e Hlce Hwf) as [Hnf | [t' Hr]]. inversion Hnf.
       eexists. constructor*.
     + SCase "t = trm_app a a0".
       right.
       inversion Hlc.
-      destruct (IHHt H3 Hokg G' Hsenv Hig e Hwf) as [Hnf | [t' Hr]]. inversion Hnf.
+      destruct (IHHt H3 Hokg G' Hsenv Hig e Hlce Hwf) as [Hnf | [t' Hr]]. inversion Hnf.
       eexists. constructor*.
     + SCase "t = trm_let t1 t2".
       right. eexists. constructor. inversion Hlc. trivial.
@@ -299,14 +575,11 @@ Proof.
          }
          rewrite H2. trivial.
     * SCase "red_let_let".
-      (* apply narrow_typing with (G':=G') in Ht; auto. *)
       clear H0 IHHt.
       assert (forall x, x \notin (L \u dom G) -> G & x ~ T ⊢ open_trm x u : U). {
         intros. assert (x \notin L); auto.
       }
       clear H.
-      
-      (* apply narrow_typing with (G' := G') in Ht; auto. *)
       dependent induction Ht.
       -- apply narrow_typing with (G' := G') in Ht; eauto.
          remember ((((((((((((L \u L0) \u dom G) \u fv_ctx_types G) \u dom G')
@@ -316,7 +589,7 @@ Proof.
          instantiate (1 := bigL) in H2.
          unfold open_trm, open_rec_trm. fold open_rec_trm.
 
-         assert (open_rec_trm 1 x u = u); eauto.
+         assert (open_rec_trm 1 x u = u); inversion H5; auto.
          rewrite H3. clear H3.
          
          rewrite HeqbigL in H2.
@@ -367,9 +640,6 @@ Proof.
       assert (x \notin L0); auto.
       inversion Hlc.
       specialize (H0 _ H3 (H14 _) H5 (G' & x ~ T') H7 H8 (e & x ~ v) H9 _ (H6 _ H10)).
-      (* remember ((((((((((((L \u L0) \u dom G) \u fv_ctx_types G) \u dom G') *)
-      (*                    \u fv_ctx_types G') \u dom e) \u fv_trm u) \u fv_trm t'0) *)
-      (*                \u fv_val v) \u fv_typ T) \u fv_typ U) \u fv_typ T') as bigL. *)
       apply_fresh ty_let as y; eauto.
 
       apply weaken_ty_trm with (G2:=(y ~ T')) in H0; auto.
