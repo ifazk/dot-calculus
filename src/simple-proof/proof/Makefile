@@ -1,7 +1,7 @@
 FILES=Safety.v
 OBJECTS=$(FILES:.v=.vo)
 
-TLCDIR=../lib/tlc/
+TLCDIR=../lib/tlc
 LIBLN=$(TLCDIR)/LibLN.vo
 TLCNAME=TLC
 
@@ -16,7 +16,7 @@ PROOFS=$(wildcard *.v)
 ##############
 
 .PHONY: all doc proofs clean cleanall
-all: proofs #doc
+all: proofs doc
 
 proofs: $(PROOFMAKEFILE)
 	$(MAKE) -f $(PROOFMAKEFILE) $(OBJECTS)
@@ -33,7 +33,7 @@ cleanall::
 	-rm $(PROOFMAKEFILE)
 
 doc:
-	$(MAKE) -f $(PROOFMAKEFILE) html
+	$(MAKE) -f $(PROOFMAKEFILE) VFILES="$(shell coqdep -sort $(FILES) | sed -e "s|\\.vo|\\.v|g")" html
 
 %.vo:
 	$(MAKE) -f $(PROOFMAKEFILE) $@
@@ -70,7 +70,7 @@ $(PROOFMAKEFILE):
 	$(COQMAKEFILE) $(COQINCLUDE) -install none -o $(PROOFMAKEFILE) $(PROOFS)
 	sed -i -e "s|mkdir -p html|mkdir -p ../doc|g" $(PROOFMAKEFILE)
 	sed -i -e "s|-d html|-d ../doc|g" $(PROOFMAKEFILE)
-#sed -i -e "s|rm -rf html|rm -rf ../doc|g" $(PROOFMAKEFILE)
+	sed -i -e "s|rm -rf html|rm -rf ../doc/*.html|g" $(PROOFMAKEFILE)
 
 graph.png: $(PROOFS)
 	coqdep -dumpgraph graph.dot *.v
