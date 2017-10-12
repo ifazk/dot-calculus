@@ -97,14 +97,14 @@ with lc_at_defs (k : nat) : defs -> Prop :=
 Hint Constructors lc_at_trm lc_at_val lc_at_def lc_at_defs.
 
 
-Notation "'rlc_var' x" := (lc_at_var 0 x) (at level 0).
-Notation "'rlc_typ' T" := (lc_at_typ 0 T) (at level 0).
-Notation "'rlc_dec' D" := (lc_at_dec 0 D) (at level 0).
+Notation "'lc_var' x" := (lc_at_var 0 x) (at level 0).
+Notation "'lc_typ' T" := (lc_at_typ 0 T) (at level 0).
+Notation "'lc_dec' D" := (lc_at_dec 0 D) (at level 0).
 
-Notation "'rlc_trm' t" := (lc_at_trm 0 t) (at level 0).
-Notation "'rlc_val' v" := (lc_at_val 0 v) (at level 0).
-Notation "'rlc_def' d" := (lc_at_def 0 d) (at level 0).
-Notation "'rlc_defs' ds" := (lc_at_defs 0 ds) (at level 0).
+Notation "'lc_trm' t" := (lc_at_trm 0 t) (at level 0).
+Notation "'lc_val' v" := (lc_at_val 0 v) (at level 0).
+Notation "'lc_def' d" := (lc_at_def 0 d) (at level 0).
+Notation "'lc_defs' ds" := (lc_at_defs 0 ds) (at level 0).
 
 
 Scheme lc_at_trm_mut  := Induction for lc_at_trm Sort Prop
@@ -119,13 +119,13 @@ Combined Scheme lc_at_typ_mutind from lc_at_typ_mut, lc_at_dec_mut.
 
 
 (** Locally closed stores *)
-Inductive rlc_sto : sto -> Prop :=
-| rlc_sto_empty : rlc_sto empty
-| rlc_sto_cons : forall x v s,
-    rlc_sto s ->
-    rlc_val v ->
-    rlc_sto (s & x ~ v).
-Hint Constructors rlc_sto.
+Inductive lc_sto : sto -> Prop :=
+| lc_sto_empty : lc_sto empty
+| lc_sto_cons : forall x v s,
+    lc_sto s ->
+    lc_val v ->
+    lc_sto (s & x ~ v).
+Hint Constructors lc_sto.
 
 
 Lemma lc_at_relaxing_avar :
@@ -366,7 +366,7 @@ Qed.
 
 (** The [lc_at_opening_trm_val_def_defs] lemma, specialized to terms. *)
 Lemma lc_at_opening : forall t n x,
-    rlc_trm t ->
+    lc_trm t ->
     open_rec_trm n x t = t.
 Proof.
   intros. applys lc_at_opening_trm_val_def_defs; try eassumption; try omega.
@@ -457,8 +457,8 @@ Qed.
     resulting store and the value in the binding are both
     locally closed. *)
 Lemma lc_sto_push_inv : forall s x v,
-    rlc_sto (s & x ~ v) ->
-    rlc_sto s /\ rlc_val v.
+    lc_sto (s & x ~ v) ->
+    lc_sto s /\ lc_val v.
 Proof.
   intros s x v H.
   inversion H.
@@ -470,9 +470,9 @@ Qed.
 
 (** Values in a locally closed store are also locally closed. *)
 Lemma lc_sto_binds_inv : forall s x v,
-    rlc_sto s ->
+    lc_sto s ->
     binds x v s ->
-    rlc_val v.
+    lc_val v.
 Proof.
   intros.
   induction s using env_ind.
@@ -487,9 +487,9 @@ Qed.
 (** A definition in a locally closed list of definitions is also
     locally closed. *)
 Lemma lc_defs_has : forall ds d,
-    rlc_defs ds ->
+    lc_defs ds ->
     defs_has ds d ->
-    rlc_def d.
+    lc_def d.
 Proof.
   intros.
   induction ds.
