@@ -71,17 +71,13 @@ $(PROOFMAKEFILE):
 	sed -i -e "s|-d html|-d ../doc|g" $(PROOFMAKEFILE)
 	sed -i -e "s|rm -rf html|rm -rf ../doc/*.html|g" $(PROOFMAKEFILE)
 
-graph.png: $(PROOFS)
-	coqdep -dumpgraph graph.dot *.v
-	dot -Tpng graph.dot > graph.png
-
 #################
 # Documentation #
 #################
 
 DOCDEP=$(shell coqdep -sort $(FILES) | sed -e "s|\\.vo|\\.v|g")
 
-../doc/toc.html: $(DOCDEP)
+../doc/toc.html: graph $(DOCDEP)
 	$(MAKE) -f $(PROOFMAKEFILE) VFILES="$(DOCDEP)" html
 
 EXTRA_DIR:=../doc/assets
@@ -91,3 +87,18 @@ COQDOCFLAGS:= \
   --index indexpage --no-lib-name --parse-comments \
   --with-header $(EXTRA_DIR)/header.html --with-footer $(EXTRA_DIR)/footer.html
 export COQDOCFLAGS
+
+##########
+# Graphs #
+##########
+
+GRAPHDEP=$(shell coqdep -sort $(FILES) | sed -e "s|\\.vo|\\.v|g")
+GRAPHEXCLUDE=?
+
+graph: ../doc/graph.png
+
+graph.dot: $(GRAPHDEP)
+	coqdep -dumpgraph graph.dot $(GRAPHDEP)
+
+../doc/graph.png: graph.dot $(PROOFS)
+	dot -Tpng graph.dot > ../doc/graph.png
