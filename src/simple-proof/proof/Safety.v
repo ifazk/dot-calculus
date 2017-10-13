@@ -121,85 +121,6 @@ Proof.
 Qed.
 
 
-Lemma subenv_empty_supremum : forall G, subenv G empty.
-Proof.
-  unfold subenv. intros.
-  unfold binds in H. rewrite get_empty in H.
-  inversion H.
-Qed.
-
-
-Inductive indc_subenv: ctx -> ctx -> Prop :=
-| new_subenv_empty : indc_subenv empty empty
-| new_subenv_push: forall G G' x T T',
-    indc_subenv G G' ->
-    ok G ->
-    ok G' ->
-    x # G ->
-    x # G' ->
-    G ⊢ T <: T' ->
-    indc_subenv (G & x ~ T) (G' & x ~ T').
-Hint Constructors indc_subenv.
-
-
-Lemma indc_subenv_implies_subenv : forall G1 G2,
-    indc_subenv G1 G2 -> subenv G1 G2.
-Proof.
-  introv H. induction H.
-  - apply subenv_empty_supremum.
-  - unfold subenv. intros y Tb Bi. apply binds_push_inv in Bi. destruct Bi as [Bi | Bi].
-    + destruct Bi. subst. right. exists T. auto using binds_push_neq, weaken_subtyp.
-    + destruct Bi. unfold subenv in IHindc_subenv.
-      destruct (IHindc_subenv _ _ H6).
-      * left. apply binds_push_neq; trivial.
-      * destruct H7 as [T1 [Hb Hs]]. right.
-        exists T1. auto using binds_push_neq, weaken_subtyp.
-Qed.
-Hint Resolve indc_subenv_implies_subenv.
-
-Lemma indc_subenv_refl : forall G, ok G -> indc_subenv G G.
-Proof.
-  intros G H. induction H; auto.
-Qed.
-Hint Resolve indc_subenv_refl.
-
-
-Lemma indc_subenv_trans : forall G1 G2 G3,
-    indc_subenv G1 G2 ->
-    indc_subenv G2 G3 ->
-    indc_subenv G1 G3.
-Proof.
-  introv H. gen G3. induction H; intros; auto.
-  dependent induction H5.
-  - apply empty_push_inv in x. contradiction.
-  - rename x into He. apply eq_push_inv in He. destruct_all.
-    subst.
-    apply IHindc_subenv in H5.
-    constructor; auto.
-    apply indc_subenv_implies_subenv in H.
-    apply narrow_subtyping with (G':=G) in H10; auto.
-    eapply subtyp_trans; eauto.
-Qed.
-Hint Resolve indc_subenv_trans.
-
-
-Lemma indc_subenv_push : forall G1 G2 x T,
-    indc_subenv G1 G2 ->
-    ok (G1 & x ~ T) -> ok (G2 & x ~ T) ->
-    indc_subenv (G1 & x ~ T) (G2 & x ~ T).
-Proof.
-  intros. induction H; intros; auto.
-  constructor; auto;
-    repeat
-      match goal with
-      | H : empty = _ & _ |- _ => destruct (empty_push_inv H)
-      | H : _ & _ ~ _ = _ & _ ~ _ & _ ~ _ |- _ => apply eq_push_inv in H; destruct_all; subst; trivial
-      | H : ok (?G & ?x ~ ?T & _ ~ _) |- x # ?G & ?x ~ ?T => inversion H
-      end.
-Qed.
-Hint Resolve indc_subenv_push.
-
-
 Definition subst_env x y e := map (subst_val x y) e.
 
 
@@ -434,7 +355,7 @@ Qed.
 Lemma progress_ec: forall G' G e t T,
     lc_sto e ->
     lc_trm t ->
-    indc_subenv G' G ->
+    G' ⪯ G ->
     inert G' ->
     well_typed G' e ->
     G ⊢ t: T ->
@@ -464,7 +385,7 @@ Proof with auto.
       pick_fresh x.
       destruct H0 with (x:=x) (G' := G' & x ~ T') (e := e & x ~ v); auto 2.
       * inversion Hlc. trivial. applys lc_at_to_open_trm_val_def_defs...
-      * intros. eapply indc_subenv_trans; econstructor; eauto.
+      * intros. eapply subenv_trans; econstructor; eauto.
       * constructor; auto. inversion Hlc. inversion H5. trivial.
       * intros. apply precise_to_general in H1.
         constructor; auto. eapply narrow_typing in H1; eauto.
@@ -537,7 +458,7 @@ Qed.
 
 Lemma preservation_ec: forall G G' e t t' T,
     lc_trm t ->
-    indc_subenv G' G ->
+    G' ⪯ G ->
     well_typed G' e ->
     inert G' ->
     G ⊢ t: T ->
@@ -603,9 +524,7 @@ Proof.
          rewrite HeqbigL in H2.
          assert (x \notin L0); auto.
          specialize (H _ H3).
-         assert (subenv (G' & x ~ T) (G & x ~ T)). {
-           apply subenv_push; auto.
-         }
+         assert (G' & x ~ T ⪯ G & x ~ T); auto.
          apply narrow_typing with (G' := G' & x ~ T) in H; auto.
          rewrite <- HeqbigL in H2.
          econstructor; eauto.
@@ -614,7 +533,7 @@ Proof.
          assert (x0 \notin L \u dom G); auto.
          specialize (H1 _ H7).
          assert (G' & x0 ~ U0 ⊢ open_trm x0 u : U). {
-           eapply narrow_typing; [eassumption | |]; auto.
+           eapply narrow_typing; [eassumption |]; auto.
          }
          eapply (proj1 weaken_rules); eauto.
       -- eapply IHHt; eauto; intros.
@@ -639,8 +558,9 @@ Proof.
       apply narrow_typing with (G':=G') in Htt; auto.
       pick_fresh x. assert (x \notin L); auto.
       assert (ok (G & x ~ T)); auto.
-      assert (indc_subenv (G' & x ~ T') (G & x ~ T)). {
-        apply indc_subenv_trans with (G & x ~ T'); auto. }
+      assert (G' & x ~ T' ⪯ G & x ~ T). {
+        apply subenv_trans with (G & x ~ T'); auto.
+      }
       assert (inert (G' & x ~ T')) by auto.
       assert (well_typed (G' & x ~ T') (e & x ~ v)) by auto.
       assert (x \notin L0) by auto.
