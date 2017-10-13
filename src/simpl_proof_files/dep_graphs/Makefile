@@ -1,15 +1,15 @@
 FILE=Dpdgraph.v
 
-DPDFILES=tight_wo_defs.dpd tight_wo_defs_slem.dpd
+DPDFILES=graph.dpd
 DOTFILES=$(DPDFILES:.dpd=.dot)
 PDFFILES=$(DPDFILES:.dpd=.pdf)
 FILES=$(DPDFILES) $(DOTFILES) $(PDFFILES)
 
-TOPDIR=../
+TOPDIR=../../simple-proof/proof/
 TOPNAME=""
 SAFETY=$(TOPDIR)Safety.vo
 
-TLCDIR=../../../lib/tlc/
+TLCDIR=../../simple-proof/lib/tlc
 LIBLN=$(TLCDIR)/LibLN.vo
 TLCNAME=TLC
 
@@ -28,7 +28,7 @@ dpd:: $(DPDFILES)
 $(DPDFILES): $(FILE) $(SAFETY)
 	coqtop $(COQINCLUDE) < $(FILE)
 
-$(SAFETY): $(TOPDIR)*.v
+$(SAFETY): $(TOPDIR)/*.v
 	cd $(TOPDIR) && make
 
 %.dot: %.dpd
@@ -58,32 +58,3 @@ $(LIBLN):
 clean::
 	@echo "Cleaning"
 	@rm -rf $(FILES)
-
-##################
-# Original Proof #
-##################
-ORIGFILE=Dpdgraph_orig.v
-
-ORIGDPDFILES=orig_wo_defs.dpd orig_wo_defs_slem.dpd
-ORIGDOTFILES=$(ORIGDPDFILES:.dpd=.dot)
-ORIGPDFFILES=$(ORIGDPDFILES:.dpd=.pdf)
-
-ORIGFILES= $(ORIGDPDFILES) $(ORIGDOTFILES) $(ORIGPDFFILES)
-
-ORIGTOPDIR=../orig-proof/
-ORIGSAFETY=$(ORIGTOPDIR)Dot_proofs_safety.vo
-
-$(ORIGDPDFILES): TOPDIR=$(ORIGTOPDIR)
-$(ORIGDPDFILES): SAFETY=$(ORIGSAFETY)
-$(ORIGDPDFILES): $(ORIGFILE) $(ORIGSAFETY)
-	coqtop $(COQINCLUDE) < $(ORIGFILE)
-
-$(ORIGSAFETY): $(ORIGTOPDIR)*.v
-	cd $(ORIGTOPDIR) && make
-
-pdf:: $(ORIGPDFFILES)
-dot:: $(ORIGDOTFILES)
-dpd:: $(ORIGDPDFILES)
-
-clean::
-	@rm -rf $(ORIGFILES)

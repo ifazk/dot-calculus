@@ -32,7 +32,9 @@ cleanall::
 	-rm *.v.d
 	-rm $(PROOFMAKEFILE)
 
-doc:
+doc: ../doc/toc.html
+
+../doc/toc.html:
 	$(MAKE) -f $(PROOFMAKEFILE) VFILES="$(shell coqdep -sort $(FILES) | sed -e "s|\\.vo|\\.v|g")" html
 
 %.vo:

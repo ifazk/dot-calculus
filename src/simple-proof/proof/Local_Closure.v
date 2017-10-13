@@ -128,13 +128,6 @@ Inductive lc_sto : sto -> Prop :=
 Hint Constructors lc_sto.
 
 
-Lemma lc_at_relaxing_avar :
-  forall x k j, lc_at_var k x -> j >= k -> lc_at_var j x.
-Proof.
-  intros. inversions H; constructor; omega.
-Qed.
-
-
 Lemma lc_at_relaxing_typ_dec :
     (forall T k j, lc_at_typ k T -> j >= k -> lc_at_typ j T) /\
     (forall D k j, lc_at_dec k D -> j >= k -> lc_at_dec j D).
@@ -171,7 +164,7 @@ Proof.
     end;
     repeat match goal with
            | [ H : lc_at_var _ _ |- _ ] => inversions H
-           end; 
+           end;
     repeat constructor;
     try eapply lc_at_relaxing_typ_dec; try eassumption;
     try match goal with
@@ -273,7 +266,7 @@ Proof.
 Qed.
 
 
-Lemma open_left_inverse_close_avar: 
+Lemma open_left_inverse_close_avar:
   forall v x k, lc_at_var k v -> open_rec_avar k x (close_rec_avar k x v) = v.
 Proof with auto.
   intros. unfold open_rec_avar, close_rec_avar.
@@ -372,84 +365,6 @@ Proof.
   intros. applys lc_at_opening_trm_val_def_defs; try eassumption; try omega.
 Qed.
 
-
-Lemma lc_at_opening_change_avar : forall x x' v m n,
-    lc_at_var m (open_rec_avar n x v) ->
-    n >= m ->
-    lc_at_var m (open_rec_avar n x' v).
-Proof.
-  intros. inversions H;
-  unfold open_rec_avar in *; destruct v; try case_if; auto.
-  inversion H1. subst. constructor. omega.
-Qed.
-
-
-Lemma lc_at_opening_change_typ_dec: forall x x' m,
-    (forall T, lc_at_typ m T -> forall n T',
-          n >= m ->
-          T = open_rec_typ n x T' ->
-          lc_at_typ m (open_rec_typ n x' T')) /\
-    (forall D, lc_at_dec m D -> forall n D',
-          n >= m ->
-          D = open_rec_dec n x D' ->
-          lc_at_dec m (open_rec_dec n x' D')).
-Proof.
-  Local Hint Resolve lc_at_opening_change_avar.
-  intros x x'.
-  apply lc_at_typ_mutind; intros; simpls;
-    match goal with
-    | [ H : _ = open_rec_typ _ _ ?T |- _ ] => destruct T; inversions H
-    | [ H : _ = open_rec_dec _ _ ?D |- _ ] => destruct D; inversions H
-    end;
-    repeat constructor; auto;
-      try fold open_rec_typ;
-      try solve
-          [match goal with
-           | [ H : _ -> _ |- _ ] => apply H; trivial; omega
-           end];
-      eauto.
-Qed.
-
-
-Lemma lc_at_opening_change_var_trm_val_def_defs: forall x x' m,
-    (forall t, lc_at_trm m t -> forall n t',
-          n >= m ->
-          t = open_rec_trm n x t' ->
-          lc_at_trm n (open_rec_trm n x' t')) /\
-    (forall v, lc_at_val m v -> forall n v',
-          n >= m ->
-          v = open_rec_val n x v' ->
-          lc_at_val n (open_rec_val n x' v')) /\
-    (forall d, lc_at_def m d -> forall n d',
-          n >= m ->
-          d = open_rec_def n x d' ->
-          lc_at_def n (open_rec_def n x' d')) /\
-    (forall ds, lc_at_defs m ds -> forall n ds',
-          n >= m ->
-          ds = open_rec_defs n x ds' ->
-          lc_at_defs n (open_rec_defs n x' ds')).
-Proof.
-  Local Hint Resolve lc_at_relaxing_avar.
-  Local Hint Resolve lc_at_opening_change_avar.
-  intros x x'.
-  apply lc_at_mutind; intros; simpls;
-  match goal with
-  | [ H : _ = open_rec_trm _ _ ?t |- _ ] => destruct t; inversions H
-  | [ H : _ = open_rec_val _ _ ?v |- _ ] => destruct v; inversions H
-  | [ H : _ = open_rec_def _ _ ?d |- _ ] => destruct d; inversions H
-  | [ H : _ = open_rec_defs _ _ ?ds |- _ ] => destruct ds; inversions H
-  end;
-  simpls; repeat constructor;
-    try solve
-        [match goal with
-         | [ H : _ -> _ |- _ ] => apply H; trivial; omega
-         end];
-    eauto;
-    try applys lc_at_opening_change_typ_dec;
-    try applys lc_at_relaxing_typ_dec;
-    try eassumption; trivial;
-      omega.
-Qed.
 
 (** * Lemmas About Local Closure *)
 

@@ -87,96 +87,6 @@ Proof.
     f_equal; eauto using open_fresh_avar_injective.
 Qed.
 
-Lemma open_fresh_trm_val_def_defs_injective:
-  (forall t t' k x,
-      x \notin fv_trm t ->
-      x \notin fv_trm t' ->
-      open_rec_trm k x t = open_rec_trm k x t' ->
-      t = t') /\
-  (forall v v' k x,
-      x \notin fv_val v ->
-      x \notin fv_val v' ->
-      open_rec_val k x v = open_rec_val k x v' ->
-      v = v') /\
-  (forall d d' k x,
-      x \notin fv_def d ->
-      x \notin fv_def d' ->
-      open_rec_def k x d = open_rec_def k x d' ->
-      d = d') /\
-  (forall ds ds' k x,
-      x \notin fv_defs ds ->
-      x \notin fv_defs ds' ->
-      open_rec_defs k x ds = open_rec_defs k x ds' ->
-      ds = ds').
-Proof.
-
-  Ltac injective_solver :=
-    match goal with
-    | [ H: _ = open_rec_trm _ _ ?t |- _ ] =>
-      destruct t; inversions H;
-      try (f_equal; simpl in *);
-      try apply* open_fresh_avar_injective;
-        match goal with
-        | [ Ho: open_rec_avar _ _ _ = open_rec_avar _ _ _ |- _ ] =>
-          apply open_fresh_avar_injective in Ho; subst*
-        | [ Heq: forall _ _ _, _ -> _ -> _ -> ?u = _ |- ?u = _ ] =>
-          apply* Heq
-        end
-     | [ H: _ = open_rec_val _ _ ?v |- _ ] =>
-       destruct v; inversions H; f_equal; simpl in *;
-       try apply* open_fresh_typ_dec_injective; eauto
-     | [ H: _ = open_rec_def _ _ ?d |- _ ] =>
-       destruct d; inversions H; f_equal;
-       try apply* open_fresh_typ_dec_injective; eauto
-     | [ H: _ = open_rec_defs _ _ ?ds |- _ ] =>
-       destruct ds; inversions H; f_equal; simpl in *; eauto
-    end.
-
-  apply trm_mutind; intros; try solve [injective_solver].
-Qed.
-
-(** The following [open_comm_XYZ] lemmas state that opening two
-    symbols (variables, types, terms, etc.) at different indices commute. *)
-
-(** - types and declarations *)
-Lemma open_comm_typ_dec: forall x y,
-    (forall T n m,
-        n <> m ->
-        open_rec_typ n x (open_rec_typ m y T) =
-        open_rec_typ m y (open_rec_typ n x T)) /\
-    (forall D n m,
-        n <> m ->
-        open_rec_dec n x (open_rec_dec m y D) =
-        open_rec_dec m y (open_rec_dec n x D)).
-Proof.
-  intros. apply typ_mutind; intros; subst*; simpl; try solve [rewrite* H; rewrite* H0].
-  avar_solve.
-Qed.
-
-(** - terms, values, definitions, and lists of definitions *)
-Lemma open_comm_trm_val_def_defs : forall x y,
-    (forall t n m,
-        n <> m ->
-        open_rec_trm n x (open_rec_trm m y t) =
-        open_rec_trm m y (open_rec_trm n x t)) /\
-    (forall v n m,
-        n <> m ->
-        open_rec_val n x (open_rec_val m y v) =
-        open_rec_val m y (open_rec_val n x v)) /\
-    (forall d n m,
-        n <> m ->
-        open_rec_def n x (open_rec_def m y d) =
-        open_rec_def m y (open_rec_def n x d)) /\
-    (forall ds n m,
-        n <> m ->
-        open_rec_defs n x (open_rec_defs m y ds) =
-        open_rec_defs m y (open_rec_defs n x ds)).
-Proof.
-  intros. apply trm_mutind; intros; subst; simpl; auto; avar_solve;
-            try solve [try rewrite* H; rewrite* H0
-                                       || rewrite* (proj21 (open_comm_typ_dec x y))].
-Qed.
-
 (** The following [lc_open_rec_open_XYZ] lemmas state that if opening
     a symbol (variables, types, terms, etc.) at index [n] that is
     already opened at index [m] results in the same opened symbol,
@@ -446,14 +356,6 @@ Qed.
 
 (** * Well-formedness *)
 
-(** If [G ~~ s] and [x \notin dom(s)], then [x \notin dom(G)]. *)
-Lemma wf_sto_notin_dom: forall G s x,
-    G ~~ s ->
-    x # s -> x # G.
-Proof.
-  intros. induction H; auto.
-Qed.
-
 (** If [G ~~ s], the variables in the domain of [s] are distinct. *)
 Lemma wf_sto_to_ok_G: forall s G,
     G ~~ s -> ok G.
@@ -463,18 +365,6 @@ Qed.
 Hint Resolve wf_sto_to_ok_G.
 
 (** * Other Lemmas *)
-
-(** If a value [v] has type [T], then [v] has a precise type [T']
-    that is a subtype of [T].
-    This lemma corresponds to Lemma 3.13 in the paper. *)
-Lemma val_typing: forall G v T,
-  G ⊢ trm_val v : T ->
-  exists T', G ⊢! trm_val v : T' /\
-        G ⊢ T' <: T.
-Proof.
-  intros G v T H. dependent induction H; eauto.
-  destruct (IHty_trm _ eq_refl) as [T' [Hty Hsub]]. eauto.
-Qed.
 
 (** If a variable can be typed in an environment,
     then it is bound in that environment. *)

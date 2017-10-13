@@ -415,19 +415,3 @@ Proof.
   introv Hi Hpt. destruct (precise_flow_lemma Hpt) as [V Pf].
   apply* pf_dec_typ_inv.
 Qed.
-
-Lemma inert_concat: forall G' G,
-    inert G ->
-    inert G' ->
-    ok (G & G') ->
-    inert (G & G').
-Proof.
-  induction G' using env_ind; introv Hg Hg' Hok.
-  - rewrite* concat_empty_r.
-  - rewrite concat_assoc.
-    inversions Hg'; inversions Hok;
-      rewrite concat_assoc in *; try solve [false* empty_push_inv].
-    destruct (eq_push_inv H) as [Heq1 [Heq2 Heq3]]; subst.
-    destruct (eq_push_inv H3) as [Heq1 [Heq2 Heq3]]; subst.
-    apply inert_all; auto.
-Qed.

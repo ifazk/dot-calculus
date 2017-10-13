@@ -10,7 +10,7 @@ Require Import Coq.Program.Equality.
 Require Import LibLN.
 Require Import Definitions.
 Require Import Operational_semantics.
-Require Import LocalClosure.
+Require Import Local_Closure.
 Require Import Weakening Narrowing Helper_lemmas Precise_types Substitution Canonical_forms.
 
 (** Reduction in an empty context *)
@@ -20,6 +20,18 @@ Notation "t '|->' u" := (empty [t |-> u]) (at level 50).
 Notation "'⊢' t ':' T" := (empty ⊢ t: T) (at level 40, t at level 59).
 
 (** * Progress *)
+
+(** If a value [v] has type [T], then [v] has a precise type [T']
+    that is a subtype of [T].
+    This lemma corresponds to Lemma 3.13 in the paper. *)
+Lemma val_typing: forall G v T,
+  G ⊢ trm_val v : T ->
+  exists T', G ⊢! trm_val v : T' /\
+        G ⊢ T' <: T.
+Proof.
+  intros G v T H. dependent induction H; eauto.
+  destruct (IHty_trm _ eq_refl) as [T' [Hty Hsub]]. eauto.
+Qed.
 
 Lemma open_rec_preserve_normal_form: forall k x t,
     x \notin fv_trm t ->
@@ -32,7 +44,7 @@ Proof.
     try (solve [
     unfold open_trm in H0; unfold open_rec_trm in H0;
     inversion H0]).
-  unfold open_trm in H0. unfold open_rec_trm in H0.  
+  unfold open_trm in H0. unfold open_rec_trm in H0.
   inversion H0. fold open_rec_trm in *.
   unfold fv_trm in H. fold fv_trm in H.
   assert (x \notin fv_trm t2); auto.
@@ -50,28 +62,11 @@ Corollary open_preserve_normal_form : forall x t,
 Proof. apply open_rec_preserve_normal_form. Qed.
 
 
-(* terms in opened definitions must be opened terms *)
-Lemma open_rec_defs_has_open_rec_trm: forall k x ds a t',
-    defs_has (open_rec_defs k x ds) (def_trm a t') ->
-    exists f, t' = open_rec_trm k x f.
-Proof with auto.
-  intros k x ds. generalize dependent k. generalize dependent x.
-  induction ds; intros; simpl in *.
-  - inversion H.
-  - unfold defs_has in H. unfold get_def in *. fold get_def in H.
-    case_if.
-    + inversion H. destruct d; simpl in *; inversion H1.
-      exists t0...
-    + specialize (IHds x k a t'). unfold defs_has in IHds.
-      apply IHds...
-Qed.
-
-
 Lemma open_bound_lc_trm : forall k x t,
     lc_trm (open_trm x t) ->
     open_rec_trm (S k) x t = t.
 Proof.
-  intros. 
+  intros.
   apply lc_at_opening with (n:=S k) (x:=x) in H.
   eapply (proj1 (lc_open_rec_open_trm_val_def_defs x _)).
   - instantiate (1 := 0). auto.
@@ -100,7 +95,7 @@ Lemma close_rec_trm_val_def_defs_no_capture: forall x,
 Proof.
   intro x.
   apply trm_mutind; intros; simpl; auto;
-    try apply notin_union; 
+    try apply notin_union;
     repeat split;
     try applys close_rec_typ_dec_no_capture;
     repeat
@@ -162,18 +157,9 @@ Proof.
       * destruct H7 as [T1 [Hb Hs]]. right.
         exists T1. split.
         -- apply binds_push_neq; trivial.
-        -- apply weaken_subtyp; auto. 
+        -- apply weaken_subtyp; auto.
 Qed.
 Hint Resolve indc_subenv_implies_subenv.
-
-
-Lemma indc_subenv_empty_inv : forall G, indc_subenv empty G -> G = empty.
-Proof.
-  intros. dependent induction H.
-  - trivial.
-  - renames x to H5. symmetry in H5. apply empty_push_inv in H5. contradiction.
-Qed.
-
 
 Lemma indc_subenv_refl : forall G, ok G -> indc_subenv G G.
 Proof.
@@ -373,7 +359,7 @@ Proof.
     | [ _ : ?x \notin dom ?e, _ : binds ?x _ ?e |- _ ] =>
       exfalso; eapply binds_fresh_inv; [eassumption | auto 1]
     end.
-  
+
   Local Ltac solve_left_most :=
     repeat apply binds_concat_left; unfold subst_env; try rewrite dom_map; auto;
     rewrite (proj1 (proj2 (subst_fresh_trm_val_def_defs _ _))); auto;
@@ -428,7 +414,7 @@ Proof.
 
       assert (x0 <> x); auto.
       assert (x0 <> y); auto.
-      
+
       assert (subst_fvar x y x0 = x0). {
         unfold subst_fvar. case_if; auto.
       }
@@ -445,7 +431,7 @@ Proof.
       assert (y \notin fv_sto_vals (e2 & x0 ~ v0)). {
         apply fv_sto_vals_push. auto.
       }
-      
+
       assert (y \notin dom e1 \u fv_sto_vals e1
                 \u dom (e2 & x0 ~ v0) \u fv_sto_vals (e2 & x0 ~ v0)
                 \u fv_val v \u fv_trm (open_trm x0 t)); auto.
@@ -454,13 +440,13 @@ Proof.
 
       assert (subst_env x y (e2 & x0 ~ v0) = subst_env x y e2 & x0 ~ subst_val x y v0). {
         unfold subst_env. apply map_push.
-      }      
+      }
       specialize (H1 H9 _ H10).
       rewrite H11 in H1.
       repeat rewrite concat_assoc in H1.
       apply H1. auto.
 Qed.
- 
+
 
 Lemma progress_ec: forall G' G e t T,
     lc_sto e ->
@@ -487,7 +473,7 @@ Proof with auto.
     + SCase "t = trm_var a".
       apply narrow_typing with (G':=G') in Ht; auto.
       destruct (var_typing_implies_avar_f Ht); subst.
-      right. exists (open_trm x u). constructor...      
+      right. exists (open_trm x u). constructor...
     + SCase "t = trm_val v".
       apply val_typing in Ht.
       destruct Ht as [T' [H1 H2]].
@@ -505,8 +491,8 @@ Proof with auto.
 
         (* exists. eapply red_let_val; auto. *)
         (* intros. *)
-        
-        
+
+
         pose proof H3. inversion Hlc. inversion H7.
         apply open_rec_eval_to_open_rec in H3; auto.
         destruct_all. subst.
@@ -522,10 +508,10 @@ Proof with auto.
         replace (e & x ~ v) with (e & x ~ v & empty) in H4;
           try (rewrite <- concat_empty_r; trivial).
 
-        
+
         replace (e & x0 ~ v) with (e & x0 ~ v & empty);
         try (rewrite <- concat_empty_r; trivial).
-        
+
         assert (Hsubstv : subst_val x x0 v = v). {
           applys subst_fresh_trm_val_def_defs. auto.
         }
@@ -542,7 +528,7 @@ Proof with auto.
         rewrite Hright.
 
         replace empty with (subst_env x x0 empty); try apply map_empty; trivial.
-        
+
         apply eval_renaming_subst; auto.
     + SCase "t = trm_sel a t".
       right.
@@ -556,7 +542,7 @@ Proof with auto.
       eexists. constructor*.
     + SCase "t = trm_let t1 t2".
       right. eexists. constructor. inversion Hlc. trivial.
-Qed.  
+Qed.
 
 (** ** Progress Theorem
     If [⊢ t : T], then either [t] is a normal form,
@@ -566,7 +552,7 @@ Theorem progress: forall t T,
     ⊢ t: T ->
     normal_form t \/ (exists t', t |-> t').
 Proof.
-  intros. apply* progress_ec; constructor; auto.  
+  intros. apply* progress_ec; constructor; auto.
 Qed.
 
 (** * Preservation *)
@@ -635,15 +621,15 @@ Proof.
            applys lc_at_to_open_trm_val_def_defs. trivial.
          }
          rewrite H3. clear H3.
-         
+
          rewrite HeqbigL in H2.
          assert (x \notin L0); auto.
-         specialize (H _ H3). 
+         specialize (H _ H3).
          assert (subenv (G' & x ~ T) (G & x ~ T)). {
            apply subenv_push; auto.
          }
          apply narrow_typing with (G' := G' & x ~ T) in H; auto.
-         rewrite <- HeqbigL in H2.         
+         rewrite <- HeqbigL in H2.
          econstructor; eauto.
          intros. instantiate (1 := bigL \u \{ x }) in H6.
          subst bigL.
@@ -683,13 +669,13 @@ Proof.
       }
       assert (x \notin L0); auto.
       inversion Hlc.
-      
+
       apply (proj1 (lc_at_to_open_trm_val_def_defs x)) in H14.
       specialize (H0 _ H3 H14 H5 (G' & x ~ T') H7 H8 (e & x ~ v) H9 _ (H6 _ H10)).
       apply_fresh ty_let as y; eauto.
 
       apply weaken_ty_trm with (G2:=(y ~ T')) in H0; auto.
-      
+
       pose proof (proj1 (subst_rules y T')) as Hsubst.
       specialize (Hsubst _ _ _ H0 G' (y ~ T') x).
       assert (HsubstU : subst_typ x y U = U). {
@@ -700,7 +686,7 @@ Proof.
       assert (Hxyt : subst_typ x y T' = T'). {
         apply subst_fresh_typ. auto.
       }
-      
+
       assert (Hopeny : subst_ctx x y (y ~ T') = y ~ T'). {
         unfold subst_ctx. rewrite map_single. rewrite Hxyt. trivial.
       }
@@ -715,13 +701,13 @@ Proof.
 
       apply Hsubst; auto.
       rewrite Hxyt. auto.
-      
+
   - apply narrow_typing with (G' := G') in Ht; auto.
     apply narrow_subtyping with (G' := G') in H; auto.
     eapply ty_sub; eauto.
 Qed.
 
-  
+
 (** ** Preservation Theorem
     If [⊢ t : T] and [t |-> t'], then [⊢ t': T]. *)
 Theorem preservation: forall (t t' : trm) T,

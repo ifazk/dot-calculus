@@ -4,34 +4,35 @@ Require LibLN.
 Require Coq.Program.Equality.
 
 Require Definitions.
+Require Local_Closure.
+Require Operational_semantics.
 Require Weakening.
-Require Helper_lemmas.
 Require Narrowing.
-Require General_to_tight.
-Require Invertible_typing.
-Require Wellformed_store.
+Require Helper_lemmas.
 Require Precise_types.
 Require Substitution.
-Require Canonical_forms1.
-Require Canonical_forms2.
+Require Invertible_typing.
+Require General_to_tight.
+Require Canonical_forms.
 Require Safety.
 
-Set DependGraph File "tight_wo_defs.dpd".
+Set DependGraph File "graph.dpd".
 
 Print FileDependGraph
-(*Definitions*)
+Definitions
+Local_Closure
+Operational_semantics
 Weakening
-Helper_lemmas
 Narrowing
-General_to_tight
-Invertible_typing
-Wellformed_store
+Helper_lemmas
 Precise_types
 Substitution
-Canonical_forms1
-Canonical_forms2
+Invertible_typing
+General_to_tight
+Canonical_forms
 Safety.
 
+(*
 Set DependGraph File "tight_wo_defs_slem.dpd".
 
 Print FileDependGraph
@@ -47,3 +48,4 @@ Substitution
 Canonical_forms1
 Canonical_forms2
 Safety.
+*)

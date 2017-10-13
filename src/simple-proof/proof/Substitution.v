@@ -110,39 +110,6 @@ Proof.
   rewrite union_comm. simpl. reflexivity.
 Qed.
 
-Lemma fv_ctx_types_concat_eq : forall G1 G2,
-    fv_ctx_types (G1 & G2) = fv_ctx_types G1 \u fv_ctx_types G2.
-Proof.
-  intros G1 G2. induction G2 using env_ind.
-  - unfold fv_ctx_types, fv_in_values; rewrite values_def.
-    rewrite concat_empty_r, empty_def, union_empty_r; reflexivity.
-  - rewrite concat_assoc. rewrite fv_ctx_types_push_eq.
-    rewrite IHG2. rewrite <- union_assoc. f_equal.
-    symmetry. apply fv_ctx_types_push_eq.
-Qed.
-
-Lemma notin_fv_ctx_concat : forall x G2 G1,
-    x \notin fv_ctx_types (G1 & G2) <->
-    x \notin fv_ctx_types G1 /\ x \notin fv_ctx_types G2.
-Proof.
-  intros. rewrite <- notin_union.
-  rewrite <- fv_ctx_types_concat_eq.
-  split; intros; assumption.
-Qed.
-
-(** [x \notin fv(T)]           #<br>#
-    [x \notin fv(G)]       #<br>#
-    [―――――――――――――――――――――――] #<br>#
-    [x \notin fv(G, z: T)] *)
-Lemma fv_ctx_types_push: forall x z T G,
-    x \notin fv_typ T ->
-    x \notin fv_ctx_types G ->
-    x \notin fv_ctx_types (G & z ~ T).
-Proof.
-  intros. rewrite fv_ctx_types_push_eq.
-  apply notin_union. split~.
-Qed.
-
 (** [x \notin fv(G, z: T)]                   #<br>#
     [x \notin fv(T)]                         #<br>#
     [―――――――――――――――――――――――――――――――――――――] #<br>#
