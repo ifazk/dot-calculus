@@ -9,9 +9,9 @@ Set Implicit Arguments.
 Require Import Coq.Program.Equality.
 Require Import LibLN.
 Require Import Definitions.
-Require Import Operational_semantics.
-Require Import Local_Closure.
-Require Import Weakening Narrowing Helper_lemmas Precise_types Substitution Canonical_forms.
+Require Import OperationalSemantics.
+Require Import LocalClosure.
+Require Import Weakening Narrowing HelperLemmas PreciseTypes Substitution CanonicalForms.
 
 (** Reduction in an empty context *)
 Notation "t '|->' u" := (empty [t |-> u]) (at level 50).

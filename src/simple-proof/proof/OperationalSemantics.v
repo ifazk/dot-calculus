@@ -2,7 +2,7 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Definitions.
-Require Import Local_Closure.
+Require Import LocalClosure.
 
 (** * Normal Forms
 A normal form is defined in the WadlerFest DOT paper as:

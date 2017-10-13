@@ -9,9 +9,9 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import Precise_types.
-Require Import Tight_types.
-Require Import Invertible_typing.
+Require Import PreciseTypes.
+Require Import TightTypes.
+Require Import InvertibleTypes.
 
 (** * Sel-<: Premise
     This lemma corresponds to Lemma 3.5 in the paper.

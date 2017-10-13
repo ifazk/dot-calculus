@@ -13,8 +13,8 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Narrowing.
-Require Import Precise_types.
-Require Import Tight_types.
+Require Import PreciseTypes.
+Require Import TightTypes.
 
 (** ** Invertible typing *)
 
