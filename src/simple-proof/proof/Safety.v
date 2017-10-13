@@ -9,15 +9,60 @@ Set Implicit Arguments.
 Require Import Coq.Program.Equality.
 Require Import LibLN.
 Require Import Definitions.
+Require Import RecordAndInertTypes.
+Require Import Binding.
 Require Import OperationalSemantics.
-Require Import LocalClosure.
-Require Import Weakening Narrowing HelperLemmas PreciseTypes Substitution CanonicalForms.
+Require Import Weakening SubEnvironments Narrowing PreciseTypes Substitution CanonicalForms.
 
 (** Reduction in an empty context *)
 Notation "t '|->' u" := (empty [t |-> u]) (at level 50).
 
 (** Typing in an empty context *)
 Notation "'⊢' t ':' T" := (empty ⊢ t: T) (at level 40, t at level 59).
+
+(** * Lemmas about Free Variables *)
+
+Lemma fv_sto_vals_push_eq : forall e x v,
+    fv_sto_vals (e & x ~ v) = fv_sto_vals e \u fv_val v.
+Proof.
+  intros.
+  rewrite concat_def, single_def.
+  unfold fv_sto_vals, fv_in_values; rewrite values_def.
+  rewrite union_comm. reflexivity.
+Qed.
+
+Lemma binds_fv_sto_vals : forall x y v e,
+    binds y v e ->
+    x \notin fv_sto_vals e ->
+    x \notin fv_val v.
+Proof.
+  intros. unfold fv_sto_vals in H0.
+  eapply fv_in_values_binds; eauto.
+Qed.
+
+(** * Simple Implications of Typing *)
+
+Lemma var_typing_implies_avar_f: forall G a T,
+  G ⊢ trm_var a : T ->
+  exists x, a = avar_f x.
+Proof.
+  intros. dependent induction H; eauto.
+Qed.
+
+(** [ds = ... /\ {a = t} /\ ...]  #<br>#
+    [ds = ... /\ {a = t'} /\ ...] #<br>#
+    [―――――――――――――――――――――――――] #<br>#
+    [t = t'] *)
+Lemma defs_has_inv: forall ds a t t',
+    defs_has ds (def_trm a t) ->
+    defs_has ds (def_trm a t') ->
+    t = t'.
+Proof.
+  intros. unfold defs_has in *.
+  inversions H. inversions H0.
+  rewrite H1 in H2. inversions H2.
+  reflexivity.
+Qed.
 
 (** * Progress *)
 
@@ -41,9 +86,9 @@ Proof.
   intros. generalize dependent x.
   generalize dependent k.
   induction t; auto; intros;
-    try (solve [
+    try solve [
     unfold open_trm in H0; unfold open_rec_trm in H0;
-    inversion H0]).
+    inversion H0].
   unfold open_trm in H0. unfold open_rec_trm in H0.
   inversion H0. fold open_rec_trm in *.
   unfold fv_trm in H. fold fv_trm in H.
@@ -61,18 +106,6 @@ Corollary open_preserve_normal_form : forall x t,
     normal_form t.
 Proof.
   apply open_rec_preserve_normal_form.
-Qed.
-
-
-Lemma open_bound_lc_trm : forall k x t,
-    lc_trm (open_trm x t) ->
-    open_rec_trm (S k) x t = t.
-Proof.
-  intros.
-  apply lc_at_opening with (n:=S k) (x:=x) in H.
-  eapply (proj1 (lc_open_rec_open_trm_val_def_defs x _)).
-  - instantiate (1 := 0). auto.
-  - eassumption.
 Qed.
 
 
@@ -99,7 +132,7 @@ Proof.
   apply trm_mutind; intros; simpl; auto;
     try apply notin_union;
     repeat split;
-    try applys close_rec_typ_dec_no_capture;
+    try apply close_rec_typ_dec_no_capture;
     repeat
       match goal with
       | [ |- _ \notin fv_avar (close_rec_avar _ _ ?a) ] => destruct a; simpl
@@ -115,7 +148,7 @@ Lemma open_rec_eval_to_open_rec : forall e x t t' v,
     exists f, (x \notin (fv_trm f)) /\ t' = open_trm x f.
 Proof.
   intros. exists (close_trm x t'). remember (close_trm x t') as ct. split.
-  - subst ct. applys close_rec_trm_val_def_defs_no_capture.
+  - subst ct. apply close_rec_trm_val_def_defs_no_capture.
   - symmetry. rewrite Heqct. apply open_left_inverse_close_trm_val_def_defs.
     eauto using lc_env_eval_to_lc_trm, lc_sto_cons.
 Qed.
@@ -133,47 +166,6 @@ Proof.
     destruct_all; subst; unfold subst_env; rewrite map_push.
     + auto.
     + apply binds_push_neq; auto.
-Qed.
-
-
-Lemma binds_fv_sto_vals : forall x y v e,
-    binds y v e ->
-    x \notin fv_sto_vals e ->
-    x \notin fv_val v.
-Proof.
-  intros. unfold fv_sto_vals in H0.
-  eapply fv_in_values_binds; eauto.
-Qed.
-
-
-Lemma open_subst_defs : forall x y z a ds t,
-    z <> x ->
-    defs_has (open_defs z ds) (def_trm a t) ->
-    defs_has (open_defs z (subst_defs x y ds)) (def_trm a (subst_trm x y t)).
-Proof.
-  introv. gen x y z a t. induction ds; intros.
-  - inversion H0.
-  - unfold open_defs in *. simpls.
-    unfold defs_has in *. simpls. case_if.
-    + destruct d; simpls; case_if; auto.
-      inversion H0. subst.
-      rewrite subst_open_commut_trm. unfold subst_fvar.
-      case_if; auto.
-    + case_if; apply IHds; destruct d; auto; contradiction.
-Qed.
-
-
-Lemma open_subst_defs2 : forall x y a ds t,
-    y <> x ->
-    defs_has (open_defs x ds) (def_trm a t) ->
-    defs_has (open_defs y (subst_defs x y ds)) (def_trm a (subst_trm x y t)).
-Proof.
-  introv. gen x y a t. induction ds; intros.
-  - inversion H0.
-  - unfold open_defs, defs_has in *.
-    simpls; case_if; destruct d; simpls; case_if; auto.
-    subst; inversion H0.
-    rewrite subst_open_commut_trm. unfold subst_fvar. case_if; auto.
 Qed.
 
 
@@ -205,47 +197,7 @@ Proof.
   apply lc_at_mutind; intros; simpls; auto;
     repeat constructor;
     try solve [apply lc_at_subst_avar; trivial];
-    try applys lc_at_subst_typ_dec; trivial.
-Qed.
-
-
-Lemma open_fv_avar : forall v x y k,
-    x \notin fv_avar v \u \{y} ->
-    x \notin fv_avar (open_rec_avar k y v).
-Proof.
-  intros. destruct v; simpls; try case_if; unfold fv_avar; auto.
-Qed.
-
-
-Lemma open_fv_typ_dec :
-  (forall T x y k, x \notin fv_typ T \u \{y} -> x \notin fv_typ (open_rec_typ k y T)) /\
-  (forall D x y k, x \notin fv_dec D \u \{y} -> x \notin fv_dec (open_rec_dec k y D)).
-Proof.
-  apply typ_mutind; intros; simpls; auto;
-    apply open_fv_avar; auto.
-Qed.
-
-
-Lemma open_fv_trm_val_def_defs :
-  (forall t x y k, x \notin fv_trm t \u \{y} -> x \notin fv_trm (open_rec_trm k y t)) /\
-  (forall v x y k, x \notin fv_val v \u \{y} -> x \notin fv_val (open_rec_val k y v)) /\
-  (forall d x y k, x \notin fv_def d \u \{y} -> x \notin fv_def (open_rec_def k y d)) /\
-  (forall ds x y k, x \notin fv_defs ds \u \{y} -> x \notin fv_defs (open_rec_defs k y ds)).
-Proof.
-  Local Hint Resolve open_fv_avar.
-  apply trm_mutind; intros; simpls; auto;
-    try apply notin_union_l;
-    try applys open_fv_typ_dec; auto.
-Qed.
-
-
-Lemma fv_sto_vals_push_eq : forall e x v,
-    fv_sto_vals (e & x ~ v) = fv_sto_vals e \u fv_val v.
-Proof.
-  intros.
-  rewrite concat_def, single_def.
-  unfold fv_sto_vals, fv_in_values; rewrite values_def.
-  rewrite union_comm. reflexivity.
+    try apply lc_at_subst_typ_dec; trivial.
 Qed.
 
 
@@ -268,15 +220,15 @@ Proof.
     end.
 
   Local Ltac solve_left_most :=
-    apply binds_concat_left; unfold subst_env; try rewrite dom_map; auto;
-    rewrite (proj1 (proj2 (subst_fresh_trm_val_def_defs _ _))); auto;
+    apply binds_concat_left; unfold subst_env; try rewrite dom_map;
+    try rewrite (proj1 (proj2 (subst_fresh_trm_val_def_defs _ _))); auto;
     eapply binds_fv_sto_vals; eauto 2.
 
   introv Hfx Hfy He. dependent induction He; simpls.
   - apply binds_middle_inv in H0; destruct_all; case_if; subst;
-      try solve [contra_bind];
-      rewrite subst_open_commut_trm; unfold subst_fvar; case_if; try contradiction;
-        apply red_apply with (subst_typ x y T); auto 1;
+      try contra_bind;
+      rewrite subst_open_commut_trm; unfold subst_fvar; case_if;
+        apply red_apply with (subst_typ x y T);
           assert (Hs : val_lambda (subst_typ x y T) (subst_trm x y t) =
                        subst_val x y (val_lambda T t)) by auto;
           auto 2;
@@ -288,7 +240,7 @@ Proof.
           try solve [apply binds_concat_right, binds_subst_env; trivial];
           solve_left_most.
   - apply binds_middle_inv in H0; destruct_all; case_if; subst;
-      try solve [contra_bind];
+      try contra_bind;
       apply red_project with (T:=subst_typ x y T) (ds:=subst_defs x y ds); auto 1;
         assert (Hs : val_new (subst_typ x y T) (subst_defs x y ds) = subst_val x y (val_new T ds));
         auto 2;
@@ -303,17 +255,17 @@ Proof.
       subst; rewrite subst_open_commut_trm; unfold subst_fvar;
         case_if; constructor;
           inversion H; constructor; auto;
-            applys lc_at_subst_trm_val_def_defs; trivial.
+            apply lc_at_subst_trm_val_def_defs; trivial.
   - inversion H. inversion H2.
     repeat constructor; auto;
-      applys lc_at_subst_trm_val_def_defs; trivial.
+      apply lc_at_subst_trm_val_def_defs; trivial.
   - inversion H.
     repeat constructor; auto;
-      applys lc_at_subst_trm_val_def_defs; trivial.
+      apply lc_at_subst_trm_val_def_defs; trivial.
   - econstructor.
     + inversion H. inversion H4.
       repeat constructor;
-        applys lc_at_subst_trm_val_def_defs; trivial.
+        apply lc_at_subst_trm_val_def_defs; trivial.
     + intros.
       instantiate (1 := L \u dom e1 \u fv_sto_vals e1 \u dom e2 \u fv_sto_vals e2
                             \u fv_val v \u fv_val v0 \u fv_trm t \u \{x} \u \{y}) in H2.
@@ -332,7 +284,7 @@ Proof.
       specialize (H1 _ H6 v (e2 & x0 ~ v0) e1).
 
       assert (y \notin fv_trm (open_trm x0 t)). {
-        applys open_fv_trm_val_def_defs; auto.
+        apply open_fv_trm_val_def_defs; auto.
       }
       assert (y \notin fv_sto_vals (e2 & x0 ~ v0)) by rewrite~ fv_sto_vals_push_eq.
 
@@ -384,7 +336,7 @@ Proof with auto.
       pose proof (precise_inert_typ H1) as Hpit.
       pick_fresh x.
       destruct H0 with (x:=x) (G' := G' & x ~ T') (e := e & x ~ v); auto 2.
-      * inversion Hlc. trivial. applys lc_at_to_open_trm_val_def_defs...
+      * inversion Hlc. trivial. apply lc_at_to_open_trm_val_def_defs...
       * intros. eapply subenv_trans; econstructor; eauto.
       * constructor; auto. inversion Hlc. inversion H5. trivial.
       * intros. apply precise_to_general in H1.
@@ -412,7 +364,7 @@ Proof with auto.
         try (rewrite <- concat_empty_r; trivial).
 
         assert (Hsubstv : subst_val x x0 v = v). {
-          applys subst_fresh_trm_val_def_defs. auto.
+          apply subst_fresh_trm_val_def_defs. auto.
         }
         rewrite <- Hsubstv.
 
@@ -517,7 +469,7 @@ Proof.
 
          assert (open_rec_trm 1 x u = u). {
            inversion H5. apply open_bound_lc_trm.
-           applys lc_at_to_open_trm_val_def_defs. trivial.
+           apply lc_at_to_open_trm_val_def_defs. trivial.
          }
          rewrite H3. clear H3.
 

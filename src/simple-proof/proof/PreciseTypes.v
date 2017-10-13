@@ -11,7 +11,7 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
-Require Import HelperLemmas.
+Require Import RecordAndInertTypes.
 
 (** ** Precise typing [G ⊢! t: T] *)
 (** Precise typing is used to reason about the types of variables and values.

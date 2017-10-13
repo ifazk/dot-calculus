@@ -200,7 +200,7 @@ Hint Constructors ty_trm_t subtyp_t.
 
 Scheme ts_ty_trm_t_mut := Induction for ty_trm_t Sort Prop
 with   ts_subtyp_t     := Induction for subtyp_t Sort Prop.
-Combined Scheme ts_mutind_t from ts_ty_trm_t_mut, ts_subtyp_t.
+Combined Scheme ts_t_mutind from ts_ty_trm_t_mut, ts_subtyp_t.
 
 (** Tight typing implies general typing. *)
 Lemma tight_to_general:
@@ -211,5 +211,5 @@ Lemma tight_to_general:
      G ⊢# S <: U ->
      G ⊢ S <: U).
 Proof.
-  apply ts_mutind_t; intros; subst; eauto using precise_to_general.
+  apply ts_t_mutind; intros; subst; eauto using precise_to_general.
 Qed.

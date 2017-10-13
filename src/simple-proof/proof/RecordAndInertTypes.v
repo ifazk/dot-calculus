@@ -11,118 +11,86 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
+Require Import Binding.
 
-(** * Lemmas About Opening *)
+(** * Typing Relations for the Safety Proof *)
+(** The following typing relations are not part of the DOT calculus, but are used
+    in the proof of DOT's safety theorems. *)
 
-Ltac avar_solve :=
-  repeat match goal with
-  | [ a: avar |- _ ] =>
-    destruct a; simpl; auto; repeat case_if; subst; simpls; repeat case_if*;
-    subst; simpls; repeat case_if*
-  end.
+(** A record declaration is either a type declaration with equal bounds,
+    or a field declaration.*)
+Inductive record_dec : dec -> Prop :=
+| rd_typ : forall A T, record_dec (dec_typ A T T)
+| rd_trm : forall a T, record_dec (dec_trm a T).
 
-(** The following [open_fresh_XYZ_injective] lemmas state that given two
-    symbols (variables, types, terms, etc.) [X] and [Y] and a variable [z],
-    if [z \notin fv(X)] and [z \notin fv(Y)], then [X^z = Y^z] implies [X = Y]. *)
+(** Given a record declaration, a [record_typ] keeps track of the declaration's
+    field member labels (i.e. names of fields) and type member labels
+    (i.e. names of abstract type members). [record_typ] also requires that the
+    labels are distinct.  *)
+Inductive record_typ : typ -> fset label -> Prop :=
+| rt_one : forall D l,
+  record_dec D ->
+  l = label_of_dec D ->
+  record_typ (typ_rcd D) \{l}
+| rt_cons: forall T ls D l,
+  record_typ T ls ->
+  record_dec D ->
+  l = label_of_dec D ->
+  l \notin ls ->
+  record_typ (typ_and T (typ_rcd D)) (union ls \{l}).
 
-(** - variables *)
-Lemma open_fresh_avar_injective : forall x y k z,
-    z \notin fv_avar x ->
-    z \notin fv_avar y ->
-    open_rec_avar k z x = open_rec_avar k z y ->
-    x = y.
-Proof.
-  intros. avar_solve; inversion* H1; try (inversions H3; false* notin_same).
-Qed.
+(** A [record_type] is a [record_typ] with an unspecified set of labels. The meaning
+    of [record_type] is an intersection of type/field declarations with distinct labels. *)
+Definition record_type T := exists ls, record_typ T ls.
 
-(** - types and declarations *)
-Lemma open_fresh_typ_dec_injective:
-  (forall T T' k x,
-    x \notin fv_typ T ->
-    x \notin fv_typ T' ->
-    open_rec_typ k x T = open_rec_typ k x T' ->
-    T = T') /\
-  (forall D D' k x,
-    x \notin fv_dec D ->
-    x \notin fv_dec D' ->
-    open_rec_dec k x D = open_rec_dec k x D' ->
-    D = D').
-Proof.
+(** Given a type [T = D1 /\ D2 /\ ... /\ Dn] and member declaration [D], [record_has T D] tells whether
+    [D] is contained in the intersection of [Di]'s. *)
+Inductive record_has: typ -> dec -> Prop :=
+| rh_one : forall D,
+    record_has (typ_rcd D) D
+| rh_andl : forall T U D,
+    record_has T D ->
+    record_has (typ_and T U) D
+| rh_andr : forall T U D,
+    record_has U D ->
+    record_has (typ_and T U) D.
 
-  Ltac invert_open :=
-    match goal with
-    | [ H: open_rec_typ _ _ _ = open_rec_typ _ _ ?T' |- _ ] =>
-       destruct T'; inversions* H
-    | [ H: open_rec_dec _ _ _ = open_rec_dec _ _ ?D' |- _ ] =>
-       destruct D'; inversions* H
-    end.
+(** ** Inert types
+       A type is inert if it is either a dependent function type, or a recursive type
+       whose type declarations have equal bounds (enforced through [record_type]). #<br>#
+       For example, the following types are inert:
+       - [lambda(x: S)T]
+       - [mu(x: {a: T} /\ {B: U..U})]
+       - [mu(x: {C: {A: T..U}..{A: T..U}})]
+       And the following types are not inert:
+       - [{a: T}]
+       - [{B: U..U}]
+       - [top]
+       - [x.A]
+       - [mu(x: {B: S..T})], where [S <> T]. *)
+Inductive inert_typ : typ -> Prop :=
+  | inert_typ_all : forall S T, inert_typ (typ_all S T)
+  | inert_typ_bnd : forall T,
+      record_type T ->
+      inert_typ (typ_bnd T)
+  | inert_typ_top : inert_typ typ_top.
+  (* | inert_typ_sel :forall x A, inert_typ (typ_sel (avar_f x) A). *)
 
-  apply typ_mutind; intros; invert_open; simpl in *;
-    f_equal; eauto using open_fresh_avar_injective.
-Qed.
+(** An inert context is a typing context whose range consists only of inert types. *)
+Inductive inert : ctx -> Prop :=
+  | inert_empty : inert empty
+  | inert_all : forall G x T,
+      inert G ->
+      inert_typ T ->
+      x # G ->
+      inert (G & x ~ T).
 
-(** The following [lc_open_rec_open_XYZ] lemmas state that if opening
-    a symbol (variables, types, terms, etc.) at index [n] that is
-    already opened at index [m] results in the same opened symbol,
-    opening the symbol itself at index [n] results in the same symbol. *)
+(** In the proof, it is useful to be able to distinguish record types from
+    other types. A record type is a concatenation of type declarations with equal
+    bounds [{A: T..T}] and field declarations [{a: T}]. *)
 
-
-(** - types and declarations *)
-Lemma lc_open_rec_open_typ_dec: forall x y,
-    (forall T n m,
-        n <> m ->
-        open_rec_typ n x (open_rec_typ m y T) = open_rec_typ m y T ->
-        open_rec_typ n x T = T) /\
-    (forall D n m,
-        n <> m ->
-        open_rec_dec n x (open_rec_dec m y D) = open_rec_dec m y D ->
-        open_rec_dec n x D = D).
-Proof.
-  introv. apply typ_mutind; intros; simpls; auto; avar_solve;
-            try solve [(inversions H1; erewrite H; eauto)
-                      || (inversions H2; erewrite H; eauto; erewrite H0; eauto)].
-  - inversions H1. rewrite H with (m:=S m); auto.
-  - inversions H2. erewrite H; eauto. rewrite H0 with (m:=S m); auto.
-Qed.
-
-(** - terms, values, definitions, and list of definitions *)
-Lemma lc_open_rec_open_trm_val_def_defs: forall x y,
-    (forall t n m,
-        n <> m ->
-        open_rec_trm n x (open_rec_trm m y t) = open_rec_trm m y t ->
-        open_rec_trm n x t = t) /\
-    (forall v n m,
-        n <> m ->
-        open_rec_val n x (open_rec_val m y v) = open_rec_val m y v ->
-        open_rec_val n x v = v) /\
-    (forall d n m,
-        n <> m ->
-        open_rec_def n x (open_rec_def m y d) = open_rec_def m y d ->
-        open_rec_def n x d = d) /\
-    (forall ds n m,
-        n <> m ->
-        open_rec_defs n x (open_rec_defs m y ds) = open_rec_defs m y ds ->
-        open_rec_defs n x ds = ds).
-Proof.
-  introv. apply trm_mutind; intros; simpls; auto.
-  - destruct a; simpl; auto.
-    case_if; simpl in *; case_if; simpl in *; auto; case_if.
-  - inversions H1. rewrite H with (m:=m); auto.
-  - inversions H0.
-    destruct a; simpl; auto.
-    case_if; simpl in *; case_if; simpl in *; auto; case_if.
-  - inversions H0. destruct a; destruct a0; simpl; auto; repeat case_if~; simpls; repeat case_if; simpl in *; repeat case_if~.
-  - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=S m); auto.
-  - inversions H1. rewrite H with (m:=S m); auto.
-    rewrite (proj21 (lc_open_rec_open_typ_dec x y)) with (m:=S m); auto.
-  - inversions H1. rewrite H with (m:=S m); auto.
-    rewrite (proj21 (lc_open_rec_open_typ_dec x y)) with (m:=m); auto.
-  - inversions H0.
-    rewrite (proj21 (lc_open_rec_open_typ_dec x y)) with (m:=m); auto.
-  - inversions H1. rewrite H with (m:=m); auto.
-  - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=m); auto.
-Qed.
-
+Hint Constructors
+     inert_typ inert record_has record_typ.
 
 (** * Lemmas About Records and Record Types *)
 
@@ -154,9 +122,9 @@ Qed.
 
 (** [labels(D) = labels(D^x)] *)
 Lemma open_dec_preserves_label: forall D x i,
-  label_of_dec D = label_of_dec (open_rec_dec i x D).
+  label_of_dec (open_rec_dec i x D) = label_of_dec D.
 Proof.
-  intros. induction D; simpl; reflexivity.
+  intros. induction D; reflexivity.
 Qed.
 
 (** [record_dec D]   #<br>#
@@ -165,7 +133,7 @@ Qed.
 Lemma open_record_dec: forall D x,
   record_dec D -> record_dec (open_dec x D).
 Proof.
-  intros. inversion H; unfold open_dec; simpl; constructor.
+  intros. inversion H; unfold open_dec; constructor.
 Qed.
 
 (** [record_typ T]   #<br>#
@@ -174,15 +142,11 @@ Qed.
 Lemma open_record_typ: forall T x ls,
   record_typ T ls -> record_typ (open_typ x T) ls.
 Proof.
-  intros. induction H.
-  - unfold open_typ. simpl.
-    apply rt_one.
-    apply open_record_dec. assumption.
-    rewrite <- open_dec_preserves_label. assumption.
-  - unfold open_typ. simpl.
-    apply rt_cons; try assumption.
-    apply open_record_dec. assumption.
-    rewrite <- open_dec_preserves_label. assumption.
+  introv H.
+  induction H; unfold open_typ; simpl;
+    [apply rt_one | apply rt_cons];
+    try apply open_record_dec ; try rewrite open_dec_preserves_label;
+    assumption.
 Qed.
 
 (** [record_typ T]   #<br>#
@@ -191,8 +155,8 @@ Qed.
 Lemma open_record_type: forall T x,
   record_type T -> record_type (open_typ x T).
 Proof.
-  intros. destruct H as [ls H]. exists ls. eapply open_record_typ.
-  eassumption.
+  introv [ls H]. exists ls. apply open_record_typ.
+  assumption.
 Qed.
 
 (** The type of definitions is a record type. *)
@@ -234,8 +198,8 @@ Lemma opening_preserves_labels : forall z T ls ls',
 Proof.
   introv Ht Hopen. gen ls'.
   dependent induction Ht; intros.
-  - inversions Hopen. rewrite* <- open_dec_preserves_label.
-  - inversions Hopen. rewrite* <- open_dec_preserves_label.
+  - inversions Hopen. rewrite* open_dec_preserves_label.
+  - inversions Hopen. rewrite* open_dec_preserves_label.
     specialize (IHHt ls0 H4). rewrite* IHHt.
 Qed.
 
@@ -315,47 +279,4 @@ Proof.
     + inversions H5. false* H1.
     + assumption.
   - inversions H5. inversions* H9.
-Qed.
-
-(** [ds = ... /\ {a = t} /\ ...]  #<br>#
-    [ds = ... /\ {a = t'} /\ ...] #<br>#
-    [―――――――――――――――――――――――――] #<br>#
-    [t = t'] *)
-Lemma defs_has_inv: forall ds a t t',
-    defs_has ds (def_trm a t) ->
-    defs_has ds (def_trm a t') ->
-    t = t'.
-Proof.
-  intros. unfold defs_has in *.
-  inversions H. inversions H0.
-  rewrite H1 in H2. inversions H2.
-  reflexivity.
-Qed.
-
-(** * Well-typedness *)
-
-(** If [well_typed G s], the variables in the domain of [s] are distinct. *)
-Lemma well_typed_to_ok_G: forall s G,
-    well_typed G s -> ok G.
-Proof.
-  intros. induction H; jauto.
-Qed.
-Hint Resolve well_typed_to_ok_G.
-
-(** * Simple Implications of Typing *)
-
-(** If a variable can be typed in an environment,
-    then it is bound in that environment. *)
-Lemma typing_implies_bound: forall G x T,
-  G ⊢ trm_var (avar_f x) : T ->
-  exists S, binds x S G.
-Proof.
-  introv Ht. dependent induction Ht; eauto.
-Qed.
-
-Lemma var_typing_implies_avar_f: forall G a T,
-  G ⊢ trm_var a : T ->
-  exists x, a = avar_f x.
-Proof.
-  intros. dependent induction H; eauto.
 Qed.

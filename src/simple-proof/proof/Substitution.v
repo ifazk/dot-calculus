@@ -396,13 +396,8 @@ Lemma subst_ty_trm: forall y S G x t T,
     G ⊢ subst_trm x y t : subst_typ x y T.
 Proof.
   intros.
-  apply (proj51 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H.
-  unfold subst_ctx in H. rewrite map_empty, concat_empty_r in H.
-  apply H.
-  rewrite concat_empty_r. reflexivity.
-  rewrite concat_empty_r. assumption.
-  assumption.
-  unfold subst_ctx. rewrite map_empty, concat_empty_r. assumption.
+  apply (proj51 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H;
+  unfold subst_ctx in *; try rewrite map_empty in *; try rewrite concat_empty_r in *; auto.
 Qed.
 
 (** The substitution lemma for definition typing. *)
@@ -415,12 +410,10 @@ Lemma subst_ty_defs: forall y S G x ds T,
 Proof.
   intros.
   apply (proj53 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H;
-    try rewrite concat_empty_r; auto.
-  - unfold subst_ctx in H. rewrite map_empty, concat_empty_r in H.
-    auto.
-  - unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption.
+    unfold subst_ctx in *; try rewrite map_empty in *; try rewrite concat_empty_r in *; auto.
 Qed.
 
+(* *)
 Lemma renaming_def: forall G z T ds x,
     ok G ->
     z # G ->
@@ -430,7 +423,7 @@ Lemma renaming_def: forall G z T ds x,
     G /- open_defs x ds :: open_typ x T.
 Proof.
   introv Hok Hnz Hnz' Hz Hx. rewrite subst_intro_typ with (x:=z). rewrite subst_intro_defs with (x:=z).
-  eapply subst_ty_defs; auto. eapply Hz. rewrite* <- subst_intro_typ. all: auto.
+  eapply subst_ty_defs; auto. eapply Hz. rewrite <- subst_intro_typ. all: auto.
 Qed.
 
 Lemma renaming_typ: forall G z T U t x,
@@ -442,5 +435,35 @@ Lemma renaming_typ: forall G z T U t x,
     G ⊢ open_trm x t : open_typ x T.
 Proof.
   introv Hok Hnz Hnz' Hz Hx. rewrite subst_intro_typ with (x:=z). rewrite subst_intro_trm with (x:=z).
-  eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ. all: auto.
+  eapply subst_ty_trm; auto. eapply Hz. rewrite subst_fresh_typ. all: auto.
+Qed.
+
+(* *)
+Lemma open_subst_defs : forall x y z a ds t,
+    z <> x ->
+    defs_has (open_defs z ds) (def_trm a t) ->
+    defs_has (open_defs z (subst_defs x y ds)) (def_trm a (subst_trm x y t)).
+Proof.
+  introv. gen x y z a t. induction ds; intros.
+  - inversion H0.
+  - unfold open_defs, defs_has in *; simpls. case_if.
+    + destruct d; simpls; case_if; auto.
+      inversions H0.
+      rewrite subst_open_commut_trm. unfold subst_fvar.
+      case_if. auto.
+    + case_if; apply IHds; destruct d; auto; contradiction.
+Qed.
+
+
+Lemma open_subst_defs2 : forall x y a ds t,
+    y <> x ->
+    defs_has (open_defs x ds) (def_trm a t) ->
+    defs_has (open_defs y (subst_defs x y ds)) (def_trm a (subst_trm x y t)).
+Proof.
+  introv. gen x y a t. induction ds; intros.
+  - inversion H0.
+  - unfold open_defs, defs_has in *.
+    simpls; case_if; destruct d; simpls; case_if; auto.
+    subst; inversion H0.
+    rewrite subst_open_commut_trm. unfold subst_fvar. case_if; auto.
 Qed.

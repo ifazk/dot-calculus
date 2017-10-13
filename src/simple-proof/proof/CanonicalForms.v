@@ -12,14 +12,36 @@ Set Implicit Arguments.
 Require Import Coq.Program.Equality.
 Require Import LibLN.
 Require Import Definitions.
+Require Import RecordAndInertTypes.
+Require Import SubEnvironments.
 Require Import Narrowing.
-Require Import HelperLemmas.
 Require Import PreciseTypes.
 Require Import TightTypes.
 Require Import InvertibleTypes.
 Require Import GeneralToTight.
 Require Import Substitution.
 Require Import Weakening.
+
+(** * Simple Implications of Typing *)
+
+(** If a variable can be typed in an environment,
+    then it is bound in that environment. *)
+Lemma typing_implies_bound: forall G x T,
+  G ⊢ trm_var (avar_f x) : T ->
+  exists S, binds x S G.
+Proof.
+  introv Ht. dependent induction Ht; eauto.
+Qed.
+
+(** * Well-typedness *)
+
+(** If [well_typed G s], the variables in the domain of [s] are distinct. *)
+Lemma well_typed_to_ok_G: forall s G,
+    well_typed G s -> ok G.
+Proof.
+  intros. induction H; jauto.
+Qed.
+Hint Resolve well_typed_to_ok_G.
 
 (** [well_typed G s]            #<br>#
     [G(x) = T]          #<br>#
@@ -70,7 +92,7 @@ Proof.
     }
     apply subtyp_trans with (T:=open_typ y T0).
     eapply narrow_subtyping. apply* Hst. apply subenv_last. apply* tight_to_general.
-    assumption. 
+    assumption.
     apply* H0.
 Qed.
 

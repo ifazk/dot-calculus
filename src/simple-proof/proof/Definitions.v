@@ -546,88 +546,10 @@ Inductive well_typed: ctx -> sto -> Prop :=
     G ⊢ trm_val v : T ->
     well_typed (G & x ~ T) (s & x ~ v).
 
-(** * Typing Relations for the Safety Proof *)
-(** The following typing relations are not part of the DOT calculus, but are used
-    in the proof of DOT's safety theorems. *)
-
-(** ** Record types *)
-(** In the proof, it is useful to be able to distinguish record types from
-    other types. A record type is a concatenation of type declarations with equal
-    bounds [{A: T..T}] and field declarations [{a: T}]. *)
-
-(** A record declaration is either a type declaration with equal bounds,
-    or a field declaration.*)
-Inductive record_dec : dec -> Prop :=
-| rd_typ : forall A T, record_dec (dec_typ A T T)
-| rd_trm : forall a T, record_dec (dec_trm a T).
-
-(** Given a record declaration, a [record_typ] keeps track of the declaration's
-    field member labels (i.e. names of fields) and type member labels
-    (i.e. names of abstract type members). [record_typ] also requires that the
-    labels are distinct.  *)
-Inductive record_typ : typ -> fset label -> Prop :=
-| rt_one : forall D l,
-  record_dec D ->
-  l = label_of_dec D ->
-  record_typ (typ_rcd D) \{l}
-| rt_cons: forall T ls D l,
-  record_typ T ls ->
-  record_dec D ->
-  l = label_of_dec D ->
-  l \notin ls ->
-  record_typ (typ_and T (typ_rcd D)) (union ls \{l}).
-
-(** A [record_type] is a [record_typ] with an unspecified set of labels. The meaning
-    of [record_type] is an intersection of type/field declarations with distinct labels. *)
-Definition record_type T := exists ls, record_typ T ls.
-
-(** Given a type [T = D1 /\ D2 /\ ... /\ Dn] and member declaration [D], [record_has T D] tells whether
-    [D] is contained in the intersection of [Di]'s. *)
-Inductive record_has: typ -> dec -> Prop :=
-| rh_one : forall D,
-    record_has (typ_rcd D) D
-| rh_andl : forall T U D,
-    record_has T D ->
-    record_has (typ_and T U) D
-| rh_andr : forall T U D,
-    record_has U D ->
-    record_has (typ_and T U) D.
-
-(** ** Inert types
-       A type is inert if it is either a dependent function type, or a recursive type
-       whose type declarations have equal bounds (enforced through [record_type]). #<br>#
-       For example, the following types are inert:
-       - [lambda(x: S)T]
-       - [mu(x: {a: T} /\ {B: U..U})]
-       - [mu(x: {C: {A: T..U}..{A: T..U}})]
-       And the following types are not inert:
-       - [{a: T}]
-       - [{B: U..U}]
-       - [top]
-       - [x.A]
-       - [mu(x: {B: S..T})], where [S <> T]. *)
-Inductive inert_typ : typ -> Prop :=
-  | inert_typ_all : forall S T, inert_typ (typ_all S T)
-  | inert_typ_bnd : forall T,
-      record_type T ->
-      inert_typ (typ_bnd T)
-  | inert_typ_top : inert_typ typ_top.
-  (* | inert_typ_sel :forall x A, inert_typ (typ_sel (avar_f x) A). *)
-
-(** An inert context is a typing context whose range consists only of inert types. *)
-Inductive inert : ctx -> Prop :=
-  | inert_empty : inert empty
-  | inert_all : forall G x T,
-      inert G ->
-      inert_typ T ->
-      x # G ->
-      inert (G & x ~ T).
-
 (** * Infrastructure *)
 
 Hint Constructors
      well_typed
-     inert_typ inert record_has
      ty_trm ty_def ty_defs subtyp.
 
 (** ** Mutual Induction Principles *)
@@ -717,3 +639,5 @@ Ltac destruct_all :=
   | [ H : ?A /\ ?B |- _ ] => destruct H
   | [ H : ?A \/ ?B |- _ ] => destruct H
   end.
+
+Ltac omega := Coq.omega.Omega.omega.

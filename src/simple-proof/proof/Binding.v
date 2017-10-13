@@ -1,10 +1,156 @@
+(** printing ⊢#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
+(** printing ⊢##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
+(** printing ⊢##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
+(** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
+(** remove printing ~ *)
+
+(** This module defines various helper lemmas about opening and cloning terms and types. *)
+
 Set Implicit Arguments.
 
-Require Import Definitions.
 Require Import LibLN.
+Require Import Coq.Program.Equality.
+Require Import Definitions.
+
+(** * Lemmas About Opening *)
+
+Ltac avar_solve :=
+  repeat match goal with
+  | [ a: avar |- _ ] =>
+    destruct a; simpl; auto; repeat case_if; subst; simpls; repeat case_if*;
+    subst; simpls; repeat case_if*
+  end.
+
+(** The following [open_fresh_XYZ_injective] lemmas state that given two
+    symbols (variables, types, terms, etc.) [X] and [Y] and a variable [z],
+    if [z \notin fv(X)] and [z \notin fv(Y)], then [X^z = Y^z] implies [X = Y]. *)
+
+(** - variables *)
+Lemma open_fresh_avar_injective : forall x y k z,
+    z \notin fv_avar x ->
+    z \notin fv_avar y ->
+    open_rec_avar k z x = open_rec_avar k z y ->
+    x = y.
+Proof.
+  intros. avar_solve; inversion* H1; try (inversions H3; false* notin_same).
+Qed.
+
+(** - types and declarations *)
+Lemma open_fresh_typ_dec_injective:
+  (forall T T' k x,
+    x \notin fv_typ T ->
+    x \notin fv_typ T' ->
+    open_rec_typ k x T = open_rec_typ k x T' ->
+    T = T') /\
+  (forall D D' k x,
+    x \notin fv_dec D ->
+    x \notin fv_dec D' ->
+    open_rec_dec k x D = open_rec_dec k x D' ->
+    D = D').
+Proof.
+
+  Ltac invert_open :=
+    match goal with
+    | [ H: open_rec_typ _ _ _ = open_rec_typ _ _ ?T' |- _ ] =>
+       destruct T'; inversions* H
+    | [ H: open_rec_dec _ _ _ = open_rec_dec _ _ ?D' |- _ ] =>
+       destruct D'; inversions* H
+    end.
+
+  apply typ_mutind; intros; invert_open; simpl in *;
+    f_equal; eauto using open_fresh_avar_injective.
+Qed.
+
+(** The following [lc_open_rec_open_XYZ] lemmas state that if opening
+    a symbol (variables, types, terms, etc.) at index [n] that is
+    already opened at index [m] results in the same opened symbol,
+    opening the symbol itself at index [n] results in the same symbol. *)
 
 
-Ltac omega := Coq.omega.Omega.omega.
+(** - types and declarations *)
+Lemma lc_open_rec_open_typ_dec: forall x y,
+    (forall T n m,
+        n <> m ->
+        open_rec_typ n x (open_rec_typ m y T) = open_rec_typ m y T ->
+        open_rec_typ n x T = T) /\
+    (forall D n m,
+        n <> m ->
+        open_rec_dec n x (open_rec_dec m y D) = open_rec_dec m y D ->
+        open_rec_dec n x D = D).
+Proof.
+  introv. apply typ_mutind; intros; simpls; auto; avar_solve;
+            try solve [(inversions H1; erewrite H; eauto)
+                      || (inversions H2; erewrite H; eauto; erewrite H0; eauto)].
+  - inversions H1. rewrite H with (m:=S m); auto.
+  - inversions H2. erewrite H; eauto. rewrite H0 with (m:=S m); auto.
+Qed.
+
+(** - terms, values, definitions, and list of definitions *)
+Lemma lc_open_rec_open_trm_val_def_defs: forall x y,
+    (forall t n m,
+        n <> m ->
+        open_rec_trm n x (open_rec_trm m y t) = open_rec_trm m y t ->
+        open_rec_trm n x t = t) /\
+    (forall v n m,
+        n <> m ->
+        open_rec_val n x (open_rec_val m y v) = open_rec_val m y v ->
+        open_rec_val n x v = v) /\
+    (forall d n m,
+        n <> m ->
+        open_rec_def n x (open_rec_def m y d) = open_rec_def m y d ->
+        open_rec_def n x d = d) /\
+    (forall ds n m,
+        n <> m ->
+        open_rec_defs n x (open_rec_defs m y ds) = open_rec_defs m y ds ->
+        open_rec_defs n x ds = ds).
+Proof.
+  introv. apply trm_mutind; intros; simpls; auto.
+  - destruct a; simpl; auto.
+    case_if; simpl in *; case_if; simpl in *; auto; case_if.
+  - inversions H1. rewrite H with (m:=m); auto.
+  - inversions H0.
+    destruct a; simpl; auto.
+    case_if; simpl in *; case_if; simpl in *; auto; case_if.
+  - inversions H0. destruct a; destruct a0; simpl; auto; repeat case_if~; simpls; repeat case_if; simpl in *; repeat case_if~.
+  - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=S m); auto.
+  - inversions H1. rewrite H with (m:=S m); auto.
+    rewrite (proj21 (lc_open_rec_open_typ_dec x y)) with (m:=S m); auto.
+  - inversions H1. rewrite H with (m:=S m); auto.
+    rewrite (proj21 (lc_open_rec_open_typ_dec x y)) with (m:=m); auto.
+  - inversions H0.
+    rewrite (proj21 (lc_open_rec_open_typ_dec x y)) with (m:=m); auto.
+  - inversions H1. rewrite H with (m:=m); auto.
+  - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=m); auto.
+Qed.
+
+Lemma open_fv_avar : forall v x y k,
+    x \notin fv_avar v \u \{y} ->
+    x \notin fv_avar (open_rec_avar k y v).
+Proof.
+  intros. destruct v; simpls; try case_if; unfold fv_avar; auto.
+Qed.
+
+
+Lemma open_fv_typ_dec :
+  (forall T x y k, x \notin fv_typ T \u \{y} -> x \notin fv_typ (open_rec_typ k y T)) /\
+  (forall D x y k, x \notin fv_dec D \u \{y} -> x \notin fv_dec (open_rec_dec k y D)).
+Proof.
+  apply typ_mutind; intros; simpls; auto;
+    apply open_fv_avar; auto.
+Qed.
+
+
+Lemma open_fv_trm_val_def_defs :
+  (forall t x y k, x \notin fv_trm t \u \{y} -> x \notin fv_trm (open_rec_trm k y t)) /\
+  (forall v x y k, x \notin fv_val v \u \{y} -> x \notin fv_val (open_rec_val k y v)) /\
+  (forall d x y k, x \notin fv_def d \u \{y} -> x \notin fv_def (open_rec_def k y d)) /\
+  (forall ds x y k, x \notin fv_defs ds \u \{y} -> x \notin fv_defs (open_rec_defs k y ds)).
+Proof.
+  Local Hint Resolve open_fv_avar.
+  apply trm_mutind; intros; simpls; auto;
+    try apply notin_union_l;
+    try apply open_fv_typ_dec; auto.
+Qed.
 
 
 (** * Local Closure
@@ -215,7 +361,7 @@ Proof.
     end;
     repeat constructor; auto;
     try solve [try fold open_rec_trm; auto];
-    try solve [applys lc_at_to_open_typ_dec; auto];
+    try solve [apply lc_at_to_open_typ_dec; auto];
     solve [apply lc_at_to_open_avar; auto].
 Qed.
 
@@ -251,7 +397,7 @@ Lemma open_to_lc_at_trm_val_def_defs : forall x,
     (forall ds k, lc_at_defs k (open_rec_defs k x ds) -> lc_at_defs (S k) ds).
 Proof.
   intro x.
-  apply trm_mutind; intros; simpl; auto;
+  apply trm_mutind; intros; simpl;
     match goal with
     | [ H : lc_at_trm _ _ |- _ ] => inversions H
     | [ H : lc_at_val _ _ |- _ ] => inversions H
@@ -261,8 +407,7 @@ Proof.
     end;
     repeat constructor; auto;
     try solve [try fold open_rec_trm; auto];
-    try solve [applys open_to_lc_at_typ_dec; eauto];
-    solve [eapply open_to_lc_at_avar; eauto].
+    first [eapply open_to_lc_at_typ_dec | eapply open_to_lc_at_avar]; eauto.
 Qed.
 
 
@@ -305,7 +450,7 @@ Proof.
     end;
     try apply func_eq_2;
     try apply func_eq_1; auto;
-      solve [applys open_left_inverse_close_typ_dec; auto].
+      apply open_left_inverse_close_typ_dec; auto.
 Qed.
 
 
@@ -351,7 +496,7 @@ Proof.
         [match goal with
          | [ H : _ -> _ -> ?f _ _ ?t = ?t |- ?f _ _ ?t = ?t ] => apply H
          end; omega];
-  applys lc_at_opening_typ_dec;
+  eapply lc_at_opening_typ_dec;
     try eassumption;
     try omega.
 Qed.
@@ -362,7 +507,7 @@ Lemma lc_at_opening : forall t n x,
     lc_trm t ->
     open_rec_trm n x t = t.
 Proof.
-  intros. applys lc_at_opening_trm_val_def_defs; try eassumption; try omega.
+  intros. eapply lc_at_opening_trm_val_def_defs; try eassumption; try omega.
 Qed.
 
 
@@ -413,4 +558,15 @@ Proof.
     cases_if.
     + inversions H0. inversion H; auto.
     + apply IHds; auto. inversion H; auto.
+Qed.
+
+Lemma open_bound_lc_trm : forall k x t,
+    lc_trm (open_trm x t) ->
+    open_rec_trm (S k) x t = t.
+Proof.
+  intros.
+  apply lc_at_opening with (n:=S k) (x:=x) in H.
+  eapply (proj1 (lc_open_rec_open_trm_val_def_defs x _)).
+  - instantiate (1 := 0). auto.
+  - eassumption.
 Qed.

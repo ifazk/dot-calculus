@@ -9,6 +9,7 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
+Require Import RecordAndInertTypes.
 Require Import PreciseTypes.
 Require Import TightTypes.
 Require Import InvertibleTypes.
