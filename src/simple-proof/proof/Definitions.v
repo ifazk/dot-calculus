@@ -526,28 +526,25 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     G ⊢ typ_all S1 T1 <: typ_all S2 T2
 where "G '⊢' T '<:' U" := (subtyp G T U).
 
-(** ** Well-formed Stores *)
+(** ** Well-typed Stores *)
 
-(** Given a typing [G ⊢ e[t]: T], [wf_sto] establishes a correspondence
+(** Given a typing [G ⊢ e[t]: T], [well_typed] establishes a correspondence
     between [G] and the store [s] that is used to define the
     evaluation context [e].
-    We say that [s] is well-formed with respect to [G], denoted [G ~~ s], if
+    We say that [s] is well-typed with respect to [G] if
     - [G = {(xi mapsto Ti) | i = 1, ..., n}]
     - [s = {(xi mapsto vi) | i = 1, ..., n}]
     - [G ⊢ vi: Ti].
 *)
 
-Reserved Notation "G '~~' s" (at level 40).
-
-Inductive wf_sto: ctx -> sto -> Prop :=
-| wf_sto_empty: empty ~~ empty
-| wf_sto_push: forall G s x T v,
-    G ~~ s ->
+Inductive well_typed: ctx -> sto -> Prop :=
+| well_typed_empty: well_typed empty empty
+| well_typed_push: forall G s x T v,
+    well_typed G s ->
     x # G ->
     x # s ->
     G ⊢ trm_val v : T ->
-    G & x ~ T ~~ s & x ~ v
-where "G '~~' s" := (wf_sto G s).
+    well_typed (G & x ~ T) (s & x ~ v).
 
 (** * Typing Relations for the Safety Proof *)
 (** The following typing relations are not part of the DOT calculus, but are used
@@ -629,7 +626,7 @@ Inductive inert : ctx -> Prop :=
 (** * Infrastructure *)
 
 Hint Constructors
-     wf_sto
+     well_typed
      inert_typ inert record_has
      ty_trm ty_def ty_defs subtyp.
 

@@ -21,28 +21,28 @@ Require Import General_to_tight.
 Require Import Substitution.
 Require Import Weakening.
 
-(** [G ~~ s]            #<br>#
+(** [well_typed G s]            #<br>#
     [G(x) = T]          #<br>#
     [―――――――――――――]     #<br>#
     [exists v, s(x) = v]     #<br>#
     [G ⊢ v: T]          *)
 Lemma corresponding_types: forall G s x T,
-    G ~~ s ->
+    well_typed G s ->
     binds x T G ->
     (exists v, binds x v s /\
           G ⊢ trm_val v : T).
 Proof.
-  introv Hwf BiG. induction Hwf.
+  introv Hwt BiG. induction Hwt.
   - false* binds_empty_inv.
   - destruct (classicT (x = x0)).
     + subst. apply binds_push_eq_inv in BiG. subst.
       exists v. repeat split~. apply~ weaken_ty_trm.
-      apply ok_push. apply wf_sto_to_ok_G with (s:=s); assumption. assumption.
+      apply ok_push. apply well_typed_to_ok_G with (s:=s); assumption. assumption.
     +
       apply binds_push_neq_inv in BiG; auto.
-      specialize (IHHwf BiG) as [v' [Bis Ht]].
+      specialize (IHHwt BiG) as [v' [Bis Ht]].
       exists v'. repeat split~. apply~ weaken_ty_trm.
-      apply ok_push. apply wf_sto_to_ok_G with (s:=s); assumption. assumption.
+      apply ok_push. apply well_typed_to_ok_G with (s:=s); assumption. assumption.
 Qed.
 
 (** [G ⊢##v v: forall(S)T]                 #<br>#
@@ -134,7 +134,7 @@ Qed.
 (** * Canonical Forms for Functions
 
     [inert G]            #<br>#
-    [G ~~ s]             #<br>#
+    [well_typed G s]     #<br>#
     [G ⊢ x: forall(T)U]       #<br>#
     [――――――――――――――――――] #<br>#
     [s(x) = lambda(T')t] #<br>#
@@ -142,14 +142,14 @@ Qed.
     [G, x: T ⊢ t: U]          *)
 Lemma canonical_forms_fun: forall G s x T U,
   inert G ->
-  G ~~ s ->
+  well_typed G s ->
   G ⊢ trm_var (avar_f x) : typ_all T U ->
   (exists L T' t, binds x (val_lambda T' t) s /\ G ⊢ T <: T' /\
   (forall y, y \notin L -> G & y ~ T ⊢ open_trm y t : open_typ y U)).
 Proof.
-  introv Hin Hwf Hty.
+  introv Hin Hwt Hty.
   destruct (var_typ_all_to_binds Hin Hty) as [L [S [T' [BiG [Hs1 Hs2]]]]].
-  destruct (corresponding_types Hwf BiG) as [v [Bis Ht]].
+  destruct (corresponding_types Hwt BiG) as [v [Bis Ht]].
   destruct (val_typ_all_to_lambda Hin Ht) as [L' [S' [t [Heq [Hs1' Hs2']]]]].
   subst.
   exists (L \u L' \u (dom G)) S' t. repeat split~.
@@ -268,8 +268,8 @@ Qed.
 (** * Canonical Forms for Objects
 
     [inert G]            #<br>#
-    [G ~~ s]             #<br>#
-    [G ⊢ x: {a:T}]             #<br>#
+    [well_typed G s]     #<br>#
+    [G ⊢ x: {a:T}]       #<br>#
     [――――――――――――――――――] #<br>#
     [exists S, ds, t,] #<br>#
     [s(x) = nu(S)ds] #<br>#
@@ -277,13 +277,13 @@ Qed.
     [G ⊢ t: T] *)
 Lemma canonical_forms_obj: forall G s x a T,
   inert G ->
-  G ~~ s ->
+  well_typed G s ->
   G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
   (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ G ⊢ t : T).
 Proof.
-  introv Hi Hwf Hty.
+  introv Hi Hwt Hty.
   destruct (var_typ_rcd_to_binds Hi Hty) as [S [T' [Bi [Hr Hs]]]].
-  destruct (corresponding_types Hwf Bi) as [v [Bis Ht]].
+  destruct (corresponding_types Hwt Bi) as [v [Bis Ht]].
   apply ty_var in Bi. apply ty_rec_elim in Bi.
   destruct (val_mu_to_new Hi Ht Bi Hr) as [t [ds [Heq [Hdefs Ht']]]].
   subst. exists S ds t. repeat split~. eapply ty_sub; eauto.

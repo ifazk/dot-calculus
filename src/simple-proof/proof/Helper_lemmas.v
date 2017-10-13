@@ -332,15 +332,15 @@ Proof.
   reflexivity.
 Qed.
 
-(** * Well-formedness *)
+(** * Well-typedness *)
 
-(** If [G ~~ s], the variables in the domain of [s] are distinct. *)
-Lemma wf_sto_to_ok_G: forall s G,
-    G ~~ s -> ok G.
+(** If [well_typed G s], the variables in the domain of [s] are distinct. *)
+Lemma well_typed_to_ok_G: forall s G,
+    well_typed G s -> ok G.
 Proof.
   intros. induction H; jauto.
 Qed.
-Hint Resolve wf_sto_to_ok_G.
+Hint Resolve well_typed_to_ok_G.
 
 (** * Simple Implications of Typing *)
 

@@ -436,20 +436,20 @@ Lemma progress_ec: forall G' G e t T,
     lc_trm t ->
     indc_subenv G' G ->
     inert G' ->
-    G' ~~ e ->
+    well_typed G' e ->
     G ⊢ t: T ->
     ok G ->
     (normal_form t \/ exists t', e[t |-> t']).
 Proof with auto.
-  introv Hlce Hlc Hsenv Hig Hwf Ht Hokg. gen G' e.
+  introv Hlce Hlc Hsenv Hig Hwt Ht Hokg. gen G' e.
   induction Ht; eauto; intros.
   - Case "ty_all_elim".
     apply narrow_typing with (G':=G') in Ht1; auto.
-    destruct (canonical_forms_fun Hig Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+    destruct (canonical_forms_fun Hig Hwt Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
     right. repeat eexists. apply* red_apply.
   - Case "ty_new_elim".
     apply narrow_typing with (G':=G') in Ht; auto.
-    destruct (canonical_forms_obj Hig Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+    destruct (canonical_forms_obj Hig Hwt Ht) as [S [ds [t [Bis [Has Ty]]]]].
     right. repeat eexists. apply* red_project.
   - Case "ty_let".
     destruct t.
@@ -511,12 +511,12 @@ Proof with auto.
     + SCase "t = trm_sel a t".
       right.
       inversion Hlc.
-      destruct (IHHt H3 Hokg G' Hsenv Hig e Hlce Hwf) as [Hnf | [t' Hr]]. inversion Hnf.
+      destruct (IHHt H3 Hokg G' Hsenv Hig e Hlce Hwt) as [Hnf | [t' Hr]]. inversion Hnf.
       eexists. constructor*.
     + SCase "t = trm_app a a0".
       right.
       inversion Hlc.
-      destruct (IHHt H3 Hokg G' Hsenv Hig e Hlce Hwf) as [Hnf | [t' Hr]]. inversion Hnf.
+      destruct (IHHt H3 Hokg G' Hsenv Hig e Hlce Hwt) as [Hnf | [t' Hr]]. inversion Hnf.
       eexists. constructor*.
     + SCase "t = trm_let t1 t2".
       right. eexists. constructor. inversion Hlc. trivial.
@@ -538,7 +538,7 @@ Qed.
 Lemma preservation_ec: forall G G' e t t' T,
     lc_trm t ->
     indc_subenv G' G ->
-    G' ~~ e ->
+    well_typed G' e ->
     inert G' ->
     G ⊢ t: T ->
     e[t |-> t'] ->
@@ -546,18 +546,18 @@ Lemma preservation_ec: forall G G' e t t' T,
     G' ⊢ t': T.
 Proof.
   Local Hint Resolve open_bound_lc_trm.
-  introv Hlc Hsenv Hwf Hi Ht Hr Hok. gen e t'. gen G'.
-  induction Ht; introv Hsenv Hi Hwf Hr; try solve [inversions Hr].
+  introv Hlc Hsenv Hwt Hi Ht Hr Hok. gen e t'. gen G'.
+  induction Ht; introv Hsenv Hi Hwt Hr; try solve [inversions Hr].
   - Case "ty_all_elim".
     apply narrow_typing with (G':=G') in Ht1; auto.
-    destruct (canonical_forms_fun Hi Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
+    destruct (canonical_forms_fun Hi Hwt Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
     inversions Hr.
     apply (binds_func H4) in Bis. inversions Bis.
     pick_fresh y. apply~ renaming_typ.
     apply (narrow_typing Ht2); auto.
   - Case "ty_new_elim".
     apply narrow_typing with (G':=G') in Ht; auto.
-    destruct (canonical_forms_obj Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+    destruct (canonical_forms_obj Hi Hwt Ht) as [S [ds [t [Bis [Has Ty]]]]].
     inversions Hr.
     apply (binds_func H3) in Bis. inversions Bis.
     rewrite <- (defs_has_inv Has H5). assumption.
@@ -622,7 +622,7 @@ Proof.
          eapply narrow_typing; eauto.
     * SCase "red_let_trm".
       inversion Hlc.
-      specialize (IHHt H3 Hok _ Hsenv Hi _ Hwf t'0 H6).
+      specialize (IHHt H3 Hok _ Hsenv Hi _ Hwt t'0 H6).
       eapply ty_let; eauto. intros.
       instantiate (1 := (((((((((L \u dom G) \u fv_ctx_types G) \u dom G')
                                 \u fv_ctx_types G') \u dom e) \u fv_trm t) \u fv_trm u)
@@ -642,7 +642,7 @@ Proof.
       assert (indc_subenv (G' & x ~ T') (G & x ~ T)). {
         apply indc_subenv_trans with (G & x ~ T'); auto. }
       assert (inert (G' & x ~ T')) by auto.
-      assert (G' & x ~ T' ~~ e & x ~ v) by auto.
+      assert (well_typed (G' & x ~ T') (e & x ~ v)) by auto.
       assert (x \notin L0) by auto.
       inversion Hlc.
 
