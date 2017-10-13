@@ -6,8 +6,8 @@ Please refer to our [technical report](https://arxiv.org/abs/1706.03814) for det
 
 ## Compiling the proof
 
-To compile the proof, navigate to the artifact directory from a terminal window and run make. This will do the following:
-* compile the tlc library;
+To compile the proof, navigate to the artifact directory from a terminal window and run `make`. This will do the following:
+* compile the `tlc` library;
 * compile the safety proof;
 * generate documentation.
 Successful compilation indicates a correct proof.
