@@ -70,7 +70,7 @@ Proof.
     }
     apply subtyp_trans with (T:=open_typ y T0).
     eapply narrow_subtyping. apply* Hst. apply subenv_last. apply* tight_to_general.
-    assumption. assumption.
+    assumption. 
     apply* H0.
 Qed.
 
@@ -128,7 +128,6 @@ Proof.
   specialize (Hs2 y HL).
   specialize (H2 y HL0).
   eapply ty_sub; eauto. eapply narrow_typing in H2; eauto.
-  apply~ subenv_last.
 Qed.
 
 (** * Canonical Forms for Functions
@@ -161,7 +160,6 @@ Proof.
     specialize (Hs2' y HL').
     apply narrow_typing with (G':=G & y ~ T) in Hs2'; auto.
     + eapply ty_sub; eauto.
-    + apply~ subenv_last.
 Qed.
 
 (** [d1 isin ds]             #<br>#
