@@ -12,32 +12,6 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 
-(** [G ⊢ ds :: U]                          #<br>#
-    [U] is a record type with labels [ls]  #<br>#
-    [ds] are definitions with label [ls']  #<br>#
-    [l \notin ls']                          #<br>#
-    [―――――――――――――――――――――――――――――――――――]  #<br>#
-    [l \notin ls] *)
-Lemma hasnt_notin : forall G ds ls l U,
-    G /- ds :: U ->
-    record_typ U ls ->
-    defs_hasnt ds l ->
-    l \notin ls.
-Proof.
-
-  Ltac inversion_def_typ :=
-    match goal with
-    | [ H: _ /- _ : _ |- _ ] => inversions H
-    end.
-
-  introv Hds Hrec Hhasnt.
-  inversions Hhasnt. gen ds. induction Hrec; intros; inversions Hds.
-  - inversion_def_typ; simpl in *; case_if; apply* notin_singleton.
-  - apply notin_union; split; simpl in *.
-    + apply* IHHrec. case_if*.
-    + inversion_def_typ; case_if; apply* notin_singleton.
-Qed.
-
 (** * Lemmas About Opening *)
 
 Ltac avar_solve :=
@@ -151,6 +125,32 @@ Qed.
 
 
 (** * Lemmas About Records and Record Types *)
+
+(** [G ⊢ ds :: U]                          #<br>#
+    [U] is a record type with labels [ls]  #<br>#
+    [ds] are definitions with label [ls']  #<br>#
+    [l \notin ls']                          #<br>#
+    [―――――――――――――――――――――――――――――――――――]  #<br>#
+    [l \notin ls] *)
+Lemma hasnt_notin : forall G ds ls l U,
+    G /- ds :: U ->
+    record_typ U ls ->
+    defs_hasnt ds l ->
+    l \notin ls.
+Proof.
+
+  Ltac inversion_def_typ :=
+    match goal with
+    | [ H: _ /- _ : _ |- _ ] => inversions H
+    end.
+
+  introv Hds Hrec Hhasnt.
+  inversions Hhasnt. gen ds. induction Hrec; intros; inversions Hds.
+  - inversion_def_typ; simpl in *; case_if; apply* notin_singleton.
+  - apply notin_union; split; simpl in *.
+    + apply* IHHrec. case_if*.
+    + inversion_def_typ; case_if; apply* notin_singleton.
+Qed.
 
 (** [labels(D) = labels(D^x)] *)
 Lemma open_dec_preserves_label: forall D x i,
@@ -332,28 +332,6 @@ Proof.
   reflexivity.
 Qed.
 
-(** * Conversion into General Typing *)
-
-(** Precise typing implies general typing. *)
-Lemma precise_to_general: forall G t T,
-    G ⊢! t : T ->
-    G ⊢ t : T.
-Proof.
-  intros. induction H; intros; subst; eauto.
-Qed.
-
-(** Tight typing implies general typing. *)
-Lemma tight_to_general:
-  (forall G t T,
-     G ⊢# t : T ->
-     G ⊢ t : T) /\
-  (forall G S U,
-     G ⊢# S <: U ->
-     G ⊢ S <: U).
-Proof.
-  apply ts_mutind_t; intros; subst; eauto using precise_to_general.
-Qed.
-
 (** * Well-formedness *)
 
 (** If [G ~~ s], the variables in the domain of [s] are distinct. *)
@@ -364,7 +342,7 @@ Proof.
 Qed.
 Hint Resolve wf_sto_to_ok_G.
 
-(** * Other Lemmas *)
+(** * Simple Implications of Typing *)
 
 (** If a variable can be typed in an environment,
     then it is bound in that environment. *)

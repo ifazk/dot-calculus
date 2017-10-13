@@ -107,7 +107,7 @@ Proof.
   intros.
   rewrite concat_def, single_def.
   unfold fv_ctx_types, fv_in_values; rewrite values_def.
-  rewrite union_comm. simpl. reflexivity.
+  rewrite union_comm. reflexivity.
 Qed.
 
 (** [x \notin fv(G, z: T)]                   #<br>#

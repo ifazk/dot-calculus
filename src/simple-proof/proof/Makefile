@@ -34,9 +34,6 @@ cleanall::
 
 doc: ../doc/toc.html
 
-../doc/toc.html:
-	$(MAKE) -f $(PROOFMAKEFILE) VFILES="$(shell coqdep -sort $(FILES) | sed -e "s|\\.vo|\\.v|g")" html
-
 %.vo:
 	$(MAKE) -f $(PROOFMAKEFILE) $@
 
@@ -81,6 +78,11 @@ graph.png: $(PROOFS)
 #################
 # Documentation #
 #################
+
+DOCDEP=$(shell coqdep -sort $(FILES) | sed -e "s|\\.vo|\\.v|g")
+
+../doc/toc.html: $(DOCDEP)
+	$(MAKE) -f $(PROOFMAKEFILE) VFILES="$(DOCDEP)" html
 
 EXTRA_DIR:=../doc/assets
 COQDOCFLAGS:= \

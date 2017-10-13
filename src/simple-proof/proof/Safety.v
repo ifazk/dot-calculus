@@ -59,7 +59,9 @@ Corollary open_preserve_normal_form : forall x t,
     x \notin fv_trm t ->
     normal_form (open_trm x t) ->
     normal_form t.
-Proof. apply open_rec_preserve_normal_form. Qed.
+Proof.
+  apply open_rec_preserve_normal_form.
+Qed.
 
 
 Lemma open_bound_lc_trm : forall k x t,
@@ -327,18 +329,13 @@ Proof.
 Qed.
 
 
-Lemma fv_sto_vals_push : forall e x y v,
-    y \notin fv_sto_vals e \u fv_val v ->
-    y \notin fv_sto_vals (e & x ~ v).
+Lemma fv_sto_vals_push_eq : forall e x v,
+    fv_sto_vals (e & x ~ v) = fv_sto_vals e \u fv_val v.
 Proof.
-  intros. apply notin_union in H. destruct H.
-  unfold fv_sto_vals in *.
-  unfold fv_in_values in *. rewrite values_def in *.
-  rewrite single_def.
-  rewrite concat_def.
-  rewrite LibList.app_cons_one.
-  rewrite LibList.map_cons. simpl.
-  apply notin_union_l; auto.
+  intros.
+  rewrite concat_def, single_def.
+  unfold fv_sto_vals, fv_in_values; rewrite values_def.
+  rewrite union_comm. reflexivity.
 Qed.
 
 
@@ -372,7 +369,7 @@ Proof.
         apply red_apply with (subst_typ x y T); auto 1;
           assert (Hs : val_lambda (subst_typ x y T) (subst_trm x y t) =
                        subst_val x y (val_lambda T t));
-          auto;
+          auto 2;
           rewrite Hs;
           try match goal with
               | [ |- binds ?y _ (_ & ?y ~ _ & _) ] =>
@@ -412,8 +409,8 @@ Proof.
       instantiate (1 := L \u dom e1 \u fv_sto_vals e1 \u dom e2 \u fv_sto_vals e2
                             \u fv_val v \u fv_val v0 \u fv_trm t \u \{x} \u \{y}) in H2.
 
-      assert (x0 <> x); auto.
-      assert (x0 <> y); auto.
+      assert (x0 <> x) by auto.
+      assert (x0 <> y) by auto.
 
       assert (subst_fvar x y x0 = x0). {
         unfold subst_fvar. case_if; auto.
@@ -422,15 +419,13 @@ Proof.
       rewrite <- subst_open_commut_trm. rewrite <- subst_open_commut_trm.
       rewrite H5.
 
-      assert (x0 \notin L); auto.
+      assert (x0 \notin L) by auto.
       specialize (H1 _ H6 v (e2 & x0 ~ v0) e1).
 
       assert (y \notin fv_trm (open_trm x0 t)). {
         applys open_fv_trm_val_def_defs; auto.
       }
-      assert (y \notin fv_sto_vals (e2 & x0 ~ v0)). {
-        apply fv_sto_vals_push. auto.
-      }
+      assert (y \notin fv_sto_vals (e2 & x0 ~ v0)) by rewrite~ fv_sto_vals_push_eq.
 
       assert (y \notin dom e1 \u fv_sto_vals e1
                 \u dom (e2 & x0 ~ v0) \u fv_sto_vals (e2 & x0 ~ v0)
@@ -443,7 +438,7 @@ Proof.
       }
       specialize (H1 H9 _ H10).
       rewrite H11 in H1.
-      repeat rewrite concat_assoc in H1.
+      rewrite? concat_assoc in H1.
       apply H1. auto.
 Qed.
 
@@ -479,7 +474,7 @@ Proof with auto.
       destruct Ht as [T' [H1 H2]].
       pose proof (precise_inert_typ H1) as Hpit.
       pick_fresh x.
-      destruct H0 with (x:=x) (G' := G' & x ~ T') (e := e & x ~ v); auto.
+      destruct H0 with (x:=x) (G' := G' & x ~ T') (e := e & x ~ v); auto 2.
       * inversion Hlc. trivial. applys lc_at_to_open_trm_val_def_defs...
       * intros. eapply indc_subenv_trans; econstructor; eauto.
       * constructor; auto. inversion Hlc. inversion H5. trivial.
@@ -488,11 +483,6 @@ Proof with auto.
       * left.
         destruct u; auto; apply open_preserve_normal_form in H3; auto.
       * right. destruct H3.
-
-        (* exists. eapply red_let_val; auto. *)
-        (* intros. *)
-
-
         pose proof H3. inversion Hlc. inversion H7.
         apply open_rec_eval_to_open_rec in H3; auto.
         destruct_all. subst.
@@ -569,14 +559,14 @@ Lemma preservation_ec: forall G G' e t t' T,
 Proof.
   Local Hint Resolve open_bound_lc_trm.
   introv Hlc Hsenv Hwf Hi Ht Hr Hok. gen e t'. gen G'.
-  induction Ht; introv Hsenv Hi Hwf Hr; try solve [inversions Hr]; eauto.
+  induction Ht; introv Hsenv Hi Hwf Hr; try solve [inversions Hr].
   - Case "ty_all_elim".
     apply narrow_typing with (G':=G') in Ht1; auto.
     apply narrow_typing with (G':=G') in Ht2; auto.
     destruct (canonical_forms_fun Hi Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
     inversions Hr.
     apply (binds_func H4) in Bis. inversions Bis.
-    pick_fresh y. apply* renaming_typ.
+    pick_fresh y. apply~ renaming_typ.
   - Case "ty_new_elim".
     apply narrow_typing with (G':=G') in Ht; auto.
     destruct (canonical_forms_obj Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
@@ -690,7 +680,7 @@ Proof.
       assert (Hopeny : subst_ctx x y (y ~ T') = y ~ T'). {
         unfold subst_ctx. rewrite map_single. rewrite Hxyt. trivial.
       }
-      rewrite* Hopeny in Hsubst.
+      rewrite Hopeny in Hsubst.
 
       assert (Hopent : subst_trm x y (open_trm x t'0) = open_trm y t'0). {
         rewrite subst_open_commut_trm.
@@ -704,7 +694,7 @@ Proof.
 
   - apply narrow_typing with (G' := G') in Ht; auto.
     apply narrow_subtyping with (G' := G') in H; auto.
-    eapply ty_sub; eauto.
+    eauto.
 Qed.
 
 

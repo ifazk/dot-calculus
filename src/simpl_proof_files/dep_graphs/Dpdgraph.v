@@ -10,6 +10,7 @@ Require Weakening.
 Require Narrowing.
 Require Helper_lemmas.
 Require Precise_types.
+Require Tight_types.
 Require Substitution.
 Require Invertible_typing.
 Require General_to_tight.
@@ -26,6 +27,7 @@ Weakening
 Narrowing
 Helper_lemmas
 Precise_types
+Tight_types
 Substitution
 Invertible_typing
 General_to_tight

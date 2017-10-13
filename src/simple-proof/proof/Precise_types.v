@@ -13,6 +13,76 @@ Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Helper_lemmas.
 
+(** ** Precise typing [G ⊢! t: T] *)
+(** Precise typing is used to reason about the types of variables and values.
+    Precise typing does not "modify" a variable's or value's type through subtyping.
+    - For values, precise typing allows to only retrieve the "immediate" type of the value.
+      It types objects with recursive types, and functions with dependent-function types. #<br>#
+      For example, if a value is the object [nu(x: {a: T}){a = x.a}], the only way to type
+      the object through precise typing is [G ⊢! nu(x: {a: T}){a = x.a}: mu(x: {a: T})].
+    - For variables, we start out with a type [T=G(x)] (the type to which the variable is
+      bound in [G]). Then we use precise typing to additionally deconstruct [T]
+      by using recursion elimination and intersection elimination. #<br>#
+      For example, if [G(x)=mu(x: {a: T} /\ {B: S..U})], then we can derive the following
+      precise types for [x]:               #<br>#
+      [G ⊢! x: mu(x: {a: T} /\ {B: S..U})] #<br>#
+      [G ⊢! x: {a: T} /\ {B: S..U}]        #<br>#
+      [G ⊢! x: {a: T}]                    #<br>#
+      [G ⊢! x: {B: S..U}].                *)
+
+Reserved Notation "G '⊢!' t ':' T" (at level 40, t at level 59).
+
+Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
+
+(** [G(x) = T]      #<br>#
+    [―――――――――――――] #<br>#
+    [G ⊢! x: T] *)
+| ty_var_p : forall G x T,
+    binds x T G ->
+    G ⊢! trm_var (avar_f x) : T
+
+(** [G, x: T ⊢ t^x: U^x]       #<br>#
+    [x fresh]                  #<br>#
+    [――――――――――――――――――――――――] #<br>#
+    [G ⊢! lambda(T)t: forall(T) U]     *)
+| ty_all_intro_p : forall L G T t U,
+    (forall x, x \notin L ->
+      G & x ~ T ⊢ open_trm x t : open_typ x U) ->
+    G ⊢! trm_val (val_lambda T t) : typ_all T U
+
+(** [G, x: T^x ⊢ ds^x :: T^x]   #<br>#
+    [x fresh]                   #<br>#
+    [―――――――――――――――――――――――]   #<br>#
+    [G ⊢! nu(T)ds :: mu(T)]        *)
+| ty_new_intro_p : forall L G T ds,
+    (forall x, x \notin L ->
+      G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
+    G ⊢! trm_val (val_new T ds) : typ_bnd T
+
+(** [G ⊢! x: mu(T)] #<br>#
+    [――――――――――――――] #<br>#
+    [G ⊢! x: T^x]       *)
+| ty_rec_elim_p : forall G x T,
+    G ⊢! trm_var (avar_f x) : typ_bnd T ->
+    G ⊢! trm_var (avar_f x) : open_typ x T
+
+(** [G ⊢! x: T /\ U] #<br>#
+    [――――――――――――――] #<br>#
+    [G ⊢! x: T]     *)
+| ty_and1_p : forall G x T U,
+    G ⊢! trm_var (avar_f x) : typ_and T U ->
+    G ⊢! trm_var (avar_f x) : T
+
+(** [G ⊢! x: T /\ U] #<br>#
+    [――――――――――――――] #<br>#
+    [G ⊢! x: U]     *)
+| ty_and2_p : forall G x T U,
+    G ⊢! trm_var (avar_f x) : typ_and T U ->
+    G ⊢! trm_var (avar_f x) : U
+where "G '⊢!' t ':' T" := (ty_trm_p G t T).
+
+Hint Constructors ty_trm_p.
+
 (** * Precise Flow *)
 (** We use the precise flow relation to reason about the relations between
     the precise type of a variable [G ⊢! x: T] and the type that the variable
@@ -414,4 +484,12 @@ Lemma precise_dec_typ_inv : forall G x A S U,
 Proof.
   introv Hi Hpt. destruct (precise_flow_lemma Hpt) as [V Pf].
   apply* pf_dec_typ_inv.
+Qed.
+
+(** Precise typing implies general typing. *)
+Lemma precise_to_general: forall G t T,
+    G ⊢! t : T ->
+    G ⊢ t : T.
+Proof.
+  intros. induction H; intros; subst; eauto.
 Qed.
