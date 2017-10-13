@@ -629,6 +629,7 @@ Inductive inert : ctx -> Prop :=
 (** * Infrastructure *)
 
 Hint Constructors
+     wf_sto
      inert_typ inert record_has
      ty_trm ty_def ty_defs subtyp.
 

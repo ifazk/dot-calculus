@@ -116,10 +116,8 @@ Lemma open_rec_eval_to_open_rec : forall e x t t' v,
 Proof.
   intros. exists (close_trm x t'). remember (close_trm x t') as ct. split.
   - subst ct. applys close_rec_trm_val_def_defs_no_capture.
-  - symmetry. rewrite Heqct. applys open_left_inverse_close_trm_val_def_defs.
-    eapply lc_env_eval_to_lc_trm.
-    + apply lc_sto_cons; eassumption.
-    + eassumption.
+  - symmetry. rewrite Heqct. apply open_left_inverse_close_trm_val_def_defs.
+    eauto using lc_env_eval_to_lc_trm, lc_sto_cons.
 Qed.
 
 
@@ -150,16 +148,12 @@ Proof.
   introv H. induction H.
   - apply subenv_empty_supremum.
   - unfold subenv. intros y Tb Bi. apply binds_push_inv in Bi. destruct Bi as [Bi | Bi].
-    + destruct Bi. subst. right. exists T. split.
-      * apply binds_push_eq.
-      * apply weaken_subtyp; auto.
+    + destruct Bi. subst. right. exists T. auto using binds_push_neq, weaken_subtyp.
     + destruct Bi. unfold subenv in IHindc_subenv.
       destruct (IHindc_subenv _ _ H6).
       * left. apply binds_push_neq; trivial.
       * destruct H7 as [T1 [Hb Hs]]. right.
-        exists T1. split.
-        -- apply binds_push_neq; trivial.
-        -- apply weaken_subtyp; auto.
+        exists T1. auto using binds_push_neq, weaken_subtyp.
 Qed.
 Hint Resolve indc_subenv_implies_subenv.
 
@@ -227,9 +221,7 @@ Lemma binds_fv_sto_vals : forall x y v e,
     x \notin fv_val v.
 Proof.
   intros. unfold fv_sto_vals in H0.
-  eapply fv_in_values_binds.
-  - eassumption.
-  - assumption.
+  eapply fv_in_values_binds; eauto.
 Qed.
 
 
@@ -245,8 +237,8 @@ Proof.
     + destruct d; simpls; case_if; auto.
       inversion H0. subst.
       rewrite subst_open_commut_trm. unfold subst_fvar.
-      case_if; try contradiction. auto.
-    + case_if; apply IHds; destruct d; simpls; auto; contradiction.
+      case_if; auto.
+    + case_if; apply IHds; destruct d; auto; contradiction.
 Qed.
 
 
@@ -257,13 +249,10 @@ Lemma open_subst_defs2 : forall x y a ds t,
 Proof.
   introv. gen x y a t. induction ds; intros.
   - inversion H0.
-  - unfold open_defs in *. simpls.
-    unfold defs_has in *. simpls. case_if.
-    + destruct d; simpls; case_if; auto.
-      inversion H0. subst.
-      rewrite subst_open_commut_trm. unfold subst_fvar.
-      case_if; try contradiction. auto.
-    + case_if; apply IHds; destruct d; simpls; auto; contradiction.
+  - unfold open_defs, defs_has in *.
+    simpls; case_if; destruct d; simpls; case_if; auto.
+    subst; inversion H0.
+    rewrite subst_open_commut_trm. unfold subst_fvar. case_if; auto.
 Qed.
 
 
@@ -358,31 +347,30 @@ Proof.
     end.
 
   Local Ltac solve_left_most :=
-    repeat apply binds_concat_left; unfold subst_env; try rewrite dom_map; auto;
+    apply binds_concat_left; unfold subst_env; try rewrite dom_map; auto;
     rewrite (proj1 (proj2 (subst_fresh_trm_val_def_defs _ _))); auto;
-    eapply binds_fv_sto_vals; eauto.
+    eapply binds_fv_sto_vals; eauto 2.
 
   introv Hfx Hfy He. dependent induction He; simpls.
-  - apply binds_middle_inv in H0; destruct_all; repeat case_if; subst;
+  - apply binds_middle_inv in H0; destruct_all; case_if; subst;
       try solve [contra_bind];
       rewrite subst_open_commut_trm; unfold subst_fvar; case_if; try contradiction;
         apply red_apply with (subst_typ x y T); auto 1;
           assert (Hs : val_lambda (subst_typ x y T) (subst_trm x y t) =
-                       subst_val x y (val_lambda T t));
+                       subst_val x y (val_lambda T t)) by auto;
           auto 2;
           rewrite Hs;
           try match goal with
               | [ |- binds ?y _ (_ & ?y ~ _ & _) ] =>
-                apply binds_middle_eq; unfold subst_env; rewrite dom_map; auto
+                apply binds_middle_eq; unfold subst_env; rewrite dom_map; auto 1
               end;
-          try solve [apply binds_concat_right;
-                     apply binds_subst_env; trivial];
+          try solve [apply binds_concat_right, binds_subst_env; trivial];
           solve_left_most.
-  - apply binds_middle_inv in H0; destruct_all; repeat case_if; subst;
+  - apply binds_middle_inv in H0; destruct_all; case_if; subst;
       try solve [contra_bind];
-      apply red_project with (T:=subst_typ x y T) (ds:=subst_defs x y ds); auto;
+      apply red_project with (T:=subst_typ x y T) (ds:=subst_defs x y ds); auto 1;
         assert (Hs : val_new (subst_typ x y T) (subst_defs x y ds) = subst_val x y (val_new T ds));
-        auto;
+        auto 2;
         try rewrite Hs.
     + apply binds_concat_right; apply binds_subst_env; trivial.
     + apply open_subst_defs; auto.
@@ -392,7 +380,7 @@ Proof.
     + apply open_subst_defs; auto.
   - case_if; simpls;
       subst; rewrite subst_open_commut_trm; unfold subst_fvar;
-        case_if; try contradiction; constructor;
+        case_if; constructor;
           inversion H; constructor; auto;
             applys lc_at_subst_trm_val_def_defs; trivial.
   - inversion H. inversion H2.
@@ -542,7 +530,7 @@ Theorem progress: forall t T,
     ⊢ t: T ->
     normal_form t \/ (exists t', t |-> t').
 Proof.
-  intros. apply* progress_ec; constructor; auto.
+  intros. apply* progress_ec.
 Qed.
 
 (** * Preservation *)
@@ -562,11 +550,11 @@ Proof.
   induction Ht; introv Hsenv Hi Hwf Hr; try solve [inversions Hr].
   - Case "ty_all_elim".
     apply narrow_typing with (G':=G') in Ht1; auto.
-    apply narrow_typing with (G':=G') in Ht2; auto.
     destruct (canonical_forms_fun Hi Hwf Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
     inversions Hr.
     apply (binds_func H4) in Bis. inversions Bis.
     pick_fresh y. apply~ renaming_typ.
+    apply (narrow_typing Ht2); auto.
   - Case "ty_new_elim".
     apply narrow_typing with (G':=G') in Ht; auto.
     destruct (canonical_forms_obj Hi Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
@@ -641,7 +629,7 @@ Proof.
                             \u fv_trm t'0) \u fv_typ T) \u fv_typ U) in H7.
       assert (x \notin L); auto.
       specialize (H _ H8).
-      apply narrow_typing with (G':=G' & x ~ T) in H; auto.
+      apply (narrow_typing H); auto.
     * SCase "red_let_val".
       apply val_typing in Ht.
       destruct Ht as [T' [H1 H2]].
@@ -653,11 +641,9 @@ Proof.
       assert (ok (G & x ~ T)); auto.
       assert (indc_subenv (G' & x ~ T') (G & x ~ T)). {
         apply indc_subenv_trans with (G & x ~ T'); auto. }
-      assert (inert (G' & x ~ T')); auto.
-      assert (G' & x ~ T' ~~ e & x ~ v). {
-        constructor; auto.
-      }
-      assert (x \notin L0); auto.
+      assert (inert (G' & x ~ T')) by auto.
+      assert (G' & x ~ T' ~~ e & x ~ v) by auto.
+      assert (x \notin L0) by auto.
       inversion Hlc.
 
       apply (proj1 (lc_at_to_open_trm_val_def_defs x)) in H14.
@@ -671,26 +657,24 @@ Proof.
       assert (HsubstU : subst_typ x y U = U). {
         apply subst_fresh_typ. auto.
       }
-      rewrite HsubstU in Hsubst.
 
       assert (Hxyt : subst_typ x y T' = T'). {
         apply subst_fresh_typ. auto.
       }
 
       assert (Hopeny : subst_ctx x y (y ~ T') = y ~ T'). {
-        unfold subst_ctx. rewrite map_single. rewrite Hxyt. trivial.
+        unfold subst_ctx. rewrite map_single, Hxyt. trivial.
       }
-      rewrite Hopeny in Hsubst.
 
       assert (Hopent : subst_trm x y (open_trm x t'0) = open_trm y t'0). {
         rewrite subst_open_commut_trm.
         rewrite (proj1 (subst_fresh_trm_val_def_defs _ _)); auto.
         unfold subst_fvar. case_if; auto.
       }
-      rewrite Hopent in Hsubst.
+      rewrite HsubstU, Hopeny, Hopent in Hsubst.
 
       apply Hsubst; auto.
-      rewrite Hxyt. auto.
+      rewrite Hxyt; auto.
 
   - apply narrow_typing with (G' := G') in Ht; auto.
     apply narrow_subtyping with (G' := G') in H; auto.
@@ -706,5 +690,5 @@ Theorem preservation: forall (t t' : trm) T,
     t |-> t' ->
     ⊢ t' : T.
 Proof.
-  intros. eapply preservation_ec; eauto. constructor.
+  intros. eapply preservation_ec; eauto.
 Qed.
