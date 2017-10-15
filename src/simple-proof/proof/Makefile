@@ -2,10 +2,11 @@ FILES=Safety.v
 OBJECTS=$(FILES:.v=.vo)
 
 TLCDIR=../lib/tlc
-LIBLN=$(TLCDIR)/LibLN.vo
+TLCSRC=$(TLCDIR)/src
+LIBLN=$(TLCSRC)/LibLN.vo
 TLCNAME=TLC
 
-COQINCLUDE=-R $(TLCDIR) $(TLCNAME) -R . \"\"
+COQINCLUDE=-R $(TLCSRC) $(TLCNAME) -R . \"\"
 COQMAKEFILE=$(COQBIN)coq_makefile
 
 PROOFMAKEFILE=Makefile.coq
@@ -57,7 +58,7 @@ ide: _CoqProject
 ########################
 
 $(LIBLN):
-	cd $(TLCDIR) && make
+	$(MAKE) -C $(TLCDIR)
 
 ###################
 # Forced Rebuilds #
@@ -69,7 +70,7 @@ $(PROOFMAKEFILE):
 	$(COQMAKEFILE) $(COQINCLUDE) -install none -o $(PROOFMAKEFILE) $(PROOFS)
 	sed -i -e "s|mkdir -p html|mkdir -p ../doc|g" $(PROOFMAKEFILE)
 	sed -i -e "s|-d html|-d ../doc|g" $(PROOFMAKEFILE)
-	sed -i -e "s|rm -rf html|rm -rf ../doc/*.html|g" $(PROOFMAKEFILE)
+	sed -i -e "s|rm -rf html|rm -f ../doc/*.*|g" $(PROOFMAKEFILE)
 
 #################
 # Documentation #
@@ -98,7 +99,7 @@ GRAPHEXCLUDE=?
 graph: ../doc/graph.png
 
 graph.dot: $(GRAPHDEP)
-	coqdep -dumpgraph graph.dot $(GRAPHDEP)
+	coqdep -dumpgraph graph.dot $(GRAPHDEP) >/dev/null 2>/dev/null
 
 ../doc/graph.png: graph.dot $(PROOFS)
 	dot -Tpng graph.dot > ../doc/graph.png
@@ -120,7 +121,7 @@ DPDTEXT+=Set DependGraph File \"$(DPDFILENAME)\".
 DPDTEXT+=Print FileDependGraph $(DPDMODULES).
 
 $(DPDFILENAME): $(shell coqdep -sort $(FILES))
-	echo $(DPDTEXT) | coqtop -R $(TLCDIR) $(TLCNAME) -notop
+	echo $(DPDTEXT) | coqtop -R $(TLCSRC) $(TLCNAME) -notop
 
 $(DPDDOT): $(DPDFILENAME)
 	dpd2dot -without-defs $<
