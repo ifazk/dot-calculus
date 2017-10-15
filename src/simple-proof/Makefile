@@ -1,10 +1,10 @@
 all:
-	cd proof && make
+	$(MAKE) -C proof
 
 clean:
-	cd proof && make clean
+	$(MAKE) -C proof clean
 
 cleanall: clean
-	cd lib/tlc && make clean
+	$(MAKE) -C lib/tlc clean
 	$(RM) doc/*.html
 	$(RM) doc/*.css
