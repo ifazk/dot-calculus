@@ -10,6 +10,7 @@ To compile the proof, navigate to the artifact directory from a terminal window 
 * compile the `tlc` library;
 * compile the safety proof;
 * generate documentation.
+
 Successful compilation indicates a correct proof.
 
 ## Inspecting Source files
