@@ -1,4 +1,5 @@
 all:
+	$(MAKE) -C proof ide
 	$(MAKE) -C proof
 
 clean:

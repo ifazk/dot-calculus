@@ -48,12 +48,15 @@ doc: $(LIBLN)
 proofs: $(LIBLN)
 %vo: $(LIBLN)
 
-##############
-# Main Rules #
-##############
+#############
+# IDE Setup #
+#############
 
-.PHONY: ide
+.PHONY: ide _CoqProject
 ide: _CoqProject
+
+_CoqProject:
+	echo $(COQINCLUDE) > _CoqProject
 
 ########################
 # Library Dependencies #
