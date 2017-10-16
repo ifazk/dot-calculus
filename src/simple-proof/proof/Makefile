@@ -2,6 +2,8 @@ FILES=Safety.v
 OBJECTS=$(FILES:.v=.vo)
 
 TLCDIR=../lib/tlc
+DOCDIR=../doc
+
 TLCSRC=$(TLCDIR)/src
 LIBLN=$(TLCSRC)/LibLN.vo
 TLCNAME=TLC
@@ -33,7 +35,7 @@ cleanall::
 	-rm *.v.d
 	-rm $(PROOFMAKEFILE)
 
-doc: ../doc/toc.html
+doc: $(DOCDIR)/toc.html
 
 %.vo:
 	$(MAKE) -f $(PROOFMAKEFILE) $@
@@ -57,7 +59,7 @@ ide: _CoqProject
 # Library Dependencies #
 ########################
 
-$(LIBLN):
+$(LIBLN): $(wildcard $(TLCSRC)/*.v)
 	$(MAKE) -C $(TLCDIR)
 
 ###################
@@ -68,9 +70,9 @@ $(LIBLN):
 
 $(PROOFMAKEFILE):
 	$(COQMAKEFILE) $(COQINCLUDE) -install none -o $(PROOFMAKEFILE) $(PROOFS)
-	sed -i -e "s|mkdir -p html|mkdir -p ../doc|g" $(PROOFMAKEFILE)
-	sed -i -e "s|-d html|-d ../doc|g" $(PROOFMAKEFILE)
-	sed -i -e "s|rm -rf html|rm -f ../doc/*.*|g" $(PROOFMAKEFILE)
+	sed -i -e "s|mkdir -p html|mkdir -p $(DOCDIR)|g" $(PROOFMAKEFILE)
+	sed -i -e "s|-d html|-d $(DOCDIR)|g" $(PROOFMAKEFILE)
+	sed -i -e "s|rm -rf html|rm -f $(DOCDIR)/*.*|g" $(PROOFMAKEFILE)
 
 #################
 # Documentation #
@@ -78,10 +80,10 @@ $(PROOFMAKEFILE):
 
 DOCDEP=$(shell coqdep -sort $(FILES) | sed -e "s|\\.vo|\\.v|g")
 
-../doc/toc.html: graph $(DOCDEP)
+$(DOCDIR)/toc.html: graph $(DOCDEP)
 	$(MAKE) -f $(PROOFMAKEFILE) VFILES="$(DOCDEP)" html
 
-EXTRA_DIR:=../doc/assets
+EXTRA_DIR:=$(DOCDIR)/assets
 COQDOCFLAGS:= \
   --no-externals \
   --toc --toc-depth 2 --html \
@@ -96,13 +98,13 @@ export COQDOCFLAGS
 GRAPHDEP=$(shell coqdep -sort $(FILES) | sed -e "s|\\.vo|\\.v|g")
 GRAPHEXCLUDE=?
 
-graph: ../doc/graph.png
+graph: $(DOCDIR)/graph.png
 
 graph.dot: $(GRAPHDEP)
 	coqdep -dumpgraph graph.dot $(GRAPHDEP) >/dev/null 2>/dev/null
 
-../doc/graph.png: graph.dot $(PROOFS)
-	dot -Tpng graph.dot > ../doc/graph.png
+$(DOCDIR)/graph.png: graph.dot $(PROOFS)
+	dot -Tpng graph.dot > $(DOCDIR)/graph.png
 
 ######################
 # Lemma Dependencies #
