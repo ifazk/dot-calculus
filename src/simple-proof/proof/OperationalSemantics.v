@@ -18,7 +18,57 @@ Inductive normal_form: trm -> Prop :=
 | nf_val: forall v, normal_form (trm_val v)
 | nf_let: forall v t, normal_form t -> normal_form (trm_let (trm_val v) t).
 
-(** * Operational Semantics *)
+(** * Operational Semantics
+
+The first four reduction rules correspond directly to the rules in Figure 7 of the paper.
+
+The last two rules are congruence rules that implement the meaning of evaluation contexts.
+Specifically, if a term [u] decomposes into an evaluation context and subterm
+as [u = e[t]] and [e[t]] reduces to [e[t']] according to the rules from Figure 7,
+then the purpose of the two congruence rules is to ensure that [u] also reduces
+to [u'], where [u'] is the term [u' = e[t']]. The grammar for evaluation contexts
+in the paper is:
+
+[e ::= [] | let x = [] in t | let x = v in e]
+
+A sentential form [eta] in a derivation of an evaluation context [e] is a string
+of terminals (the elements of DOT terms) and the non-terminal [e]. Define
+[e(eta)] to be a string of terminals formed by replacing [e] with [[]] in [eta].
+We argue that whenever [eta_1] directly derives [eta_2] ([eta_1 => eta_2]),
+and the reduction rules infer that [e(eta_2)[t_2] |-> e(eta_2)[t_2']], then the
+reduction rules also infer that [e(eta_1)[t_1] |-> e(eta_1)[t_1']], where
+[e(eta_2)[t_2] = e(eta_1)[t_1]] and [e(eta_2)[t_2'] = e(eta_1)[t_1']].
+The argument is by considering each of the three cases
+in the evaluation context grammar that justify [eta_1 => eta_2].
+The first case replaces [e] with [[]], so [e(eta_1) = e(eta_2)], so the conclusion
+trivially holds. The second case replaces [e] with [let x = [] in t]. In this case,
+the reduction congruence rule [red_let_trm] has [e(eta_2)[t_2] |-> e(eta_2)[t_2']]
+as a premise and [e(eta_1)[t_1] |-> e(eta_1)[t_1']] as a conclusion. The third case
+replaces [e] with [let x = v in e].  Similarly, the congruence rule [red_let_val]
+has [e(eta_2)[t_2] |-> e(eta_2)[t_2']] as a premise and [e(eta_1)[t_1] |-> e(eta_1)[t_1']]
+as a conclusion. Thus, whenever [eta_1 => eta_2] and [e(eta_2)[t_2] |-> e(eta_2)[t_2']],
+we also have that [e(eta_1)[t_1] |-> e(eta_1)[t_1']].
+
+Reasoning inductively about the steps in the context-free grammar derivation of [e],
+for every sentential
+form [eta] that occurs in that derivation, the congruence reduction rules infer that
+[e(eta)[u] |-> e(eta)[u']], where
+[e(eta)[u] = e[t]] and [e(eta)[u'] = e[t']]. In particular, this is true for the
+sentential form [eta = e], the first sentential form of every derivation. Since
+[e(eta) = e(e) = []], we have shown that the congruence reduction rules infer that [u |-> u'].
+
+Starting with an evaluation context [e] in its conclusion, the [red_let_val] rule appends
+[let x = v] to the context to yield a new context used in its premise.
+(More precisely, the rule replaces the non-terminal [e] within the context in the conclusion by
+[let x = v in e].) This is the only reduction rule that modifies an existing evaluation context. Therefore,
+in a derivation of a reduction judgment [u |-> u'] in an empty evaluation context, every evaluation context
+that appears in the derivation is of the form [let x_1 = v_1 in ... let x_n = v_n in []].
+Therefore, in order to be able to represent every step of every such derivation of a reduction
+judgement in the Coq proof, it is sufficient to represent evaluation contexts by a data structure
+that can represent all evaluation contexts of this form. The proof represents these evaluation
+contexts by a [sto], a list of pairs of variables and values.
+*)
+
 
 Reserved Notation "e '[' t1 '|->' t2 ']'" (at level 60, t1 at level 39).
 
