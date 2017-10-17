@@ -104,23 +104,13 @@ Lemma lc_open_rec_open_trm_val_def_defs: forall x y,
         open_rec_defs n x (open_rec_defs m y ds) = open_rec_defs m y ds ->
         open_rec_defs n x ds = ds).
 Proof.
-  introv. apply trm_mutind; intros; simpls; auto.
-  - destruct a; simpl; auto.
-    case_if; simpl in *; case_if; simpl in *; auto; case_if.
-  - inversions H1. rewrite H with (m:=m); auto.
-  - inversions H0.
-    destruct a; simpl; auto.
-    case_if; simpl in *; case_if; simpl in *; auto; case_if.
-  - inversions H0. destruct a; destruct a0; simpl; auto; repeat case_if~; simpls; repeat case_if; simpl in *; repeat case_if~.
-  - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=S m); auto.
-  - inversions H1. rewrite H with (m:=S m); auto.
-    rewrite (proj21 (lc_open_rec_open_typ_dec x y)) with (m:=S m); auto.
-  - inversions H1. rewrite H with (m:=S m); auto.
-    rewrite (proj21 (lc_open_rec_open_typ_dec x y)) with (m:=m); auto.
-  - inversions H0.
-    rewrite (proj21 (lc_open_rec_open_typ_dec x y)) with (m:=m); auto.
-  - inversions H1. rewrite H with (m:=m); auto.
-  - inversions H2. rewrite H with (m:=m); auto. rewrite H0 with (m:=m); auto.
+  intros.
+  pose proof (proj21 (lc_open_rec_open_typ_dec x y)) as Htyp.
+  apply trm_mutind;
+    intros; simpls; auto;
+      match goal with
+      | [ H : _ = _ |- _ ] => injection H as ?; f_equal; eauto
+      end; avar_solve.
 Qed.
 
 Lemma open_fv_avar : forall v x y k,
