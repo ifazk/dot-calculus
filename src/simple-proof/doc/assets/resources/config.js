@@ -34,6 +34,7 @@ coqdocjs.repl = {
     "mu": "μ",
     "nu": "ν",
     "lambda": "λ",
+    "eta": "η",
     "nat": "ℕ"
 };
 

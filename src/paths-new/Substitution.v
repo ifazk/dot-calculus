@@ -600,7 +600,7 @@ Lemma renaming_def: forall G z T ds x P,
     z \notin fv_ctx_types G \u fv_defs ds \u fv_typ T ->
     z; nil; P; G & z ~ open_typ z T ⊢ open_defs z ds :: open_typ z T ->
     G ⊢ tvar x : open_typ x T ->
-    x; nil; P; G ⊢ open_defs x ds :: open_typ x T
+    x; nil; P; G ⊢ open_defs x ds :: open_typ x T.
 Proof.
   introv Hok Hnz Hnz' Hz Hx. rewrite open_var_typ_eq.
   rewrite subst_intro_typ with (x:=z). rewrite open_var_defs_eq.
@@ -608,13 +608,13 @@ Proof.
   eapply subst_ty_defs; auto. eapply Hz. rewrite* <- subst_intro_typ. all: auto.
 Qed.*)
 
-Lemma renaming_def': forall G z T ds x P,
+Lemma renaming_def': forall G z T ds x bs P,
     ok G ->
     z # G ->
     z \notin (fv_ctx_types G \u fv_defs ds \u fv_typ T) ->
-    z; bs; P; G ⊢ open_defs_p (p_sel z bs) ds :: open_typ_p (p_sel z bs) T ->
-    G ⊢ trm_path (p_sel z bs)  : open_typ_p (p_sel z bs) T ->
-    x; nil; P; G & x ~ open_typ x T ⊢ open_defs x ds :: open_typ x T.
+    z; bs; P; G ⊢ open_defs_p (p_sel (avar_f z) bs) ds :: open_typ_p (p_sel (avar_f z) bs) T ->
+    G ⊢ trm_path (p_sel (avar_f z) bs)  : open_typ_p (p_sel (avar_f z) bs) T ->
+    x; nil; P; G & x ~ open_typ x T ⊢ open_defs x ds :: open_typ x T. Admitted.
 
 Lemma renaming_typ: forall G z T U t x,
     ok G ->
