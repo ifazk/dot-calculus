@@ -48,7 +48,7 @@ coqdocjs.subscr = {
   "6" : "₆",
   "7" : "₇",
   "8" : "₈",
-  "9" : "₉",
+  "9" : "₉"
 };
 
 coqdocjs.replInText = Object.keys(coqdocjs.repl);
