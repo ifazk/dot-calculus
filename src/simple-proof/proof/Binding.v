@@ -363,7 +363,9 @@ Proof.
 Qed.
 
 
-Lemma open_to_lc_at_avar : forall x v k, lc_at_var k (open_rec_avar k x v) -> lc_at_var (S k) v.
+Lemma open_to_lc_at_avar : forall x v k,
+    lc_at_var k (open_rec_avar k x v) ->
+    lc_at_var (S k) v.
 Proof.
   intros. inversion H; subst;
       destruct v; simpl in *;
