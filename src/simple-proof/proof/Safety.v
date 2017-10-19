@@ -23,12 +23,12 @@ Notation "'⊢' t ':' T" := (empty ⊢ t: T) (at level 40, t at level 59).
 (** * Lemmas about Free Variables *)
 
 (** [fv(e, x = v) = fv(e) ∪ fv(v)] *)
-Lemma fv_sto_vals_push_eq : forall e x v,
-    fv_sto_vals (e & x ~ v) = fv_sto_vals e \u fv_val v.
+Lemma fv_ec_vals_push_eq : forall e x v,
+    fv_ec_vals (e & x ~ v) = fv_ec_vals e \u fv_val v.
 Proof.
   intros.
   rewrite concat_def, single_def.
-  unfold fv_sto_vals, fv_in_values; rewrite values_def.
+  unfold fv_ec_vals, fv_in_values; rewrite values_def.
   rewrite union_comm. reflexivity.
 Qed.
 
@@ -36,12 +36,12 @@ Qed.
     [x \notin fv(e)] #<br>#
     [――――――――――――――] #<br>#
     [x \notin fv(v)] *)
-Lemma binds_fv_sto_vals : forall x y v e,
+Lemma binds_fv_ec_vals : forall x y v e,
     binds y v e ->
-    x \notin fv_sto_vals e ->
+    x \notin fv_ec_vals e ->
     x \notin fv_val v.
 Proof.
-  intros. unfold fv_sto_vals in H0.
+  intros. unfold fv_ec_vals in H0.
   eapply fv_in_values_binds; eauto.
 Qed.
 
@@ -156,14 +156,14 @@ Qed.
     [exists f. x \notin fv(f) and t' = f^x    *)
 Lemma open_rec_eval_to_open_rec : forall e x t t' v,
     x \notin dom e \u fv_trm t \u fv_val v ->
-    lc_sto e -> lc_val v ->
+    lc_ec e -> lc_val v ->
     e & x ~ v[ open_trm x t |-> t'] ->
     exists f, (x \notin (fv_trm f)) /\ t' = open_trm x f.
 Proof.
   intros. exists (close_trm x t'). remember (close_trm x t') as ct. split.
   - subst ct. apply close_rec_trm_val_def_defs_no_capture.
   - symmetry. rewrite Heqct. apply open_left_inverse_close_trm_val_def_defs.
-    eauto using lc_env_eval_to_lc_trm, lc_sto_cons.
+    eauto using lc_env_eval_to_lc_trm, lc_ec_cons.
 Qed.
 
 (** [e(b) = v]            #<br>#
@@ -221,9 +221,9 @@ Qed.
     [―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――] #<br>#
     [(e1, y=v[y/x], e2)[t1[y/x]] |-> (e1, y=v[y/x], e2)[t2[y/x]]] *)
 Lemma eval_renaming_subst : forall x y e1 e2 v t1 t2,
-    x \notin dom e1 \u fv_sto_vals e1 \u dom e2 ->
-    y \notin dom e1 \u fv_sto_vals e1
-      \u dom e2 \u fv_sto_vals e2 \u fv_val v \u fv_trm t1 ->
+    x \notin dom e1 \u fv_ec_vals e1 \u dom e2 ->
+    y \notin dom e1 \u fv_ec_vals e1
+      \u dom e2 \u fv_ec_vals e2 \u fv_val v \u fv_trm t1 ->
     (e1 & x ~ v & e2)[t1 |-> t2] ->
     (e1 & y ~ subst_val x y v & subst_env x y e2)[subst_trm x y t1 |-> subst_trm x y t2].
 Proof.
@@ -241,7 +241,7 @@ Proof.
   Local Ltac solve_left_most :=
     apply binds_concat_left; unfold subst_env; try rewrite dom_map;
     try rewrite (proj1 (proj2 (subst_fresh_trm_val_def_defs _ _))); auto;
-    eapply binds_fv_sto_vals; eauto 2.
+    eapply binds_fv_ec_vals; eauto 2.
 
   introv Hfx Hfy He. dependent induction He; simpls.
   - apply binds_middle_inv in H0; destruct_all; case_if; subst;
@@ -286,7 +286,7 @@ Proof.
       repeat constructor;
         apply lc_at_subst_trm_val_def_defs; trivial.
     + intros.
-      instantiate (1 := L \u dom e1 \u fv_sto_vals e1 \u dom e2 \u fv_sto_vals e2
+      instantiate (1 := L \u dom e1 \u fv_ec_vals e1 \u dom e2 \u fv_ec_vals e2
                             \u fv_val v \u fv_val v0 \u fv_trm t \u \{x} \u \{y}) in H2.
 
       assert (x0 <> x) by auto.
@@ -305,13 +305,13 @@ Proof.
       assert (y \notin fv_trm (open_trm x0 t)). {
         apply open_fv_trm_val_def_defs; auto.
       }
-      assert (y \notin fv_sto_vals (e2 & x0 ~ v0)) by rewrite~ fv_sto_vals_push_eq.
+      assert (y \notin fv_ec_vals (e2 & x0 ~ v0)) by rewrite~ fv_ec_vals_push_eq.
 
-      assert (y \notin dom e1 \u fv_sto_vals e1
-                \u dom (e2 & x0 ~ v0) \u fv_sto_vals (e2 & x0 ~ v0)
+      assert (y \notin dom e1 \u fv_ec_vals e1
+                \u dom (e2 & x0 ~ v0) \u fv_ec_vals (e2 & x0 ~ v0)
                 \u fv_val v \u fv_trm (open_trm x0 t)); auto.
 
-      assert (x \notin dom e1 \u fv_sto_vals e1 \u dom (e2 & x0 ~ v0)); auto.
+      assert (x \notin dom e1 \u fv_ec_vals e1 \u dom (e2 & x0 ~ v0)); auto.
 
       assert (subst_env x y (e2 & x0 ~ v0) = subst_env x y e2 & x0 ~ subst_val x y v0). {
         unfold subst_env. apply map_push.
@@ -334,7 +334,7 @@ Qed.
     [―――――――――――――――――――――――――――――]         #<br>#
     [t] is in normal form or [e[t] |-> e[t']] *)
 Lemma progress_ec: forall G' G e t T,
-    lc_sto e ->
+    lc_ec e ->
     lc_trm t ->
     G' ⪯ G ->
     inert G' ->
@@ -379,10 +379,10 @@ Proof with auto.
         exists (trm_let (trm_val v) x1).
 
         apply red_let_val with (L \u dom G \u fv_ctx_types G \u dom G
-                                  \u fv_ctx_types G \u dom e \u fv_sto_vals e
+                                  \u fv_ctx_types G \u dom e \u fv_ec_vals e
                                   \u fv_trm (open_trm x u) \u fv_val v \u fv_typ T
                                   \u fv_typ U \u fv_typ T' \u fv_trm x1
-                                  \u dom (empty : sto) \u fv_sto_vals empty); auto.
+                                  \u dom (empty : ec) \u fv_ec_vals empty); auto.
         intros.
 
         replace (e & x ~ v) with (e & x ~ v & empty) in H4;

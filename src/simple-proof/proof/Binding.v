@@ -113,14 +113,19 @@ Proof.
       end; avar_solve.
 Qed.
 
-Lemma open_fv_avar : forall v x y k,
-    x \notin fv_avar v \u \{y} ->
-    x \notin fv_avar (open_rec_avar k y v).
+(** [x \notin fv(x, y)] #<br>#
+    [―――――――――――――――――] #<br>#
+    [x \notin fv(x^y)] *)
+Lemma open_fv_avar : forall x z y k,
+    x \notin fv_avar z \u \{y} ->
+    x \notin fv_avar (open_rec_avar k y z).
 Proof.
-  intros. destruct v; simpls; try case_if; unfold fv_avar; auto.
+  intros. destruct z; simpls; try case_if; unfold fv_avar; auto.
 Qed.
 
-
+(** [x \notin fv(T, y)] #<br>#
+    [―――――――――――――――――] #<br>#
+    [x \notin fv(T^y)] *)
 Lemma open_fv_typ_dec :
   (forall T x y k, x \notin fv_typ T \u \{y} -> x \notin fv_typ (open_rec_typ k y T)) /\
   (forall D x y k, x \notin fv_dec D \u \{y} -> x \notin fv_dec (open_rec_dec k y D)).
@@ -129,7 +134,9 @@ Proof.
     apply open_fv_avar; auto.
 Qed.
 
-
+(** [x \notin fv(t, y)] #<br>#
+    [―――――――――――――――――] #<br>#
+    [x \notin fv(t^y)] *)
 Lemma open_fv_trm_val_def_defs :
   (forall t x y k, x \notin fv_trm t \u \{y} -> x \notin fv_trm (open_rec_trm k y t)) /\
   (forall v x y k, x \notin fv_val v \u \{y} -> x \notin fv_val (open_rec_val k y v)) /\
@@ -254,14 +261,14 @@ with   lc_at_dec_mut := Induction for lc_at_dec Sort Prop.
 Combined Scheme lc_at_typ_mutind from lc_at_typ_mut, lc_at_dec_mut.
 
 
-(** Locally closed stores *)
-Inductive lc_sto : sto -> Prop :=
-| lc_sto_empty : lc_sto empty
-| lc_sto_cons : forall x v s,
-    lc_sto s ->
+(** Locally closed evaluation contexts *)
+Inductive lc_ec : ec -> Prop :=
+| lc_ec_empty : lc_ec empty
+| lc_ec_cons : forall x v e,
+    lc_ec e ->
     lc_val v ->
-    lc_sto (s & x ~ v).
-Hint Constructors lc_sto.
+    lc_ec (e & x ~ v).
+Hint Constructors lc_ec.
 
 
 Lemma lc_at_relaxing_typ_dec :
@@ -503,12 +510,12 @@ Qed.
 
 (** * Lemmas About Local Closure *)
 
-(** When a binding is removed from a locally closed store, the
-    resulting store and the value in the binding are both
+(** When a binding is removed from a locally closed evaluation context, the
+    resulting evaluation context and the value in the binding are both
     locally closed. *)
-Lemma lc_sto_push_inv : forall s x v,
-    lc_sto (s & x ~ v) ->
-    lc_sto s /\ lc_val v.
+Lemma lc_ec_push_inv : forall s x v,
+    lc_ec (s & x ~ v) ->
+    lc_ec s /\ lc_val v.
 Proof.
   intros s x v H.
   inversion H.
@@ -518,19 +525,19 @@ Proof.
 Qed.
 
 
-(** Values in a locally closed store are also locally closed. *)
-Lemma lc_sto_binds_inv : forall s x v,
-    lc_sto s ->
-    binds x v s ->
+(** Values in a locally closed evaluation context are also locally closed. *)
+Lemma lc_ec_binds_inv : forall e x v,
+    lc_ec e ->
+    binds x v e ->
     lc_val v.
 Proof.
   intros.
-  induction s using env_ind.
+  induction e using env_ind.
   - destruct (binds_empty_inv H0).
   - destruct (binds_push_inv H0) as [[? ?] | [? ?]]; subst.
-    + apply (lc_sto_push_inv H).
-    + apply IHs; auto.
-      apply (lc_sto_push_inv H).
+    + apply (lc_ec_push_inv H).
+    + apply IHe; auto.
+      apply (lc_ec_push_inv H).
 Qed.
 
 

@@ -128,9 +128,10 @@ Definition defs_hasnt(ds: defs)(l: label) := get_def l ds = None.
 (** Typing environment ([G]) *)
 Definition ctx := env typ.
 
-(** The sequence of variable-to-value let bindings, [(let x = v in)*],
-     is represented as a value environment that maps variables to values: *)
-Definition sto := env val.
+(** An evaluation context, represented as the sequence of variable-to-value
+     let bindings, [(let x = v in)*], that is represented as a value environment
+     which maps variables to values: *)
+Definition ec := env val.
 
 (** * Opening *)
 (** Opening takes a bound variable that is represented with a de Bruijn index [k]
@@ -314,7 +315,7 @@ with fv_defs(ds: defs) : vars :=
 
 (** Free variables in the range (types) of a context *)
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
-Definition fv_sto_vals(e: sto): vars := (fv_in_values (fun v => fv_val v) e).
+Definition fv_ec_vals(e: ec): vars := (fv_in_values (fun v => fv_val v) e).
 
 (** * Typing Rules *)
 
@@ -529,7 +530,7 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     G ⊢ typ_all S1 T1 <: typ_all S2 T2
 where "G '⊢' T '<:' U" := (subtyp G T U).
 
-(** ** Well-typed Stores *)
+(** ** Well-typed Evaluation Contexts *)
 
 (** Given a typing [G ⊢ e[t]: T], [well_typed] establishes a correspondence
     between [G] and the evaluation context [e].
@@ -541,7 +542,7 @@ where "G '⊢' T '<:' U" := (subtyp G T U).
 
     We say that [e] is well-typed with respect to [G], denoted as [e: G]. *)
 
-Inductive well_typed: ctx -> sto -> Prop :=
+Inductive well_typed: ctx -> ec -> Prop :=
 | well_typed_empty: well_typed empty empty
 | well_typed_push: forall G e x T v,
     well_typed G e ->
@@ -587,7 +588,7 @@ Ltac gather_vars :=
   let A := gather_vars_with (fun x : vars      => x         ) in
   let B := gather_vars_with (fun x : var       => \{ x }    ) in
   let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_ctx_types x)) in
-  let D := gather_vars_with (fun x : sto       => dom x \u fv_sto_vals x) in
+  let D := gather_vars_with (fun x : ec        => dom x \u fv_ec_vals x) in
   let E := gather_vars_with (fun x : avar      => fv_avar  x) in
   let F := gather_vars_with (fun x : trm       => fv_trm   x) in
   let G := gather_vars_with (fun x : val       => fv_val   x) in

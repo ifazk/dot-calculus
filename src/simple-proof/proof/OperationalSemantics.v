@@ -66,13 +66,13 @@ that appears in the derivation is of the form [let x_1 = v_1 in ... let x_n = v_
 Therefore, in order to be able to represent every step of every such derivation of a reduction
 judgement in the Coq proof, it is sufficient to represent evaluation contexts by a data structure
 that can represent all evaluation contexts of this form. The proof represents these evaluation
-contexts by a [sto], a list of pairs of variables and values.
+contexts by a list of pairs of variables and values.
 *)
 
 
 Reserved Notation "e '[' t1 '|->' t2 ']'" (at level 60, t1 at level 39).
 
-Inductive red : sto -> trm -> trm -> Prop :=
+Inductive red : ec -> trm -> trm -> Prop :=
 (** [e(x) = lambda(T)t]    #<br>#
     [――――――――――――――――――――]  #<br>#
     [e [x y] |-> e [t^y] ]  *)
@@ -116,7 +116,7 @@ Hint Constructors red normal_form.
 
 (** If [e] is locally closed and [e[t] |-> e[t']], then [t'] is locally closed.  *)
 Lemma lc_env_eval_to_lc_trm : forall e t t',
-    lc_sto e ->
+    lc_ec e ->
     e [t |-> t'] ->
     lc_trm t'.
 Proof with auto.
@@ -128,7 +128,7 @@ Proof with auto.
     repeat constructor;
     do 2 try
        match goal with
-       | [ H : binds _ _ _ |- _ ] => apply lc_sto_binds_inv in H; eauto
+       | [ H : binds _ _ _ |- _ ] => apply lc_ec_binds_inv in H; eauto
        | [ H : lc_at_val _ _ |- _ ] => inversions H
        | [ H : lc_at_trm _ _ |- _ ] => solve [inversions H; auto]
        end;
@@ -140,7 +140,7 @@ Proof with auto.
     omega.
   - inversion H4. pick_fresh x.
     assert (x \notin L); auto.
-    assert (lc_sto (e & x ~ v)); auto.
+    assert (lc_ec (e & x ~ v)); auto.
     specialize (H1 x H3 H6).
     applys open_to_lc_at_trm_val_def_defs. eassumption.
 Qed.
