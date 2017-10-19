@@ -166,6 +166,9 @@ Proof.
     eauto using lc_env_eval_to_lc_trm, lc_sto_cons.
 Qed.
 
+(** [e(b) = v]            #<br>#
+    [――――――――――――――――――]  #<br>#
+    [e[y/x](b) = v[y/x]]  *)
 Lemma binds_subst_env : forall x y b v e,
     binds b v e -> binds b (subst_val x y v) (subst_env x y e).
 Proof.
@@ -177,7 +180,9 @@ Proof.
     + apply binds_push_neq; auto.
 Qed.
 
+(** Substitution preserves local closure. *)
 
+(** - for variables *)
 Lemma lc_at_subst_avar : forall v x y k,
     lc_at_var k v <-> lc_at_var k (subst_avar x y v).
 Proof.
@@ -187,7 +192,7 @@ Proof.
   destruct v; auto.
 Qed.
 
-
+(** - for types and declarations *)
 Lemma lc_at_subst_typ_dec : forall k,
   (forall T, lc_at_typ k T -> forall x y, lc_at_typ k (subst_typ x y T)) /\
   (forall D, lc_at_dec k D -> forall x y, lc_at_dec k (subst_dec x y D)).
@@ -196,7 +201,7 @@ Proof.
   constructor. apply lc_at_subst_avar. trivial.
 Qed.
 
-
+(** - for terms, values, and definitions *)
 Lemma lc_at_subst_trm_val_def_defs : forall k,
     (forall t, lc_at_trm k t -> forall x y, lc_at_trm k (subst_trm x y t)) /\
     (forall v, lc_at_val k v -> forall x y, lc_at_val k (subst_val x y v)) /\
@@ -209,7 +214,12 @@ Proof.
     try apply lc_at_subst_typ_dec; trivial.
 Qed.
 
+(** Substitution for reduction *)
 
+(** [x, y] fresh                                                  #<br>#
+    [(e1, x=v, e2)[t1] |-> (e1, x=v, e2)[t2]]                     #<br>#
+    [―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――] #<br>#
+    [(e1, y=v[y/x], e2)[t1[y/x]] |-> (e1, y=v[y/x], e2)[t2[y/x]]] *)
 Lemma eval_renaming_subst : forall x y e1 e2 v t1 t2,
     x \notin dom e1 \u fv_sto_vals e1 \u dom e2 ->
     y \notin dom e1 \u fv_sto_vals e1
@@ -312,7 +322,17 @@ Proof.
       apply H1. auto.
 Qed.
 
+(** * Progress *)
 
+(** Helper lemma for the Progress Theorem *)
+
+(** [e] and [t] are locally closed          #<br>#
+    [G' ⪯ G]                                #<br>#
+    inert [G']                              #<br>#
+    [e: G']                                 #<br>#
+    [G ⊢ t: T]                              #<br>#
+    [―――――――――――――――――――――――――――――]         #<br>#
+    [t] is in normal form or [e[t] |-> e[t']] *)
 Lemma progress_ec: forall G' G e t T,
     lc_sto e ->
     lc_trm t ->
@@ -417,6 +437,17 @@ Qed.
 
 (** * Preservation *)
 
+(** Helper lemma for Preservation Theorem *)
+
+(** [t] is locally closed   #<br>#
+    [G' ⪯ G]                #<br>#
+    [e: G']                 #<br>#
+    inert [G']              #<br>#
+    [G ⊢ t: T]              #<br>#
+    [e[t] |-> e[t']]        #<br>#
+    [ok G]                  #<br>#
+    [―――――――――――――――――――]   #<br>#
+    [G' ⊢ t': T]            *)
 Lemma preservation_ec: forall G G' e t t' T,
     lc_trm t ->
     G' ⪯ G ->

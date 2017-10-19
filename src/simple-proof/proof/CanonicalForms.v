@@ -35,23 +35,23 @@ Qed.
 
 (** * Well-typedness *)
 
-(** If [well_typed G s], the variables in the domain of [s] are distinct. *)
-Lemma well_typed_to_ok_G: forall s G,
-    well_typed G s -> ok G.
+(** If [e: G], the variables in the domain of [e] are distinct. *)
+Lemma well_typed_to_ok_G: forall e G,
+    well_typed G e -> ok G.
 Proof.
   intros. induction H; jauto.
 Qed.
 Hint Resolve well_typed_to_ok_G.
 
-(** [well_typed G s]            #<br>#
+(** [e: G]              #<br>#
     [G(x) = T]          #<br>#
     [―――――――――――――]     #<br>#
-    [exists v, s(x) = v]     #<br>#
+    [exists v, e(x) = v]     #<br>#
     [G ⊢ v: T]          *)
-Lemma corresponding_types: forall G s x T,
-    well_typed G s ->
+Lemma corresponding_types: forall G e x T,
+    well_typed G e ->
     binds x T G ->
-    (exists v, binds x v s /\
+    (exists v, binds x v e /\
           G ⊢ trm_val v : T).
 Proof.
   introv Hwt BiG. induction Hwt.
@@ -59,12 +59,11 @@ Proof.
   - destruct (classicT (x = x0)).
     + subst. apply binds_push_eq_inv in BiG. subst.
       exists v. repeat split~. apply~ weaken_ty_trm.
-      apply ok_push. apply well_typed_to_ok_G with (s:=s); assumption. assumption.
-    +
-      apply binds_push_neq_inv in BiG; auto.
+      apply* ok_push.
+    + apply binds_push_neq_inv in BiG; auto.
       specialize (IHHwt BiG) as [v' [Bis Ht]].
       exists v'. repeat split~. apply~ weaken_ty_trm.
-      apply ok_push. apply well_typed_to_ok_G with (s:=s); assumption. assumption.
+      apply* ok_push.
 Qed.
 
 (** [G ⊢##v v: forall(S)T]                 #<br>#
@@ -155,17 +154,17 @@ Qed.
 (** * Canonical Forms for Functions
 
     [inert G]            #<br>#
-    [well_typed G s]     #<br>#
+    [e: G]               #<br>#
     [G ⊢ x: forall(T)U]       #<br>#
     [――――――――――――――――――] #<br>#
-    [s(x) = lambda(T')t] #<br>#
+    [e(x) = lambda(T')t] #<br>#
     [G ⊢ T <: T']        #<br>#
     [G, x: T ⊢ t: U]          *)
-Lemma canonical_forms_fun: forall G s x T U,
+Lemma canonical_forms_fun: forall G e x T U,
   inert G ->
-  well_typed G s ->
+  well_typed G e ->
   G ⊢ trm_var (avar_f x) : typ_all T U ->
-  (exists L T' t, binds x (val_lambda T' t) s /\ G ⊢ T <: T' /\
+  (exists L T' t, binds x (val_lambda T' t) e /\ G ⊢ T <: T' /\
   (forall y, y \notin L -> G & y ~ T ⊢ open_trm y t : open_typ y U)).
 Proof.
   introv Hin Hwt Hty.
@@ -288,18 +287,18 @@ Qed.
 (** * Canonical Forms for Objects
 
     [inert G]            #<br>#
-    [well_typed G s]     #<br>#
+    [e: G]               #<br>#
     [G ⊢ x: {a:T}]       #<br>#
     [――――――――――――――――――] #<br>#
     [exists S, ds, t,] #<br>#
-    [s(x) = nu(S)ds] #<br>#
+    [e(x) = nu(S)ds] #<br>#
     [ds^x = ... /\ {a = t} /\ ...] #<br>#
     [G ⊢ t: T] *)
-Lemma canonical_forms_obj: forall G s x a T,
+Lemma canonical_forms_obj: forall G e x a T,
   inert G ->
-  well_typed G s ->
+  well_typed G e ->
   G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
-  (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ G ⊢ t : T).
+  (exists S ds t, binds x (val_new S ds) e /\ defs_has (open_defs x ds) (def_trm a t) /\ G ⊢ t : T).
 Proof.
   introv Hi Hwt Hty.
   destruct (var_typ_rcd_to_binds Hi Hty) as [S [T' [Bi [Hr Hs]]]].

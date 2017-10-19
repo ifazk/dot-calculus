@@ -532,22 +532,23 @@ where "G '⊢' T '<:' U" := (subtyp G T U).
 (** ** Well-typed Stores *)
 
 (** Given a typing [G ⊢ e[t]: T], [well_typed] establishes a correspondence
-    between [G] and the store [s] that is used to define the
-    evaluation context [e].
-    We say that [s] is well-typed with respect to [G] if
+    between [G] and the evaluation context [e].
+
+    We say that [e] is well-typed with respect to [G] if
     - [G = {(xi mapsto Ti) | i = 1, ..., n}]
-    - [s = {(xi mapsto vi) | i = 1, ..., n}]
+    - [e = {(xi mapsto vi) | i = 1, ..., n}]
     - [G ⊢ vi: Ti].
-*)
+
+    We say that [e] is well-typed with respect to [G], denoted as [e: G]. *)
 
 Inductive well_typed: ctx -> sto -> Prop :=
 | well_typed_empty: well_typed empty empty
-| well_typed_push: forall G s x T v,
-    well_typed G s ->
+| well_typed_push: forall G e x T v,
+    well_typed G e ->
     x # G ->
-    x # s ->
+    x # e ->
     G ⊢ trm_val v : T ->
-    well_typed (G & x ~ T) (s & x ~ v).
+    well_typed (G & x ~ T) (e & x ~ v).
 
 (** * Infrastructure *)
 
