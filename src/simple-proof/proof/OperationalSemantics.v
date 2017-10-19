@@ -114,7 +114,7 @@ Inductive red : sto -> trm -> trm -> Prop :=
 where "e [ t |-> t' ]" := (red e t t').
 Hint Constructors red normal_form.
 
-
+(** If [e] is locally closed and [e[t] |-> e[t']], then [t'] is locally closed.  *)
 Lemma lc_env_eval_to_lc_trm : forall e t t',
     lc_sto e ->
     e [t |-> t'] ->

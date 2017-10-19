@@ -10,10 +10,11 @@ Require Import LibLN.
 Require Import Definitions.
 Require Import Coq.Program.Equality.
 
-(** [G1] is a subenvironment of [G2], denoted [G1 subG G2],
-     if for each [x] s.t. [G2(x)=T2],
-    [G1(x) = T1] and [G1 ⊢ T1 <: T2]. *)
+(** [G1] is a subenvironment of [G2], denoted [G1 ⪯ G2],
+    if [dom(G1) = dom(G2)] and for each [x],
+    [G1 ⊢ G1(x) <: G2(x)]. *)
 Reserved Notation "G1 ⪯ G2" (at level 35).
+
 Inductive subenv: ctx -> ctx -> Prop :=
 | subenv_empty : empty ⪯ empty
 | subenv_grow: forall G G' x T T',
@@ -23,21 +24,22 @@ Inductive subenv: ctx -> ctx -> Prop :=
     G ⊢ T <: T' ->
     G & x ~ T ⪯ G' & x ~ T'
 where "G1 ⪯ G2" := (subenv G1 G2).
+
 Hint Constructors subenv.
 
+(** If [ok G], then [G ⪯ G].
+    Note: [ok(G)] means that [G]'s domain consists of distinct variables.
+    [ok] is defined in [TLC.LibEnv.v] *)
 Lemma subenv_refl : forall G, ok G -> G ⪯ G.
 Proof.
   intros G H. induction H; auto.
 Qed.
 Hint Resolve subenv_refl.
 
-
-(** [G' subG G]              #<br>#
+(** [G' subG G]                  #<br>#
     [ok(G', x: T)]               #<br>#
     [―――――――――――――――――――――――――――――]  #<br>#
-    [G', x: T subG G, x: T]  #<br>#
-    Note: [ok(G)] means that [G]'s domain consists of distinct variables.
-    [ok] is defined in [TLC.LibEnv.v]. *)
+    [G', x: T subG G, x: T]  #<br># *)
 Lemma subenv_push : forall G1 G2 x T,
     G1 ⪯ G2 ->
     ok (G1 & x ~ T) -> ok (G2 & x ~ T) ->

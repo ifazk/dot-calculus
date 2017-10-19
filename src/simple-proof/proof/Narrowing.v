@@ -101,7 +101,7 @@ Proof.
   intros. apply* narrow_rules.
 Qed.
 
-
+(** The subenvironment relation [⪯] is transitive. *)
 Lemma subenv_trans : forall G1 G2 G3,
     G1 ⪯ G2 ->
     G2 ⪯ G3 ->

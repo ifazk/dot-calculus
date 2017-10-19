@@ -196,7 +196,9 @@ Definition open_defs u l := open_rec_defs  0 u l.
 Hint Unfold open_avar open_typ open_dec open_trm open_val open_def open_defs.
 
 (** * Closing *)
-(** The opposite direction of opening *)
+(** Closing replaces a variable [u] with a de Bruijn index [k]. *)
+
+(** Closing for variables *)
 Definition close_rec_avar k u a : avar :=
   match a with
   | avar_b i => avar_b i
@@ -204,6 +206,7 @@ Definition close_rec_avar k u a : avar :=
   end.
 Hint Unfold close_rec_avar.
 
+(** Closing for types and declarations *)
 Fixpoint close_rec_typ (k: nat) (u: var) (T: typ): typ :=
   match T with
   | typ_top        => typ_top
@@ -221,7 +224,7 @@ with close_rec_dec (k: nat) (u: var) (D: dec): dec :=
   end.
 Hint Unfold close_rec_typ close_rec_dec.
 
-
+(** Closing for terms, values, and definitions *)
 Fixpoint close_rec_trm (k: nat) (u: var) (t: trm): trm :=
   match t with
   | trm_var a      => trm_var (close_rec_avar k u a)
@@ -590,8 +593,7 @@ Ltac gather_vars :=
   let H := gather_vars_with (fun x : def       => fv_def   x) in
   let I := gather_vars_with (fun x : defs      => fv_defs  x) in
   let J := gather_vars_with (fun x : typ       => fv_typ   x) in
-  (* let K := gather_vars_with (fun x : ec        => fv_ec    x) in *)
-  constr:(A \u B \u C \u D \u E \u F \u G \u H \u I \u J (* \u K *) ).
+  constr:(A \u B \u C \u D \u E \u F \u G \u H \u I \u J).
 
 Ltac pick_fresh x :=
   let L := gather_vars in (pick_fresh_gen L x).

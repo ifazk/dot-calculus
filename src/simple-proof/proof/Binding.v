@@ -4,7 +4,7 @@
 (** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
-(** This module defines various helper lemmas about opening and cloning terms and types. *)
+(** This module defines various helper lemmas about opening, closing, and local closure. *)
 
 Set Implicit Arguments.
 

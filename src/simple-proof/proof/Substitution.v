@@ -66,6 +66,9 @@ with subst_defs (z: var) (u: var) (ds: defs) : defs :=
 Definition subst_ctx (z: var) (u: var) (G: ctx) : ctx :=
   map (subst_typ z u) G.
 
+(** Substitution on the values of an evaluation context: [e[y/x]]. *)
+Definition subst_env x y e := map (subst_val x y) e.
+
 (** * Lemmas *)
 
 (** The following [subst_fresh_XYZ] lemmas state that if [x] is not free
@@ -400,45 +403,10 @@ Proof.
   unfold subst_ctx in *; try rewrite map_empty in *; try rewrite concat_empty_r in *; auto.
 Qed.
 
-(** The substitution lemma for definition typing. *)
-Lemma subst_ty_defs: forall y S G x ds T,
-    G & x ~ S /- ds :: T ->
-    ok (G & x ~ S) ->
-    x \notin fv_ctx_types G ->
-    G ⊢ trm_var (avar_f y) : subst_typ x y S ->
-    G /- subst_defs x y ds :: subst_typ x y T.
-Proof.
-  intros.
-  apply (proj53 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H;
-    unfold subst_ctx in *; try rewrite map_empty in *; try rewrite concat_empty_r in *; auto.
-Qed.
-
-(* *)
-Lemma renaming_def: forall G z T ds x,
-    ok G ->
-    z # G ->
-    z \notin (fv_ctx_types G \u fv_defs ds \u fv_typ T) ->
-    G & z ~ open_typ z T /- open_defs z ds :: open_typ z T ->
-    G ⊢ trm_var (avar_f x) : open_typ x T ->
-    G /- open_defs x ds :: open_typ x T.
-Proof.
-  introv Hok Hnz Hnz' Hz Hx. rewrite subst_intro_typ with (x:=z). rewrite subst_intro_defs with (x:=z).
-  eapply subst_ty_defs; auto. eapply Hz. rewrite <- subst_intro_typ. all: auto.
-Qed.
-
-Lemma renaming_typ: forall G z T U t x,
-    ok G ->
-    z # G ->
-    z \notin (fv_ctx_types G \u fv_typ U \u fv_typ T \u fv_trm t) ->
-    G & z ~ U ⊢ open_trm z t : open_typ z T ->
-    G ⊢ trm_var (avar_f x) : U ->
-    G ⊢ open_trm x t : open_typ x T.
-Proof.
-  introv Hok Hnz Hnz' Hz Hx. rewrite subst_intro_typ with (x:=z). rewrite subst_intro_trm with (x:=z).
-  eapply subst_ty_trm; auto. eapply Hz. rewrite subst_fresh_typ. all: auto.
-Qed.
-
-(* *)
+(** [z <> x]                             #<br>#
+    [ds^z = ...{a = t}...]              #<br>#
+    [――――――――――――――――――――――――――――――――]  #<br>#
+    [(ds[y/x])^z = ...{a = t[y/x]}...]  *)
 Lemma open_subst_defs : forall x y z a ds t,
     z <> x ->
     defs_has (open_defs z ds) (def_trm a t) ->
@@ -454,7 +422,10 @@ Proof.
     + case_if; apply IHds; destruct d; auto; contradiction.
 Qed.
 
-
+(** [y <> x]                             #<br>#
+    [ds^x = ...{a = t}...]              #<br>#
+    [――――――――――――――――――――――――――――――――]  #<br>#
+    [(ds[y/x])^y = ...{a = t[y/x]}...]  *)
 Lemma open_subst_defs2 : forall x y a ds t,
     y <> x ->
     defs_has (open_defs x ds) (def_trm a t) ->
@@ -466,4 +437,56 @@ Proof.
     simpls; case_if; destruct d; simpls; case_if; auto.
     subst; inversion H0.
     rewrite subst_open_commut_trm. unfold subst_fvar. case_if; auto.
+Qed.
+
+(** The substitution lemma for definition typing. *)
+Lemma subst_ty_defs: forall y S G x ds T,
+    G & x ~ S /- ds :: T ->
+    ok (G & x ~ S) ->
+    x \notin fv_ctx_types G ->
+    G ⊢ trm_var (avar_f y) : subst_typ x y S ->
+    G /- subst_defs x y ds :: subst_typ x y T.
+Proof.
+  intros.
+  apply (proj53 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H;
+    unfold subst_ctx in *; try rewrite map_empty in *; try rewrite concat_empty_r in *; auto.
+Qed.
+
+(** * Renaming  *)
+
+(** Renaming the name of the opening variable for definition typing.  #<br>#
+
+    [ok G]                   #<br>#
+    [z] fresh                #<br>#
+    [G, z: T^z ⊢ ds^z : T^z] #<br>#
+    [――――――――――――――――――――――] #<br>#
+    [G ⊢ ds^x : T^x]         *)
+Lemma renaming_def: forall G z T ds x,
+    ok G ->
+    z # G ->
+    z \notin (fv_ctx_types G \u fv_defs ds \u fv_typ T) ->
+    G & z ~ open_typ z T /- open_defs z ds :: open_typ z T ->
+    G ⊢ trm_var (avar_f x) : open_typ x T ->
+    G /- open_defs x ds :: open_typ x T.
+Proof.
+  introv Hok Hnz Hnz' Hz Hx. rewrite subst_intro_typ with (x:=z). rewrite subst_intro_defs with (x:=z).
+  eapply subst_ty_defs; auto. eapply Hz. rewrite <- subst_intro_typ. all: auto.
+Qed.
+
+(** Renaming the name of the opening variable for term typing. #<br>#
+    [ok G]                   #<br>#
+    [z] fresh                #<br>#
+    [G, z: U ⊢ t^z : T^z]    #<br>#
+    [――――――――――――――――――――――] #<br>#
+    [G ⊢ t^x : T^x]         *)
+Lemma renaming_typ: forall G z T U t x,
+    ok G ->
+    z # G ->
+    z \notin (fv_ctx_types G \u fv_typ U \u fv_typ T \u fv_trm t) ->
+    G & z ~ U ⊢ open_trm z t : open_typ z T ->
+    G ⊢ trm_var (avar_f x) : U ->
+    G ⊢ open_trm x t : open_typ x T.
+Proof.
+  introv Hok Hnz Hnz' Hz Hx. rewrite subst_intro_typ with (x:=z). rewrite subst_intro_trm with (x:=z).
+  eapply subst_ty_trm; auto. eapply Hz. rewrite subst_fresh_typ. all: auto.
 Qed.

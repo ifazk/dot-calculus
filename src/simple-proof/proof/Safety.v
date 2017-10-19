@@ -22,6 +22,7 @@ Notation "'⊢' t ':' T" := (empty ⊢ t: T) (at level 40, t at level 59).
 
 (** * Lemmas about Free Variables *)
 
+(** [fv(e, x = v) = fv(e) ∪ fv(v)] *)
 Lemma fv_sto_vals_push_eq : forall e x v,
     fv_sto_vals (e & x ~ v) = fv_sto_vals e \u fv_val v.
 Proof.
@@ -31,6 +32,10 @@ Proof.
   rewrite union_comm. reflexivity.
 Qed.
 
+(** [e(y) = v]       #<br>#
+    [x \notin fv(e)] #<br>#
+    [――――――――――――――] #<br>#
+    [x \notin fv(v)] *)
 Lemma binds_fv_sto_vals : forall x y v e,
     binds y v e ->
     x \notin fv_sto_vals e ->
@@ -42,6 +47,7 @@ Qed.
 
 (** * Simple Implications of Typing *)
 
+(** If [G ⊢ x: T], then [x] is a named variable. *)
 Lemma var_typing_implies_avar_f: forall G a T,
   G ⊢ trm_var a : T ->
   exists x, a = avar_f x.
@@ -78,6 +84,7 @@ Proof.
   destruct (IHty_trm _ eq_refl) as [T' [Hty Hsub]]. eauto.
 Qed.
 
+(** The next two lemmas show that if [t^x] is in normal form, then [t] is in normal form. *)
 Lemma open_rec_preserve_normal_form: forall k x t,
     x \notin fv_trm t ->
     normal_form (open_rec_trm k x t) ->
@@ -99,8 +106,8 @@ Proof.
   constructor. auto.
 Qed.
 
-
-Corollary open_preserve_normal_form : forall x t,
+(** See previous lemma [open_rec_preserve_normal_form]. *)
+Lemma open_preserve_normal_form : forall x t,
     x \notin fv_trm t ->
     normal_form (open_trm x t) ->
     normal_form t.
@@ -108,7 +115,9 @@ Proof.
   apply open_rec_preserve_normal_form.
 Qed.
 
+(** If [x] is closed in [t], then [x \notin fv(t)]. *)
 
+(** - for types and declarations *)
 Lemma close_rec_typ_dec_no_capture : forall x,
     (forall T k, x \notin fv_typ (close_rec_typ k x T)) /\
     (forall D k, x \notin fv_dec (close_rec_dec k x D)).
@@ -121,7 +130,7 @@ Proof.
       try case_if; unfold fv_avar; auto.
 Qed.
 
-
+(** - for terms, values, and definitions *)
 Lemma close_rec_trm_val_def_defs_no_capture: forall x,
     (forall t k, x \notin fv_trm (close_rec_trm k x t)) /\
     (forall v k, x \notin fv_val (close_rec_val k x v)) /\
@@ -140,7 +149,11 @@ Proof.
     repeat case_if; unfold fv_avar; auto.
 Qed.
 
-
+(** [x] fresh                            #<br>#
+    [e] and [v] are locally closed       #<br>#
+    [(e, x=v)[t^x] |-> (e, x=v)[t']      #<br>#
+    [――――――――――――――――――――――――――――――――――] #<br>#
+    [exists f. x \notin fv(f) and t' = f^x    *)
 Lemma open_rec_eval_to_open_rec : forall e x t t' v,
     x \notin dom e \u fv_trm t \u fv_val v ->
     lc_sto e -> lc_val v ->
@@ -152,10 +165,6 @@ Proof.
   - symmetry. rewrite Heqct. apply open_left_inverse_close_trm_val_def_defs.
     eauto using lc_env_eval_to_lc_trm, lc_sto_cons.
 Qed.
-
-
-Definition subst_env x y e := map (subst_val x y) e.
-
 
 Lemma binds_subst_env : forall x y b v e,
     binds b v e -> binds b (subst_val x y v) (subst_env x y e).
