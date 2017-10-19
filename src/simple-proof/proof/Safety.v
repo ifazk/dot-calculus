@@ -151,7 +151,7 @@ Qed.
 
 (** [x] fresh                            #<br>#
     [e] and [v] are locally closed       #<br>#
-    [(e, x=v)[t^x] |-> (e, x=v)[t']      #<br>#
+    [(e, x=v)[t^x] |-> (e, x=v)[t']]     #<br>#
     [――――――――――――――――――――――――――――――――――] #<br>#
     [exists f. x \notin fv(f) and t' = f^x    *)
 Lemma open_rec_eval_to_open_rec : forall e x t t' v,
@@ -324,7 +324,7 @@ Qed.
 
 (** * Progress *)
 
-(** Helper lemma for the Progress Theorem *)
+(** ** Helper lemma for the Progress Theorem *)
 
 (** [e] and [t] are locally closed          #<br>#
     [G' ⪯ G]                                #<br>#
@@ -437,7 +437,7 @@ Qed.
 
 (** * Preservation *)
 
-(** Helper lemma for Preservation Theorem *)
+(** ** Helper lemma for Preservation Theorem *)
 
 (** [t] is locally closed   #<br>#
     [G' ⪯ G]                #<br>#
