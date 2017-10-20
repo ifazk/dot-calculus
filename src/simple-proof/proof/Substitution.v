@@ -390,7 +390,7 @@ Proof.
 Qed.
 
 (** The substitution lemma for term typing.
-    This lemma corresponds to Lemma 3.14 in the paper. *)
+    This lemma corresponds to Lemma 3.19 in the paper. *)
 Lemma subst_ty_trm: forall y S G x t T,
     G & x ~ S ⊢ t : T ->
     ok (G & x ~ S) ->

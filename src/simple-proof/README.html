@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <meta charset="utf-8"><title>Simple DOT Proof | Artifact Guide</title><style></style>
+        <meta charset="utf-8"><title>Simple DOT Proof | README</title><style></style>
         <style type="text/css">
          .tg  {border-collapse:collapse;border-spacing:0;border-color:#ccc;}
          .tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#ccc;color:#333;background-color:#fff;border-top-width:1px;border-bottom-width:1px;}
@@ -29,24 +29,23 @@
     <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
     <div id="main">
         <h1><a id="A_Simple_Soundness_Proof_for_Dependent_Object_Types_0"></a>A Simple Soundness Proof for<br>Dependent Object Types</h1>
-        <h2><a id="Artifact_2"></a>Artifact Guide</h2>
-        <p>Our <a href="paper.pdf">paper</a> presents a simplified type-safety proof for the
+        <p>Our <a href="https://plg.uwaterloo.ca/~olhotak/pubs/oopsla17.pdf">paper</a> presents a simplified type-safety proof for the
             <a href="https://infoscience.epfl.ch/record/215280">version of DOT</a>
             presented at Wadlerfest 2016.
-            This artifact contains a formalization of the simple proof in Coq.
+            This repository contains a formalization of the simple proof in Coq.
             The definitions of the abstract syntax and several lemmas are based on the
             <a href="https://github.com/samuelgruetter/dot-calculus/blob/master/dev/lf/dot_top_bot.v">original</a>
             Coq proof that comes with Wadlerfest DOT paper.</p>
-        <h3><a id="Getting_Started_12"></a>Getting Started</h3>
-        <p>
-            We provide a VirtualBox VM with the required software which includes
-            all the proof scripts.
+        <!-- <h3><a id="Getting_Started_12"></a>Getting Started</h3> -->
+        <!-- <p> -->
+        <!--     We provide a VirtualBox VM with the required software which includes -->
+        <!--     all the proof scripts. -->
 
-            You may download virtual box from <a href="https://www.virtualbox.org/">virtualbox.org</a>.
+        <!--     You may download virtual box from <a href="https://www.virtualbox.org/">virtualbox.org</a>. -->
 
-            You may also choose to use your own system with <a
-            href="https://coq.inria.fr/download"><code>coq 8.6</code></a>.
-        </p>
+        <!--     You may also choose to use your own system with <a -->
+        <!--     href="https://coq.inria.fr/download"><code>coq 8.6</code></a>. -->
+        <!-- </p> -->
         <div>
             <h3>Requirements</h3>
             <p>
@@ -65,36 +64,20 @@
                 Other requirements are:
                 <ul>
                     <li><code>make</code></li>
-                    <li><code>unzip</code></li>
                 </ul>
             </p>
         </div>
-        <h3><a id="StepbyStep_Instructions_16"></a>Step-by-Step Instructions</h3>
-        <h4>VirtualBox intructions</h4>
-        <p>
-            To use the VM, start up <code>VirtualBox</code> and select <code>New
-            VM</code> and add a new Linux (Ubuntu 64-bit) machine with the
-            provided <code>.vdi</code> file as the hard disk. Then start the
-            VM. It should log in automatically as user "osboxes" (password
-            is "osboxes.org" if necessary). You will find the directory containing this
-            <code>README.html</code> file and the artifact in the Desktop. The
-            links in this file assume that you are reading this file from the
-            directory you will compile from. You may open this file from the
-            VM using Firefox. For IDE options for <code>coq</code> the VM comes
-            preinstalled with the <code>Proof General</code> Emacs interface.
-        </p>
+        <h3><a id="Instructions_16"></a>Instructions</h3>
         <h4>Compiling the proof</h4>
         <p>
-            To compile the proof, navigate to the artifact directory from a
+            To compile the proof, navigate to the current directory from a
             terminal window and run <code>make</code>.
             This will do the following:
             <ul>
-                <li>compile the <code>tlc</code> library (precompiled on the VM);</li>
+                <li>compile the <code>tlc</code> library;</li>
                 <li>compile the safety proof;</li>
                 <li>generate documentation.</li>
             </ul>
-
-            Successful compilation indicates a correct proof.
         </p>
         <h4>Inspecting Source files</h4>
         <p>
@@ -108,8 +91,8 @@
             proofs, or click under the Lemma or Theorem statements to display their
             proofs.
         </p>
-        <h2><a id="Description_of_the_Artifact_20"></a>Description of the Artifact</h2>
-        <p>This artifact presents a Coq formalization of the DOT calculus and DOT's type safety proof
+        <h2><a id="Description_of_the_Proof_20"></a>Description of the Proof</h2>
+        <p>This repository contains a Coq formalization of the DOT calculus and DOT's type safety proof
             using the method presented in the paper. The final Progress and Preservation proofs can
             be found in <a href="./doc/Safety.html">Safety.v</a>.</p>
 
@@ -118,32 +101,45 @@
         <ul>
           <li><a href="doc/Definitions.html">Definitions.v</a>:
             The main inductive definitions and functions that are used in the proof.
-            Defines the abstract syntax, type system, evaluation semantics of DOT, as well as
-            definitions used in the proof: inert types, tight, invertible, and precise typing relations.
+            Defines the abstract syntax and type system.<!-- , evaluation semantics of DOT, as well as -->
+            <!-- definitions used in the proof: inert types, tight, invertible, and precise typing relations. -->
+          </li>
+          <li><a href="doc/Binding.html">Binding.v</a>:
+			Proves helper lemmas related to opening, closing, and local closure.
+          </li>
+          <li><a href="doc/SubEnvironments.html">SubEnvironments.v</a>:
+			Defines and proves lemmas related to subenvironments.
           </li>
           <li><a href="doc/Weakening.html">Weakening.v</a>:
             Proves the Weakening Lemma.
           </li>
-          <li><a href="doc/Helper_lemmas.html">Helper_lemmas.v</a>:
-            Various helper lemmas used throughout the proof.
+          <li><a href="doc/RecordAndInertTypes.html">RecordAndInertTypes.v</a>:
+			Defines and proves lemmas related to record and inert types.
           </li>
           <li><a href="doc/Narrowing.html">Narrowing.v</a>:
             Proves the Narrowing Lemma.
           </li>
-          <li><a href="doc/Precise_types.html">Precise_types.v</a>:
-            Proves lemmas related to precise typing. In particular, reasons about the possible
+          <li><a href="doc/OperationalSemantics.html">OperationalSemantics.v</a>:
+			Defines normal forms and the operational semantics of DOT, as well as related helper lemmas.
+          </li>
+          <li><a href="doc/PreciseTypes.html">PreciseTypes.v</a>:
+            Defines and proves lemmas related to precise typing. In
+			particular, reasons about the possible
             precise types that a variable can have in an inert environment.
+          </li>
+          <li><a href="doc/TightTypes.html">TightTypes.v</a>:
+			Defines tight typing and subtyping.
           </li>
           <li><a href="doc/Substitution.html">Substitution.v</a>:
             Proves the Substitution Lemma.
           </li>
-          <li><a href="doc/Invertible_typing.html">Invertible_typing.v</a>:
-            Proves that in an inert context, tight typing implies invertible typing (both for variables and values).
+          <li><a href="doc/InvertibleTypes.html">InvertibleTypes.v</a>:
+            Defines invertible typing and proves that in an inert context, tight typing implies invertible typing (both for variables and values).
           </li>
-          <li><a href="doc/General_to_tight.html">General_to_tight.v</a>:
+          <li><a href="doc/GeneralToTight.html">GeneralToTight.v</a>:
             Proves that in an inert context, general typing implies tight typing.
           </li>
-          <li><a href="doc/Canonical_forms.html">Canonical_forms.v</a>:
+          <li><a href="doc/CanonicalForms.html">CanonicalForms.v</a>:
             Proves the Canonical Forms Lemmas for functions and objects.
           </li>
           <li><a href="doc/Safety.html">Safety.v</a>:
@@ -153,13 +149,10 @@
         <p>The following figure shows a dependency graph between the Coq modules.</p>
         <p><center><img src=doc/graph.png width=400></center></p>
 
-        <h3><a id="PaperArtifact_Correspondence_37"></a>Paper-Artifact Correspondence</h3>
+        <h3><a id="Paper_Correspondence_37"></a>Paper Correspondence</h3>
         <p>Below, we present a table that shows how the definitions and lemmas in the paper correspond
-            to the artifact. However, before comparing the correspondence, we recommend reading
-            through <a href="./doc/Definitions.html"><a href="doc/Definitions.html">Definitions.v</a></a>. That file
-            not only presents the definitions of the abstract syntax and type
-            system of DOT, but also presents most tactics, functions, and
-          inductive definitions that are used in the proof.</p>
+          to the Coq proof.
+		</p>
 
         <table class="tg">
             <tr>
@@ -213,10 +206,33 @@
                 <td class="tg-rkwu"></td>
             </tr>
             <tr>
-                <td class="tg-yw4l" rowspan="2">Figure 2<br></td>
+                <td class="tg-yw4l" rowspan="4">Figure 2<br></td>
+                <td class="tg-yw4l" rowspan="4">DOT Type Rules<br></td>
+                <td class="tg-yw4l">term typing<br></td>
+                <td class="tg-yw4l" rowspan="4"><a href="doc/Definitions.html">Definitions.v</a></td>
+                <td class="tg-rkwu">ty_trm</td>
+                <td class="tg-rkwu">G ⊢ t : T</td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">single-definition typing</td>
+                <td class="tg-rkwu">ty_def</td>
+                <td class="tg-rkwu">G ⊢ d : D</td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">multiple-definition typing</td>
+                <td class="tg-rkwu">ty_defs</td>
+                <td class="tg-rkwu">G ⊢ ds :: T</td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">subtyping<br></td>
+                <td class="tg-rkwu">subtyp</td>
+                <td class="tg-rkwu">G ⊢ T &lt;: U</td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l" rowspan="2">Figure 3<br></td>
                 <td class="tg-yw4l" rowspan="2">Tight typing rules<br></td>
                 <td class="tg-yw4l">term typing<br></td>
-                <td class="tg-yw4l" rowspan="2"><a href="doc/Definitions.html">Definitions.v</a></td>
+                <td class="tg-yw4l" rowspan="2"><a href="doc/TightTypes.html">TightTypes.v</a></td>
                 <td class="tg-rkwu">ty_trm_t</td>
                 <td class="tg-rkwu">G &vdash;<sub>&#35;</sub> t : T</td>
             </tr>
@@ -226,22 +242,10 @@
                 <td class="tg-rkwu">G &vdash;<sub>&#35;</sub> T &lt;: U</td>
             </tr>
             <tr>
-                <td class="tg-yw4l" rowspan="2">Figure 3<br></td>
-                <td class="tg-yw4l" rowspan="2">Definition typing rules<br></td>
-                <td class="tg-yw4l" rowspan="2"></td>
-                <td class="tg-yw4l" rowspan="2"><a href="doc/Definitions.html">Definitions.v</a></td>
-                <td class="tg-rkwu">ty_def</td>
-                <td class="tg-rkwu">G ⊢ d : D</td>
-            </tr>
-            <tr>
-                <td class="tg-rkwu">ty_defs</td>
-                <td class="tg-rkwu">G ⊢ ds :: T</td>
-            </tr>
-            <tr>
                 <td class="tg-yw4l">Definition 3.1<br></td>
                 <td class="tg-yw4l">Inert context<br></td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l"><a href="doc/Definitions.html">Definitions.v</a></td>
+                <td class="tg-yw4l"><a href="doc/RecordAndInertTypes.html">RecordAndInertTypes.v</a></td>
                 <td class="tg-rkwu">inert</td>
                 <td class="tg-rkwu"></td>
             </tr>
@@ -249,7 +253,7 @@
                 <td class="tg-yw4l">Definition 3.2<br></td>
                 <td class="tg-yw4l">Inert type<br></td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l"><a href="doc/Definitions.html">Definitions.v</a></td>
+                <td class="tg-yw4l"><a href="doc/RecordAndInertTypes.html">RecordAndInertTypes.v</a></td>
                 <td class="tg-rkwu">inert_typ</td>
                 <td class="tg-rkwu"></td>
             </tr>
@@ -257,7 +261,7 @@
                 <td class="tg-yw4l">Figure 4<br></td>
                 <td class="tg-yw4l">Precise typing rules<br></td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l"><a href="doc/Definitions.html">Definitions.v</a></td>
+                <td class="tg-yw4l"><a href="doc/PreciseTypes.html">PreciseTypes.v</a></td>
                 <td class="tg-rkwu">ty_trm_p</td>
                 <td class="tg-rkwu">G &vdash;<sub>!</sub> t : T</td>
             </tr>
@@ -265,7 +269,7 @@
                 <td class="tg-yw4l">Theorem 3.3<br></td>
                 <td class="tg-yw4l">General-to-tight typing (⊢ to ⊢<sub>#</sub>)</td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l"><a href="doc/General_to_tight.html">General_to_tight.v</a></td>
+                <td class="tg-yw4l"><a href="doc/GeneralToTight.html">GeneralToTight.v</a></td>
                 <td class="tg-rkwu">general_to_tight</td>
                 <td class="tg-rkwu"></td>
             </tr>
@@ -273,7 +277,7 @@
                 <td class="tg-yw4l">Lemma 3.4<br></td>
                 <td class="tg-yw4l">Sel-&lt;: replacement</td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l"><a href="doc/General_to_tight.html">General_to_tight.v</a><br></td>
+                <td class="tg-yw4l"><a href="doc/GeneralToTight.html">GeneralToTight.v</a><br></td>
                 <td class="tg-rkwu">sel_replacement</td>
                 <td class="tg-rkwu"></td>
             </tr>
@@ -281,7 +285,7 @@
                 <td class="tg-yw4l">Lemma 3.5<br></td>
                 <td class="tg-yw4l">Sel-&lt;:# premise<br></td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l"><a href="doc/General_to_tight.html">General_to_tight.v</a></td>
+                <td class="tg-yw4l"><a href="doc/GeneralToTight.html">GeneralToTight.v</a></td>
                 <td class="tg-rkwu">sel_premise</td>
                 <td class="tg-rkwu"></td>
             </tr>
@@ -289,7 +293,7 @@
                 <td class="tg-yw4l" rowspan="2">Figure 5<br></td>
                 <td class="tg-yw4l" rowspan="2">Invertible typing rules<br></td>
                 <td class="tg-yw4l">for variables<br></td>
-                <td class="tg-yw4l" rowspan="2"><a href="doc/Definitions.html">Definitions.v</a></td>
+                <td class="tg-yw4l" rowspan="2"><a href="doc/InvertibleTypes.html">InvertibleTypes.v</a></td>
                 <td class="tg-rkwu">ty_var_inv</td>
                 <td class="tg-rkwu">G &vdash;<sub>&#35&#35</sub> x : T</td>
             </tr>
@@ -302,7 +306,7 @@
                 <td class="tg-yw4l" rowspan="2">Theorem 3.6<br></td>
                 <td class="tg-yw4l" rowspan="2">Tight-to-invertible typing (⊢<sub>#</sub> to ⊢<sub>##</sub>)</td>
                 <td class="tg-yw4l">for variables<br></td>
-                <td class="tg-yw4l" rowspan="2"><a href="doc/Invertible_typing.html">Invertible_typing.v</a></td>
+                <td class="tg-yw4l" rowspan="2"><a href="doc/InvertibleTypes.html">InvertibleTypes.v</a></td>
                 <td class="tg-rkwu">tight_to_invertible</td>
                 <td class="tg-rkwu"></td>
             </tr>
@@ -315,7 +319,7 @@
                 <td class="tg-yw4l">Lemma 3.7<br></td>
                 <td class="tg-yw4l">∀ to Γ(x)</td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l"><a href="doc/Canonical_forms.html">Canonical_forms.v</a></td>
+                <td class="tg-yw4l"><a href="doc/CanonicalForms.html">CanonicalForms.v</a></td>
                 <td class="tg-rkwu">var_typ_all_to_binds</td>
                 <td class="tg-rkwu"></td>
             </tr>
@@ -323,7 +327,7 @@
                 <td class="tg-yw4l">Lemma 3.8<br></td>
                 <td class="tg-yw4l">∀ to λ</td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l"><a href="doc/Canonical_forms.html">Canonical_forms.v</a></td>
+                <td class="tg-yw4l"><a href="doc/CanonicalForms.html">CanonicalForms.v</a></td>
                 <td class="tg-rkwu">val_typ_all_to_lambda</td>
                 <td class="tg-rkwu"></td>
             </tr>
@@ -331,7 +335,7 @@
                 <td class="tg-yw4l">Lemma 3.9<br></td>
                 <td class="tg-yw4l">μ to Γ(x)</td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l"><a href="doc/Canonical_forms.html">Canonical_forms.v</a></td>
+                <td class="tg-yw4l"><a href="doc/CanonicalForms.html">CanonicalForms.v</a></td>
                 <td class="tg-rkwu">var_typ_rcd_to_binds</td>
                 <td class="tg-rkwu"></td>
             </tr>
@@ -339,7 +343,7 @@
                 <td class="tg-yw4l">Lemma 3.10<br></td>
                 <td class="tg-yw4l">μ to ν</td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l"><a href="doc/Canonical_forms.html">Canonical_forms.v</a></td>
+                <td class="tg-yw4l"><a href="doc/CanonicalForms.html">CanonicalForms.v</a></td>
                 <td class="tg-rkwu">val_mu_to_new</td>
                 <td class="tg-rkwu"></td>
             </tr>
@@ -352,49 +356,68 @@
                 <td class="tg-rkwu"></td>
             </tr>
             <tr>
-                <td class="tg-yw4l">Figure 6<br></td>
+                <td class="tg-yw4l">Figure 7<br></td>
                 <td class="tg-yw4l">Operational semantics<br></td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l"><a href="doc/Definitions.html">Definitions.v</a></td>
+                <td class="tg-yw4l"><a href="doc/OperationalSemantics.html">OperationalSemantics.v</a></td>
                 <td class="tg-rkwu">red</td>
-                <td class="tg-rkwu">e<sub>1</sub> / t<sub>1</sub> ↦ e<sub>2</sub> / t<sub>2</sub></td>
+                <td class="tg-rkwu">e[t<sub>1</sub> ↦ t<sub>2</sub>]</td>
             </tr>
             <tr>
-                <td class="tg-yw4l">Theorem 3.12<br></td>
-                <td class="tg-yw4l">Soundness</td>
+                <td class="tg-yw4l">Definition 3.12<br></td>
+                <td class="tg-yw4l">Well-typed evaluation contexts with respect to a typing context</td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l"><a href="doc/Safety.html">Safety.v</a></td>
-                <td class="tg-rkwu">safety</td>
+                <td class="tg-yw4l"><a href="doc/Definitions.html">Definitions.v</a></td>
+                <td class="tg-rkwu">well_typed</td>
                 <td class="tg-rkwu"></td>
             </tr>
+            <!-- <tr> -->
+            <!--     <td class="tg-yw4l">Theorem 3.12<br></td> -->
+            <!--     <td class="tg-yw4l">Soundness</td> -->
+            <!--     <td class="tg-yw4l"></td> -->
+            <!--     <td class="tg-yw4l"><a href="doc/Safety.html">Safety.v</a></td> -->
+            <!--     <td class="tg-rkwu">safety</td> -->
+            <!--     <td class="tg-rkwu"></td> -->
+            <!-- </tr> -->
             <tr>
-                <td class="tg-yw4l">Lemma 3.13<br></td>
-                <td class="tg-yw4l">Precise value typing<br></td>
+                <td class="tg-yw4l">Lemma 3.15<br></td>
+                <td class="tg-yw4l">Value typing<br></td>
                 <td class="tg-yw4l"></td>
-                <td class="tg-yw4l"><a href="doc/Helper_lemmas.html">Helper_lemmas.v</a></td>
+                <td class="tg-yw4l"><a href="doc/Safety.html">Safety.v</a></td>
                 <td class="tg-rkwu">val_typing</td>
                 <td class="tg-rkwu"></td>
             </tr>
             <tr>
-                <td class="tg-yw4l">Lemma 3.14<br></td>
+                <td class="tg-yw4l">Definition 3.16<br></td>
+                <td class="tg-yw4l">Normal form</td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l"><a href="doc/OperationalSemantics.html">OperationalSemantics.v</a></td>
+                <td class="tg-rkwu">normal_form</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Theorem 3.17<br></td>
+                <td class="tg-yw4l">Progress</td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l"><a href="doc/Safety.html">Safety.v</a></td>
+                <td class="tg-rkwu">progress</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Theorem 3.18<br></td>
+                <td class="tg-yw4l">Preservation</td>
+                <td class="tg-yw4l"></td>
+                <td class="tg-yw4l"><a href="doc/Safety.html">Safety.v</a></td>
+                <td class="tg-rkwu">preservation</td>
+                <td class="tg-rkwu"></td>
+            </tr>
+            <tr>
+                <td class="tg-yw4l">Lemma 3.19<br></td>
                 <td class="tg-yw4l">Substitution</td>
                 <td class="tg-yw4l"></td>
                 <td class="tg-yw4l"><a href="doc/Substitution.html">Substitution.v</a></td>
                 <td class="tg-rkwu">subst_ty_trm</td>
                 <td class="tg-rkwu"></td>
-            </tr>
-            <tr>
-                <td class="tg-yw4l" rowspan="2">Figure 7<br></td>
-                <td class="tg-yw4l" rowspan="2">DOT Type Rules<br></td>
-                <td class="tg-yw4l">term typing<br></td>
-                <td class="tg-yw4l" rowspan="2"><a href="doc/Definitions.html">Definitions.v</a></td>
-                <td class="tg-rkwu">ty_trm</td>
-                <td class="tg-rkwu">G ⊢ t : T</td>
-            </tr>
-            <tr>
-                <td class="tg-yw4l">subtyping<br></td>
-                <td class="tg-rkwu">subtyp</td>
-                <td class="tg-rkwu">G ⊢ T &lt;: U</td>
             </tr>
         </table>
     </div>
