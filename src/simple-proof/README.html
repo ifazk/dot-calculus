@@ -32,20 +32,10 @@
         <p>Our <a href="https://plg.uwaterloo.ca/~olhotak/pubs/oopsla17.pdf">paper</a> presents a simplified type-safety proof for the
             <a href="https://infoscience.epfl.ch/record/215280">version of DOT</a>
             presented at Wadlerfest 2016.
-            This repository contains a formalization of the simple proof in Coq.
+            This directory contains a formalization of the simple proof in Coq.
             The definitions of the abstract syntax and several lemmas are based on the
             <a href="https://github.com/samuelgruetter/dot-calculus/blob/master/dev/lf/dot_top_bot.v">original</a>
             Coq proof that comes with Wadlerfest DOT paper.</p>
-        <!-- <h3><a id="Getting_Started_12"></a>Getting Started</h3> -->
-        <!-- <p> -->
-        <!--     We provide a VirtualBox VM with the required software which includes -->
-        <!--     all the proof scripts. -->
-
-        <!--     You may download virtual box from <a href="https://www.virtualbox.org/">virtualbox.org</a>. -->
-
-        <!--     You may also choose to use your own system with <a -->
-        <!--     href="https://coq.inria.fr/download"><code>coq 8.6</code></a>. -->
-        <!-- </p> -->
         <div>
             <h3>Requirements</h3>
             <p>
@@ -83,7 +73,7 @@
         <p>
             The documentation can be accessed from the <a
             href="./doc/toc.html">Table of Contents</a>. This page
-            lists links to pretty printed <code>coq</code> source files, but the
+            lists links to pretty printed Coq source files, but the
             raw <code>.v</code> files can be found in the
             <a href="./proof/">proof</a> directory. In the
             pretty-printed versions, the proof scripts are hidden by default, you may
@@ -92,7 +82,7 @@
             proofs.
         </p>
         <h2><a id="Description_of_the_Proof_20"></a>Description of the Proof</h2>
-        <p>This repository contains a Coq formalization of the DOT calculus and DOT's type safety proof
+        <p>This directory contains a Coq formalization of the DOT calculus and DOT's type safety proof
             using the method presented in the paper. The final Progress and Preservation proofs can
             be found in <a href="./doc/Safety.html">Safety.v</a>.</p>
 
@@ -101,8 +91,7 @@
         <ul>
           <li><a href="doc/Definitions.html">Definitions.v</a>:
             The main inductive definitions and functions that are used in the proof.
-            Defines the abstract syntax and type system.<!-- , evaluation semantics of DOT, as well as -->
-            <!-- definitions used in the proof: inert types, tight, invertible, and precise typing relations. -->
+            Defines the abstract syntax and type system.
           </li>
           <li><a href="doc/Binding.html">Binding.v</a>:
 			Proves helper lemmas related to opening, closing, and local closure.
@@ -371,14 +360,6 @@
                 <td class="tg-rkwu">well_typed</td>
                 <td class="tg-rkwu"></td>
             </tr>
-            <!-- <tr> -->
-            <!--     <td class="tg-yw4l">Theorem 3.12<br></td> -->
-            <!--     <td class="tg-yw4l">Soundness</td> -->
-            <!--     <td class="tg-yw4l"></td> -->
-            <!--     <td class="tg-yw4l"><a href="doc/Safety.html">Safety.v</a></td> -->
-            <!--     <td class="tg-rkwu">safety</td> -->
-            <!--     <td class="tg-rkwu"></td> -->
-            <!-- </tr> -->
             <tr>
                 <td class="tg-yw4l">Lemma 3.15<br></td>
                 <td class="tg-yw4l">Value typing<br></td>
