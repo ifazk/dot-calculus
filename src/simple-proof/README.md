@@ -41,7 +41,7 @@ This directory contains a Coq formalization of the DOT calculus and DOT's type s
 ### Proof Structure
 
 The Coq proof is split up into the following modules:
-  * [https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/Definitions.html](proof/Definitions.v): The main inductive definitions and functions that are used in the proof. Defines the abstract syntax and type system.
+  * [Definitions.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/Definitions.html]: The main inductive definitions and functions that are used in the proof. Defines the abstract syntax and type system.
   * [Binding.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/Binding.html): Proves helper lemmas related to opening, closing, and local closure.
   * [SubEnvironments.v](SubEnvironments.v): Defines and proves lemmas related to subenvironments.
   * [Weakening.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/Weakening.html): Proves the Weakening Lemma.
