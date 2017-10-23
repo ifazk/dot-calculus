@@ -11,7 +11,7 @@ Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Binding.
 
-(** * Typing Relations for the Safety Proof *)
+(** * Record Types and Inert Types *)
 (** The following typing relations are not part of the DOT calculus, but are used
     in the proof of DOT's safety theorems. *)
 
@@ -275,4 +275,19 @@ Proof.
     + inversions H5. false* H1.
     + assumption.
   - inversions H5. inversions* H9.
+Qed.
+
+(** [ds = ... /\ {a = t} /\ ...]  #<br>#
+    [ds = ... /\ {a = t'} /\ ...] #<br>#
+    [―――――――――――――――――――――――――] #<br>#
+    [t = t'] *)
+Lemma defs_has_inv: forall ds a t t',
+    defs_has ds (def_trm a t) ->
+    defs_has ds (def_trm a t') ->
+    t = t'.
+Proof.
+  intros. unfold defs_has in *.
+  inversions H. inversions H0.
+  rewrite H1 in H2. inversions H2.
+  reflexivity.
 Qed.

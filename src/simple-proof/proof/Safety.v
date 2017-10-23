@@ -14,61 +14,7 @@ Require Import Binding.
 Require Import OperationalSemantics.
 Require Import Weakening SubEnvironments Narrowing PreciseTypes Substitution CanonicalForms.
 
-(** Reduction in an empty context *)
-Notation "t '|->' u" := (empty [t |-> u]) (at level 50).
-
-(** Typing in an empty context *)
-Notation "'⊢' t ':' T" := (empty ⊢ t: T) (at level 40, t at level 59).
-
-(** * Lemmas about Free Variables *)
-
-(** [fv(e, x = v) = fv(e) ∪ fv(v)] *)
-Lemma fv_ec_vals_push_eq : forall e x v,
-    fv_ec_vals (e & x ~ v) = fv_ec_vals e \u fv_val v.
-Proof.
-  intros.
-  rewrite concat_def, single_def.
-  unfold fv_ec_vals, fv_in_values; rewrite values_def.
-  rewrite union_comm. reflexivity.
-Qed.
-
-(** [e(y) = v]       #<br>#
-    [x \notin fv(e)] #<br>#
-    [――――――――――――――] #<br>#
-    [x \notin fv(v)] *)
-Lemma binds_fv_ec_vals : forall x y v e,
-    binds y v e ->
-    x \notin fv_ec_vals e ->
-    x \notin fv_val v.
-Proof.
-  intros. unfold fv_ec_vals in H0.
-  eapply fv_in_values_binds; eauto.
-Qed.
-
 (** * Simple Implications of Typing *)
-
-(** If [G ⊢ x: T], then [x] is a named variable. *)
-Lemma var_typing_implies_avar_f: forall G a T,
-  G ⊢ trm_var a : T ->
-  exists x, a = avar_f x.
-Proof.
-  intros. dependent induction H; eauto.
-Qed.
-
-(** [ds = ... /\ {a = t} /\ ...]  #<br>#
-    [ds = ... /\ {a = t'} /\ ...] #<br>#
-    [―――――――――――――――――――――――――] #<br>#
-    [t = t'] *)
-Lemma defs_has_inv: forall ds a t t',
-    defs_has ds (def_trm a t) ->
-    defs_has ds (def_trm a t') ->
-    t = t'.
-Proof.
-  intros. unfold defs_has in *.
-  inversions H. inversions H0.
-  rewrite H1 in H2. inversions H2.
-  reflexivity.
-Qed.
 
 (** * Progress *)
 
@@ -113,40 +59,6 @@ Lemma open_preserve_normal_form : forall x t,
     normal_form t.
 Proof.
   apply open_rec_preserve_normal_form.
-Qed.
-
-(** If [x] is closed in [t], then [x \notin fv(t)]. *)
-
-(** - for types and declarations *)
-Lemma close_rec_typ_dec_no_capture : forall x,
-    (forall T k, x \notin fv_typ (close_rec_typ k x T)) /\
-    (forall D k, x \notin fv_dec (close_rec_dec k x D)).
-Proof.
-  intros x.
-  apply typ_mutind; intros; simpl; auto;
-    match goal with
-    | [ |- _ \notin fv_avar (close_rec_avar _ _ ?a) ] => destruct a
-    end; simpl;
-      try case_if; unfold fv_avar; auto.
-Qed.
-
-(** - for terms, values, and definitions *)
-Lemma close_rec_trm_val_def_defs_no_capture: forall x,
-    (forall t k, x \notin fv_trm (close_rec_trm k x t)) /\
-    (forall v k, x \notin fv_val (close_rec_val k x v)) /\
-    (forall d k, x \notin fv_def (close_rec_def k x d)) /\
-    (forall ds k, x \notin fv_defs (close_rec_defs k x ds)).
-Proof.
-  intro x.
-  apply trm_mutind; intros; simpl; auto;
-    try apply notin_union;
-    repeat split;
-    try apply close_rec_typ_dec_no_capture;
-    repeat
-      match goal with
-      | [ |- _ \notin fv_avar (close_rec_avar _ _ ?a) ] => destruct a; simpl
-      end;
-    repeat case_if; unfold fv_avar; auto.
 Qed.
 
 (** [x] fresh                            #<br>#
@@ -357,8 +269,11 @@ Proof with auto.
     destruct t.
     + SCase "t = trm_var a".
       apply narrow_typing with (G':=G') in Ht; auto.
-      destruct (var_typing_implies_avar_f Ht); subst.
-      right. exists (open_trm x u). constructor...
+      right.
+      assert (var_typing_implies_avar_f: forall G a T, G ⊢ trm_var a : T -> exists x, a = avar_f x)
+        by (introv HGat; dependent induction HGat; eauto).
+      destruct (var_typing_implies_avar_f _ _ _ Ht); subst.
+      exists (open_trm x u). constructor...
     + SCase "t = trm_val v".
       apply val_typing in Ht.
       destruct Ht as [T' [H1 H2]].
