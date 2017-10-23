@@ -18,10 +18,16 @@ Other requirements are:
 
 #### Compiling the proof
 
-To compile the proof, navigate to the current directory from a terminal window and run `make`. This will do the following:
+To compile the proof, run
 
-- compile the `tlc` library;
-- compile the safety proof;
+    git clone https://github.com/amaurremi/dot-calculus
+    cd dot-calculus/src/simple-proof
+    make
+
+`make` will do the following:
+
+- compile the `tlc` library
+- compile the safety proof
 - generate documentation.
 
 #### Inspecting Source files
