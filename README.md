@@ -1,14 +1,16 @@
 Extensions for Dependent Object Types
 -------------------------------------
 
-We are working on type-safe extensions to the Dependent Object Types (DOT) calculus as defined by Amin et al. in their [Wadlerfest](http://infoscience.epfl.ch/record/215280/files/paper_1.pdf) paper.
+The DOT (Dependent Object Types) calculus [Amin et al. '16](http://infoscience.epfl.ch/record/215280/files/paper_1.pdf aims to formalizes Scala, specifically, abstract type members and path-dependent types.
 
-We developed a [simplified](https://github.com/amaurremi/dot-calculus/tree/master/src/simple-proof), modular version of the [original](https://github.com/samuelgruetter/dot-calculus) DOT soundness proof. For details, see our [technical report](https://arxiv.org/abs/1706.03814).
+This repository contains type-safe extensions to DOT that aim to bridge the gap between DOT and Scala, and to experiment with new Scala features. The extensions are based on our [simple](https://github.com/amaurremi/dot-calculus/tree/master/src/simple-proof) type-safety proof, which we started as a fork of the [original](https://github.com/samuelgruetter/dot-calculus) proof as presented by Amin et al. (2016).
 
-Our extensions are based on that simplified proof.
+If you want to understand the DOT safety proof, or are interested in creating your own extensions to DOT, you can read our [OOPSLA](http://mrapoport.com/publ/simple-dot-proof.pdf) paper, and check out the corresponding [Coq](https://github.com/amaurremi/dot-calculus/tree/master/src/simple-proof) proof.
 
-Our DOT extensions are:
-- mutation (adding _mutable references_ to DOT)
+This repo contains:
+- the [simple DOT safety proof](https://github.com/amaurremi/dot-calculus/tree/master/src/simple-proof)
+- extensions of DOT with:
+  * mutation (adding _mutable references_ to DOT)
   ([proof](https://github.com/amaurremi/dot-calculus/tree/master/src/mutation) | [technical report](https://arxiv.org/abs/1611.07610))
 - expanded type paths (adding type selections on _full paths_ of the form `p.A` instead of `x.A`, where `p` is a path and `x` is a variable)
   ([proof in progress](https://github.com/amaurremi/dot-calculus/tree/master/src/paths))
