@@ -569,3 +569,71 @@ Proof.
   - instantiate (1 := 0). auto.
   - eassumption.
 Qed.
+
+(** If [x] is closed in [t], then [x \notin fv(t)]. *)
+
+(** - for types and declarations *)
+Lemma close_rec_typ_dec_no_capture : forall x,
+    (forall T k, x \notin fv_typ (close_rec_typ k x T)) /\
+    (forall D k, x \notin fv_dec (close_rec_dec k x D)).
+Proof.
+  intros x.
+  apply typ_mutind; intros; simpl; auto;
+    match goal with
+    | [ |- _ \notin fv_avar (close_rec_avar _ _ ?a) ] => destruct a
+    end; simpl;
+      try case_if; unfold fv_avar; auto.
+Qed.
+
+(** - for terms, values, and definitions *)
+Lemma close_rec_trm_val_def_defs_no_capture: forall x,
+    (forall t k, x \notin fv_trm (close_rec_trm k x t)) /\
+    (forall v k, x \notin fv_val (close_rec_val k x v)) /\
+    (forall d k, x \notin fv_def (close_rec_def k x d)) /\
+    (forall ds k, x \notin fv_defs (close_rec_defs k x ds)).
+Proof.
+  intro x.
+  apply trm_mutind; intros; simpl; auto;
+    try apply notin_union;
+    repeat split;
+    try apply close_rec_typ_dec_no_capture;
+    repeat
+      match goal with
+      | [ |- _ \notin fv_avar (close_rec_avar _ _ ?a) ] => destruct a; simpl
+      end;
+    repeat case_if; unfold fv_avar; auto.
+Qed.
+
+(** * Lemmas About Free Variables *)
+
+Lemma fv_ctx_types_push_eq : forall G x T,
+    fv_ctx_types (G & x ~ T) = fv_ctx_types G \u fv_typ T.
+Proof.
+  intros.
+  rewrite concat_def, single_def.
+  unfold fv_ctx_types, fv_in_values; rewrite values_def.
+  rewrite union_comm. reflexivity.
+Qed.
+
+(** [fv(e, x = v) = fv(e) ∪ fv(v)] *)
+Lemma fv_ec_vals_push_eq : forall e x v,
+    fv_ec_vals (e & x ~ v) = fv_ec_vals e \u fv_val v.
+Proof.
+  intros.
+  rewrite concat_def, single_def.
+  unfold fv_ec_vals, fv_in_values; rewrite values_def.
+  rewrite union_comm. reflexivity.
+Qed.
+
+(** [e(y) = v]       #<br>#
+    [x \notin fv(e)] #<br>#
+    [――――――――――――――] #<br>#
+    [x \notin fv(v)] *)
+Lemma binds_fv_ec_vals : forall x y v e,
+    binds y v e ->
+    x \notin fv_ec_vals e ->
+    x \notin fv_val v.
+Proof.
+  intros. unfold fv_ec_vals in H0.
+  eapply fv_in_values_binds; eauto.
+Qed.

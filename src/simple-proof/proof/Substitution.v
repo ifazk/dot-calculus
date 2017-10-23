@@ -7,8 +7,7 @@
 Set Implicit Arguments.
 
 Require Import LibLN.
-Require Import Definitions.
-Require Import Weakening.
+Require Import Definitions Binding Weakening.
 
 (** * Definitions *)
 
@@ -102,15 +101,6 @@ Lemma subst_fresh_trm_val_def_defs: forall x y,
 Proof.
   intros x y. apply trm_mutind; intros; simpls; f_equal*;
     (apply* subst_fresh_avar || apply* subst_fresh_typ_dec).
-Qed.
-
-Lemma fv_ctx_types_push_eq : forall G x T,
-    fv_ctx_types (G & x ~ T) = fv_ctx_types G \u fv_typ T.
-Proof.
-  intros.
-  rewrite concat_def, single_def.
-  unfold fv_ctx_types, fv_in_values; rewrite values_def.
-  rewrite union_comm. reflexivity.
 Qed.
 
 (** [x \notin fv(G, z: T)]                   #<br>#
