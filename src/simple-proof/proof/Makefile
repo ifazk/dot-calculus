@@ -83,7 +83,7 @@ $(PROOFMAKEFILE):
 
 DOCDEP=$(shell coqdep -sort $(FILES) | sed -e "s|\\.vo|\\.v|g")
 
-$(DOCDIR)/toc.html: graph $(DOCDEP)
+$(DOCDIR)/toc.html: $(DOCDEP)
 	$(MAKE) -f $(PROOFMAKEFILE) VFILES="$(DOCDEP)" html
 
 EXTRA_DIR:=$(DOCDIR)/assets
