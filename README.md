@@ -1,7 +1,7 @@
 Extensions for Dependent Object Types
 -------------------------------------
 
-The DOT (Dependent Object Types) calculus [Amin et al. '16](http://infoscience.epfl.ch/record/215280/files/paper_1.pdf aims to formalizes Scala, specifically, abstract type members and path-dependent types.
+The DOT (Dependent Object Types) calculus [Amin et al. '16](http://infoscience.epfl.ch/record/215280/files/paper_1.pdf) aims to formalizes Scala, specifically, abstract type members and path-dependent types.
 
 This repository contains type-safe extensions to DOT that aim to bridge the gap between DOT and Scala, and to experiment with new Scala features. The extensions are based on our [simple](https://github.com/amaurremi/dot-calculus/tree/master/src/simple-proof) type-safety proof, which we started as a fork of the [original](https://github.com/samuelgruetter/dot-calculus) proof as presented by Amin et al. (2016).
 
