@@ -2,15 +2,15 @@
 
 Our [paper](https://plg.uwaterloo.ca/~olhotak/pubs/oopsla17.pdf) presents a simplified type-safety proof for the [version of DOT](https://infoscience.epfl.ch/record/215280) presented at Wadlerfest 2016. This repository contains a formalization of the simple proof in Coq. The definitions of the abstract syntax and several lemmas are based on the [original](https://github.com/samuelgruetter/dot-calculus/blob/master/dev/lf/dot_top_bot.v) Coq proof that comes with Wadlerfest DOT paper.
 
-### Requirements 
+### Requirements
 
-To compile the proof, we require `coq 8.6` and related tooling to be run in a unix-like environment. In particular, we require the following tools (all version 8.6) in the `PATH` enviroment variable: 
+To compile the proof, we require `coq 8.6` and related tooling to be run in a unix-like environment. In particular, we require the following tools (all version 8.6) in the `PATH` enviroment variable:
   * coqc
   * coqtop
   * coqdep
   * coqdoc
   * coqmakefile
-  
+
 Other requirements are:
   * make
 
@@ -20,13 +20,13 @@ Other requirements are:
 
 To compile the proof, navigate to the current directory from a terminal window and run `make`. This will do the following:
 
-    compile the `tlc` library;
-    compile the safety proof;
-    generate documentation.
+- compile the `tlc` library;
+- compile the safety proof;
+- generate documentation.
 
 #### Inspecting Source files
 
-The documentation can be accessed from the [Table of Contents](doc/toc.html). This page lists links to pretty printed Coq source files, but the raw `.v` files can be found in the [proof](proof) directory. In the pretty-printed versions, the proof scripts are hidden by default, you may click on "Show Proofs" at the top of the page to display all the proofs, or click under the Lemma or Theorem statements to display their proofs. 
+The documentation can be accessed from the [Table of Contents](doc/toc.html). This page lists links to pretty printed Coq source files, but the raw `.v` files can be found in the [proof](proof) directory. In the pretty-printed versions, the proof scripts are hidden by default, you may click on "Show Proofs" at the top of the page to display all the proofs, or click under the Lemma or Theorem statements to display their proofs.
 
 ## Description of the Proof
 
@@ -34,7 +34,7 @@ This directory contains a Coq formalization of the DOT calculus and DOT's type s
 
 ### Proof Structure
 
-The Coq proof is split up into the following modules: 
+The Coq proof is split up into the following modules:
   * [Definitions.v](proof/Definitions.v): The main inductive definitions and functions that are used in the proof. Defines the abstract syntax and type system.
   * [Binding.v](proof/Binding.v): Proves helper lemmas related to opening, closing, and local closure.
   * [SubEnvironments.v](proof/SubEnvironments.v): Defines and proves lemmas related to subenvironments.
