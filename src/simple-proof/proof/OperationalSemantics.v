@@ -75,14 +75,14 @@ Reserved Notation "e '[' t1 '|->' t2 ']'" (at level 60, t1 at level 39).
 Inductive red : ec -> trm -> trm -> Prop :=
 (** [e(x) = lambda(T)t]    #<br>#
     [――――――――――――――――――――]  #<br>#
-    [e [x y] |-> e [t^y] ]  *)
+    [e[x y] |-> e[t^y] ]  *)
 | red_apply : forall x y e T t,
     lc_trm (trm_app (avar_f x) (avar_f y)) ->
     binds x (val_lambda T t) e ->
     e [ trm_app (avar_f x) (avar_f y) |-> open_trm y t ]
 (** [e(x) = nu(T)...{a = t}...]  #<br>#
     [―――――――――――――――――――――――――]  #<br>#
-    [e[ x.a] |-> e[t]]  *)
+    [e[x.a] |-> e[t]]  *)
 | red_project : forall x a e T ds t,
     lc_trm (trm_sel (avar_f x) a) ->
     binds x (val_new T ds) e ->

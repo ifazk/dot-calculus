@@ -4,8 +4,6 @@
 (** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
-(** This module defines various helper lemmas used throughout the proof. *)
-
 Set Implicit Arguments.
 
 Require Import LibLN.

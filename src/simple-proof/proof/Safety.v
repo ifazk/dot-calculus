@@ -74,7 +74,7 @@ Qed.
 
 (** If a value [v] has type [T], then [v] has a precise type [T']
     that is a subtype of [T].
-    This lemma corresponds to Lemma 3.13 in the paper. *)
+    This lemma corresponds to Lemma 3.15 in the paper. *)
 Lemma val_typing: forall G v T,
   G ⊢ trm_val v : T ->
   exists T', G ⊢! trm_val v : T' /\
