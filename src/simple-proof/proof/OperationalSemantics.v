@@ -1,8 +1,8 @@
 Set Implicit Arguments.
 
+Require Import Coq.Program.Equality.
 Require Import LibLN.
-Require Import Definitions.
-Require Import Binding.
+Require Import Definitions Binding.
 
 (** * Normal Forms
 A normal form is defined in the WadlerFest DOT paper as:
@@ -149,4 +149,160 @@ Proof with auto.
     assert (lc_ec (e & x ~ v)); auto.
     specialize (H1 x H3 H6).
     applys open_to_lc_at_trm_val_def_defs. eassumption.
+Qed.
+
+(** The next two lemmas show that if [t^x] is in normal form, then [t] is in normal form. *)
+Lemma open_rec_preserve_normal_form: forall k x t,
+    x \notin fv_trm t ->
+    normal_form (open_rec_trm k x t) ->
+    normal_form t.
+Proof.
+  intros. generalize dependent x.
+  generalize dependent k.
+  induction t; auto; intros;
+    try solve [
+    unfold open_trm in H0; unfold open_rec_trm in H0;
+    inversion H0].
+  unfold open_trm in H0. unfold open_rec_trm in H0.
+  inversion H0. fold open_rec_trm in *.
+  unfold fv_trm in H. fold fv_trm in H.
+  assert (x \notin fv_trm t2); auto.
+  specialize (IHt2 _ _ H4 H2).
+
+  destruct t1; simpl; inversion H1.
+  constructor. auto.
+Qed.
+
+(** See previous lemma [open_rec_preserve_normal_form]. *)
+Lemma open_preserve_normal_form : forall x t,
+    x \notin fv_trm t ->
+    normal_form (open_trm x t) ->
+    normal_form t.
+Proof.
+  apply open_rec_preserve_normal_form.
+Qed.
+
+(** [x] fresh                            #<br>#
+    [e] and [v] are locally closed       #<br>#
+    [(e, x=v)[t^x] |-> (e, x=v)[t']]     #<br>#
+    [――――――――――――――――――――――――――――――――――] #<br>#
+    [exists f. x \notin fv(f) and t' = f^x    *)
+Lemma open_rec_eval_to_open_rec : forall e x t t' v,
+    x \notin dom e \u fv_trm t \u fv_val v ->
+    lc_ec e -> lc_val v ->
+    e & x ~ v[ open_trm x t |-> t'] ->
+    exists f, (x \notin (fv_trm f)) /\ t' = open_trm x f.
+Proof.
+  intros. exists (close_trm x t'). remember (close_trm x t') as ct. split.
+  - subst ct. apply close_rec_trm_val_def_defs_no_capture.
+  - symmetry. rewrite Heqct. apply open_left_inverse_close_trm_val_def_defs.
+    eauto using lc_env_eval_to_lc_trm, lc_ec_cons.
+Qed.
+
+(** Substitution for reduction *)
+
+(** [x, y] fresh                                                  #<br>#
+    [(e1, x=v, e2)[t1] |-> (e1, x=v, e2)[t2]]                     #<br>#
+    [―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――] #<br>#
+    [(e1, y=v[y/x], e2)[t1[y/x]] |-> (e1, y=v[y/x], e2)[t2[y/x]]] *)
+Lemma eval_renaming_subst : forall x y e1 e2 v t1 t2,
+    x \notin dom e1 \u fv_ec_vals e1 \u dom e2 ->
+    y \notin dom e1 \u fv_ec_vals e1
+      \u dom e2 \u fv_ec_vals e2 \u fv_val v \u fv_trm t1 ->
+    (e1 & x ~ v & e2)[t1 |-> t2] ->
+    (e1 & y ~ subst_val x y v & subst_env x y e2)[subst_trm x y t1 |-> subst_trm x y t2].
+Proof.
+  Local Hint Resolve binds_subst_env.
+
+  Local Ltac contra_bind :=
+    repeat match goal with
+           | [ H : _ \notin _ \u _ |- _ ] => apply notin_union in H; destruct H
+           end;
+    match goal with
+    | [ _ : ?x \notin dom ?e, _ : binds ?x _ ?e |- _ ] =>
+      exfalso; eapply binds_fresh_inv; [eassumption | auto 1]
+    end.
+
+  Local Ltac solve_left_most :=
+    apply binds_concat_left; unfold subst_env; try rewrite dom_map;
+    try rewrite (proj1 (proj2 (subst_fresh_trm_val_def_defs _ _))); auto;
+    eapply binds_fv_ec_vals; eauto 2.
+
+  introv Hfx Hfy He. dependent induction He; simpls.
+  - apply binds_middle_inv in H0; destruct_all; case_if; subst;
+      try contra_bind;
+      rewrite subst_open_commut_trm; unfold subst_fvar; case_if;
+        apply red_apply with (subst_typ x y T);
+          assert (Hs : val_lambda (subst_typ x y T) (subst_trm x y t) =
+                       subst_val x y (val_lambda T t)) by auto;
+          auto 2;
+          rewrite Hs;
+          try match goal with
+              | [ |- binds ?y _ (_ & ?y ~ _ & _) ] =>
+                apply binds_middle_eq; unfold subst_env; rewrite dom_map; auto 1
+              end;
+          try solve [apply binds_concat_right, binds_subst_env; trivial];
+          solve_left_most.
+  - apply binds_middle_inv in H0; destruct_all; case_if; subst;
+      try contra_bind;
+      apply red_project with (T:=subst_typ x y T) (ds:=subst_defs x y ds); auto 1;
+        assert (Hs : val_new (subst_typ x y T) (subst_defs x y ds) = subst_val x y (val_new T ds));
+        auto 2;
+        try rewrite Hs.
+    + apply binds_concat_right; apply binds_subst_env; trivial.
+    + apply open_subst_defs; auto.
+    + apply binds_middle_eq; unfold subst_env; rewrite dom_map; auto.
+    + apply open_subst_defs2; auto.
+    + solve_left_most.
+    + apply open_subst_defs; auto.
+  - case_if; simpls;
+      subst; rewrite subst_open_commut_trm; unfold subst_fvar;
+        case_if; constructor;
+          inversion H; constructor; auto;
+            apply lc_at_subst_trm_val_def_defs; trivial.
+  - inversion H. inversion H2.
+    repeat constructor; auto;
+      apply lc_at_subst_trm_val_def_defs; trivial.
+  - inversion H.
+    repeat constructor; auto;
+      apply lc_at_subst_trm_val_def_defs; trivial.
+  - econstructor.
+    + inversion H. inversion H4.
+      repeat constructor;
+        apply lc_at_subst_trm_val_def_defs; trivial.
+    + intros.
+      instantiate (1 := L \u dom e1 \u fv_ec_vals e1 \u dom e2 \u fv_ec_vals e2
+                            \u fv_val v \u fv_val v0 \u fv_trm t \u \{x} \u \{y}) in H2.
+
+      assert (x0 <> x) by auto.
+      assert (x0 <> y) by auto.
+
+      assert (subst_fvar x y x0 = x0). {
+        unfold subst_fvar. case_if; auto.
+      }
+      rewrite <- H5.
+      rewrite <- subst_open_commut_trm. rewrite <- subst_open_commut_trm.
+      rewrite H5.
+
+      assert (x0 \notin L) by auto.
+      specialize (H1 _ H6 v (e2 & x0 ~ v0) e1).
+
+      assert (y \notin fv_trm (open_trm x0 t)). {
+        apply open_fv_trm_val_def_defs; auto.
+      }
+      assert (y \notin fv_ec_vals (e2 & x0 ~ v0)) by rewrite~ fv_ec_vals_push_eq.
+
+      assert (y \notin dom e1 \u fv_ec_vals e1
+                \u dom (e2 & x0 ~ v0) \u fv_ec_vals (e2 & x0 ~ v0)
+                \u fv_val v \u fv_trm (open_trm x0 t)); auto.
+
+      assert (x \notin dom e1 \u fv_ec_vals e1 \u dom (e2 & x0 ~ v0)); auto.
+
+      assert (subst_env x y (e2 & x0 ~ v0) = subst_env x y e2 & x0 ~ subst_val x y v0). {
+        unfold subst_env. apply map_push.
+      }
+      specialize (H1 H9 _ H10).
+      rewrite H11 in H1.
+      rewrite? concat_assoc in H1.
+      apply H1. auto.
 Qed.
