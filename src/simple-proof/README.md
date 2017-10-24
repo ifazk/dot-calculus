@@ -2,9 +2,9 @@
 
 Our [paper](https://plg.uwaterloo.ca/~olhotak/pubs/oopsla17.pdf) presents a simplified type-safety proof for the [version of DOT](https://infoscience.epfl.ch/record/215280) presented at Wadlerfest 2016. This repository contains a formalization of the simple proof in Coq. The definitions of the abstract syntax and several lemmas are based on the [original](https://github.com/samuelgruetter/dot-calculus/blob/master/dev/lf/dot_top_bot.v) Coq proof that comes with Wadlerfest DOT paper.
 
-This directory contains a Coq formalization of the DOT calculus and DOT's type safety proof using the method presented in the paper.
+This directory contains a Coq formalization of the DOT calculus and DOT's type safety proof. Our technique is based on eliminating bad bounds by using *inert types* and applying the *proof recipe*, as described in the OOPSLA'17 [paper](https://plg.uwaterloo.ca/~olhotak/pubs/oopsla17.pdf).
 
-# Documentation
+## Documentation
 
 The documentation can be accessed from the [Table of Contents](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/toc.html). This page lists links to pretty printed Coq source files, but the raw `.v` files can be found in the [proof](proof) directory. In the pretty-printed versions, the proof scripts are hidden by default, you may click on "Show Proofs" at the top of the page to display all the proofs, or click under the Lemma or Theorem statements to display their proofs.
 
@@ -30,7 +30,7 @@ The following figure shows a dependency graph between the Coq modules.
 ![Dependency graph](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/graph.png)
 
 
-# Compiling the Proof
+## Compiling the Proof
 
 To compile the proof, we require `coq 8.6` and related tooling to be run in a unix-like environment. In particular, we require the following tools (all version 8.6) in the `PATH` enviroment variable:
   * coqc
