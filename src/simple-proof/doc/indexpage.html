@@ -56,7 +56,7 @@
 <td>Z</td>
 <td>_</td>
 <td><a href="indexpage.html#global_*">other</a></td>
-<td>(438 entries)</td>
+<td>(437 entries)</td>
 </tr>
 <tr>
 <td>Notation Index</td>
@@ -152,7 +152,7 @@
 <td>Z</td>
 <td>_</td>
 <td>other</td>
-<td>(141 entries)</td>
+<td>(140 entries)</td>
 </tr>
 <tr>
 <td>Constructor Index</td>
@@ -292,12 +292,14 @@
 <br/><br/><a name="global_B"></a><h2>B </h2>
 <a href="Binding.html">Binding</a> [library]<br/>
 <a href="PreciseTypes.html#binds_inert">binds_inert</a> [lemma, in <a href="PreciseTypes.html">PreciseTypes</a>]<br/>
-<a href="Safety.html#binds_subst_env">binds_subst_env</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
-<a href="Safety.html#binds_fv_ec_vals">binds_fv_ec_vals</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
+<a href="Binding.html#binds_subst_env">binds_subst_env</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#binds_fv_ec_vals">binds_fv_ec_vals</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
 <br/><br/><a name="global_C"></a><h2>C </h2>
 <a href="CanonicalForms.html">CanonicalForms</a> [library]<br/>
 <a href="CanonicalForms.html#canonical_forms_obj">canonical_forms_obj</a> [lemma, in <a href="CanonicalForms.html">CanonicalForms</a>]<br/>
 <a href="CanonicalForms.html#canonical_forms_fun">canonical_forms_fun</a> [lemma, in <a href="CanonicalForms.html">CanonicalForms</a>]<br/>
+<a href="Binding.html#close_rec_trm_val_def_defs_no_capture">close_rec_trm_val_def_defs_no_capture</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#close_rec_typ_dec_no_capture">close_rec_typ_dec_no_capture</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
 <a href="Definitions.html#close_defs">close_defs</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#close_def">close_def</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#close_val">close_val</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
@@ -312,8 +314,6 @@
 <a href="Definitions.html#close_rec_dec">close_rec_dec</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#close_rec_typ">close_rec_typ</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#close_rec_avar">close_rec_avar</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
-<a href="Safety.html#close_rec_trm_val_def_defs_no_capture">close_rec_trm_val_def_defs_no_capture</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
-<a href="Safety.html#close_rec_typ_dec_no_capture">close_rec_typ_dec_no_capture</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
 <a href="CanonicalForms.html#corresponding_types">corresponding_types</a> [lemma, in <a href="CanonicalForms.html">CanonicalForms</a>]<br/>
 <a href="Definitions.html#ctx">ctx</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <br/><br/><a name="global_D"></a><h2>D </h2>
@@ -325,20 +325,21 @@
 <a href="Definitions.html">Definitions</a> [library]<br/>
 <a href="Definitions.html#defs">defs</a> [inductive, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="CanonicalForms.html#defs_has_hasnt_neq">defs_has_hasnt_neq</a> [lemma, in <a href="CanonicalForms.html">CanonicalForms</a>]<br/>
+<a href="RecordAndInertTypes.html#defs_has_inv">defs_has_inv</a> [lemma, in <a href="RecordAndInertTypes.html">RecordAndInertTypes</a>]<br/>
 <a href="Definitions.html#defs_mut">defs_mut</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#defs_hasnt">defs_hasnt</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#defs_has">defs_has</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#defs_cons">defs_cons</a> [constructor, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#defs_nil">defs_nil</a> [constructor, in <a href="Definitions.html">Definitions</a>]<br/>
-<a href="Safety.html#defs_has_inv">defs_has_inv</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
 <a href="Definitions.html#def_mut">def_mut</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#def_trm">def_trm</a> [constructor, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#def_typ">def_typ</a> [constructor, in <a href="Definitions.html">Definitions</a>]<br/>
 <br/><br/><a name="global_E"></a><h2>E </h2>
 <a href="Definitions.html#ec">ec</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
-<a href="Safety.html#eval_renaming_subst">eval_renaming_subst</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
+<a href="OperationalSemantics.html#eval_renaming_subst">eval_renaming_subst</a> [lemma, in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
 <br/><br/><a name="global_F"></a><h2>F </h2>
-<a href="Substitution.html#fv_ctx_types_push_eq">fv_ctx_types_push_eq</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
+<a href="Binding.html#fv_ec_vals_push_eq">fv_ec_vals_push_eq</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#fv_ctx_types_push_eq">fv_ctx_types_push_eq</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
 <a href="Definitions.html#fv_ec_vals">fv_ec_vals</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#fv_ctx_types">fv_ctx_types</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#fv_defs">fv_defs</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
@@ -348,7 +349,6 @@
 <a href="Definitions.html#fv_dec">fv_dec</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#fv_typ">fv_typ</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#fv_avar">fv_avar</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
-<a href="Safety.html#fv_ec_vals_push_eq">fv_ec_vals_push_eq</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
 <br/><br/><a name="global_G"></a><h2>G </h2>
 <a href="GeneralToTight.html">GeneralToTight</a> [library]<br/>
 <a href="GeneralToTight.html#general_to_tight_typing">general_to_tight_typing</a> [lemma, in <a href="GeneralToTight.html">GeneralToTight</a>]<br/>
@@ -372,13 +372,16 @@
 <a href="InvertibleTypes.html#invertible_typing_closure_tight">invertible_typing_closure_tight</a> [lemma, in <a href="InvertibleTypes.html">InvertibleTypes</a>]<br/>
 <a href="InvertibleTypes.html#invertible_to_precise_typ_all">invertible_to_precise_typ_all</a> [lemma, in <a href="InvertibleTypes.html">InvertibleTypes</a>]<br/>
 <a href="InvertibleTypes.html#invertible_to_precise_trm_dec">invertible_to_precise_trm_dec</a> [lemma, in <a href="InvertibleTypes.html">InvertibleTypes</a>]<br/>
-<a href="Substitution.html#invert_fv_ctx_types_push">invert_fv_ctx_types_push</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
+<a href="Binding.html#invert_fv_ctx_types_push">invert_fv_ctx_types_push</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
 <br/><br/><a name="global_L"></a><h2>L </h2>
 <a href="Definitions.html#label">label</a> [inductive, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#label_of_dec">label_of_dec</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#label_of_def">label_of_def</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#label_trm">label_trm</a> [constructor, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#label_typ">label_typ</a> [constructor, in <a href="Definitions.html">Definitions</a>]<br/>
+<a href="Binding.html#lc_at_subst_trm_val_def_defs">lc_at_subst_trm_val_def_defs</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#lc_at_subst_typ_dec">lc_at_subst_typ_dec</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#lc_at_subst_avar">lc_at_subst_avar</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#lc_defs_has">lc_defs_has</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#lc_ec_binds_inv">lc_ec_binds_inv</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#lc_ec_push_inv">lc_ec_push_inv</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
@@ -434,9 +437,6 @@
 <a href="Binding.html#lc_open_rec_open_trm_val_def_defs">lc_open_rec_open_trm_val_def_defs</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#lc_open_rec_open_typ_dec">lc_open_rec_open_typ_dec</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
 <a href="OperationalSemantics.html#lc_env_eval_to_lc_trm">lc_env_eval_to_lc_trm</a> [lemma, in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
-<a href="Safety.html#lc_at_subst_trm_val_def_defs">lc_at_subst_trm_val_def_defs</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
-<a href="Safety.html#lc_at_subst_typ_dec">lc_at_subst_typ_dec</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
-<a href="Safety.html#lc_at_subst_avar">lc_at_subst_avar</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
 <br/><br/><a name="global_N"></a><h2>N </h2>
 <a href="Narrowing.html">Narrowing</a> [library]<br/>
 <a href="Narrowing.html#narrow_subtyping">narrow_subtyping</a> [lemma, in <a href="Narrowing.html">Narrowing</a>]<br/>
@@ -448,8 +448,8 @@
 <a href="OperationalSemantics.html#normal_form">normal_form</a> [inductive, in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
 <br/><br/><a name="global_O"></a><h2>O </h2>
 <a href="RecordAndInertTypes.html#opening_preserves_labels">opening_preserves_labels</a> [lemma, in <a href="RecordAndInertTypes.html">RecordAndInertTypes</a>]<br/>
-<a href="Substitution.html#open_subst_defs2">open_subst_defs2</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#open_subst_defs">open_subst_defs</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
+<a href="Binding.html#open_subst_defs2">open_subst_defs2</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#open_subst_defs">open_subst_defs</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#open_bound_lc_trm">open_bound_lc_trm</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#open_left_inverse_close_trm_val_def_defs">open_left_inverse_close_trm_val_def_defs</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#open_left_inverse_close_typ_dec">open_left_inverse_close_typ_dec</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
@@ -480,9 +480,9 @@
 <a href="Definitions.html#open_rec_dec">open_rec_dec</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#open_rec_typ">open_rec_typ</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#open_rec_avar">open_rec_avar</a> [definition, in <a href="Definitions.html">Definitions</a>]<br/>
-<a href="Safety.html#open_rec_eval_to_open_rec">open_rec_eval_to_open_rec</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
-<a href="Safety.html#open_preserve_normal_form">open_preserve_normal_form</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
-<a href="Safety.html#open_rec_preserve_normal_form">open_rec_preserve_normal_form</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
+<a href="OperationalSemantics.html#open_rec_eval_to_open_rec">open_rec_eval_to_open_rec</a> [lemma, in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
+<a href="OperationalSemantics.html#open_preserve_normal_form">open_preserve_normal_form</a> [lemma, in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
+<a href="OperationalSemantics.html#open_rec_preserve_normal_form">open_rec_preserve_normal_form</a> [lemma, in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
 <a href="OperationalSemantics.html">OperationalSemantics</a> [library]<br/>
 <br/><br/><a name="global_P"></a><h2>P </h2>
 <a href="PreciseTypes.html#pf_dec_typ_inv">pf_dec_typ_inv</a> [lemma, in <a href="PreciseTypes.html">PreciseTypes</a>]<br/>
@@ -564,32 +564,32 @@
 <a href="Substitution.html#subst_ty_defs">subst_ty_defs</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
 <a href="Substitution.html#subst_ty_trm">subst_ty_trm</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
 <a href="Substitution.html#subst_rules">subst_rules</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_defs_hasnt">subst_defs_hasnt</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_label_of_def">subst_label_of_def</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_intro_typ">subst_intro_typ</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_intro_defs">subst_intro_defs</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_intro_trm">subst_intro_trm</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_open_commut_defs">subst_open_commut_defs</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_open_commut_trm">subst_open_commut_trm</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_open_commut_trm_val_def_defs">subst_open_commut_trm_val_def_defs</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_open_commut_typ">subst_open_commut_typ</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_open_commut_typ_dec">subst_open_commut_typ_dec</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_open_commut_avar">subst_open_commut_avar</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_fvar">subst_fvar</a> [definition, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_fresh_ctx">subst_fresh_ctx</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_fresh_trm_val_def_defs">subst_fresh_trm_val_def_defs</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_fresh_typ">subst_fresh_typ</a> [definition, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_fresh_typ_dec">subst_fresh_typ_dec</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_fresh_avar">subst_fresh_avar</a> [lemma, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_env">subst_env</a> [definition, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_ctx">subst_ctx</a> [definition, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_defs">subst_defs</a> [definition, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_def">subst_def</a> [definition, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_val">subst_val</a> [definition, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_trm">subst_trm</a> [definition, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_dec">subst_dec</a> [definition, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_typ">subst_typ</a> [definition, in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_avar">subst_avar</a> [definition, in <a href="Substitution.html">Substitution</a>]<br/>
+<a href="Binding.html#subst_defs_hasnt">subst_defs_hasnt</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_label_of_def">subst_label_of_def</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_intro_typ">subst_intro_typ</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_intro_defs">subst_intro_defs</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_intro_trm">subst_intro_trm</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_open_commut_defs">subst_open_commut_defs</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_open_commut_trm">subst_open_commut_trm</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_open_commut_trm_val_def_defs">subst_open_commut_trm_val_def_defs</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_open_commut_typ">subst_open_commut_typ</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_open_commut_typ_dec">subst_open_commut_typ_dec</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_open_commut_avar">subst_open_commut_avar</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_fvar">subst_fvar</a> [definition, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_fresh_ctx">subst_fresh_ctx</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_fresh_trm_val_def_defs">subst_fresh_trm_val_def_defs</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_fresh_typ">subst_fresh_typ</a> [definition, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_fresh_typ_dec">subst_fresh_typ_dec</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_fresh_avar">subst_fresh_avar</a> [lemma, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_env">subst_env</a> [definition, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_ctx">subst_ctx</a> [definition, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_defs">subst_defs</a> [definition, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_def">subst_def</a> [definition, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_val">subst_val</a> [definition, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_trm">subst_trm</a> [definition, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_dec">subst_dec</a> [definition, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_typ">subst_typ</a> [definition, in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_avar">subst_avar</a> [definition, in <a href="Binding.html">Binding</a>]<br/>
 <a href="Definitions.html#subtyp">subtyp</a> [inductive, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#subtyp_all">subtyp_all</a> [constructor, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#subtyp_sel1">subtyp_sel1</a> [constructor, in <a href="Definitions.html">Definitions</a>]<br/>
@@ -711,7 +711,6 @@
 <a href="Safety.html#val_typing">val_typing</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
 <a href="CanonicalForms.html#var_typ_rcd_to_binds">var_typ_rcd_to_binds</a> [lemma, in <a href="CanonicalForms.html">CanonicalForms</a>]<br/>
 <a href="CanonicalForms.html#var_typ_all_to_binds">var_typ_all_to_binds</a> [lemma, in <a href="CanonicalForms.html">CanonicalForms</a>]<br/>
-<a href="Safety.html#var_typing_implies_avar_f">var_typing_implies_avar_f</a> [lemma, in <a href="Safety.html">Safety</a>]<br/>
 <br/><br/><a name="global_W"></a><h2>W </h2>
 <a href="Weakening.html">Weakening</a> [library]<br/>
 <a href="Weakening.html#weaken_subtyp">weaken_subtyp</a> [lemma, in <a href="Weakening.html">Weakening</a>]<br/>
@@ -734,8 +733,8 @@
 <a href="Definitions.html#475d58042806a5294f9ce6903e16f6d3">_ ⊢ _ : _</a> [notation, in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="TightTypes.html#ffeaea3f10fafc9fae0b394530b170ab">_ ⊢# _ <: _</a> [notation, in <a href="TightTypes.html">TightTypes</a>]<br/>
 <a href="TightTypes.html#9e5bbd6e0016492cf8c98848ffa3efcf">_ ⊢# _ : _</a> [notation, in <a href="TightTypes.html">TightTypes</a>]<br/>
+<a href="OperationalSemantics.html#02007db97cbde7d2bc4092cba36f71b6">_ |-> _</a> [notation, in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
 <a href="OperationalSemantics.html#a170f7798b39e506ea0b403bc6a474cf">_ [ _ |-> _ ]</a> [notation, in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
-<a href="Safety.html#02007db97cbde7d2bc4092cba36f71b6">_ |-> _</a> [notation, in <a href="Safety.html">Safety</a>]<br/>
 <a href="Binding.html#4ded52e4ed08cfe18eb1d1353bc0046a">lc_defs _</a> [notation, in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#18d2e971edfaf81553a29955e37c6521">lc_def _</a> [notation, in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#46d7b722aab7cf38712e5969c865790b">lc_val _</a> [notation, in <a href="Binding.html">Binding</a>]<br/>
@@ -743,7 +742,7 @@
 <a href="Binding.html#e3bf7b6be4f3b7847ffed22a1ffa3b3c">lc_dec _</a> [notation, in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#b14a2865ef04c0f528f17f9c6cd234d4">lc_typ _</a> [notation, in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#5097935dca1577f9b27fa81b642cc107">lc_var _</a> [notation, in <a href="Binding.html">Binding</a>]<br/>
-<a href="Safety.html#2c1ee3b3d344ea94c10f3c597db028ac">⊢ _ : _</a> [notation, in <a href="Safety.html">Safety</a>]<br/>
+<a href="OperationalSemantics.html#2c1ee3b3d344ea94c10f3c597db028ac">⊢ _ : _</a> [notation, in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
 <br/><br/><hr/>
 <h1>Notation Index</h1>
 <a name="notation_*"></a><h2>other </h2>
@@ -757,8 +756,8 @@
 <a href="Definitions.html#475d58042806a5294f9ce6903e16f6d3">_ ⊢ _ : _</a> [in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="TightTypes.html#ffeaea3f10fafc9fae0b394530b170ab">_ ⊢# _ <: _</a> [in <a href="TightTypes.html">TightTypes</a>]<br/>
 <a href="TightTypes.html#9e5bbd6e0016492cf8c98848ffa3efcf">_ ⊢# _ : _</a> [in <a href="TightTypes.html">TightTypes</a>]<br/>
+<a href="OperationalSemantics.html#02007db97cbde7d2bc4092cba36f71b6">_ |-> _</a> [in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
 <a href="OperationalSemantics.html#a170f7798b39e506ea0b403bc6a474cf">_ [ _ |-> _ ]</a> [in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
-<a href="Safety.html#02007db97cbde7d2bc4092cba36f71b6">_ |-> _</a> [in <a href="Safety.html">Safety</a>]<br/>
 <a href="Binding.html#4ded52e4ed08cfe18eb1d1353bc0046a">lc_defs _</a> [in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#18d2e971edfaf81553a29955e37c6521">lc_def _</a> [in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#46d7b722aab7cf38712e5969c865790b">lc_val _</a> [in <a href="Binding.html">Binding</a>]<br/>
@@ -766,7 +765,7 @@
 <a href="Binding.html#e3bf7b6be4f3b7847ffed22a1ffa3b3c">lc_dec _</a> [in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#b14a2865ef04c0f528f17f9c6cd234d4">lc_typ _</a> [in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#5097935dca1577f9b27fa81b642cc107">lc_var _</a> [in <a href="Binding.html">Binding</a>]<br/>
-<a href="Safety.html#2c1ee3b3d344ea94c10f3c597db028ac">⊢ _ : _</a> [in <a href="Safety.html">Safety</a>]<br/>
+<a href="OperationalSemantics.html#2c1ee3b3d344ea94c10f3c597db028ac">⊢ _ : _</a> [in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
 <br/><br/><hr/>
 <h1>Library Index</h1>
 <a name="library_B"></a><h2>B </h2>
@@ -799,22 +798,22 @@
 <h1>Lemma Index</h1>
 <a name="lemma_B"></a><h2>B </h2>
 <a href="PreciseTypes.html#binds_inert">binds_inert</a> [in <a href="PreciseTypes.html">PreciseTypes</a>]<br/>
-<a href="Safety.html#binds_subst_env">binds_subst_env</a> [in <a href="Safety.html">Safety</a>]<br/>
-<a href="Safety.html#binds_fv_ec_vals">binds_fv_ec_vals</a> [in <a href="Safety.html">Safety</a>]<br/>
+<a href="Binding.html#binds_subst_env">binds_subst_env</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#binds_fv_ec_vals">binds_fv_ec_vals</a> [in <a href="Binding.html">Binding</a>]<br/>
 <br/><br/><a name="lemma_C"></a><h2>C </h2>
 <a href="CanonicalForms.html#canonical_forms_obj">canonical_forms_obj</a> [in <a href="CanonicalForms.html">CanonicalForms</a>]<br/>
 <a href="CanonicalForms.html#canonical_forms_fun">canonical_forms_fun</a> [in <a href="CanonicalForms.html">CanonicalForms</a>]<br/>
-<a href="Safety.html#close_rec_trm_val_def_defs_no_capture">close_rec_trm_val_def_defs_no_capture</a> [in <a href="Safety.html">Safety</a>]<br/>
-<a href="Safety.html#close_rec_typ_dec_no_capture">close_rec_typ_dec_no_capture</a> [in <a href="Safety.html">Safety</a>]<br/>
+<a href="Binding.html#close_rec_trm_val_def_defs_no_capture">close_rec_trm_val_def_defs_no_capture</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#close_rec_typ_dec_no_capture">close_rec_typ_dec_no_capture</a> [in <a href="Binding.html">Binding</a>]<br/>
 <a href="CanonicalForms.html#corresponding_types">corresponding_types</a> [in <a href="CanonicalForms.html">CanonicalForms</a>]<br/>
 <br/><br/><a name="lemma_D"></a><h2>D </h2>
 <a href="CanonicalForms.html#defs_has_hasnt_neq">defs_has_hasnt_neq</a> [in <a href="CanonicalForms.html">CanonicalForms</a>]<br/>
-<a href="Safety.html#defs_has_inv">defs_has_inv</a> [in <a href="Safety.html">Safety</a>]<br/>
+<a href="RecordAndInertTypes.html#defs_has_inv">defs_has_inv</a> [in <a href="RecordAndInertTypes.html">RecordAndInertTypes</a>]<br/>
 <br/><br/><a name="lemma_E"></a><h2>E </h2>
-<a href="Safety.html#eval_renaming_subst">eval_renaming_subst</a> [in <a href="Safety.html">Safety</a>]<br/>
+<a href="OperationalSemantics.html#eval_renaming_subst">eval_renaming_subst</a> [in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
 <br/><br/><a name="lemma_F"></a><h2>F </h2>
-<a href="Substitution.html#fv_ctx_types_push_eq">fv_ctx_types_push_eq</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Safety.html#fv_ec_vals_push_eq">fv_ec_vals_push_eq</a> [in <a href="Safety.html">Safety</a>]<br/>
+<a href="Binding.html#fv_ec_vals_push_eq">fv_ec_vals_push_eq</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#fv_ctx_types_push_eq">fv_ctx_types_push_eq</a> [in <a href="Binding.html">Binding</a>]<br/>
 <br/><br/><a name="lemma_G"></a><h2>G </h2>
 <a href="GeneralToTight.html#general_to_tight_typing">general_to_tight_typing</a> [in <a href="GeneralToTight.html">GeneralToTight</a>]<br/>
 <a href="GeneralToTight.html#general_to_tight">general_to_tight</a> [in <a href="GeneralToTight.html">GeneralToTight</a>]<br/>
@@ -829,8 +828,11 @@
 <a href="InvertibleTypes.html#invertible_typing_closure_tight">invertible_typing_closure_tight</a> [in <a href="InvertibleTypes.html">InvertibleTypes</a>]<br/>
 <a href="InvertibleTypes.html#invertible_to_precise_typ_all">invertible_to_precise_typ_all</a> [in <a href="InvertibleTypes.html">InvertibleTypes</a>]<br/>
 <a href="InvertibleTypes.html#invertible_to_precise_trm_dec">invertible_to_precise_trm_dec</a> [in <a href="InvertibleTypes.html">InvertibleTypes</a>]<br/>
-<a href="Substitution.html#invert_fv_ctx_types_push">invert_fv_ctx_types_push</a> [in <a href="Substitution.html">Substitution</a>]<br/>
+<a href="Binding.html#invert_fv_ctx_types_push">invert_fv_ctx_types_push</a> [in <a href="Binding.html">Binding</a>]<br/>
 <br/><br/><a name="lemma_L"></a><h2>L </h2>
+<a href="Binding.html#lc_at_subst_trm_val_def_defs">lc_at_subst_trm_val_def_defs</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#lc_at_subst_typ_dec">lc_at_subst_typ_dec</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#lc_at_subst_avar">lc_at_subst_avar</a> [in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#lc_defs_has">lc_defs_has</a> [in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#lc_ec_binds_inv">lc_ec_binds_inv</a> [in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#lc_ec_push_inv">lc_ec_push_inv</a> [in <a href="Binding.html">Binding</a>]<br/>
@@ -846,17 +848,14 @@
 <a href="Binding.html#lc_open_rec_open_trm_val_def_defs">lc_open_rec_open_trm_val_def_defs</a> [in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#lc_open_rec_open_typ_dec">lc_open_rec_open_typ_dec</a> [in <a href="Binding.html">Binding</a>]<br/>
 <a href="OperationalSemantics.html#lc_env_eval_to_lc_trm">lc_env_eval_to_lc_trm</a> [in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
-<a href="Safety.html#lc_at_subst_trm_val_def_defs">lc_at_subst_trm_val_def_defs</a> [in <a href="Safety.html">Safety</a>]<br/>
-<a href="Safety.html#lc_at_subst_typ_dec">lc_at_subst_typ_dec</a> [in <a href="Safety.html">Safety</a>]<br/>
-<a href="Safety.html#lc_at_subst_avar">lc_at_subst_avar</a> [in <a href="Safety.html">Safety</a>]<br/>
 <br/><br/><a name="lemma_N"></a><h2>N </h2>
 <a href="Narrowing.html#narrow_subtyping">narrow_subtyping</a> [in <a href="Narrowing.html">Narrowing</a>]<br/>
 <a href="Narrowing.html#narrow_typing">narrow_typing</a> [in <a href="Narrowing.html">Narrowing</a>]<br/>
 <a href="Narrowing.html#narrow_rules">narrow_rules</a> [in <a href="Narrowing.html">Narrowing</a>]<br/>
 <br/><br/><a name="lemma_O"></a><h2>O </h2>
 <a href="RecordAndInertTypes.html#opening_preserves_labels">opening_preserves_labels</a> [in <a href="RecordAndInertTypes.html">RecordAndInertTypes</a>]<br/>
-<a href="Substitution.html#open_subst_defs2">open_subst_defs2</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#open_subst_defs">open_subst_defs</a> [in <a href="Substitution.html">Substitution</a>]<br/>
+<a href="Binding.html#open_subst_defs2">open_subst_defs2</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#open_subst_defs">open_subst_defs</a> [in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#open_bound_lc_trm">open_bound_lc_trm</a> [in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#open_left_inverse_close_trm_val_def_defs">open_left_inverse_close_trm_val_def_defs</a> [in <a href="Binding.html">Binding</a>]<br/>
 <a href="Binding.html#open_left_inverse_close_typ_dec">open_left_inverse_close_typ_dec</a> [in <a href="Binding.html">Binding</a>]<br/>
@@ -873,9 +872,9 @@
 <a href="RecordAndInertTypes.html#open_record_typ">open_record_typ</a> [in <a href="RecordAndInertTypes.html">RecordAndInertTypes</a>]<br/>
 <a href="RecordAndInertTypes.html#open_record_dec">open_record_dec</a> [in <a href="RecordAndInertTypes.html">RecordAndInertTypes</a>]<br/>
 <a href="RecordAndInertTypes.html#open_dec_preserves_label">open_dec_preserves_label</a> [in <a href="RecordAndInertTypes.html">RecordAndInertTypes</a>]<br/>
-<a href="Safety.html#open_rec_eval_to_open_rec">open_rec_eval_to_open_rec</a> [in <a href="Safety.html">Safety</a>]<br/>
-<a href="Safety.html#open_preserve_normal_form">open_preserve_normal_form</a> [in <a href="Safety.html">Safety</a>]<br/>
-<a href="Safety.html#open_rec_preserve_normal_form">open_rec_preserve_normal_form</a> [in <a href="Safety.html">Safety</a>]<br/>
+<a href="OperationalSemantics.html#open_rec_eval_to_open_rec">open_rec_eval_to_open_rec</a> [in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
+<a href="OperationalSemantics.html#open_preserve_normal_form">open_preserve_normal_form</a> [in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
+<a href="OperationalSemantics.html#open_rec_preserve_normal_form">open_rec_preserve_normal_form</a> [in <a href="OperationalSemantics.html">OperationalSemantics</a>]<br/>
 <br/><br/><a name="lemma_P"></a><h2>P </h2>
 <a href="PreciseTypes.html#pf_dec_typ_inv">pf_dec_typ_inv</a> [in <a href="PreciseTypes.html">PreciseTypes</a>]<br/>
 <a href="PreciseTypes.html#pf_inert_unique_tight_bounds">pf_inert_unique_tight_bounds</a> [in <a href="PreciseTypes.html">PreciseTypes</a>]<br/>
@@ -920,21 +919,21 @@
 <a href="Substitution.html#subst_ty_defs">subst_ty_defs</a> [in <a href="Substitution.html">Substitution</a>]<br/>
 <a href="Substitution.html#subst_ty_trm">subst_ty_trm</a> [in <a href="Substitution.html">Substitution</a>]<br/>
 <a href="Substitution.html#subst_rules">subst_rules</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_defs_hasnt">subst_defs_hasnt</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_label_of_def">subst_label_of_def</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_intro_typ">subst_intro_typ</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_intro_defs">subst_intro_defs</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_intro_trm">subst_intro_trm</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_open_commut_defs">subst_open_commut_defs</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_open_commut_trm">subst_open_commut_trm</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_open_commut_trm_val_def_defs">subst_open_commut_trm_val_def_defs</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_open_commut_typ">subst_open_commut_typ</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_open_commut_typ_dec">subst_open_commut_typ_dec</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_open_commut_avar">subst_open_commut_avar</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_fresh_ctx">subst_fresh_ctx</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_fresh_trm_val_def_defs">subst_fresh_trm_val_def_defs</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_fresh_typ_dec">subst_fresh_typ_dec</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_fresh_avar">subst_fresh_avar</a> [in <a href="Substitution.html">Substitution</a>]<br/>
+<a href="Binding.html#subst_defs_hasnt">subst_defs_hasnt</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_label_of_def">subst_label_of_def</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_intro_typ">subst_intro_typ</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_intro_defs">subst_intro_defs</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_intro_trm">subst_intro_trm</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_open_commut_defs">subst_open_commut_defs</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_open_commut_trm">subst_open_commut_trm</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_open_commut_trm_val_def_defs">subst_open_commut_trm_val_def_defs</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_open_commut_typ">subst_open_commut_typ</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_open_commut_typ_dec">subst_open_commut_typ_dec</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_open_commut_avar">subst_open_commut_avar</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_fresh_ctx">subst_fresh_ctx</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_fresh_trm_val_def_defs">subst_fresh_trm_val_def_defs</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_fresh_typ_dec">subst_fresh_typ_dec</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_fresh_avar">subst_fresh_avar</a> [in <a href="Binding.html">Binding</a>]<br/>
 <br/><br/><a name="lemma_T"></a><h2>T </h2>
 <a href="InvertibleTypes.html#tight_to_invertible_v">tight_to_invertible_v</a> [in <a href="InvertibleTypes.html">InvertibleTypes</a>]<br/>
 <a href="InvertibleTypes.html#tight_to_invertible">tight_to_invertible</a> [in <a href="InvertibleTypes.html">InvertibleTypes</a>]<br/>
@@ -949,7 +948,6 @@
 <a href="Safety.html#val_typing">val_typing</a> [in <a href="Safety.html">Safety</a>]<br/>
 <a href="CanonicalForms.html#var_typ_rcd_to_binds">var_typ_rcd_to_binds</a> [in <a href="CanonicalForms.html">CanonicalForms</a>]<br/>
 <a href="CanonicalForms.html#var_typ_all_to_binds">var_typ_all_to_binds</a> [in <a href="CanonicalForms.html">CanonicalForms</a>]<br/>
-<a href="Safety.html#var_typing_implies_avar_f">var_typing_implies_avar_f</a> [in <a href="Safety.html">Safety</a>]<br/>
 <br/><br/><a name="lemma_W"></a><h2>W </h2>
 <a href="Weakening.html#weaken_subtyp">weaken_subtyp</a> [in <a href="Weakening.html">Weakening</a>]<br/>
 <a href="Weakening.html#weaken_ty_trm">weaken_ty_trm</a> [in <a href="Weakening.html">Weakening</a>]<br/>
@@ -1238,17 +1236,17 @@
 <a href="Definitions.html#rules_def_mut">rules_def_mut</a> [in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#rules_trm_mut">rules_trm_mut</a> [in <a href="Definitions.html">Definitions</a>]<br/>
 <br/><br/><a name="definition_S"></a><h2>S </h2>
-<a href="Substitution.html#subst_fvar">subst_fvar</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_fresh_typ">subst_fresh_typ</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_env">subst_env</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_ctx">subst_ctx</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_defs">subst_defs</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_def">subst_def</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_val">subst_val</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_trm">subst_trm</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_dec">subst_dec</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_typ">subst_typ</a> [in <a href="Substitution.html">Substitution</a>]<br/>
-<a href="Substitution.html#subst_avar">subst_avar</a> [in <a href="Substitution.html">Substitution</a>]<br/>
+<a href="Binding.html#subst_fvar">subst_fvar</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_fresh_typ">subst_fresh_typ</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_env">subst_env</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_ctx">subst_ctx</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_defs">subst_defs</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_def">subst_def</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_val">subst_val</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_trm">subst_trm</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_dec">subst_dec</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_typ">subst_typ</a> [in <a href="Binding.html">Binding</a>]<br/>
+<a href="Binding.html#subst_avar">subst_avar</a> [in <a href="Binding.html">Binding</a>]<br/>
 <br/><br/><a name="definition_T"></a><h2>T </h2>
 <a href="Definitions.html#trm_mutind">trm_mutind</a> [in <a href="Definitions.html">Definitions</a>]<br/>
 <a href="Definitions.html#trm_mut">trm_mut</a> [in <a href="Definitions.html">Definitions</a>]<br/>
@@ -1293,7 +1291,7 @@
 <td>Z</td>
 <td>_</td>
 <td><a href="indexpage.html#global_*">other</a></td>
-<td>(438 entries)</td>
+<td>(437 entries)</td>
 </tr>
 <tr>
 <td>Notation Index</td>
@@ -1389,7 +1387,7 @@
 <td>Z</td>
 <td>_</td>
 <td>other</td>
-<td>(141 entries)</td>
+<td>(140 entries)</td>
 </tr>
 <tr>
 <td>Constructor Index</td>
