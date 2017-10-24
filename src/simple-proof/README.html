@@ -21,7 +21,8 @@
             </span>
 
             <span class="right">
-                <a href="./README.html">README</a>
+                <a href="https://github.com/amaurremi/dot-calculus">Git repo</a>
+                <a href="./README.html"> README</a>
                 <a href="./doc/indexpage.html"> Index </a>
                 <a href="./doc/toc.html"> Table of Contents </a>
             </span>
@@ -29,67 +30,34 @@
     <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
     <div id="main">
         <h1><a id="A_Simple_Soundness_Proof_for_Dependent_Object_Types_0"></a>A Simple Soundness Proof for<br>Dependent Object Types</h1>
+
         <p>Our <a href="https://plg.uwaterloo.ca/~olhotak/pubs/oopsla17.pdf">paper</a> presents a simplified type-safety proof for the
             <a href="https://infoscience.epfl.ch/record/215280">version of DOT</a>
             presented at Wadlerfest 2016.
-            This directory contains a formalization of the simple proof in Coq.
+            This repository contains a formalization of the simple proof in Coq.
             The definitions of the abstract syntax and several lemmas are based on the
             <a href="https://github.com/samuelgruetter/dot-calculus/blob/master/dev/lf/dot_top_bot.v">original</a>
             Coq proof that comes with Wadlerfest DOT paper.</p>
-        <div>
-            <h3>Requirements</h3>
-            <p>
-                To compile the proof, we require <code>coq 8.6</code> and related tooling
-                to be run in a unix-like environment. In particular, we require
-                the following tools (all version 8.6) in the <code>PATH</code>
-                enviroment variable:
-                <ul>
-                    <li><code>coqc</code></li>
-                    <li><code>coqtop</code></li>
-                    <li><code>coqdep</code></li>
-                    <li><code>coqdoc</code></li>
-                    <li><code>coqmakefile</code></li>
-                </ul>
 
-                Other requirements are:
-                <ul>
-                    <li><code>make</code></li>
-                </ul>
+        <p>This directory contains a Coq formalization of the DOT calculus and DOT's type safety proof.
+          Our technique is based on eliminating bad bounds by using <i>inert types</i> and applying the <i>proof recipe</i>, as described in the OOPSLA'17
+          <a href="https://plg.uwaterloo.ca/~olhotak/pubs/oopsla17.pdf">paper</a>.
 
-            </p>
-        </div>
-        <h3><a id="Instructions_16"></a>Instructions</h3>
-        <h4>Compiling the proof</h4>
+          <h2>Documentation</h2>
         <p>
-          To compile the proof, run
-
-          <blockquote><code>git clone https://github.com/amaurremi/dot-calculus</code>
-          <code>cd dot-calculus/src/simple-proof</code><br>
-          <code>make</code></blockquote>
-
-            This will do the following:
-            <ul>
-                <li>compile the <code>tlc</code> library;</li>
-                <li>compile the safety proof;</li>
-                <li>generate documentation.</li>
-            </ul>
-        </p>
-        <h4>Inspecting Source files</h4>
-        <p>
-            The documentation can be accessed from the <a
-            href="./doc/toc.html">Table of Contents</a>. This page
-            lists links to pretty printed Coq source files, but the
-            raw <code>.v</code> files can be found in the
-            <a href="./proof/">proof</a> directory. In the
-            pretty-printed versions, the proof scripts are hidden by default, you may
-            click on "Show Proofs" at the top of the page to display all the
-            proofs, or click under the Lemma or Theorem statements to display their
-            proofs.
+          The documentation can be accessed from the <a href="./doc/toc.html">table of contents</a>. This page
+          lists links to pretty printed Coq source files, but the
+          raw <code>.v</code> files can be found in the
+          <a href="./proof/">proof</a> directory. In the
+          pretty-printed versions, the proof scripts are hidden by default, you may
+          click on "Show Proofs" at the top of the page to display all the
+          proofs, or click under the Lemma or Theorem statements to display their
+          proofs.
         </p>
         <h2><a id="Description_of_the_Proof_20"></a>Description of the Proof</h2>
         <p>This directory contains a Coq formalization of the DOT calculus and DOT's type safety proof
-            using the method presented in the paper. The final Progress and Preservation proofs can
-            be found in <a href="./doc/Safety.html">Safety.v</a>.</p>
+          using the method presented in the paper. The final Progress and Preservation proofs can
+          be found in <a href="./doc/Safety.html">Safety.v</a>.</p>
 
         <h3>Proof Structure</h3>
         The Coq proof is split up into the following modules:
@@ -99,10 +67,10 @@
             Defines the abstract syntax and type system.
           </li>
           <li><a href="doc/Binding.html">Binding.v</a>:
-			Proves helper lemmas related to opening, closing, and local closure.
+	    Proves helper lemmas related to opening, closing, and local closure.
           </li>
           <li><a href="doc/SubEnvironments.html">SubEnvironments.v</a>:
-			Defines and proves lemmas related to subenvironments.
+	    Defines and proves lemmas related to subenvironments.
           </li>
           <li><a href="doc/Weakening.html">Weakening.v</a>:
             Proves the Weakening Lemma.
@@ -407,6 +375,45 @@
             </tr>
         </table>
     </div>
+
+        <div>
+            <h2>Compiling the Proof</h2>
+            <p>
+                To compile the proof, we require <code>coq 8.6</code> and related tooling
+                to be run in a unix-like environment. In particular, we require
+                the following tools (all version 8.6) in the <code>PATH</code>
+                enviroment variable:
+                <ul>
+                    <li><code>coqc</code></li>
+                    <li><code>coqtop</code></li>
+                    <li><code>coqdep</code></li>
+                    <li><code>coqdoc</code></li>
+                    <li><code>coqmakefile</code></li>
+                </ul>
+
+                Other requirements are:
+                <ul>
+                    <li><code>make</code></li>
+                </ul>
+
+            </p>
+        </div>
+
+        <p>
+          To compile the proof, run
+
+          <blockquote><code>git clone https://github.com/amaurremi/dot-calculus</code>
+          <code>cd dot-calculus/src/simple-proof</code><br>
+          <code>make</code></blockquote>
+
+            This will do the following:
+            <ul>
+                <li>compile the <code>tlc</code> library;</li>
+                <li>compile the safety proof;</li>
+                <li>generate documentation.</li>
+            </ul>
+        </p>
+
     </div>
 
     </body>
