@@ -10,6 +10,7 @@ Require Import LibLN.
 Require Import Definitions.
 Require Import Coq.Program.Equality.
 
+(** * Subenvironments [G1 ⪯ G2] *)
 (** [G1] is a subenvironment of [G2], denoted [G1 ⪯ G2],
     if [dom(G1) = dom(G2)] and for each [x],
     [G1 ⊢ G1(x) <: G2(x)]. *)

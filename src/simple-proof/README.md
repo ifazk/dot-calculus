@@ -6,14 +6,14 @@ This directory contains a Coq formalization of the DOT calculus and DOT's type s
 
 ## Documentation
 
-The documentation can be accessed from the [Table of Contents](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/toc.html). This page lists links to pretty printed Coq source files, but the raw `.v` files can be found in the [proof](proof) directory. In the pretty-printed versions, the proof scripts are hidden by default, you may click on "Show Proofs" at the top of the page to display all the proofs, or click under the Lemma or Theorem statements to display their proofs.
+The documentation can be accessed from the [table of contents](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/toc.html). This page lists links to pretty printed Coq source files, but the raw `.v` files can be found in the [proof](proof) directory. In the pretty-printed versions, the proof scripts are hidden by default, you may click on "Show Proofs" at the top of the page to display all the proofs, or click under the Lemma or Theorem statements to display their proofs.
 
 ### Proof Structure
 
 The Coq proof is split up into the following modules:
   * [Definitions.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/Definitions.html): The main inductive definitions and functions that are used in the proof. Defines the abstract syntax and type system.
   * [Binding.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/Binding.html): Proves helper lemmas related to opening, closing, and local closure.
-  * [SubEnvironments.v](SubEnvironments.v): Defines and proves lemmas related to subenvironments.
+  * [SubEnvironments.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/SubEnvironments.v): Defines and proves lemmas related to subenvironments.
   * [Weakening.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/Weakening.html): Proves the Weakening Lemma.
   * [RecordAndInertTypes.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/RecordAndInertTypes.html): Defines and proves lemmas related to record and inert types.
   * [Narrowing.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/Narrowing.html): Proves the Narrowing Lemma.

@@ -530,7 +530,7 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     G ⊢ typ_all S1 T1 <: typ_all S2 T2
 where "G '⊢' T '<:' U" := (subtyp G T U).
 
-(** ** Well-typed Evaluation Contexts *)
+(** * Well-typed Evaluation Contexts *)
 
 (** Given a typing [G ⊢ e[t]: T], [well_typed] establishes a correspondence
     between [G] and the evaluation context [e].
@@ -580,7 +580,7 @@ with   rules_subtyp     := Induction for subtyp Sort Prop.
 Combined Scheme rules_mutind from rules_trm_mut, rules_def_mut, rules_defs_mut, rules_subtyp.
 
 
-(** * Tactics *)
+(** ** Tactics *)
 
 (** Tactics for generating fresh variables. *)
 

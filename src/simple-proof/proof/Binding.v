@@ -72,7 +72,7 @@ Definition subst_ctx (z: var) (u: var) (G: ctx) : ctx :=
 Definition subst_env x y e := map (subst_val x y) e.
 
 
-(** * Lemmas About Opening *)
+(** * Opening Lemmas *)
 
 Ltac avar_solve :=
   repeat match goal with
@@ -330,6 +330,7 @@ Inductive lc_ec : ec -> Prop :=
     lc_ec (e & x ~ v).
 Hint Constructors lc_ec.
 
+(** ** Local Closure Lemmas *)
 
 Lemma lc_at_relaxing_typ_dec :
     (forall T k j, lc_at_typ k T -> j >= k -> lc_at_typ j T) /\
@@ -569,9 +570,6 @@ Proof.
   intros. eapply lc_at_opening_trm_val_def_defs; try eassumption; try omega.
 Qed.
 
-
-(** * Lemmas About Local Closure *)
-
 (** When a binding is removed from a locally closed evaluation context, the
     resulting evaluation context and the value in the binding are both
     locally closed. *)
@@ -664,7 +662,7 @@ Proof.
     repeat case_if; unfold fv_avar; auto.
 Qed.
 
-(** * Lemmas About Free Variables *)
+(** * Free Variables Lemmas *)
 
 Lemma fv_ctx_types_push_eq : forall G x T,
     fv_ctx_types (G & x ~ T) = fv_ctx_types G \u fv_typ T.
@@ -698,7 +696,7 @@ Proof.
   eapply fv_in_values_binds; eauto.
 Qed.
 
-(** * Lemmas about variable substitution *)
+(** * Variable Substitution Lemmas *)
 
 (** [e(b) = v]            #<br>#
     [――――――――――――――――――]  #<br>#

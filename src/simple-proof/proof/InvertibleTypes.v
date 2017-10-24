@@ -18,8 +18,6 @@ Require Import Narrowing.
 Require Import PreciseTypes.
 Require Import TightTypes.
 
-(** ** Invertible typing *)
-
 (** The invertible-typing relation describes the possible types that a variable or value
 can be typed with in an inert context. For example, if [G] is inert, [G ⊢! x: {a: T}],
 and [G ⊢ T <: T'], then [G ⊢## x: {a: T'}].
@@ -30,7 +28,7 @@ repeated applications of recursion introduction and elimination.
 For this case, invertible typing defines only recursion introduction (whereas precise typing
 defines only recursion elimination). *)
 
-(** *** Invertible typing of variables [G ⊢## x: T] *)
+(** * Invertible typing of variables [G ⊢## x: T] *)
 
 Reserved Notation "G '⊢##' x ':' T" (at level 40, x at level 59).
 
@@ -163,6 +161,8 @@ where "G '⊢##v' v ':' T" := (ty_val_inv G v T).
 
 Hint Constructors ty_var_inv ty_val_inv.
 
+(** ** Invertible to Precise Typing [|-## to |-!] *)
+
 (** Invertible-to-precise typing for field declarations: #<br>#
     [G ⊢## x: {a: T}]            #<br>#
     [――――――――――――――――――――――]      #<br>#
@@ -218,7 +218,7 @@ Proof.
       eauto.
 Qed.
 
-(** * Invertible Variable Typing *)
+(** ** Invertible Subtyping Closure *)
 
 (** Invertible typing is closed under tight subtyping. *)
 Lemma invertible_typing_closure_tight: forall G x T U,
@@ -238,7 +238,7 @@ Proof.
     + pose proof (inert_unique_tight_bounds Hgd H H5) as Hu. subst. assumption.
 Qed.
 
-(** ** Tight-to-Invertible Lemma for Variables
+(** ** Tight-to-Invertible Lemma for Variables [|-# to |-##]
 
        This lemma corresponds to Theorem 3.6 in the paper.
 
@@ -266,6 +266,8 @@ Qed.
 
 (** * Invertible Value Typing *)
 
+(** ** Invertible Subtyping Closure *)
+
 (** Invertible value typing is closed under tight subtyping. *)
 Lemma invertible_typing_closure_tight_v: forall G v T U,
   inert G ->
@@ -279,7 +281,7 @@ Proof.
   - lets Hb: (inert_unique_tight_bounds Hgd H H5). subst*.
 Qed.
 
-(** ** Tight-to-Invertible Lemma for Values
+(** ** Tight-to-Invertible Lemma for Values [|-# to |-##]
 
        [inert G]            #<br>#
        [G ⊢# v: T]         #<br>#

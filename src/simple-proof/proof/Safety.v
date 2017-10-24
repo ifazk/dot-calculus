@@ -28,8 +28,6 @@ Proof.
   destruct (IHty_trm _ eq_refl) as [T' [Hty Hsub]]. eauto.
 Qed.
 
-(** ** Helper lemma for the Progress Theorem *)
-
 (** [e] and [t] are locally closed          #<br>#
     [G' ⪯ G]                                #<br>#
     inert [G']                              #<br>#
@@ -143,8 +141,6 @@ Proof.
 Qed.
 
 (** * Preservation *)
-
-(** ** Helper lemma for Preservation Theorem *)
 
 (** [t] is locally closed   #<br>#
     [G' ⪯ G]                #<br>#

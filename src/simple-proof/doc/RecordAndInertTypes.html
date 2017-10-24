@@ -42,9 +42,12 @@
 </div>
 
 <div class="doc">
-<a name="lab24"></a><h1 class="section">Record Types and Inert Types</h1>
- The following typing relations are not part of the DOT calculus, but are used
+The following typing relations are not part of the DOT calculus, but are used
     in the proof of DOT's safety theorems. 
+<div class="paragraph"> </div>
+
+<a name="lab24"></a><h1 class="section">Record Types</h1>
+
 <div class="paragraph"> </div>
 
  A record declaration is either a type declaration with equal bounds,
@@ -106,85 +109,13 @@ Given a type <span class="inlinecode"><span class="id" title="var">T</span></spa
 &nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="RecordAndInertTypes.html#record_has"><span class="id" title="inductive">record_has</span></a> (<a class="idref" href="Definitions.html#typ_and"><span class="id" title="constructor">typ_and</span></a> <a class="idref" href="RecordAndInertTypes.html#T"><span class="id" title="variable">T</span></a> <a class="idref" href="RecordAndInertTypes.html#U"><span class="id" title="variable">U</span></a>) <a class="idref" href="RecordAndInertTypes.html#D"><span class="id" title="variable">D</span></a>.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-<a name="lab25"></a><h2 class="section">Inert types</h2>
-
-       A type is inert if it is either a dependent function type, or a recursive type
-       whose type declarations have equal bounds (enforced through <span class="inlinecode"><span class="id" title="var">record_type</span></span>). <br>
-       For example, the following types are inert:
-<ul class="doclist">
-<li> <span class="inlinecode"><span class="id" title="var">lambda</span>(<span class="id" title="var">x</span>:</span> <span class="inlinecode"><span class="id" title="var">S</span>)<span class="id" title="var">T</span></span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="var">mu</span>(<span class="id" title="var">x</span>:</span> <span class="inlinecode">{<span class="id" title="var">a</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>}</span> <span class="inlinecode">/\</span> <span class="inlinecode">{<span class="id" title="var">B</span>:</span> <span class="inlinecode"><span class="id" title="var">U</span>..<span class="id" title="var">U</span>})</span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="var">mu</span>(<span class="id" title="var">x</span>:</span> <span class="inlinecode">{<span class="id" title="var">C</span>:</span> <span class="inlinecode">{<span class="id" title="var">A</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>..<span class="id" title="var">U</span>}..{<span class="id" title="var">A</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>..<span class="id" title="var">U</span>}})</span>
-
-</li>
-</ul>
-       And the following types are not inert:
-<ul class="doclist">
-<li> <span class="inlinecode">{<span class="id" title="var">a</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>}</span>
-
-</li>
-<li> <span class="inlinecode">{<span class="id" title="var">B</span>:</span> <span class="inlinecode"><span class="id" title="var">U</span>..<span class="id" title="var">U</span>}</span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="var">top</span></span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="var">x.A</span></span>
-
-</li>
-<li> <span class="inlinecode"><span class="id" title="var">mu</span>(<span class="id" title="var">x</span>:</span> <span class="inlinecode">{<span class="id" title="var">B</span>:</span> <span class="inlinecode"><span class="id" title="var">S</span>..<span class="id" title="var">T</span>})</span>, where <span class="inlinecode"><span class="id" title="var">S</span></span> <span class="inlinecode">&lt;&gt;</span> <span class="inlinecode"><span class="id" title="var">T</span></span>. 
-</li>
-</ul>
-
-</div>
-<div class="code">
-<span class="id" title="keyword">Inductive</span> <a name="inert_typ"><span class="id" title="inductive">inert_typ</span></a> : <a class="idref" href="Definitions.html#typ"><span class="id" title="inductive">typ</span></a> <span class="id" title="notation">-&gt;</span> <span class="id" title="keyword">Prop</span> :=<br/>
-&nbsp;&nbsp;| <a name="inert_typ_all"><span class="id" title="constructor">inert_typ_all</span></a> : <span class="id" title="keyword">forall</span> <span class="id" title="var">S</span> <span class="id" title="var">T</span>, <a class="idref" href="RecordAndInertTypes.html#inert_typ"><span class="id" title="inductive">inert_typ</span></a> (<a class="idref" href="Definitions.html#typ_all"><span class="id" title="constructor">typ_all</span></a> <a class="idref" href="RecordAndInertTypes.html#S"><span class="id" title="variable">S</span></a> <a class="idref" href="RecordAndInertTypes.html#T"><span class="id" title="variable">T</span></a>)<br/>
-&nbsp;&nbsp;| <a name="inert_typ_bnd"><span class="id" title="constructor">inert_typ_bnd</span></a> : <span class="id" title="keyword">forall</span> <span class="id" title="var">T</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="RecordAndInertTypes.html#record_type"><span class="id" title="definition">record_type</span></a> <a class="idref" href="RecordAndInertTypes.html#T"><span class="id" title="variable">T</span></a> <span class="id" title="notation">-&gt;</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="RecordAndInertTypes.html#inert_typ"><span class="id" title="inductive">inert_typ</span></a> (<a class="idref" href="Definitions.html#typ_bnd"><span class="id" title="constructor">typ_bnd</span></a> <a class="idref" href="RecordAndInertTypes.html#T"><span class="id" title="variable">T</span></a>).<br/>
+<span class="id" title="keyword">Hint Constructors</span> <a class="idref" href="RecordAndInertTypes.html#record_typ"><span class="id" title="inductive">record_typ</span></a> <a class="idref" href="RecordAndInertTypes.html#record_has"><span class="id" title="inductive">record_has</span></a>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-An inert context is a typing context whose range consists only of inert types. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Inductive</span> <a name="inert"><span class="id" title="inductive">inert</span></a> : <a class="idref" href="Definitions.html#ctx"><span class="id" title="definition">ctx</span></a> <span class="id" title="notation">-&gt;</span> <span class="id" title="keyword">Prop</span> :=<br/>
-&nbsp;&nbsp;| <a name="inert_empty"><span class="id" title="constructor">inert_empty</span></a> : <a class="idref" href="RecordAndInertTypes.html#inert"><span class="id" title="inductive">inert</span></a> <span class="id" title="axiom">empty</span><br/>
-&nbsp;&nbsp;| <a name="inert_all"><span class="id" title="constructor">inert_all</span></a> : <span class="id" title="keyword">forall</span> <span class="id" title="var">G</span> <span class="id" title="var">x</span> <span class="id" title="var">T</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="RecordAndInertTypes.html#inert"><span class="id" title="inductive">inert</span></a> <a class="idref" href="RecordAndInertTypes.html#G"><span class="id" title="variable">G</span></a> <span class="id" title="notation">-&gt;</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="RecordAndInertTypes.html#inert_typ"><span class="id" title="inductive">inert_typ</span></a> <a class="idref" href="RecordAndInertTypes.html#T"><span class="id" title="variable">T</span></a> <span class="id" title="notation">-&gt;</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="RecordAndInertTypes.html#x"><span class="id" title="variable">x</span></a> <span class="id" title="notation">#</span> <a class="idref" href="RecordAndInertTypes.html#G"><span class="id" title="variable">G</span></a> <span class="id" title="notation">-&gt;</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="RecordAndInertTypes.html#inert"><span class="id" title="inductive">inert</span></a> (<a class="idref" href="RecordAndInertTypes.html#G"><span class="id" title="variable">G</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="RecordAndInertTypes.html#x"><span class="id" title="variable">x</span></a> <span class="id" title="notation">~</span> <a class="idref" href="RecordAndInertTypes.html#T"><span class="id" title="variable">T</span></a>).<br/>
-
-<br/>
-</div>
-
-<div class="doc">
-In the proof, it is useful to be able to distinguish record types from
-    other types. A record type is a concatenation of type declarations with equal
-    bounds <span class="inlinecode">{<span class="id" title="var">A</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>..<span class="id" title="var">T</span>}</span> and field declarations <span class="inlinecode">{<span class="id" title="var">a</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>}</span>. 
-</div>
-<div class="code">
-
-<br/>
-<span class="id" title="keyword">Hint Constructors</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="RecordAndInertTypes.html#inert_typ"><span class="id" title="inductive">inert_typ</span></a> <a class="idref" href="RecordAndInertTypes.html#inert"><span class="id" title="inductive">inert</span></a> <a class="idref" href="RecordAndInertTypes.html#record_has"><span class="id" title="inductive">record_has</span></a> <a class="idref" href="RecordAndInertTypes.html#record_typ"><span class="id" title="inductive">record_typ</span></a>.<br/>
-
-<br/>
-</div>
-
-<div class="doc">
-<a name="lab26"></a><h1 class="section">Lemmas About Records and Record Types</h1>
+<a name="lab25"></a><h2 class="section">Lemmas About Records and Record Types</h2>
 
 <div class="paragraph"> </div>
 
@@ -453,6 +384,80 @@ If <span class="inlinecode"><span class="id" title="var">T</span></span> is a re
 &nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">H1</span> <span class="id" title="keyword">in</span> <span class="id" title="var">H2</span>. <span class="id" title="var">inversions</span> <span class="id" title="var">H2</span>.<br/>
 &nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span>.<br/>
 <span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab26"></a><h1 class="section">Inert types</h1>
+
+       A type is inert if it is either a dependent function type, or a recursive type
+       whose type declarations have equal bounds (enforced through <span class="inlinecode"><span class="id" title="var">record_type</span></span>). <br>
+       For example, the following types are inert:
+<ul class="doclist">
+<li> <span class="inlinecode"><span class="id" title="var">lambda</span>(<span class="id" title="var">x</span>:</span> <span class="inlinecode"><span class="id" title="var">S</span>)<span class="id" title="var">T</span></span>
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">mu</span>(<span class="id" title="var">x</span>:</span> <span class="inlinecode">{<span class="id" title="var">a</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>}</span> <span class="inlinecode">/\</span> <span class="inlinecode">{<span class="id" title="var">B</span>:</span> <span class="inlinecode"><span class="id" title="var">U</span>..<span class="id" title="var">U</span>})</span>
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">mu</span>(<span class="id" title="var">x</span>:</span> <span class="inlinecode">{<span class="id" title="var">C</span>:</span> <span class="inlinecode">{<span class="id" title="var">A</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>..<span class="id" title="var">U</span>}..{<span class="id" title="var">A</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>..<span class="id" title="var">U</span>}})</span>
+
+</li>
+</ul>
+       And the following types are not inert:
+<ul class="doclist">
+<li> <span class="inlinecode">{<span class="id" title="var">a</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>}</span>
+
+</li>
+<li> <span class="inlinecode">{<span class="id" title="var">B</span>:</span> <span class="inlinecode"><span class="id" title="var">U</span>..<span class="id" title="var">U</span>}</span>
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">top</span></span>
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">x.A</span></span>
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">mu</span>(<span class="id" title="var">x</span>:</span> <span class="inlinecode">{<span class="id" title="var">B</span>:</span> <span class="inlinecode"><span class="id" title="var">S</span>..<span class="id" title="var">T</span>})</span>, where <span class="inlinecode"><span class="id" title="var">S</span></span> <span class="inlinecode">&lt;&gt;</span> <span class="inlinecode"><span class="id" title="var">T</span></span>. 
+</li>
+</ul>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Inductive</span> <a name="inert_typ"><span class="id" title="inductive">inert_typ</span></a> : <a class="idref" href="Definitions.html#typ"><span class="id" title="inductive">typ</span></a> <span class="id" title="notation">-&gt;</span> <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;| <a name="inert_typ_all"><span class="id" title="constructor">inert_typ_all</span></a> : <span class="id" title="keyword">forall</span> <span class="id" title="var">S</span> <span class="id" title="var">T</span>, <a class="idref" href="RecordAndInertTypes.html#inert_typ"><span class="id" title="inductive">inert_typ</span></a> (<a class="idref" href="Definitions.html#typ_all"><span class="id" title="constructor">typ_all</span></a> <a class="idref" href="RecordAndInertTypes.html#S"><span class="id" title="variable">S</span></a> <a class="idref" href="RecordAndInertTypes.html#T"><span class="id" title="variable">T</span></a>)<br/>
+&nbsp;&nbsp;| <a name="inert_typ_bnd"><span class="id" title="constructor">inert_typ_bnd</span></a> : <span class="id" title="keyword">forall</span> <span class="id" title="var">T</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="RecordAndInertTypes.html#record_type"><span class="id" title="definition">record_type</span></a> <a class="idref" href="RecordAndInertTypes.html#T"><span class="id" title="variable">T</span></a> <span class="id" title="notation">-&gt;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="RecordAndInertTypes.html#inert_typ"><span class="id" title="inductive">inert_typ</span></a> (<a class="idref" href="Definitions.html#typ_bnd"><span class="id" title="constructor">typ_bnd</span></a> <a class="idref" href="RecordAndInertTypes.html#T"><span class="id" title="variable">T</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+An inert context is a typing context whose range consists only of inert types. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Inductive</span> <a name="inert"><span class="id" title="inductive">inert</span></a> : <a class="idref" href="Definitions.html#ctx"><span class="id" title="definition">ctx</span></a> <span class="id" title="notation">-&gt;</span> <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;| <a name="inert_empty"><span class="id" title="constructor">inert_empty</span></a> : <a class="idref" href="RecordAndInertTypes.html#inert"><span class="id" title="inductive">inert</span></a> <span class="id" title="axiom">empty</span><br/>
+&nbsp;&nbsp;| <a name="inert_all"><span class="id" title="constructor">inert_all</span></a> : <span class="id" title="keyword">forall</span> <span class="id" title="var">G</span> <span class="id" title="var">x</span> <span class="id" title="var">T</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="RecordAndInertTypes.html#inert"><span class="id" title="inductive">inert</span></a> <a class="idref" href="RecordAndInertTypes.html#G"><span class="id" title="variable">G</span></a> <span class="id" title="notation">-&gt;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="RecordAndInertTypes.html#inert_typ"><span class="id" title="inductive">inert_typ</span></a> <a class="idref" href="RecordAndInertTypes.html#T"><span class="id" title="variable">T</span></a> <span class="id" title="notation">-&gt;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="RecordAndInertTypes.html#x"><span class="id" title="variable">x</span></a> <span class="id" title="notation">#</span> <a class="idref" href="RecordAndInertTypes.html#G"><span class="id" title="variable">G</span></a> <span class="id" title="notation">-&gt;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="RecordAndInertTypes.html#inert"><span class="id" title="inductive">inert</span></a> (<a class="idref" href="RecordAndInertTypes.html#G"><span class="id" title="variable">G</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="RecordAndInertTypes.html#x"><span class="id" title="variable">x</span></a> <span class="id" title="notation">~</span> <a class="idref" href="RecordAndInertTypes.html#T"><span class="id" title="variable">T</span></a>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+In the proof, it is useful to be able to distinguish record types from
+    other types. A record type is a concatenation of type declarations with equal
+    bounds <span class="inlinecode">{<span class="id" title="var">A</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>..<span class="id" title="var">T</span>}</span> and field declarations <span class="inlinecode">{<span class="id" title="var">a</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>}</span>. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Hint Constructors</span> <a class="idref" href="RecordAndInertTypes.html#inert_typ"><span class="id" title="inductive">inert_typ</span></a> <a class="idref" href="RecordAndInertTypes.html#inert"><span class="id" title="inductive">inert</span></a>.<br/>
 </div>
 </div>
 <div id="footer">

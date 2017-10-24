@@ -13,7 +13,7 @@ Require Import LibLN.
 Require Import Definitions.
 Require Import PreciseTypes.
 
-(** ** Tight typing *)
+(** * Tight typing [G |-# t: T] *)
 
 Reserved Notation "G '⊢#' t ':' T" (at level 40, t at level 59).
 Reserved Notation "G '⊢#' T '<:' U" (at level 40, T at level 59).

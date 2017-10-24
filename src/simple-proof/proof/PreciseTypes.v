@@ -13,7 +13,7 @@ Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import RecordAndInertTypes.
 
-(** ** Precise typing [G ⊢! t: T] *)
+(** * Precise typing [G ⊢! t: T] *)
 (** Precise typing is used to reason about the types of variables and values.
     Precise typing does not "modify" a variable's or value's type through subtyping.
     - For values, precise typing allows to only retrieve the "immediate" type of the value.

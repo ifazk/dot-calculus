@@ -55,11 +55,7 @@ This module contains lemmas related to invertible typing
 </div>
 
 <div class="doc">
-<a name="lab38"></a><h2 class="section">Invertible typing</h2>
-
-<div class="paragraph"> </div>
-
- The invertible-typing relation describes the possible types that a variable or value
+The invertible-typing relation describes the possible types that a variable or value
 can be typed with in an inert context. For example, if <span class="inlinecode"><span class="id" title="var">G</span></span> is inert, <span class="inlinecode"><span class="id" title="var">G</span></span> <span class="inlinecode">&vdash;<sub>!</sub></span> <span class="inlinecode"><span class="id" title="var">x</span>:</span> <span class="inlinecode">{<span class="id" title="var">a</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>}</span>,
 and <span class="inlinecode"><span class="id" title="var">G</span></span> <span class="inlinecode">⊢</span> <span class="inlinecode"><span class="id" title="var">T</span></span> <span class="inlinecode">&lt;:</span> <span class="inlinecode"><span class="id" title="var">T'</span></span>, then <span class="inlinecode"><span class="id" title="var">G</span></span> <span class="inlinecode">&vdash;<sub>&#35&#35</sub></span> <span class="inlinecode"><span class="id" title="var">x</span>:</span> <span class="inlinecode">{<span class="id" title="var">a</span>:</span> <span class="inlinecode"><span class="id" title="var">T'</span>}</span>.
 
@@ -72,7 +68,7 @@ For this case, invertible typing defines only recursion introduction (whereas pr
 defines only recursion elimination). 
 <div class="paragraph"> </div>
 
-<a name="lab39"></a><h3 class="section">Invertible typing of variables <span class="inlinecode"><span class="id" title="var">G</span></span> <span class="inlinecode">&vdash;<sub>&#35&#35</sub></span> <span class="inlinecode"><span class="id" title="var">x</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span></span></h3>
+<a name="lab39"></a><h1 class="section">Invertible typing of variables <span class="inlinecode"><span class="id" title="var">G</span></span> <span class="inlinecode">&vdash;<sub>&#35&#35</sub></span> <span class="inlinecode"><span class="id" title="var">x</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span></span></h1>
 
 </div>
 <div class="code">
@@ -289,7 +285,11 @@ defines only recursion elimination).
 </div>
 
 <div class="doc">
-Invertible-to-precise typing for field declarations: <br>
+<a name="lab41"></a><h2 class="section">Invertible to Precise Typing <span class="inlinecode">|-##</span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode">|-!</span></h2>
+
+<div class="paragraph"> </div>
+
+ Invertible-to-precise typing for field declarations: <br>
     <span class="inlinecode"><span class="id" title="var">G</span></span> <span class="inlinecode">&vdash;<sub>&#35&#35</sub></span> <span class="inlinecode"><span class="id" title="var">x</span>:</span> <span class="inlinecode">{<span class="id" title="var">a</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>}</span>            <br>
     <span class="inlinecode">――――――――――――――――――――――</span>      <br>
     <span class="inlinecode"><span class="id" title="tactic">exists</span></span> <span class="inlinecode"><span class="id" title="var">T'</span>,</span> <span class="inlinecode"><span class="id" title="var">G</span></span> <span class="inlinecode">&vdash;<sub>!</sub></span> <span class="inlinecode"><span class="id" title="var">x</span>:</span> <span class="inlinecode">{<span class="id" title="var">a</span>:</span> <span class="inlinecode"><span class="id" title="var">T'</span>}</span>      <br>
@@ -356,7 +356,7 @@ Invertible-to-precise typing for function types: <br>
 </div>
 
 <div class="doc">
-<a name="lab41"></a><h1 class="section">Invertible Variable Typing</h1>
+<a name="lab42"></a><h2 class="section">Invertible Subtyping Closure</h2>
 
 <div class="paragraph"> </div>
 
@@ -384,7 +384,7 @@ Invertible-to-precise typing for function types: <br>
 </div>
 
 <div class="doc">
-<a name="lab42"></a><h2 class="section">Tight-to-Invertible Lemma for Variables</h2>
+<a name="lab43"></a><h2 class="section">Tight-to-Invertible Lemma for Variables <span class="inlinecode">|-#</span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode">|-##</span></h2>
 
 
 <div class="paragraph"> </div>
@@ -421,7 +421,11 @@ Invertible-to-precise typing for function types: <br>
 </div>
 
 <div class="doc">
-<a name="lab43"></a><h1 class="section">Invertible Value Typing</h1>
+<a name="lab44"></a><h1 class="section">Invertible Value Typing</h1>
+
+<div class="paragraph"> </div>
+
+<a name="lab45"></a><h2 class="section">Invertible Subtyping Closure</h2>
 
 <div class="paragraph"> </div>
 
@@ -444,7 +448,7 @@ Invertible-to-precise typing for function types: <br>
 </div>
 
 <div class="doc">
-<a name="lab44"></a><h2 class="section">Tight-to-Invertible Lemma for Values</h2>
+<a name="lab46"></a><h2 class="section">Tight-to-Invertible Lemma for Values <span class="inlinecode">|-#</span> <span class="inlinecode"><span class="id" title="var">to</span></span> <span class="inlinecode">|-##</span></h2>
 
 
 <div class="paragraph"> </div>
