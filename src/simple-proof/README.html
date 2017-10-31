@@ -109,7 +109,7 @@
           </li>
         </ul>
         <p>The following figure shows a dependency graph between the Coq modules.</p>
-        <p><center><img src=doc/graph.png width=400></center></p>
+        <p><center><img src=doc/graph.png width=400 alt="Please run 'make graph' in the proof directory to generate this graph."></center></p>
 
         <h3><a id="Paper_Correspondence_37"></a>Paper Correspondence</h3>
         <p>Below, we present a table that shows how the definitions and lemmas in the paper correspond
@@ -393,6 +393,12 @@
                 Other requirements are:
                 <ul>
                     <li><code>make</code></li>
+                    <li><code>sed</code></li>
+                    <li><code>graphviz</code> (optional, requried for file/lemma dependency graph)</li>
+                    <li><code>coq-dpdgraph</code> (optional, requried for lemma dependency graph)</li>
+                    <li><code>grep</code> (optional, requried for lemma dependency graph)</li>
+                    <li><code>paste</code> (optional, requried for lemma dependency graph)</li>
+                    <li><code>xargs</code> (optional, requried for lemma dependency graph)</li>
                 </ul>
 
             </p>
