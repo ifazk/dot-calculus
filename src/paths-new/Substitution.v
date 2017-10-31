@@ -14,15 +14,18 @@ Require Import Definitions Weakening Helper_lemmas.
 
 (** Substitution on variables: [a[u/z]] (substituting [z] with [u] in [a]). *)
 
-Definition subst_var (z: var) (u: path) (x: var): path :=
+Definition subst_var (z: var) (u: var) (x: var): var :=
+  If x = z then u else x.
+
+Definition subst_var_p (z: var) (u: path) (x: var): path :=
   If x = z then u else (pvar x).
 
-Hint Unfold subst_var.
+Hint Unfold subst_var subst_var_p.
 
 Definition subst_avar (z: var) (u: path) (a: avar) : path :=
   match a with
   | avar_b i => p_sel (avar_b i) nil
-  | avar_f x => subst_var z u x
+  | avar_f x => subst_var_p z u x
   end.
 
 (* p    [u / z] where p = x.bs:
@@ -99,7 +102,7 @@ Proof.
   - Case "p = (avar_b n).bs".
     rewrite* app_nil_r.
   - Case "p = (avar_f z).bs".
-    unfold subst_var. apply notin_singleton in H. case_if.
+    unfold subst_var_p. apply notin_singleton in H. case_if.
     simpl. rewrite* app_nil_r.
 Qed.
 
@@ -207,9 +210,9 @@ Definition subst_fvar(x y z: var): var := If z = x then y else z.*)
 Lemma subst_open_commut: forall x p u y n,
     lc_path p ->
     subst_avar x p (open_rec_avar n u y)
-    = open_rec_path_p n (subst_var x p u) (subst_avar x p y).
+    = open_rec_path_p n (subst_var_p x p u) (subst_avar x p y).
 Proof.
-  introv Hl. unfold subst_var, subst_avar, open_rec_avar, subst_var.
+  introv Hl. unfold subst_var_p, subst_avar, open_rec_avar, subst_var_p.
   destruct y as [n' | y]; autounfold; destruct p as [z bs]; destruct z as [m | z'];
     repeat case_if; simpl; try case_if*; eauto; inversions  Hl; inversions H0.
 Qed.
@@ -221,11 +224,17 @@ Proof.
   simpl. auto.
 Qed.
 
+Lemma sel_fields_subst : forall x p y bs b,
+    subst_path x p (p_sel y bs) • b = (subst_path x p (p_sel y bs)) • b.
+Proof.
+  intros. destruct p, y; auto. simpl. unfold subst_var_p. case_if; simpl; auto.
+Qed.
+
 (** - paths *)
 Lemma subst_open_commut_path: forall p n x q u,
     lc_path p ->
     subst_path x p (open_rec_path n u q)
-    = open_rec_path_p n (subst_var x p u) (subst_path x p q).
+    = open_rec_path_p n (subst_var_p x p u) (subst_path x p q).
 Proof.
   introv Hl. destruct q as [z bs]. simpl. rewrite* subst_open_commut. rewrite* sel_fields_open.
 Qed.
@@ -235,10 +244,10 @@ Lemma subst_open_commut_typ_dec: forall x p u,
   lc_path p ->
   (forall t : typ, forall n: nat,
      subst_typ x p (open_rec_typ n u t)
-     = open_rec_typ_p n (subst_var x p u) (subst_typ x p t)) /\
+     = open_rec_typ_p n (subst_var_p x p u) (subst_typ x p t)) /\
   (forall D : dec, forall n: nat,
      subst_dec x p (open_rec_dec n u D)
-     = open_rec_dec_p n (subst_var x p u) (subst_dec x p D)).
+     = open_rec_dec_p n (subst_var_p x p u) (subst_dec x p D)).
 Proof.
   intros. apply typ_mutind; intros; simpl; f_equal*. apply* subst_open_commut_path.
 Qed.
@@ -248,7 +257,7 @@ Lemma subst_open_commut_p: forall x p u y n,
     subst_path x p (open_rec_avar_p n u y)
     = open_rec_path_p n (subst_path x p u) (subst_avar x p y).
 Proof.
-  introv Hl. unfold subst_path, subst_avar, subst_var.
+  introv Hl. unfold subst_path, subst_avar, subst_var_p.
   destruct y as [n' | y]; simpl; repeat case_if; destruct u; destruct a; simpl;
     try (rewrite* app_nil_r); repeat case_if; unfold sel_fields; destruct* p;
       inversions Hl; inversions H0; rewrite* app_nil_l.
@@ -263,7 +272,7 @@ Proof.
   unfold subst_path. destruct u. rewrite <- sel_fields_open.
   unfold open_rec_path_p, subst_avar.
   destruct z; simpl; destruct a; repeat case_if*;
-    unfold subst_var; repeat case_if;
+    unfold subst_var_p; repeat case_if;
       destruct q; simpl; try (rewrite app_assoc || rewrite app_nil_r);
         try solve [inversion Hl; inversion* H0].
 Qed.
@@ -284,7 +293,7 @@ Qed.
 (** - types only *)
 Lemma subst_open_commut_typ: forall x y u T,
   lc_path y ->
-  subst_typ x y (open_typ u T) = open_typ_p (subst_var x y u) (subst_typ x y T).
+  subst_typ x y (open_typ u T) = open_typ_p (subst_var_p x y u) (subst_typ x y T).
 Proof.
   intros. apply* subst_open_commut_typ_dec.
 Qed.
@@ -301,16 +310,16 @@ Lemma subst_open_commut_trm_val_def_defs: forall x y u,
     lc_path y ->
   (forall t : trm, forall n: nat,
      subst_trm x y (open_rec_trm n u t)
-     = open_rec_trm_p n (subst_var x y u) (subst_trm x y t)) /\
+     = open_rec_trm_p n (subst_var_p x y u) (subst_trm x y t)) /\
   (forall v : val, forall n: nat,
      subst_val x y (open_rec_val n u v)
-     = open_rec_val_p n (subst_var x y u) (subst_val x y v)) /\
+     = open_rec_val_p n (subst_var_p x y u) (subst_val x y v)) /\
   (forall d : def , forall n: nat,
      subst_def x y (open_rec_def n u d)
-     = open_rec_def_p n (subst_var x y u) (subst_def x y d)) /\
+     = open_rec_def_p n (subst_var_p x y u) (subst_def x y d)) /\
   (forall ds: defs, forall n: nat,
      subst_defs x y (open_rec_defs n u ds)
-     = open_rec_defs_p n (subst_var x y u) (subst_defs x y ds)).
+     = open_rec_defs_p n (subst_var_p x y u) (subst_defs x y ds)).
 Proof.
   intros. apply trm_mutind; intros; simpl; f_equal*;
   apply* subst_open_commut_path || apply* subst_open_commut_typ_dec.
@@ -339,7 +348,7 @@ Qed.
 Lemma subst_open_commut_trm: forall x y u t,
     lc_path y ->
     subst_trm x y (open_trm u t)
-    = open_trm_p (subst_var x y u) (subst_trm x y t).
+    = open_trm_p (subst_var_p x y u) (subst_trm x y t).
 Proof.
   intros. apply* subst_open_commut_trm_val_def_defs.
 Qed.
@@ -356,7 +365,7 @@ Qed.
 Lemma subst_open_commut_defs: forall x y u ds,
     lc_path y ->
     subst_defs x y (open_defs u ds)
-    = open_defs_p (subst_var x y u) (subst_defs x y ds).
+    = open_defs_p (subst_var_p x y u) (subst_defs x y ds).
 Proof.
   intros. apply* subst_open_commut_trm_val_def_defs.
 Qed.
@@ -381,7 +390,7 @@ Lemma subst_intro_trm: forall x u t, x \notin (fv_trm t) -> lc_path u ->
 Proof.
   introv Fr Hl. unfold open_trm. rewrite* subst_open_commut_trm.
   destruct (@subst_fresh_trm_val_def_defs x u) as [Q _]. rewrite~ (Q t).
-  unfold subst_var. case_var~.
+  unfold subst_var_p. case_var~.
 Qed.
 
 (** - definitions *)
@@ -390,7 +399,7 @@ Lemma subst_intro_defs: forall x u ds, x \notin (fv_defs ds) -> lc_path u ->
 Proof.
   introv Fr Hl. unfold open_trm. rewrite* subst_open_commut_defs.
   destruct (@subst_fresh_trm_val_def_defs x u) as [_ [_ [_ Q]]]. rewrite~ (Q ds).
-  unfold subst_var. case_var~.
+  unfold subst_var_p. case_var~.
 Qed.
 
 (** - types *)
@@ -399,23 +408,20 @@ Lemma subst_intro_typ: forall x u T, x \notin (fv_typ T) -> lc_path u ->
 Proof.
   introv Fr Hl. unfold open_typ. rewrite* subst_open_commut_typ.
   destruct (@subst_fresh_typ_dec x u) as [Q _]. rewrite* (Q T).
-  unfold subst_var. case_var*.
+  unfold subst_var_p. case_var*.
 Qed.
 
 Ltac subst_open_fresh :=
-  repeat match goal with
-    | [ |- context [ open_typ ?z (subst_typ ?x ?y ?T) ] ] =>
-        replace (open_typ z (subst_typ x y T)) with (open_typ (subst_var x y z) (subst_typ x y T))
-          by (unfold subst_var; rewrite~ If_r);
-        rewrite_all <- subst_open_commut_typ
-    | [ |- context [ open_defs ?z (subst_defs ?x ?y ?ds) ] ] =>
-        replace (open_defs z (subst_defs x y ds)) with (open_defs (subst_var x y z) (subst_defs x y ds))
-          by (unfold subst_var; rewrite~ If_r);
-        rewrite_all <- subst_open_commut_defs
-     | [ |- context [ open_trm ?z (subst_trm ?x ?y ?t) ] ] =>
-        replace (open_trm z (subst_trm x y t)) with (open_trm (subst_var x y z) (subst_trm x y t))
-          by (unfold subst_var; rewrite~ If_r);
-        rewrite_all <- subst_open_commut_trm
+  match goal with
+  | [ |- context [ open_typ ?z (subst_typ ?x ?p ?T) ] ] =>
+    replace (open_typ z (subst_typ x p T)) with (open_typ_p (subst_path x p (pvar z)) (subst_typ x p T)) by
+        (unfold subst_path; simpl; unfold subst_var_p; rewrite If_r, open_var_typ_eq; auto)
+    | [ |- context [ open_defs ?z (subst_defs ?x ?p ?ds) ] ] =>
+        replace (open_defs z (subst_defs x p ds)) with (open_defs_p (subst_path x p (pvar z)) (subst_defs x p ds))
+          by (unfold subst_path; simpl; unfold subst_var_p; rewrite If_r, open_var_defs_eq; auto)
+     | [ |- context [ open_trm ?z (subst_trm ?x ?p ?t) ] ] =>
+        replace (open_trm z (subst_trm x p t)) with (open_trm_p (subst_path x p (pvar z)) (subst_trm x p t))
+          by (unfold subst_path; simpl; unfold subst_var_p; rewrite If_r, open_var_trm_eq; auto)
     end.
 
 (** Substitution preserves labels of definitions: [label(d) = label(d[y/x])] *)
@@ -442,20 +448,23 @@ Ltac subst_fresh_solver :=
   subst_open_fresh;
   match goal with
   | [ H: forall z, z \notin ?L -> forall G, _
-      |- context [_ & subst_ctx ?x ?y ?G2 & ?z ~ subst_typ ?x ?y ?V] ] =>
-    assert (subst_ctx x y G2 & z ~ subst_typ x y V = subst_ctx x y (G2 & z ~ V)) as B
+      |- context [_ & subst_ctx ?x ?p ?G2 & ?z ~ subst_typ ?x ?p ?V] ] =>
+    assert (subst_ctx x p G2 & z ~ subst_typ x p V = subst_ctx x p (G2 & z ~ V)) as B
         by (unfold subst_ctx; rewrite map_concat, map_single; reflexivity);
     rewrite <- concat_assoc; rewrite B;
-    try match goal with
-            | [ |- _; _; _; _ ⊢ _ _ _ :: _ ] =>
-              assert (z = subst_var x y z) as Hxyz by (unfold subst_var; rewrite~ If_r);
-                rewrite Hxyz at 1
-            end;
-    apply~ H;
-    try (rewrite concat_assoc; auto);
-    rewrite <- B,concat_assoc; unfold subst_ctx;
+    subst_open_fresh;
+    rewrite* <- subst_open_commut_trm_p;
+    rewrite* <- subst_open_commut_typ_p;
+    rewrite <- open_var_typ_eq, <- open_var_trm_eq;
+    apply* H; try rewrite* concat_assoc;
+    rewrite <- B, concat_assoc; unfold subst_ctx;
     auto using weaken_ty_trm, ok_push, ok_concat_map
   end.
+    (* try match goal with
+            | [ |- _; _; _; _ ⊢ _ _ _ :: _ ] =>
+              assert (z = subst_var_p x y z) as Hxyz by (unfold subst_var_p; rewrite~ If_r);
+                rewrite Hxyz at 1
+            end; *)
 
 Ltac subst_tydef_solver :=
   match goal with
@@ -505,26 +514,27 @@ Ltac subst_tydef_solver :=
 
 (** The proof is by mutual induction on term typing, definition typing, and subtyping. *)
 Lemma subst_rules: forall p S,
+  lc_path p ->
   (forall G t T, G ⊢ t : T -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
     G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
     G1 & (subst_ctx x p G2) ⊢ subst_trm x p t : subst_typ x p T) /\
-  (forall z bs P G d D, z; bs; P; G ⊢ d : D -> forall G1 G2 x,
+  (forall z bs P G d D, z; bs; P; G ⊢ d : D -> forall G1 G2 x p_x p_bs,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
-    x <> z ->
     G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
-    z; bs; P; G1 & (subst_ctx x p G2) ⊢ subst_def x p d : subst_dec x p D) /\
-  (forall z bs P G ds T, z; bs; P; G ⊢ ds :: T -> forall G1 G2 x,
+    p = p_sel (avar_f p_x) p_bs ->
+    subst_var x p_x z; p_bs; P; G1 & (subst_ctx x p G2) ⊢ subst_def x p d : subst_dec x p D) /\
+  (forall z bs P G ds T, z; bs; P; G ⊢ ds :: T -> forall G1 G2 x p_x p_bs,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
-    x <> z ->
     G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
-    z; bs; P; G1 & (subst_ctx x p G2) ⊢ subst_defs x p ds :: subst_typ x p T) /\
+    p = p_sel (avar_f p_x) p_bs ->
+    subst_var x p_x z; p_bs; P; G1 & (subst_ctx x p G2) ⊢ subst_defs x p ds :: subst_typ x p T) /\
   (forall G T U, G ⊢ T <: U -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
@@ -532,20 +542,41 @@ Lemma subst_rules: forall p S,
     G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
     G1 & (subst_ctx x p G2) ⊢ subst_typ x p T <: subst_typ x p U).
 Proof.
-  introv. apply rules_mutind; intros; subst; simpl;
+  introv Hl. apply rules_mutind; intros; subst; simpl;
             try (subst_fresh_solver || rewrite subst_open_commut_typ_p);
             simpl in *; autounfold; eauto 4.
   - Case "ty_var".
     cases_if.
-    + apply binds_middle_eq_inv in b; subst; auto. Admitted. (*
+    + apply binds_middle_eq_inv in b; subst*. destruct* p.
     + eapply subst_fresh_ctx in H1.
       apply binds_subst in b; auto.
       constructor. rewrite <- H1.
       unfold subst_ctx. rewrite <- map_concat.
       apply binds_map; auto. apply ok_concat_map. apply* ok_remove.
+
+  - Case "ty_new_intro".
+    fresh_constructor.
+    subst_open_fresh.
+    destruct p as [p_x p_bs]. admit. (*
+  match goal with
+  | [ H: forall z, z \notin ?L -> forall G, _
+      |- context [_ & subst_ctx ?x ?p ?G2 & ?z ~ subst_typ ?x ?p ?V] ] =>
+    assert (subst_ctx x p G2 & z ~ subst_typ x p V = subst_ctx x p (G2 & z ~ V)) as B
+        by (unfold subst_ctx; rewrite map_concat, map_single; reflexivity);
+    rewrite <- concat_assoc; rewrite B;
+    subst_open_fresh;
+    rewrite* <- subst_open_commut_trm_p;
+    rewrite* <- subst_open_commut_typ_p;
+    rewrite <- open_var_typ_eq, <- open_var_trm_eq;
+    apply* H; try rewrite* concat_assoc;
+    rewrite <- B, concat_assoc; unfold subst_ctx;
+    auto using weaken_ty_trm, ok_push, ok_concat_map
+  end.*)
+
   - Case "ty_new_elim".
-    asserts_rewrite (subst_path x y p • a = (subst_path x y p) • a).
-    destruct p. reflexivity. eauto.
+    asserts_rewrite (subst_path x p p0 • a = (subst_path x p p0) • a).
+    destruct p0. apply sel_fields_subst.
+
   - Case "ty_rec_intro".
     constructor. rewrite <- subst_open_commut_typ_p. simpl in *. auto.
   - Case "ty_def_lambda".
@@ -577,23 +608,6 @@ Proof.
   unfold subst_ctx. rewrite map_empty, concat_empty_r. assumption.
 Qed.
 
-(*
-(** The substitution lemma for definition typing. *)
-Lemma subst_ty_defs: forall y S G x ds T z bs P,
-    z; bs; P; G & x ~ S ⊢ ds :: T ->
-    ok (G & x ~ S) ->
-    x \notin fv_ctx_types G ->
-    G ⊢ trm_var (avar_f y) : subst_typ x y S ->
-    z; bs; P G ⊢ subst_defs x y ds :: subst_typ x y T.
-Proof.
-  intros.
-  apply (proj53 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H;
-    try rewrite concat_empty_r; auto.
-  - unfold subst_ctx in H. rewrite map_empty, concat_empty_r in H.
-    auto.
-  - unfold subst_ctx. rewrite map_empty. rewrite concat_empty_r. assumption.
-Qed.*)
-
 Lemma renaming_def: forall G z T ds x P,
     ok G ->
     z # G ->
@@ -610,10 +624,10 @@ Qed.*)
 
 Lemma renaming_def': forall G z T ds x bs P,
     ok G ->
-    z # G ->
-    z \notin (fv_ctx_types G \u fv_defs ds \u fv_typ T) ->
+    x # G ->
+    x \notin (fv_ctx_types G \u fv_defs ds \u fv_typ T) ->
     z; bs; P; G ⊢ open_defs_p (p_sel (avar_f z) bs) ds :: open_typ_p (p_sel (avar_f z) bs) T ->
-    G ⊢ trm_path (p_sel (avar_f z) bs)  : open_typ_p (p_sel (avar_f z) bs) T ->
+    G ⊢ trm_path (p_sel (avar_f z) bs) : open_typ_p (p_sel (avar_f z) bs) T ->
     x; nil; P; G & x ~ open_typ x T ⊢ open_defs x ds :: open_typ x T. Admitted.
 
 Lemma renaming_typ: forall G z T U t x,

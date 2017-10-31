@@ -256,12 +256,9 @@ Proof.
   destruct (record_has_ty_defs Hds Hr) as [d [Hh Hd]].
   inversions Hd; eauto.
   Case "ty_def_new".
-
   exists (trm_val (val_new T0 ds0)) ds. repeat split*.
-  econstructor. intros.
-  simpls.  lets Hrs: (record_has_sel_typ Hx Hr). apply ty_rec_elim in Hrs.
-  apply* renaming_def'. repeat (apply notin_union; split*).
-  lets Hrd: (renaming_
+  fresh_constructor. simpls. lets Hrs: (record_has_sel_typ Hx Hr). apply ty_rec_elim in Hrs.
+  apply* renaming_def'.
 Qed.
 
 (** * Canonical Forms for Objects
@@ -277,13 +274,14 @@ Qed.
 Lemma canonical_forms_obj: forall G s x a T,
   inert G ->
   G ~~ s ->
-  G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
+  G ⊢ tvar x : typ_rcd (dec_trm a T) ->
   (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ G ⊢ t : T).
 Proof.
   introv Hi Hwf Hty.
   destruct (var_typ_rcd_to_binds Hi Hty) as [S [T' [Bi [Hr Hs]]]].
   destruct (corresponding_types Hwf Bi) as [v [Bis Ht]].
-  apply ty_var in Bi. apply ty_rec_elim in Bi.
+  apply ty_var in Bi. apply ty_rec_elim in Bi. rewrite <- open_var_typ_eq in Bi.
   destruct (val_mu_to_new Hi Ht Bi Hr) as [t [ds [Heq [Hdefs Ht']]]].
   subst. exists S ds t. repeat split~. eapply ty_sub; eauto.
+  apply* inert_ok.
 Qed.
