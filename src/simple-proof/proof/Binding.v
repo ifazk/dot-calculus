@@ -31,6 +31,7 @@ Fixpoint subst_typ (z: var) (u: var) (T: typ) { struct T } : typ :=
   | typ_sel x L    => typ_sel (subst_avar z u x) L
   | typ_bnd T      => typ_bnd (subst_typ z u T)
   | typ_all T U    => typ_all (subst_typ z u T) (subst_typ z u U)
+  | typ_ref T      => typ_ref (subst_typ z u T)
   end
 with subst_dec (z: var) (u: var) (D: dec) { struct D } : dec :=
   match D with
@@ -47,11 +48,15 @@ Fixpoint subst_trm (z: var) (u: var) (t: trm) : trm :=
   | trm_sel x1 L     => trm_sel (subst_avar z u x1) L
   | trm_app x1 x2    => trm_app (subst_avar z u x1) (subst_avar z u x2)
   | trm_let t1 t2    => trm_let (subst_trm z u t1) (subst_trm z u t2)
+  | trm_ref x t      => trm_ref (subst_avar z u x) (subst_typ z u t)
+  | trm_deref x      => trm_deref (subst_avar z u x)
+  | trm_asg x y      => trm_asg (subst_avar z u x) (subst_avar z u y)
   end
 with subst_val (z: var) (u: var) (v: val) : val :=
   match v with
   | val_new T ds     => val_new (subst_typ z u T) (subst_defs z u ds)
   | val_lambda T t   => val_lambda (subst_typ z u T) (subst_trm z u t)
+  | val_loc l        => val_loc l
   end
 with subst_def (z: var) (u: var) (d: def) : def :=
   match d with
@@ -66,6 +71,9 @@ with subst_defs (z: var) (u: var) (ds: defs) : defs :=
 
 (** Substitution on the types of a typing environment: [G[u/z]]. *)
 Definition subst_ctx (z: var) (u: var) (G: ctx) : ctx :=
+  map (subst_typ z u) G.
+
+Definition subst_sigma (z: var) (u: var) (G: sigma) : sigma :=
   map (subst_typ z u) G.
 
 (** Substitution on the values of an evaluation context: [e[y/x]]. *)
@@ -165,12 +173,16 @@ Lemma lc_open_rec_open_trm_val_def_defs: forall x y,
         open_rec_defs n x ds = ds).
 Proof.
   intros.
+  assert (Havar: forall a n m, n <> m ->
+                          open_rec_avar n x (open_rec_avar m y a) = open_rec_avar m y a ->
+                          open_rec_avar n x a = a)
+    by (intros; avar_solve).
   pose proof (proj21 (lc_open_rec_open_typ_dec x y)) as Htyp.
   apply trm_mutind;
     intros; simpls; auto;
       match goal with
       | [ H : _ = _ |- _ ] => injection H as ?; f_equal; eauto
-      end; avar_solve.
+      end.
 Qed.
 
 (** [x \notin fv(x, y)] #<br>#
@@ -673,6 +685,15 @@ Proof.
   rewrite union_comm. reflexivity.
 Qed.
 
+Lemma fv_sigma_types_push_eq : forall S x T,
+    fv_sigma_types (S & x ~ T) = fv_sigma_types S \u fv_typ T.
+Proof.
+  intros.
+  rewrite concat_def, single_def.
+  unfold fv_sigma_types, fv_in_values; rewrite values_def.
+  rewrite union_comm. reflexivity.
+Qed.
+
 (** [fv(e, x = v) = fv(e) ∪ fv(v)] *)
 Lemma fv_ec_vals_push_eq : forall e x v,
     fv_ec_vals (e & x ~ v) = fv_ec_vals e \u fv_val v.
@@ -802,6 +823,27 @@ Proof.
   + intros G z T IH N.
     apply invert_fv_ctx_types_push in N. destruct N as [N1 N2].
     unfold subst_ctx in *. rewrite map_push.
+    rewrite (IH N2).
+    rewrite ((proj1 (subst_fresh_typ_dec _ _)) _ N1).
+    reflexivity.
+Qed.
+
+Lemma invert_fv_sigma_types_push: forall x z T S,
+  x \notin fv_sigma_types (S & z ~ T) -> x \notin fv_typ T /\ x \notin (fv_sigma_types S).
+Proof.
+  introv H. rewrite fv_sigma_types_push_eq in H.
+  apply~ notin_union.
+Qed.
+
+Lemma subst_fresh_sigma: forall x y S,
+  x \notin fv_sigma_types S -> subst_sigma x y S = S.
+Proof.
+  intros x y.
+  apply (env_ind (fun S => x \notin fv_sigma_types S -> subst_sigma x y S = S)).
+  + intro N. unfold subst_sigma. apply map_empty.
+  + intros S z T IH N.
+    apply invert_fv_sigma_types_push in N. destruct N as [N1 N2].
+    unfold subst_sigma in *. rewrite map_push.
     rewrite (IH N2).
     rewrite ((proj1 (subst_fresh_typ_dec _ _)) _ N1).
     reflexivity.

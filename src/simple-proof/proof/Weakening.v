@@ -40,22 +40,22 @@ Require Import Definitions.
 
     The proof is by mutual induction on term typing, definition typing, and subtyping. *)
 Lemma weaken_rules:
-  (forall G t T, G ⊢ t : T -> forall G1 G2 G3,
+  (forall G S t T, G @@ S ⊢ t : T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 ⊢ t : T) /\
-  (forall G d D, G /- d : D -> forall G1 G2 G3,
+    G1 & G2 & G3 @@ S ⊢ t : T) /\
+  (forall G S d D, G @@ S/- d : D -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 /- d : D) /\
-  (forall G ds T, G /- ds :: T -> forall G1 G2 G3,
+    G1 & G2 & G3 @@ S /- d : D) /\
+  (forall G S ds T, G @@ S/- ds :: T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 /- ds :: T) /\
-  (forall G T U, G ⊢ T <: U -> forall G1 G2 G3,
+    G1 & G2 & G3 @@ S /- ds :: T) /\
+  (forall G S T U, G @@ S ⊢ T <: U -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 ⊢ T <: U).
+    G1 & G2 & G3 @@ S ⊢ T <: U).
 Proof.
   apply rules_mutind; intros; subst;
   eauto 4 using binds_weaken;
@@ -81,19 +81,19 @@ Ltac weaken_specialize :=
   end.
 
 (** Weakening lemma specialized to term typing. *)
-Lemma weaken_ty_trm: forall G1 G2 t T,
-    G1 ⊢ t : T ->
+Lemma weaken_ty_trm: forall G1 G2 S t T,
+    G1 @@ S ⊢ t : T ->
     ok (G1 & G2) ->
-    G1 & G2 ⊢ t : T.
+    G1 & G2 @@ S ⊢ t : T.
 Proof.
   weaken_specialize.
 Qed.
 
 (** Weakening lemma specialized to subtyping. *)
-Lemma weaken_subtyp: forall G1 G2 S U,
-  G1 ⊢ S <: U ->
+Lemma weaken_subtyp: forall G1 G2 S T U,
+  G1 @@ S ⊢ T <: U ->
   ok (G1 & G2) ->
-  G1 & G2 ⊢ S <: U.
+  G1 & G2 @@ S ⊢ T <: U.
 Proof.
   weaken_specialize.
 Qed.

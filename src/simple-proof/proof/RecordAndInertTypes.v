@@ -64,8 +64,8 @@ Hint Constructors record_typ record_has.
     [l \notin ls']                          #<br>#
     [―――――――――――――――――――――――――――――――――――]  #<br>#
     [l \notin ls] *)
-Lemma hasnt_notin : forall G ds ls l U,
-    G /- ds :: U ->
+Lemma hasnt_notin : forall G S ds ls l U,
+    G @@ S /- ds :: U ->
     record_typ U ls ->
     defs_hasnt ds l ->
     l \notin ls.
@@ -73,7 +73,7 @@ Proof.
 
   Ltac inversion_def_typ :=
     match goal with
-    | [ H: _ /- _ : _ |- _ ] => inversions H
+    | [ H: _ @@ _ /- _ : _ |- _ ] => inversions H
     end.
 
   introv Hds Hrec Hhasnt.
@@ -124,8 +124,8 @@ Proof.
 Qed.
 
 (** The type of definitions is a record type. *)
-Lemma ty_defs_record_type : forall G ds T,
-    G /- ds :: T ->
+Lemma ty_defs_record_type : forall G S ds T,
+    G @@ S /- ds :: T ->
     record_type T.
 Proof.
 
@@ -134,9 +134,9 @@ Proof.
     repeat match goal with
         | [ H: record_type _ |- _ ] =>
           destruct H
-        | [ Hd: _ /- _ : dec_typ _ _ _ |- _ ] =>
+        | [ Hd: _ @@ _ /- _ : dec_typ _ _ _ |- _ ] =>
           inversions Hd
-        | [ Hd: _ /- _ : dec_trm _ _ |- _ ] =>
+        | [ Hd: _ @@ _ /- _ : dec_trm _ _ |- _ ] =>
           inversions Hd
     end;
     match goal with
@@ -278,7 +278,8 @@ Inductive inert_typ : typ -> Prop :=
   | inert_typ_all : forall S T, inert_typ (typ_all S T)
   | inert_typ_bnd : forall T,
       record_type T ->
-      inert_typ (typ_bnd T).
+      inert_typ (typ_bnd T)
+  | inert_typ_ref : forall T, inert_typ (typ_ref T).
 
 (** An inert context is a typing context whose range consists only of inert types. *)
 Inductive inert : ctx -> Prop :=

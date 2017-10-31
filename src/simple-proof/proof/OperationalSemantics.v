@@ -118,7 +118,7 @@ Hint Constructors red normal_form.
 Notation "t '|->' u" := (empty [t |-> u]) (at level 50).
 
 (** Typing in an empty context *)
-Notation "'⊢' t ':' T" := (empty ⊢ t: T) (at level 40, t at level 59).
+Notation "'⊢' t ':' T" := (empty @@ empty ⊢ t: T) (at level 40, t at level 59).
 
 (** If [e] is locally closed and [e[t] |-> e[t']], then [t'] is locally closed.  *)
 Lemma lc_env_eval_to_lc_trm : forall e t t',

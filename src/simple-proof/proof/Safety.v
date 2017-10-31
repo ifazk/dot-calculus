@@ -19,12 +19,12 @@ Require Import Weakening SubEnvironments Narrowing PreciseTypes Substitution Can
 (** If a value [v] has type [T], then [v] has a precise type [T']
     that is a subtype of [T].
     This lemma corresponds to Lemma 3.15 in the paper. *)
-Lemma val_typing: forall G v T,
-  G ⊢ trm_val v : T ->
-  exists T', G ⊢! trm_val v : T' /\
-        G ⊢ T' <: T.
+Lemma val_typing: forall G S v T,
+  G @@ S ⊢ trm_val v : T ->
+  exists T', G @@ S ⊢! trm_val v : T' /\
+        G @@ S ⊢ T' <: T.
 Proof.
-  intros G v T H. dependent induction H; eauto.
+  intros G S v T H. dependent induction H; eauto.
   destruct (IHty_trm _ eq_refl) as [T' [Hty Hsub]]. eauto.
 Qed.
 
@@ -35,13 +35,13 @@ Qed.
     [G ⊢ t: T]                              #<br>#
     [―――――――――――――――――――――――――――――]         #<br>#
     [t] is in normal form or [e[t] |-> e[t']] *)
-Lemma progress_ec: forall G' G e t T,
+Lemma progress_ec: forall G' G S e t T,
     lc_ec e ->
     lc_trm t ->
-    G' ⪯ G ->
+    G' @@ S ⪯ G ->
     inert G' ->
-    well_typed G' e ->
-    G ⊢ t: T ->
+    well_typed G' S e ->
+    G @@ S ⊢ t: T ->
     ok G ->
     (normal_form t \/ exists t', e[t |-> t']).
 Proof with auto.

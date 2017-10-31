@@ -26,8 +26,8 @@ Require Import Weakening.
 
 (** If a variable can be typed in an environment,
     then it is bound in that environment. *)
-Lemma typing_implies_bound: forall G x T,
-  G ⊢ trm_var (avar_f x) : T ->
+Lemma typing_implies_bound: forall G S x T,
+  G @@ S ⊢ trm_var (avar_f x) : T ->
   exists S, binds x S G.
 Proof.
   introv Ht. dependent induction Ht; eauto.
@@ -36,10 +36,10 @@ Qed.
 (** * Well-typedness *)
 
 (** If [e: G], the variables in the domain of [e] are distinct. *)
-Lemma well_typed_to_ok_G: forall e G,
-    well_typed G e -> ok G.
+Lemma well_typed_to_ok_G: forall G S e,
+    well_typed G S e -> ok G.
 Proof.
-  intros. induction H; jauto.
+  introv H. induction H; jauto.
 Qed.
 Hint Resolve well_typed_to_ok_G.
 
@@ -47,12 +47,12 @@ Hint Resolve well_typed_to_ok_G.
     [G(x) = T]          #<br>#
     [―――――――――――――]     #<br>#
     [exists v, e(x) = v]     #<br>#
-    [G ⊢ v: T]          *)
-Lemma corresponding_types: forall G e x T,
-    well_typed G e ->
+    [G @@ S ⊢ v: T]          *)
+Lemma corresponding_types: forall G S e x T,
+    well_typed G S e ->
     binds x T G ->
     (exists v, binds x v e /\
-          G ⊢ trm_val v : T).
+          G @@ S ⊢ trm_val v : T).
 Proof.
   introv Hwt BiG. induction Hwt.
   - false* binds_empty_inv.
@@ -66,58 +66,58 @@ Proof.
       apply* ok_push.
 Qed.
 
-(** [G ⊢##v v: forall(S)T]                 #<br>#
+(** [G @@ S ⊢##v v: forall(S)T]                 #<br>#
     [inert G]                          #<br>#
     [――――――――――――――――――――――――――――――――] #<br>#
-    [exists S', T', G ⊢! v: forall(S')T']      #<br>#
-    [G ⊢ S <: S']                      #<br>#
-    [forall fresh y, G, y: S ⊢ T'^y <: T^y] *)
-Lemma invertible_val_to_precise_lambda: forall G v S T,
-    G ⊢##v v : typ_all S T ->
+    [exists S', T', G @@ S ⊢! v: forall(S')T']      #<br>#
+    [G @@ S ⊢ S <: S']                      #<br>#
+    [forall fresh y, G, y: S @@ S ⊢ T'^y <: T^y] *)
+Lemma invertible_val_to_precise_lambda: forall G S v T U,
+    G @@ S ⊢##v v : typ_all T U ->
     inert G ->
-    exists L S' T',
-      G ⊢! trm_val v : typ_all S' T' /\
-      G ⊢ S <: S' /\
+    exists L T' U',
+      G @@ S ⊢! trm_val v : typ_all T' U' /\
+      G @@ S ⊢ T <: T' /\
       (forall y, y \notin L ->
-                 G & y ~ S ⊢ open_typ y T' <: open_typ y T).
+                 G & y ~ T @@ S ⊢ open_typ y U' <: open_typ y U).
 Proof.
   introv Ht Hg. dependent induction Ht.
-  - exists (dom G) S T. split*.
-  - destruct (IHHt S0 T0 eq_refl Hg) as [L' [S1 [T1 [Hp [Hss Hst]]]]].
-    exists (L \u L' \u dom G) S1 T1. split. assumption. split. apply subtyp_trans with (T:=S0).
+  - exists (dom G) T U. split*.
+  - destruct (IHHt _ _ eq_refl Hg) as [L' [T1 [U1 [Hp [Hss Hst]]]]].
+    exists (L \u L' \u dom G) T1 U1. split. assumption. split. apply subtyp_trans with (U:=S1).
     apply* tight_to_general. assumption. intros.
-    assert (ok (G & y ~ S)) as Hok. {
+    assert (ok (G & y ~ T)) as Hok. {
       apply* ok_push.
     }
-    apply subtyp_trans with (T:=open_typ y T0).
-    eapply narrow_subtyping. apply* Hst. apply subenv_last. apply* tight_to_general.
-    assumption.
-    apply* H0.
+    apply subtyp_trans with (U:=open_typ y T0).
+    eapply narrow_subtyping. apply* Hst. apply subenv_last.
+    apply* tight_to_general.
+    all: auto.
 Qed.
 
 (** This lemma corresponds to Lemma 3.7 ([forall] to [G(x)]) in the paper.
 
     [inert G]            #<br>#
-    [G ⊢ x: forall(T)U]       #<br>#
+    [G @@ S ⊢ x: forall(T)U]       #<br>#
     [――――――――――――――-]    #<br>#
     [exists T', U',]          #<br>#
     [G(x) = forall(T')U']     #<br>#
-    [G ⊢ T <: T']        #<br>#
-    [forall fresh y, G, y: T ⊢ U'^y <: U^y] *)
-Lemma var_typ_all_to_binds: forall G x T U,
+    [G @@ S ⊢ T <: T']        #<br>#
+    [forall fresh y, G, y: T @@ S ⊢ U'^y <: U^y] *)
+Lemma var_typ_all_to_binds: forall G S x T U,
     inert G ->
-    G ⊢ trm_var (avar_f x) : typ_all T U ->
+    G @@ S ⊢ trm_var (avar_f x) : typ_all T U ->
     (exists L T' U',
         binds x (typ_all T' U') G /\
-        G ⊢ T <: T' /\
-        (forall y, y \notin L -> G & y ~ T ⊢ (open_typ y U') <: (open_typ y U))).
+        G @@ S ⊢ T <: T' /\
+        (forall y, y \notin L -> G & y ~ T @@ S ⊢ (open_typ y U') <: (open_typ y U))).
 Proof.
   introv Hin Ht.
   lets Htt: (general_to_tight_typing Hin Ht).
   lets Hinv: (tight_to_invertible Hin Htt).
   destruct (invertible_to_precise_typ_all (inert_ok Hin) Hinv) as [T' [U' [L [Htp [Hs1 Hs2]]]]].
   exists L T' U'. repeat split.
-  - apply~ inert_precise_all_inv.
+  - apply* inert_precise_all_inv.
   - apply~ tight_to_general.
   - assumption.
 Qed.
@@ -125,19 +125,19 @@ Qed.
 (** This lemma corresponds to Lemma 3.8 ([forall] to [lambda]) in the paper.
 
     [inert G]                       #<br>#
-    [G ⊢ v: forall(T)U]                  #<br>#
+    [G @@ S ⊢ v: forall(T)U]                  #<br>#
     [――――――――――――]                  #<br>#
     [exists T', t,]                       #<br>#
     [v = lambda(T')t]              #<br>#
-    [G ⊢ T <: T']                   #<br>#
-    [forall fresh y, G, y: T ⊢ t^y: U^y] *)
-Lemma val_typ_all_to_lambda: forall G v T U,
+    [G @@ S ⊢ T <: T']                   #<br>#
+    [forall fresh y, G, y: T @@ S ⊢ t^y: U^y] *)
+Lemma val_typ_all_to_lambda: forall G S v T U,
     inert G ->
-    G ⊢ trm_val v : typ_all T U ->
+    G @@ S ⊢ trm_val v : typ_all T U ->
     (exists L T' t,
         v = val_lambda T' t /\
-        G ⊢ T <: T' /\
-        (forall y, y \notin L -> G & y ~ T ⊢ (open_trm y t) : open_typ y U)).
+        G @@ S ⊢ T <: T' /\
+        (forall y, y \notin L -> G & y ~ T @@ S ⊢ (open_trm y t) : open_typ y U)).
 Proof.
   introv Hin Ht.
   lets Htt: (general_to_tight_typing Hin Ht).
@@ -147,32 +147,32 @@ Proof.
   exists (L0 \u L \u (dom G)) T' t. repeat split~.
   intros. assert (HL: y \notin L) by auto. assert (HL0: y \notin L0) by auto.
   specialize (Hs2 y HL).
-  specialize (H2 y HL0).
-  eapply ty_sub; eauto. eapply narrow_typing in H2; eauto.
+  specialize (H3 y HL0).
+  eapply ty_sub; eauto. eauto using narrow_typing.
 Qed.
 
 (** * Canonical Forms for Functions
 
     [inert G]            #<br>#
     [e: G]               #<br>#
-    [G ⊢ x: forall(T)U]       #<br>#
+    [G @@ S ⊢ x: forall(T)U]       #<br>#
     [――――――――――――――――――] #<br>#
     [e(x) = lambda(T')t] #<br>#
-    [G ⊢ T <: T']        #<br>#
-    [G, x: T ⊢ t: U]          *)
-Lemma canonical_forms_fun: forall G e x T U,
+    [G @@ S ⊢ T <: T']        #<br>#
+    [G, x: T @@ S ⊢ t: U]          *)
+Lemma canonical_forms_fun: forall G S e x T U,
   inert G ->
-  well_typed G e ->
-  G ⊢ trm_var (avar_f x) : typ_all T U ->
-  (exists L T' t, binds x (val_lambda T' t) e /\ G ⊢ T <: T' /\
-  (forall y, y \notin L -> G & y ~ T ⊢ open_trm y t : open_typ y U)).
+  well_typed G S e ->
+  G @@ S ⊢ trm_var (avar_f x) : typ_all T U ->
+  (exists L T' t, binds x (val_lambda T' t) e /\ G @@ S ⊢ T <: T' /\
+  (forall y, y \notin L -> G & y ~ T @@ S ⊢ open_trm y t : open_typ y U)).
 Proof.
   introv Hin Hwt Hty.
-  destruct (var_typ_all_to_binds Hin Hty) as [L [S [T' [BiG [Hs1 Hs2]]]]].
+  destruct (var_typ_all_to_binds Hin Hty) as [L [S' [T' [BiG [Hs1 Hs2]]]]].
   destruct (corresponding_types Hwt BiG) as [v [Bis Ht]].
-  destruct (val_typ_all_to_lambda Hin Ht) as [L' [S' [t [Heq [Hs1' Hs2']]]]].
+  destruct (val_typ_all_to_lambda Hin Ht) as [L' [S'' [t [Heq [Hs1' Hs2']]]]].
   subst.
-  exists (L \u L' \u (dom G)) S' t. repeat split~.
+  exists (L \u L' \u (dom G)) S'' t. repeat split~.
   - eapply subtyp_trans; eauto.
   - intros.
     assert (HL: y \notin L) by auto.
@@ -202,14 +202,14 @@ Proof.
     + apply IHds; eauto.
 Qed.
 
-(** [G ⊢ ds :: ... /\ D /\ ...]       #<br>#
+(** [G @@ S ⊢ ds :: ... /\ D /\ ...]       #<br>#
     [―――――――――――――――――――――――]       #<br>#
     [exists d, ds = ... /\ d /\ ...]       #<br>#
-    [G ⊢ d: D]                      *)
-Lemma record_has_ty_defs: forall G T ds D,
-  G /- ds :: T ->
+    [G @@ S ⊢ d: D]                      *)
+Lemma record_has_ty_defs: forall G S T ds D,
+  G @@ S /- ds :: T ->
   record_has T D ->
-  exists d, defs_has ds d /\ G /- d : D.
+  exists d, defs_has ds d /\ G @@ S /- d : D.
 Proof.
   introv Hdefs Hhas. induction Hdefs.
   - inversion Hhas; subst. exists d. split.
@@ -229,21 +229,21 @@ Qed.
 (** This lemma corresponds to Lemma 3.9 ([mu] to [G(x)]) in the paper.
 
     [inert G]                    #<br>#
-    [G ⊢ x: {a: T}]              #<br>#
+    [G @@ S ⊢ x: {a: T}]              #<br>#
     [―――――――――――――――――――――――]    #<br>#
     [exists S, T', G(x) = mu(S)]       #<br>#
     [S^x = ... /\ {a: T'} /\ ...]  #<br>#
-    [G ⊢ T' <: T]                *)
-Lemma var_typ_rcd_to_binds: forall G x a T,
+    [G @@ S ⊢ T' <: T]                *)
+Lemma var_typ_rcd_to_binds: forall G S x a T,
     inert G ->
-    G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
-    (exists S T',
-        binds x (typ_bnd S) G /\
-        record_has (open_typ x S) (dec_trm a T') /\
-        G ⊢ T' <: T).
+    G @@ S ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
+    (exists S' T',
+        binds x (typ_bnd S') G /\
+        record_has (open_typ x S') (dec_trm a T') /\
+        G @@ S ⊢ T' <: T).
 Proof.
   introv Hin Ht.
-  destruct (typing_implies_bound Ht) as [S BiG].
+  destruct (typing_implies_bound Ht) as [S' BiG].
   lets Htt: (general_to_tight_typing Hin Ht).
   lets Hinv: (tight_to_invertible Hin Htt).
   destruct (invertible_to_precise_trm_dec Hinv) as [T' [Htp Hs]].
@@ -256,30 +256,30 @@ Qed.
 (** This lemma corresponds to Lemma 3.10 ([mu] to [nu]) in the paper.
 
     [inert G]                  #<br>#
-    [G ⊢ v: mu(T)]             #<br>#
-    [G ⊢ x: T^x]               #<br>#
+    [G @@ S ⊢ v: mu(T)]             #<br>#
+    [G @@ S ⊢ x: T^x]               #<br>#
     [T = ... /\ {a: U} /\ ...  ] #<br>#
     [――――――――――――――――――――――――] #<br>#
     [exists t, ds, v = nu(T)ds     ] #<br>#
     [ds^x = ... /\ {a = t} /\ ...] #<br>#
-    [G ⊢ t: U] *)
-Lemma val_mu_to_new: forall G v T U a x,
+    [G @@ S ⊢ t: U] *)
+Lemma val_mu_to_new: forall G S v T U a x,
     inert G ->
-    G ⊢ trm_val v: typ_bnd T ->
-    G ⊢ trm_var (avar_f x) : open_typ x T ->
+    G @@ S ⊢ trm_val v: typ_bnd T ->
+    G @@ S ⊢ trm_var (avar_f x) : open_typ x T ->
     record_has (open_typ x T) (dec_trm a U) ->
     exists t ds,
       v = val_new T ds /\
       defs_has (open_defs x ds) (def_trm a t) /\
-      G ⊢ t: U.
+      G @@ S ⊢ t: U.
 Proof.
   introv Hi Ht Hx Hr.
   lets Htt: (general_to_tight_typing Hi Ht).
   lets Hinv: (tight_to_invertible_v Hi Htt).
   inversions Hinv. inversions H.
   pick_fresh z. assert (z \notin L) as Hz by auto.
-  specialize (H3 z Hz).
-  assert (G /- open_defs x ds :: open_typ x T) as Hds by apply* renaming_def.
+  specialize (H4 z Hz).
+  assert (G @@ S /- open_defs x ds :: open_typ x T) as Hds by apply* renaming_def.
   destruct (record_has_ty_defs Hds Hr) as [d [Hh Hd]]. inversions Hd.
   exists t ds. split*.
 Qed.
@@ -288,22 +288,22 @@ Qed.
 
     [inert G]            #<br>#
     [e: G]               #<br>#
-    [G ⊢ x: {a:T}]       #<br>#
+    [G @@ S ⊢ x: {a:T}]       #<br>#
     [――――――――――――――――――] #<br>#
     [exists S, ds, t,] #<br>#
     [e(x) = nu(S)ds] #<br>#
     [ds^x = ... /\ {a = t} /\ ...] #<br>#
-    [G ⊢ t: T] *)
-Lemma canonical_forms_obj: forall G e x a T,
+    [G @@ S ⊢ t: T] *)
+Lemma canonical_forms_obj: forall G S e x a T,
   inert G ->
-  well_typed G e ->
-  G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
-  (exists S ds t, binds x (val_new S ds) e /\ defs_has (open_defs x ds) (def_trm a t) /\ G ⊢ t : T).
+  well_typed G S e ->
+  G @@ S ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
+  (exists S' ds t, binds x (val_new S' ds) e /\ defs_has (open_defs x ds) (def_trm a t) /\ G @@ S ⊢ t : T).
 Proof.
   introv Hi Hwt Hty.
-  destruct (var_typ_rcd_to_binds Hi Hty) as [S [T' [Bi [Hr Hs]]]].
+  destruct (var_typ_rcd_to_binds Hi Hty) as [S' [T' [Bi [Hr Hs]]]].
   destruct (corresponding_types Hwt Bi) as [v [Bis Ht]].
-  apply ty_var in Bi. apply ty_rec_elim in Bi.
+  apply ty_var with (S:=S) in Bi. apply ty_rec_elim in Bi.
   destruct (val_mu_to_new Hi Ht Bi Hr) as [t [ds [Heq [Hdefs Ht']]]].
-  subst. exists S ds t. repeat split~. eapply ty_sub; eauto.
+  subst. exists S' ds t. repeat split~. eapply ty_sub; eauto.
 Qed.

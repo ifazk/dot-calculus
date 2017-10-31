@@ -30,56 +30,73 @@ Require Import RecordAndInertTypes.
       [G ⊢! x: {a: T}]                    #<br>#
       [G ⊢! x: {B: S..U}].                *)
 
-Reserved Notation "G '⊢!' t ':' T" (at level 40, t at level 59).
+Reserved Notation "G '@@' S '⊢!' t ':' T" (at level 40, t at level 59).
 
-Inductive ty_trm_p : ctx -> trm -> typ -> Prop :=
+Inductive ty_trm_p : ctx -> sigma -> trm -> typ -> Prop :=
 
 (** [G(x) = T]      #<br>#
     [―――――――――――――] #<br>#
     [G ⊢! x: T] *)
-| ty_var_p : forall G x T,
+| ty_var_p : forall G S x T,
     binds x T G ->
-    G ⊢! trm_var (avar_f x) : T
+    G @@ S ⊢! trm_var (avar_f x) : T
+
+| ty_loc : forall G S l T,
+    binds l T S ->
+    G @@ S ⊢! trm_val (val_loc l) : (typ_ref T)
 
 (** [G, x: T ⊢ t^x: U^x]       #<br>#
     [x fresh]                  #<br>#
     [――――――――――――――――――――――――] #<br>#
     [G ⊢! lambda(T)t: forall(T) U]     *)
-| ty_all_intro_p : forall L G T t U,
+| ty_all_intro_p : forall L G S T t U,
     (forall x, x \notin L ->
-      G & x ~ T ⊢ open_trm x t : open_typ x U) ->
-    G ⊢! trm_val (val_lambda T t) : typ_all T U
+      G & x ~ T @@ S ⊢ open_trm x t : open_typ x U) ->
+    G @@ S ⊢! trm_val (val_lambda T t) : typ_all T U
 
 (** [G, x: T^x ⊢ ds^x :: T^x]   #<br>#
     [x fresh]                   #<br>#
     [―――――――――――――――――――――――]   #<br>#
     [G ⊢! nu(T)ds :: mu(T)]        *)
-| ty_new_intro_p : forall L G T ds,
+| ty_new_intro_p : forall L G S T ds,
     (forall x, x \notin L ->
-      G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
-    G ⊢! trm_val (val_new T ds) : typ_bnd T
+      G & (x ~ open_typ x T) @@ S /- open_defs x ds :: open_typ x T) ->
+    G @@ S ⊢! trm_val (val_new T ds) : typ_bnd T
 
 (** [G ⊢! x: mu(T)] #<br>#
     [――――――――――――――] #<br>#
     [G ⊢! x: T^x]       *)
-| ty_rec_elim_p : forall G x T,
-    G ⊢! trm_var (avar_f x) : typ_bnd T ->
-    G ⊢! trm_var (avar_f x) : open_typ x T
+| ty_rec_elim_p : forall G S x T,
+    G @@ S ⊢! trm_var (avar_f x) : typ_bnd T ->
+    G @@ S ⊢! trm_var (avar_f x) : open_typ x T
 
 (** [G ⊢! x: T /\ U] #<br>#
     [――――――――――――――] #<br>#
     [G ⊢! x: T]     *)
-| ty_and1_p : forall G x T U,
-    G ⊢! trm_var (avar_f x) : typ_and T U ->
-    G ⊢! trm_var (avar_f x) : T
+| ty_and1_p : forall G S x T U,
+    G @@ S ⊢! trm_var (avar_f x) : typ_and T U ->
+    G @@ S ⊢! trm_var (avar_f x) : T
 
 (** [G ⊢! x: T /\ U] #<br>#
     [――――――――――――――] #<br>#
     [G ⊢! x: U]     *)
-| ty_and2_p : forall G x T U,
-    G ⊢! trm_var (avar_f x) : typ_and T U ->
-    G ⊢! trm_var (avar_f x) : U
-where "G '⊢!' t ':' T" := (ty_trm_p G t T).
+| ty_and2_p : forall G S x T U,
+    G @@ S ⊢! trm_var (avar_f x) : typ_and T U ->
+    G @@ S ⊢! trm_var (avar_f x) : U
+
+| ty_ref_intro : forall G S x T,
+    G @@ S ⊢! trm_var (avar_f x) : T ->
+    G @@ S ⊢! (trm_ref (avar_f x) T) : typ_ref T
+
+| ty_ref_elim : forall G S x T,
+    G @@ S ⊢! trm_var (avar_f x) : typ_ref T ->
+    G @@ S ⊢! trm_deref (avar_f x) : T
+
+| ty_asgn : forall G S x y T,
+    G @@ S ⊢! trm_var (avar_f x) : typ_ref T ->
+    G @@ S ⊢! trm_var (avar_f y) : T ->
+    G @@ S ⊢! trm_asg (avar_f x) (avar_f y) : T
+where "G '@@' S '⊢!' t ':' T" := (ty_trm_p G S t T).
 
 Hint Constructors ty_trm_p.
 
@@ -122,8 +139,8 @@ Proof.
 Qed.
 
 (** Introduces [precise_flow], given a variable's precise type. *)
-Lemma precise_flow_lemma : forall U G x,
-    G ⊢! trm_var (avar_f x) : U ->
+Lemma precise_flow_lemma : forall U G S x,
+    G @@ S ⊢! trm_var (avar_f x) : U ->
     exists T, precise_flow x G T U.
 Proof.
   introv H. dependent induction H; try (destruct* (IHty_trm _ eq_refl));
@@ -131,25 +148,32 @@ Proof.
 Qed.
 
 (** If [G(x) = forall(S)T], then [x]'s precise type can be only [forall(S)T]. *)
-Lemma precise_flow_all_inv : forall p G S T U,
-    precise_flow p G (typ_all S T) U ->
-    U = typ_all S T.
+Lemma precise_flow_all_inv : forall p G T U V,
+    precise_flow p G (typ_all T U) V ->
+    V = typ_all T U.
 Proof.
   introv Hpf.
   dependent induction Hpf; auto;
-    specialize (IHHpf S T eq_refl); inversion IHHpf.
+    specialize (IHHpf T U eq_refl); inversion IHHpf.
+Qed.
+
+Lemma precise_flow_ref_inv : forall x G T U,
+    precise_flow x G (typ_ref T) U ->
+    U = (typ_ref T).
+Proof.
+  introv Hpf.
+  dependent induction Hpf; auto;
+    specialize (IHHpf T eq_refl); inversion IHHpf.
 Qed.
 
 (** The precise type of a value is inert. *)
-Lemma precise_inert_typ : forall G v T,
-    G ⊢! trm_val v : T ->
+Lemma precise_inert_typ : forall G S v T,
+    G @@ S ⊢! trm_val v : T ->
     inert_typ T.
 Proof.
   introv Ht. inversions Ht; constructor; rename T0 into T.
-  pick_fresh z. assert (Hz: z \notin L) by auto. specialize (H1 z Hz).
-  pose proof (ty_defs_record_type H1).
-  assert (Hz': z \notin fv_typ T) by auto.
-  apply (record_type_open T Hz' H).
+  pick_fresh z. assert (Hz: z \notin L) by auto.
+  eauto using record_type_open, ty_defs_record_type.
 Qed.
 
 (** The following two lemmas say that the type to which a variable is bound in an inert context is inert. *)
@@ -205,6 +229,24 @@ Proof.
     eexists. apply* rt_one.
 Qed.
 
+Ltac record_contra :=
+  match goal with
+  | [ H: record_type (typ_all _ _) |- _ ]
+      => destruct H as [? ?H1]; inversion H1
+  | [ H: record_type (typ_ref _) |- _ ]
+      => destruct H as [? ?H1]; inversion H1
+  | _ => idtac
+  end.
+
+Ltac flow_contra :=
+  match goal with
+  | [ H: precise_flow _ _ (typ_all _ _) (typ_all _ _) |- _ ] => idtac
+  | [ H: precise_flow _ _ (typ_all _ _) _ |- _ ] => apply precise_flow_all_inv in H; inversion* H
+  | [ H: precise_flow _ _ (typ_ref _) (typ_ref _) |- _ ] => idtac
+  | [ H: precise_flow _ _ (typ_ref _) _ |- _ ] => apply precise_flow_ref_inv in H; inversion* H
+  | _ => idtac
+  end.
+
 (** If [x]'s precise type is [mu(x: U)], then [G(x) = mu(x: U)] *)
 Lemma pf_inert_bnd_U: forall G x T U,
     inert G ->
@@ -213,12 +255,7 @@ Lemma pf_inert_bnd_U: forall G x T U,
 Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf).
-  inversions HT; dependent induction Pf; auto;
-    try (solve [apply pf_top_top in Pf; inversion Pf]).
-  - destruct U0; inversions x.
-    apply precise_flow_all_inv in Pf. inversion* Pf.
-  - apply precise_flow_all_inv in Pf. inversion Pf.
-  - apply precise_flow_all_inv in Pf. inversion Pf.
+  inversions HT; dependent induction Pf; flow_contra; auto.
   - specialize (IHPf U0 Hi T0 eq_refl eq_refl H).
     destruct (pf_inert_or_rcd Hi Pf) as [Heq | Hr].
     * inversions Heq. destruct T0; inversions x. inversion H. inversion H0.
@@ -240,11 +277,7 @@ Lemma pf_inert_rcd_U: forall G x T D,
 Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf).
-  inversions HT; dependent induction Pf; auto;
-    try (solve [apply pf_top_top in Pf; inversion Pf]).
-  - apply precise_flow_all_inv in Pf. inversion Pf.
-  - apply precise_flow_all_inv in Pf. inversion Pf.
-  - apply precise_flow_all_inv in Pf. inversion Pf.
+  inversions HT; dependent induction Pf; flow_contra; auto.
   - apply (pf_inert_bnd_U Hi) in Pf. exists* U.
   - exists* T0.
   - exists* T0.
@@ -260,15 +293,8 @@ Lemma pf_inert_rcd_typ_U: forall G x T Ds,
 Proof.
   introv Hi Pf Hr.
   lets HT: (pf_inert_T Hi Pf).
-  inversions HT;
-    try (solve [apply pf_top_top in Pf; subst;
-                unfold record_type in *;
-                destruct Hr; remember typ_top; destruct H; inversion Heqt]);
-    dependent induction Pf; auto.
-  - inversion Hr. inversion H0.
-  - apply precise_flow_all_inv in Pf. inversion Pf.
-  - apply precise_flow_all_inv in Pf. inversion Pf.
-  - apply precise_flow_all_inv in Pf. inversion Pf.
+  inversions HT; flow_contra;
+    dependent induction Pf; record_contra; auto.
   - inversion Hr. inversion H1.
   - apply (pf_inert_bnd_U Hi) in Pf. exists* U.
   - apply* IHPf. destruct (pf_inert_or_rcd Hi Pf) as [H1 | H1].
@@ -290,13 +316,14 @@ Proof.
   - apply precise_flow_all_inv in Pf. inversion* Pf.
   - destruct (pf_inert_or_rcd Hi Pf) as [H1 | H1]; inversions H1.
     inversion H0.
+  - flow_contra.
 Qed.
 
 (** See [pf_inert_lambda_U]. *)
-Lemma inert_precise_all_inv : forall x G S T,
+Lemma inert_precise_all_inv : forall x G S T U,
     inert G ->
-    G ⊢! trm_var (avar_f x) : typ_all S T ->
-    binds x (typ_all S T) G.
+    G @@ S ⊢! trm_var (avar_f x) : typ_all T U ->
+    binds x (typ_all T U) G.
 Proof.
   introv Hgd Htyp.
   destruct (precise_flow_lemma Htyp) as [V Pf].
@@ -312,15 +339,14 @@ Lemma pf_bot_false : forall G x T,
     False.
 Proof.
   introv Hi Pf.
-  lets HT: (pf_inert_T Hi Pf). inversions HT.
-  - apply precise_flow_all_inv in Pf. inversion Pf.
-  - destruct (pf_inert_or_rcd Hi Pf); inversion H0. inversion H1.
+  lets HT: (pf_inert_T Hi Pf). inversions HT; flow_contra.
+  destruct (pf_inert_or_rcd Hi Pf); inversion H0. inversion H1.
 Qed.
 
 (** See [pf_bot_false]. *)
-Lemma precise_bot_false : forall G x,
+Lemma precise_bot_false : forall G S x,
     inert G ->
-    G ⊢! trm_var (avar_f x) : typ_bot ->
+    G @@ S ⊢! trm_var (avar_f x) : typ_bot ->
     False.
 Proof.
   introv Hi Hp. destruct (precise_flow_lemma Hp) as [T Pf].
@@ -335,15 +361,14 @@ Lemma pf_psel_false : forall G T x y A,
     False.
 Proof.
   introv Hi Pf.
-  lets HT: (pf_inert_T Hi Pf). inversions HT.
-  - apply precise_flow_all_inv in Pf. inversion Pf.
-  - destruct (pf_inert_or_rcd Hi Pf); inversion H0. inversion H1.
+  lets HT: (pf_inert_T Hi Pf). inversions HT; flow_contra.
+  destruct (pf_inert_or_rcd Hi Pf); inversion H0. inversion H1.
 Qed.
 
 (** See [pf_psel_false]. *)
-Lemma precise_psel_false : forall G x y A,
+Lemma precise_psel_false : forall G S x y A,
     inert G ->
-    G ⊢! trm_var (avar_f x) : typ_sel y A ->
+    G @@ S ⊢! trm_var (avar_f x) : typ_sel y A ->
     False.
 Proof.
   introv Hi Hp. destruct (precise_flow_lemma Hp) as [T Pf].
@@ -424,10 +449,10 @@ Proof.
 Qed.
 
 (** See [pf_inert_unique_tight_bound]. *)
-Lemma inert_unique_tight_bounds : forall G x T1 T2 A,
+Lemma inert_unique_tight_bounds : forall G S x T1 T2 A,
     inert G ->
-    G ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A T1 T1) ->
-    G ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A T2 T2) ->
+    G @@ S ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A T1 T1) ->
+    G @@ S ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A T2 T2) ->
     T1 = T2.
 Proof.
   introv Hi H1 H2.
@@ -464,19 +489,19 @@ Proof.
 Qed.
 
 (** See [pf_dec_typ_inv]. *)
-Lemma precise_dec_typ_inv : forall G x A S U,
+Lemma precise_dec_typ_inv : forall G S x A T U,
     inert G ->
-    G ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A S U) ->
-    S = U.
+    G @@ S ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A T U) ->
+    T = U.
 Proof.
   introv Hi Hpt. destruct (precise_flow_lemma Hpt) as [V Pf].
   apply* pf_dec_typ_inv.
 Qed.
 
 (** Precise typing implies general typing. *)
-Lemma precise_to_general: forall G t T,
-    G ⊢! t : T ->
-    G ⊢ t : T.
+Lemma precise_to_general: forall G S t T,
+    G @@ S ⊢! t : T ->
+    G @@ S ⊢ t : T.
 Proof.
   intros. induction H; intros; subst; eauto.
 Qed.

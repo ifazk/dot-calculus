@@ -69,31 +69,39 @@ Ltac fold_subst :=
     [G1, G2[y/x] ⊢ T[y/x] <: U[y/x]] #<br>#  #<br># *)
 
 (** The proof is by mutual induction on term typing, definition typing, and subtyping. *)
-Lemma subst_rules: forall y S,
-  (forall G t T, G ⊢ t : T -> forall G1 G2 x,
-    G = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2) ->
+Lemma subst_rules: forall y U,
+  (forall G S t T, G @@ S ⊢ t : T -> forall G1 G2 S1 S2 x,
+    G = G1 & x ~ U & G2 ->
+    ok (G1 & x ~ U & G2) ->
     x \notin fv_ctx_types G1 ->
-    G1 & (subst_ctx x y G2) ⊢ trm_var (avar_f y) : subst_typ x y S ->
-    G1 & (subst_ctx x y G2) ⊢ subst_trm x y t : subst_typ x y T) /\
-  (forall G d D, G /- d : D -> forall G1 G2 x,
-    G = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2) ->
+    S = S1 & S2 ->
+    x \notin fv_sigma_types S1 ->
+    G1 & (subst_ctx x y G2) @@ (S1 & subst_sigma x y S2) ⊢ trm_var (avar_f y) : subst_typ x y U ->
+    G1 & (subst_ctx x y G2) @@ (S1 & subst_sigma x y S2) ⊢ subst_trm x y t : subst_typ x y T) /\
+  (forall G S d D, G @@ S /- d : D -> forall G1 G2 S1 S2 x,
+    G = G1 & x ~ U & G2 ->
+    ok (G1 & x ~ U & G2) ->
     x \notin fv_ctx_types G1 ->
-    G1 & (subst_ctx x y G2) ⊢ trm_var (avar_f y) : subst_typ x y S ->
-    G1 & (subst_ctx x y G2) /- subst_def x y d : subst_dec x y D) /\
-  (forall G ds T, G /- ds :: T -> forall G1 G2 x,
-    G = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2) ->
+    S = S1 & S2 ->
+    x \notin fv_sigma_types S1 ->
+    G1 & (subst_ctx x y G2) @@ (S1 & subst_sigma x y S2) ⊢ trm_var (avar_f y) : subst_typ x y U ->
+    G1 & (subst_ctx x y G2) @@ (S1 & subst_sigma x y S2) /- subst_def x y d : subst_dec x y D) /\
+  (forall G S ds T, G @@ S /- ds :: T -> forall G1 G2 S1 S2 x,
+    G = G1 & x ~ U & G2 ->
+    ok (G1 & x ~ U & G2) ->
     x \notin fv_ctx_types G1 ->
-    G1 & (subst_ctx x y G2) ⊢ trm_var (avar_f y) : subst_typ x y S ->
-    G1 & (subst_ctx x y G2) /- subst_defs x y ds :: subst_typ x y T) /\
-  (forall G T U, G ⊢ T <: U -> forall G1 G2 x,
-    G = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2) ->
+    S = S1 & S2 ->
+    x \notin fv_sigma_types S1 ->
+    G1 & (subst_ctx x y G2) @@ (S1 & subst_sigma x y S2) ⊢ trm_var (avar_f y) : subst_typ x y U ->
+    G1 & (subst_ctx x y G2) @@ (S1 & subst_sigma x y S2) /- subst_defs x y ds :: subst_typ x y T) /\
+  (forall G S T V, G @@ S ⊢ T <: V -> forall G1 G2 S1 S2 x,
+    G = G1 & x ~ U & G2 ->
+    ok (G1 & x ~ U & G2) ->
     x \notin fv_ctx_types G1 ->
-    G1 & (subst_ctx x y G2) ⊢ trm_var (avar_f y) : subst_typ x y S ->
-    G1 & (subst_ctx x y G2) ⊢ subst_typ x y T <: subst_typ x y U).
+    S = S1 & S2 ->
+    x \notin fv_sigma_types S1 ->
+    G1 & (subst_ctx x y G2) @@ (S1 & subst_sigma x y S2) ⊢ trm_var (avar_f y) : subst_typ x y U ->
+    G1 & (subst_ctx x y G2) @@ (S1 & subst_sigma x y S2) ⊢ subst_typ x y T <: subst_typ x y V).
 Proof.
   introv. apply rules_mutind; intros; subst; simpl;
             try (subst_solver || rewrite subst_open_commut_typ);
@@ -106,6 +114,11 @@ Proof.
       constructor. rewrite <- H1.
       unfold subst_ctx. rewrite <- map_concat.
       apply binds_map; auto.
+  - Case "ty_loc".
+    constructor.
+    apply subst_fresh_sigma with (y:=y) in H3.
+    rewrite <- H3. unfold subst_sigma. rewrite <- map_concat.
+    apply binds_map; auto.
   - Case "ty_rec_intro".
     apply ty_rec_intro. fold_subst.
     rewrite subst_open_commut_typ. auto. eauto.
@@ -115,29 +128,31 @@ Qed.
 
 (** The substitution lemma for term typing.
     This lemma corresponds to Lemma 3.19 in the paper. *)
-Lemma subst_ty_trm: forall y S G x t T,
-    G & x ~ S ⊢ t : T ->
-    ok (G & x ~ S) ->
+Lemma subst_ty_trm: forall y U G S x t T,
+    G & x ~ U @@ S ⊢ t : T ->
+    ok (G & x ~ U) ->
     x \notin fv_ctx_types G ->
-    G ⊢ trm_var (avar_f y) : subst_typ x y S ->
-    G ⊢ subst_trm x y t : subst_typ x y T.
+    x \notin fv_sigma_types S ->
+    G @@ S ⊢ trm_var (avar_f y) : subst_typ x y U ->
+    G @@ S ⊢ subst_trm x y t : subst_typ x y T.
 Proof.
   intros.
-  apply (proj51 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H;
-  unfold subst_ctx in *; try rewrite map_empty in *; try rewrite concat_empty_r in *; auto.
+  apply (proj51 (subst_rules y U)) with (G1:=G) (G2:=empty) (S1:=S) (S2:=empty) (x:=x) in H;
+  unfold subst_ctx, subst_sigma in *; try rewrite? map_empty in *; try rewrite? concat_empty_r in *; auto.
 Qed.
 
 (** The substitution lemma for definition typing. *)
-Lemma subst_ty_defs: forall y S G x ds T,
-    G & x ~ S /- ds :: T ->
-    ok (G & x ~ S) ->
+Lemma subst_ty_defs: forall y U G S x ds T,
+    G & x ~ U @@ S /- ds :: T ->
+    ok (G & x ~ U) ->
     x \notin fv_ctx_types G ->
-    G ⊢ trm_var (avar_f y) : subst_typ x y S ->
-    G /- subst_defs x y ds :: subst_typ x y T.
+    x \notin fv_sigma_types S ->
+    G @@ S ⊢ trm_var (avar_f y) : subst_typ x y U ->
+    G @@ S /- subst_defs x y ds :: subst_typ x y T.
 Proof.
   intros.
-  apply (proj53 (subst_rules y S)) with (G1:=G) (G2:=empty) (x:=x) in H;
-    unfold subst_ctx in *; try rewrite map_empty in *; try rewrite concat_empty_r in *; auto.
+  apply (proj53 (subst_rules y U)) with (G1:=G) (G2:=empty) (S1:=S) (S2:=empty) (x:=x) in H;
+    unfold subst_ctx, subst_sigma in *; try rewrite? map_empty in *; try rewrite? concat_empty_r in *; auto.
 Qed.
 
 (** * Renaming  *)
@@ -149,13 +164,13 @@ Qed.
     [G, z: T^z ⊢ ds^z : T^z] #<br>#
     [――――――――――――――――――――――] #<br>#
     [G ⊢ ds^x : T^x]         *)
-Lemma renaming_def: forall G z T ds x,
+Lemma renaming_def: forall G S z T ds x,
     ok G ->
     z # G ->
-    z \notin (fv_ctx_types G \u fv_defs ds \u fv_typ T) ->
-    G & z ~ open_typ z T /- open_defs z ds :: open_typ z T ->
-    G ⊢ trm_var (avar_f x) : open_typ x T ->
-    G /- open_defs x ds :: open_typ x T.
+    z \notin (fv_ctx_types G \u fv_sigma_types S \u fv_defs ds \u fv_typ T) ->
+    G & z ~ open_typ z T @@ S /- open_defs z ds :: open_typ z T ->
+    G @@ S ⊢ trm_var (avar_f x) : open_typ x T ->
+    G @@ S /- open_defs x ds :: open_typ x T.
 Proof.
   introv Hok Hnz Hnz' Hz Hx. rewrite subst_intro_typ with (x:=z). rewrite subst_intro_defs with (x:=z).
   eapply subst_ty_defs; auto. eapply Hz. rewrite <- subst_intro_typ. all: auto.
@@ -167,13 +182,13 @@ Qed.
     [G, z: U ⊢ t^z : T^z]    #<br>#
     [――――――――――――――――――――――] #<br>#
     [G ⊢ t^x : T^x]         *)
-Lemma renaming_typ: forall G z T U t x,
+Lemma renaming_typ: forall G S z T U t x,
     ok G ->
     z # G ->
-    z \notin (fv_ctx_types G \u fv_typ U \u fv_typ T \u fv_trm t) ->
-    G & z ~ U ⊢ open_trm z t : open_typ z T ->
-    G ⊢ trm_var (avar_f x) : U ->
-    G ⊢ open_trm x t : open_typ x T.
+    z \notin (fv_ctx_types G \u fv_sigma_types S \u fv_typ U \u fv_typ T \u fv_trm t) ->
+    G & z ~ U @@ S ⊢ open_trm z t : open_typ z T ->
+    G @@ S ⊢ trm_var (avar_f x) : U ->
+    G @@ S ⊢ open_trm x t : open_typ x T.
 Proof.
   introv Hok Hnz Hnz' Hz Hx. rewrite subst_intro_typ with (x:=z). rewrite subst_intro_trm with (x:=z).
   eapply subst_ty_trm; auto. eapply Hz. rewrite subst_fresh_typ. all: auto.

@@ -19,8 +19,8 @@ Require Import PreciseTypes.
 Require Import TightTypes.
 
 (** The invertible-typing relation describes the possible types that a variable or value
-can be typed with in an inert context. For example, if [G] is inert, [G ⊢! x: {a: T}],
-and [G ⊢ T <: T'], then [G ⊢## x: {a: T'}].
+can be typed with in an inert context. For example, if [G] is inert, [G @@ S ⊢! x: {a: T}],
+and [G @@ S ⊢ T <: T'], then [G ⊢## x: {a: T'}].
 
 The purpose of invertible typing is to be easily invertible into a precise typing relation.
 To achieve that, invertible typing avoids typing cycles that could result from, for example,
@@ -28,151 +28,157 @@ repeated applications of recursion introduction and elimination.
 For this case, invertible typing defines only recursion introduction (whereas precise typing
 defines only recursion elimination). *)
 
-(** * Invertible typing of variables [G ⊢## x: T] *)
+(** * Invertible typing of variables [G @@ S ⊢## x: T] *)
 
-Reserved Notation "G '⊢##' x ':' T" (at level 40, x at level 59).
+Reserved Notation "G @@ S '⊢##' x ':' T" (at level 40, x at level 59).
 
-Inductive ty_var_inv : ctx -> var -> typ -> Prop :=
+Inductive ty_var_inv : ctx -> sigma -> var -> typ -> Prop :=
 
-(** [G ⊢! x: T]  #<br>#
+(** [G @@ S ⊢! x: T]  #<br>#
     [―――――――――――] #<br>#
-    [G ⊢## x: T]     *)
-| ty_precise_inv : forall G x T,
-  G ⊢! trm_var (avar_f x) : T ->
-  G ⊢## x : T
+    [G @@ S ⊢## x: T]     *)
+| ty_precise_inv : forall G S x T,
+  G @@ S ⊢! trm_var (avar_f x) : T ->
+  G @@ S ⊢## x : T
 
-(** [G ⊢## x: {a: T}] #<br>#
-    [G ⊢# T <: U]     #<br>#
+(** [G @@ S ⊢## x: {a: T}] #<br>#
+    [G @@ S ⊢# T <: U]     #<br>#
     [――――――――――――――――] #<br>#
-    [G ⊢## x: {a: U}]     *)
-| ty_dec_trm_inv : forall G x a T U,
-  G ⊢## x : typ_rcd (dec_trm a T) ->
-  G ⊢# T <: U ->
-  G ⊢## x : typ_rcd (dec_trm a U)
+    [G @@ S ⊢## x: {a: U}]     *)
+| ty_dec_trm_inv : forall G S x a T U,
+  G @@ S ⊢## x : typ_rcd (dec_trm a T) ->
+  G @@ S ⊢# T <: U ->
+  G @@ S ⊢## x : typ_rcd (dec_trm a U)
 
-(** [G ⊢## x: {A: T..U}]   #<br>#
-    [G ⊢# T' <: T]         #<br>#
-    [G ⊢# U <: U']         #<br>#
+(** [G @@ S ⊢## x: {A: T..U}]   #<br>#
+    [G @@ S ⊢# T' <: T]         #<br>#
+    [G @@ S ⊢# U <: U']         #<br>#
     [―――――――――――――――――――――] #<br>#
-    [G ⊢## x: {A: T'..U'}]     *)
-| ty_dec_typ_inv : forall G x A T T' U' U,
-  G ⊢## x : typ_rcd (dec_typ A T U) ->
-  G ⊢# T' <: T ->
-  G ⊢# U <: U' ->
-  G ⊢## x : typ_rcd (dec_typ A T' U')
+    [G @@ S ⊢## x: {A: T'..U'}]     *)
+| ty_dec_typ_inv : forall G S x A T T' U' U,
+  G @@ S ⊢## x : typ_rcd (dec_typ A T U) ->
+  G @@ S ⊢# T' <: T ->
+  G @@ S ⊢# U <: U' ->
+  G @@ S ⊢## x : typ_rcd (dec_typ A T' U')
 
-(** [G ⊢## x: T^x]   #<br>#
+(** [G @@ S ⊢## x: T^x]   #<br>#
     [―――――――――――――――] #<br>#
-    [G ⊢## x: mu(T)] *)
-| ty_bnd_inv : forall G x T,
-  G ⊢## x : open_typ x T ->
-  G ⊢## x : typ_bnd T
+    [G @@ S ⊢## x: mu(T)] *)
+| ty_bnd_inv : forall G S x T,
+  G @@ S ⊢## x : open_typ x T ->
+  G @@ S ⊢## x : typ_bnd T
 
-(** [G ⊢## x: forall(S)T]          #<br>#
-    [G ⊢# S' <: S]            #<br>#
-    [G, y: S' ⊢ T^y <: T'^y]   #<br>#
+(** [G @@ S ⊢## x: forall(S)T]          #<br>#
+    [G @@ S ⊢# S' <: S]            #<br>#
+    [G, y: S' @@ S ⊢ T^y <: T'^y]   #<br>#
     [y fresh]                  #<br>#
     [――――――――――――――――――――――]   #<br>#
-    [G ⊢## x: forall(S')T']            *)
-| ty_all_inv : forall L G x S T S' T',
-  G ⊢## x : typ_all S T ->
-  G ⊢# S' <: S ->
+    [G @@ S ⊢## x: forall(S')T']            *)
+| ty_all_inv : forall L G S x S1 T S2 T',
+  G @@ S ⊢## x : typ_all S1 T ->
+  G @@ S ⊢# S2 <: S1 ->
   (forall y, y \notin L ->
-   G & y ~ S' ⊢ open_typ y T <: open_typ y T') ->
-  G ⊢## x : typ_all S' T'
+   G & y ~ S2 @@ S ⊢ open_typ y T <: open_typ y T') ->
+  G @@ S ⊢## x : typ_all S2 T'
 
-(** [G ⊢## x : T]     #<br>#
-    [G ⊢## x : U]     #<br>#
+(** [G @@ S ⊢## x : T]     #<br>#
+    [G @@ S ⊢## x : U]     #<br>#
     [――――――――――――――――] #<br>#
-    [G ⊢## x : T /\ U]      *)
-| ty_and_inv : forall G x S1 S2,
-  G ⊢## x : S1 ->
-  G ⊢## x : S2 ->
-  G ⊢## x : typ_and S1 S2
+    [G @@ S ⊢## x : T /\ U]      *)
+| ty_and_inv : forall G S x S1 S2,
+  G @@ S ⊢## x : S1 ->
+  G @@ S ⊢## x : S2 ->
+  G @@ S ⊢## x : typ_and S1 S2
 
-(** [G ⊢## x: S]        #<br>#
-    [G ⊢! y: {A: S..S}] #<br>#
+(** [G @@ S ⊢## x: S]        #<br>#
+    [G @@ S ⊢! y: {A: S..S}] #<br>#
     [――――――――――――――――――] #<br>#
-    [G ⊢## x: y.A           *)
-| ty_sel_inv : forall G x y A S,
-  G ⊢## x : S ->
-  G ⊢! trm_var y : typ_rcd (dec_typ A S S) ->
-  G ⊢## x : typ_sel y A
+    [G @@ S ⊢## x: y.A           *)
+| ty_sel_inv : forall G S x y A T,
+  G @@ S ⊢## x : T ->
+  G @@ S ⊢! trm_var y : typ_rcd (dec_typ A T T) ->
+  G @@ S ⊢## x : typ_sel y A
 
-(** [G ⊢## x: T]   #<br>#
+| ty_loc_inv : forall G S x T U,
+  G @@ S ⊢## x : typ_ref T ->
+  G @@ S ⊢# T <: U ->
+  G @@ S ⊢# U <: T ->
+  G @@ S ⊢## x : typ_ref U
+
+(** [G @@ S ⊢## x: T]   #<br>#
     [―――――――――――――] #<br>#
-    [G ⊢## x: top]     *)
-| ty_top_inv : forall G x T,
-  G ⊢## x : T ->
-  G ⊢## x : typ_top
-where "G '⊢##' x ':' T" := (ty_var_inv G x T).
+    [G @@ S ⊢## x: top]     *)
+| ty_top_inv : forall G S x T,
+  G @@ S ⊢## x : T ->
+  G @@ S ⊢## x : typ_top
+where "G @@ S '⊢##' x ':' T" := (ty_var_inv G S x T).
 
-(** *** Invertible typing of values [G ⊢##v v: T] *)
+(** *** Invertible typing of values [G @@ S ⊢##v v: T] *)
 
-Reserved Notation "G '⊢##v' v ':' T" (at level 40, v at level 59).
+Reserved Notation "G @@ S '⊢##v' v ':' T" (at level 40, v at level 59).
 
-Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
+Inductive ty_val_inv : ctx -> sigma -> val -> typ -> Prop :=
 
-(** [G ⊢! v: T]    #<br>#
+(** [G @@ S ⊢! v: T]    #<br>#
     [―――――――――――――] #<br>#
-    [G ⊢##v v: T] *)
-| ty_precise_inv_v : forall G v T,
-  G ⊢! trm_val v : T ->
-  G ⊢##v v : T
+    [G @@ S ⊢##v v: T] *)
+| ty_precise_inv_v : forall G S v T,
+  G @@ S ⊢! trm_val v : T ->
+  G @@ S ⊢##v v : T
 
-(** [G ⊢##v v: forall(S)T]          #<br>#
-    [G ⊢# S' <: S]             #<br>#
-    [G, y: S' ⊢ T^y <: T'^y]    #<br>#
+(** [G @@ S ⊢##v v: forall(S)T]          #<br>#
+    [G @@ S ⊢# S' <: S]             #<br>#
+    [G, y: S' @@ S ⊢ T^y <: T'^y]    #<br>#
     [y fresh]                   #<br>#
     [――――――――――――――――――――――]    #<br>#
-    [G ⊢##v v: forall(S')T']            *)
-| ty_all_inv_v : forall L G v S T S' T',
-  G ⊢##v v : typ_all S T ->
-  G ⊢# S' <: S ->
+    [G @@ S ⊢##v v: forall(S')T']            *)
+| ty_all_inv_v : forall L G S v S1 T S2 T',
+  G @@ S ⊢##v v : typ_all S1 T ->
+  G @@ S ⊢# S2 <: S1 ->
   (forall y, y \notin L ->
-   G & y ~ S' ⊢ open_typ y T <: open_typ y T') ->
-  G ⊢##v v : typ_all S' T'
+   G & y ~ S2 @@ S ⊢ open_typ y T <: open_typ y T') ->
+  G @@ S ⊢##v v : typ_all S2 T'
 
-(** [G ⊢##v v: S]       #<br>#
-    [G ⊢! y: {A: S..S}] #<br>#
+(** [G @@ S ⊢##v v: S]       #<br>#
+    [G @@ S ⊢! y: {A: S..S}] #<br>#
     [――――――――――――――――――] #<br>#
-    [G ⊢##v v: y.A]         *)
-| ty_sel_inv_v : forall G v y A S,
-  G ⊢##v v : S ->
-  G ⊢! trm_var y : typ_rcd (dec_typ A S S) ->
-  G ⊢##v v : typ_sel y A
+    [G @@ S ⊢##v v: y.A]         *)
+| ty_sel_inv_v : forall G S v y A T,
+  G @@ S ⊢##v v : T ->
+  G @@ S ⊢! trm_var y : typ_rcd (dec_typ A T T) ->
+  G @@ S ⊢##v v : typ_sel y A
 
-(** [G ⊢##v v : T]        #<br>#
-    [G ⊢##v v : U]        #<br>#
+(** [G @@ S ⊢##v v : T]        #<br>#
+    [G @@ S ⊢##v v : U]        #<br>#
     [―――――――――――――]        #<br>#
-    [G ⊢##v v : T /\ U]        *)
-| ty_and_inv_v : forall G v T U,
-  G ⊢##v v : T ->
-  G ⊢##v v : U ->
-  G ⊢##v v : typ_and T U
+    [G @@ S ⊢##v v : T /\ U]        *)
+| ty_and_inv_v : forall G S v T U,
+  G @@ S ⊢##v v : T ->
+  G @@ S ⊢##v v : U ->
+  G @@ S ⊢##v v : typ_and T U
 
-(** [G ⊢##v v: T]   #<br>#
+(** [G @@ S ⊢##v v: T]   #<br>#
     [――――――――――――――] #<br>#
-    [G ⊢##v v: top]     *)
-| ty_top_inv_v : forall G v T,
-  G ⊢##v v : T ->
-  G ⊢##v v : typ_top
-where "G '⊢##v' v ':' T" := (ty_val_inv G v T).
+    [G @@ S ⊢##v v: top]     *)
+| ty_top_inv_v : forall G S v T,
+  G @@ S ⊢##v v : T ->
+  G @@ S ⊢##v v : typ_top
+where "G @@ S '⊢##v' v ':' T" := (ty_val_inv G S v T).
 
 Hint Constructors ty_var_inv ty_val_inv.
 
 (** ** Invertible to Precise Typing [|-## to |-!] *)
 
 (** Invertible-to-precise typing for field declarations: #<br>#
-    [G ⊢## x: {a: T}]            #<br>#
+    [G @@ S ⊢## x: {a: T}]            #<br>#
     [――――――――――――――――――――――]      #<br>#
-    [exists T', G ⊢! x: {a: T'}]      #<br>#
-    [G ⊢# T' <: T]. *)
-Lemma invertible_to_precise_trm_dec: forall G x a T,
-  G ⊢## x : typ_rcd (dec_trm a T) ->
+    [exists T', G @@ S ⊢! x: {a: T'}]      #<br>#
+    [G @@ S ⊢# T' <: T]. *)
+Lemma invertible_to_precise_trm_dec: forall G S x a T,
+  G @@ S ⊢## x : typ_rcd (dec_trm a T) ->
   exists T',
-    G ⊢! trm_var (avar_f x) : typ_rcd (dec_trm a T') /\
-    G ⊢# T' <: T.
+    G @@ S ⊢! trm_var (avar_f x) : typ_rcd (dec_trm a T') /\
+    G @@ S ⊢# T' <: T.
 Proof.
   introv Hinv.
   dependent induction Hinv.
@@ -184,36 +190,36 @@ Qed.
 
 (** Invertible-to-precise typing for function types: #<br>#
     [ok G]                        #<br>#
-    [G ⊢## x: forall(S)T]             #<br>#
+    [G @@ S ⊢## x: forall(S)T]             #<br>#
     [――――――――――――――――――――――――――]  #<br>#
-    [exists S', T'. G ⊢! x: forall(S')T']  #<br>#
-    [G ⊢# S <: S']               #<br>#
-    [G ⊢# T'^y <: T^y], where [y] is fresh. *)
-Lemma invertible_to_precise_typ_all: forall G x S T,
+    [exists S', T'. G @@ S ⊢! x: forall(S')T']  #<br>#
+    [G @@ S ⊢# S <: S']               #<br>#
+    [G @@ S ⊢# T'^y <: T^y], where [y] is fresh. *)
+Lemma invertible_to_precise_typ_all: forall G S x T U,
   ok G ->
-  G ⊢## x : typ_all S T ->
-  exists S' T' L,
-    G ⊢! trm_var (avar_f x) : typ_all S' T' /\
-    G ⊢# S <: S' /\
+  G @@ S ⊢## x : typ_all T U ->
+  exists T' U' L,
+    G @@ S ⊢! trm_var (avar_f x) : typ_all T' U' /\
+    G @@ S ⊢# T <: T' /\
     (forall y,
         y \notin L ->
-            G & y ~ S ⊢ open_typ y T' <: open_typ y T).
+            G & y ~ T @@ S ⊢ open_typ y U' <: open_typ y U).
 Proof.
   introv HG Hinv.
   dependent induction Hinv.
-  - exists S T (dom G); auto.
+  - exists T U (dom G); auto.
   - specialize (IHHinv _ _ HG eq_refl).
-    destruct IHHinv as [S' [T' [L' [Hpt [HSsub HTsub]]]]].
-    exists S' T' (dom G \u L \u L').
+    destruct IHHinv as [T' [U' [L' [Hpt [HSsub HTsub]]]]].
+    exists T' U' (dom G \u L \u L').
     split; auto.
-    assert (Hsub2 : G ⊢# typ_all S0 T0 <: typ_all S T).
+    assert (Hsub2 : G @@ S ⊢# typ_all S1 T0 <: typ_all T U).
     { apply subtyp_all_t with (L:=L); assumption. }
     split.
     + eapply subtyp_trans_t; eauto.
     + intros y Fr.
-      assert (Hok: ok (G & y ~ S)) by auto using ok_push.
+      assert (Hok: ok (G & y ~ T)) by auto using ok_push.
       apply tight_to_general in H; auto.
-      assert (Hnarrow: G & y ~ S ⊢ open_typ y T' <: open_typ y T0).
+      assert (Hnarrow: G & y ~ T @@ S ⊢ open_typ y U' <: open_typ y T0).
       { eapply narrow_subtyping; auto using subenv_last. }
       eauto.
 Qed.
@@ -221,13 +227,13 @@ Qed.
 (** ** Invertible Subtyping Closure *)
 
 (** Invertible typing is closed under tight subtyping. *)
-Lemma invertible_typing_closure_tight: forall G x T U,
+Lemma invertible_typing_closure_tight: forall G S x T U,
   inert G ->
-  G ⊢## x : T ->
-  G ⊢# T <: U ->
-  G ⊢## x : U.
+  G @@ S ⊢## x : T ->
+  G @@ S ⊢# T <: U ->
+  G @@ S ⊢## x : U.
 Proof.
-  intros G x T U Hgd HT Hsub.
+  intros G S x T U Hgd HT Hsub.
   dependent induction Hsub; eauto.
   - inversion HT.
     destruct (precise_bot_false Hgd H).
@@ -235,7 +241,7 @@ Proof.
   - inversion HT; auto. apply ty_and2_p in H. auto.
   - inversions HT.
     + false* precise_psel_false.
-    + pose proof (inert_unique_tight_bounds Hgd H H5) as Hu. subst. assumption.
+    + pose proof (inert_unique_tight_bounds Hgd H H6) as Hu. subst. assumption.
 Qed.
 
 (** ** Tight-to-Invertible Lemma for Variables [|-# to |-##]
@@ -243,16 +249,16 @@ Qed.
        This lemma corresponds to Theorem 3.6 in the paper.
 
        [inert G]            #<br>#
-       [G ⊢# x: U]         #<br>#
+       [G @@ S ⊢# x: U]         #<br>#
        [―――――――――――――――]    #<br>#
-       [G ⊢## x: U] *)
+       [G @@ S ⊢## x: U] *)
 Lemma tight_to_invertible :
-  forall G U x,
+  forall G S U x,
     inert G ->
-    G ⊢# trm_var (avar_f x) : U ->
-    G ⊢## x : U.
+    G @@ S ⊢# trm_var (avar_f x) : U ->
+    G @@ S ⊢## x : U.
 Proof.
-  intros G U x Hgd Hty.
+  introv Hgd Hty.
   dependent induction Hty.
   - auto.
   - specialize (IHHty _ Hgd eq_refl).
@@ -269,31 +275,31 @@ Qed.
 (** ** Invertible Subtyping Closure *)
 
 (** Invertible value typing is closed under tight subtyping. *)
-Lemma invertible_typing_closure_tight_v: forall G v T U,
+Lemma invertible_typing_closure_tight_v: forall G S v T U,
   inert G ->
-  G ⊢##v v : T ->
-  G ⊢# T <: U ->
-  G ⊢##v v : U.
+  G @@ S ⊢##v v : T ->
+  G @@ S ⊢# T <: U ->
+  G @@ S ⊢##v v : U.
 Proof.
   introv Hgd HT Hsub.
   dependent induction Hsub; eauto; inversions HT; auto; try solve [inversion* H].
   - inversions H0.
-  - lets Hb: (inert_unique_tight_bounds Hgd H H5). subst*.
+  - lets Hb: (inert_unique_tight_bounds Hgd H H6). subst*.
 Qed.
 
 (** ** Tight-to-Invertible Lemma for Values [|-# to |-##]
 
        [inert G]            #<br>#
-       [G ⊢# v: T]         #<br>#
+       [G @@ S ⊢# v: T]         #<br>#
        [――――――――――――――――]   #<br>#
-       [G ⊢##v v: T] *)
-Lemma tight_to_invertible_v : forall G v T,
+       [G @@ S ⊢##v v: T] *)
+Lemma tight_to_invertible_v : forall G S v T,
     inert G ->
-    G ⊢# trm_val v : T ->
-    G ⊢##v v : T.
+    G @@ S ⊢# trm_val v : T ->
+    G @@ S ⊢##v v : T.
 Proof.
   introv Hgd Hty.
   dependent induction Hty; eauto.
   specialize (IHHty v Hgd eq_refl).
-  apply* invertible_typing_closure_tight_v.
+  eapply invertible_typing_closure_tight_v; eauto.
 Qed.

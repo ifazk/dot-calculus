@@ -52,23 +52,23 @@ Require Import Coq.Program.Equality.
 Note: for simplicity, the definition typing judgements and [ok] conditions
       are omitted from the paper formulation. *)
 Lemma narrow_rules:
-  (forall G t T, G ⊢ t : T -> forall G',
-    G' ⪯ G ->
-    G' ⊢ t : T)
-/\ (forall G d D, G /- d : D -> forall G',
-    G' ⪯ G ->
-    G' /- d : D)
-/\ (forall G ds T, G /- ds :: T -> forall G',
-    G' ⪯ G ->
-    G' /- ds :: T)
-/\ (forall G S U, G ⊢ S <: U -> forall G',
-    G' ⪯ G ->
-    G' ⊢ S <: U).
+  (forall G S t T, G @@ S ⊢ t : T -> forall G',
+    G' @@ S ⪯ G ->
+    G' @@ S ⊢ t : T)
+/\ (forall G S d D, G @@ S /- d : D -> forall G',
+    G' @@ S ⪯ G ->
+    G' @@ S /- d : D)
+/\ (forall G S ds T, G @@ S /- ds :: T -> forall G',
+    G' @@ S ⪯ G ->
+    G' @@ S /- ds :: T)
+/\ (forall G S U V, G @@ S ⊢ U <: V -> forall G',
+    G' @@ S ⪯ G ->
+    G' @@ S ⊢ U <: V).
 Proof.
   apply rules_mutind; intros; eauto 4;
     try solve [
           match goal with
-          | [ H : _ ⪯ _ |- _ ] => destruct (subenv_implies_ok H)
+          | [ H : _ @@ _ ⪯ _ |- _ ] => destruct (subenv_implies_ok H)
           end;
           fresh_constructor].
 
@@ -84,28 +84,28 @@ Qed.
 
 
 (** The narrowing lemma, formulated only for term typing. *)
-Lemma narrow_typing: forall G G' t T,
-  G ⊢ t : T ->
-  G' ⪯ G ->
-  G' ⊢ t : T.
+Lemma narrow_typing: forall G G' S t T,
+  G @@ S ⊢ t : T ->
+  G' @@ S ⪯ G ->
+  G' @@ S ⊢ t : T.
 Proof.
   intros. apply* narrow_rules.
 Qed.
 
 (** The narrowing lemma, formulated only for subtyping. *)
-Lemma narrow_subtyping: forall G G' S U,
-  G ⊢ S <: U ->
-  G' ⪯ G ->
-  G' ⊢ S <: U.
+Lemma narrow_subtyping: forall G G' S T U,
+  G @@ S ⊢ T <: U ->
+  G' @@ S ⪯ G ->
+  G' @@ S ⊢ T <: U.
 Proof.
   intros. apply* narrow_rules.
 Qed.
 
 (** The subenvironment relation [⪯] is transitive.*)
-Lemma subenv_trans : forall G1 G2 G3,
-    G1 ⪯ G2 ->
-    G2 ⪯ G3 ->
-    G1 ⪯ G3.
+Lemma subenv_trans : forall S G1 G2 G3,
+    G1 @@ S ⪯ G2 ->
+    G2 @@ S ⪯ G3 ->
+    G1 @@ S ⪯ G3.
 Proof.
   introv H. gen G3. induction H; intros; auto.
   dependent induction H3.
