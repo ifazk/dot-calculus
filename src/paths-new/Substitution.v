@@ -675,10 +675,25 @@ Lemma path_replacement: forall p S,
     G ⊢ open_typ y T' <: open_typ y U').
 Proof.
   introv Hl. apply rules_mutind; intros; subst.
-  - destruct t'; inversions H.
+  - destruct t'; inversions H. admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
   - Case "ty_def_typ".
     destruct D'; inversions H0. destruct d'; inversions H.
     assert (t0 = t1). admit. assert (t0 = t3). admit. subst. constructor.
+  - Case "ty_def_all".
+    destruct d'; inversions H0. destruct D'; inversions H1. destruct t2; inversions H7. destruct v; inversions H1.
+    rename t1 into T. rename t2 into t. rename t4 into U. rename t3 into a.
+    unfold open_def, open_dec. simpl. constructor.
+  - Case "ty_def_new".
+  - Case "ty_def_path".
 
 
 

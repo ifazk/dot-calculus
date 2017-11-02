@@ -1,6 +1,6 @@
 Set Implicit Arguments.
 
-Require Import Coq.Program.Equality.
+Require Import List Coq.Program.Equality.
 Require Import LibLN.
 Require Import Definitions Binding.
 
@@ -71,6 +71,33 @@ contexts by a list of pairs of variables and values.
 
 
 Reserved Notation "e '[' t1 '|->' t2 ']'" (at level 60, t1 at level 39).
+
+Inductive lookup : ec -> path -> val -> Prop :=
+| lookup_v : forall e x v,
+    binds x v e ->
+    lookup e (pvar x) v
+| lookup_p : forall e x b bs T ds v,
+    lookup e (p_sel x bs) (val_new T ds) ->
+    lookup_val ec ds b v ->
+    lookup e (p_sel x (b :: bs)) v
+
+with lookup_val : ec -> defs -> label -> val :=
+(** ds = ... { b = ν(T)ds } ... *)
+| lookup_val_v : forall e ds b v,
+    get_def b ds = Some (def_trm b (trm_val v)) ->
+    lookup_val e ds b v
+(** ds = ... { b = x.a1...an } ... *)
+| lookup_val_p_f : forall b ds p x bs e v,,
+    get_def b ds = Some (def_trm b (trm_path p)) ->
+    p = p_sel (avar_f x) bs ->
+    lookup e p v ->
+    lookup_val e ds b v
+(** ds = ... { b = 0.a1...an } ... *)
+| lookup_val_p_n : forall,
+    get_def b ds = Some (def_trm b (trm_path p)) ->
+    p = p_sel (avar_b 0) bs ->
+
+
 
 Inductive red : ec -> trm -> trm -> Prop :=
 (** [e(x) = lambda(T)t]    #<br>#
