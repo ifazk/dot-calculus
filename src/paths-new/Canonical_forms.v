@@ -227,12 +227,12 @@ Qed.
 
 (** This lemma corresponds to Lemma 3.10 ([mu] to [nu]) in the paper.
 
-    [inert G]                  #<br>#
-    [G ⊢ v: mu(T)]             #<br>#
-    [G ⊢ x: T^x]               #<br>#
-    [T = ... /\ {a: U} /\ ...  ] #<br>#
-    [――――――――――――――――――――――――] #<br>#
-    [exists t, ds, v = nu(T)ds     ] #<br>#
+    [inert G]                    #<br>#
+    [G ⊢ v: mu(T)]               #<br>#
+    [G ⊢ x: T^x]                 #<br>#
+    [T^x = ... /\ {a: U} /\ ...  ] #<br>#
+    [――――――――――――――――――――――――――] #<br>#
+    [exists t, ds, v = nu(T)ds      ] #<br>#
     [ds^x = ... /\ {a = t} /\ ...] #<br>#
     [G ⊢ t: U] *)
 Lemma val_mu_to_new: forall G v T U a x,

@@ -6,7 +6,7 @@
 
 Set Implicit Arguments.
 
-Require Import List.
+Require Import List Coq.Program.Equality.
 Require Import LibLN.
 Require Import Definitions Weakening Helper_lemmas.
 
@@ -521,20 +521,22 @@ Lemma subst_rules: forall p S,
     x \notin fv_ctx_types G1 ->
     G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
     G1 & (subst_ctx x p G2) ⊢ subst_trm x p t : subst_typ x p T) /\
-  (forall z bs P G d D, z; bs; P; G ⊢ d : D -> forall G1 G2 x p_x p_bs,
+  (forall z bs P G d D, z; bs; P; G ⊢ d : D -> forall G1 G2 x p_x p_bs sbs,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
     G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
     p = p_sel (avar_f p_x) p_bs ->
-    subst_var x p_x z; p_bs; P; G1 & (subst_ctx x p G2) ⊢ subst_def x p d : subst_dec x p D) /\
-  (forall z bs P G ds T, z; bs; P; G ⊢ ds :: T -> forall G1 G2 x p_x p_bs,
+    sbs = (If z = x then p_bs else bs) ->
+    subst_var x p_x z; sbs; P; G1 & (subst_ctx x p G2) ⊢ subst_def x p d : subst_dec x p D) /\
+  (forall z bs P G ds T, z; bs; P; G ⊢ ds :: T -> forall G1 G2 x p_x p_bs sbs,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
     x \notin fv_ctx_types G1 ->
     G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
     p = p_sel (avar_f p_x) p_bs ->
-    subst_var x p_x z; p_bs; P; G1 & (subst_ctx x p G2) ⊢ subst_defs x p ds :: subst_typ x p T) /\
+    sbs = (If z = x then p_bs else bs) ->
+    subst_var x p_x z; sbs; P; G1 & (subst_ctx x p G2) ⊢ subst_defs x p ds :: subst_typ x p T) /\
   (forall G T U, G ⊢ T <: U -> forall G1 G2 x,
     G = G1 & x ~ S & G2 ->
     ok (G1 & x ~ S & G2) ->
@@ -575,8 +577,7 @@ Proof.
 
   - Case "ty_new_elim".
     asserts_rewrite (subst_path x p p0 • a = (subst_path x p p0) • a).
-    destruct p0. apply sel_fields_subst.
-
+    destruct p0. apply sel_fields_subst. auto. Admitted. (*
   - Case "ty_rec_intro".
     constructor. rewrite <- subst_open_commut_typ_p. simpl in *. auto.
   - Case "ty_def_lambda".
@@ -598,14 +599,31 @@ Lemma subst_ty_trm: forall p S G x t T,
     G & x ~ S ⊢ t : T ->
     ok (G & x ~ S) ->
     x \notin fv_ctx_types G ->
+    lc_path p ->
     G ⊢ trm_path p : subst_typ x p S ->
     G ⊢ subst_trm x p t : subst_typ x p T.
 Proof.
-  intros.
-  apply (proj51 (subst_rules p S)) with (G1:=G) (G2:=empty) (x:=x) in H.
-  unfold subst_ctx in H. rewrite map_empty, concat_empty_r in H.
-  apply H. rewrite* concat_empty_r. rewrite* concat_empty_r. assumption.
+  introv Ht Hok Hx Hl Hp.
+  apply (proj41 (subst_rules S Hl)) with (G1:=G) (G2:=empty) (x:=x) in Ht.
+  unfold subst_ctx in Ht. rewrite map_empty, concat_empty_r in Ht.
+  apply Ht. rewrite* concat_empty_r. rewrite* concat_empty_r. assumption.
   unfold subst_ctx. rewrite map_empty, concat_empty_r. assumption.
+Qed.
+
+Lemma subst_ty_defs: forall z bs P G x S ds T p p_x p_bs sbs,
+    z; bs; P; G & x ~ S ⊢ ds :: T ->
+    p = p_sel (avar_f p_x) p_bs ->
+    ok (G & x ~ S) ->
+    x \notin fv_ctx_types G ->
+    G ⊢ trm_path p : subst_typ x p S ->
+    sbs = (If z = x then p_bs else bs) ->
+    subst_var x p_x z; sbs; P; G ⊢ subst_defs x p ds :: subst_typ x p T.
+Proof.
+  introv Hds Heq Hok Hx Hp Hsbs.
+  assert (lc_path p) as Hl by (destruct p, a; inversion* Heq). subst p.
+  eapply (proj43 (subst_rules S Hl)) with
+      (G1:=G) (G2:=empty) (x:=x) (p_x0:=p_x) (p_bs0:=p_bs) (sbs:=sbs) in Hds;
+    unfold subst_ctx in *; try rewrite map_empty in *; try rewrite concat_empty_r in *; auto.
 Qed.
 
 Lemma renaming_def: forall G z T ds x P,
@@ -617,10 +635,56 @@ Lemma renaming_def: forall G z T ds x P,
     x; nil; P; G ⊢ open_defs x ds :: open_typ x T.
 Proof.
   introv Hok Hnz Hnz' Hz Hx. rewrite open_var_typ_eq.
-  rewrite subst_intro_typ with (x:=z). rewrite open_var_defs_eq.
-  rewrite subst_intro_defs with (x:=z). Admitted. (*
-  eapply subst_ty_defs; auto. eapply Hz. rewrite* <- subst_intro_typ. all: auto.
-Qed.*)
+  assert (lc_path (pvar x)) as Hl by constructor*.
+  rewrite subst_intro_typ with (x:=z); auto. rewrite open_var_defs_eq.
+  rewrite subst_intro_defs with (x:=z); auto.
+  assert (x = subst_var z x z) as Hxz by (unfold subst_var; case_if*).
+  rewrite Hxz at 1. eapply subst_ty_defs; auto. eapply Hz. unfold pvar. eauto. rewrite <- subst_intro_typ; auto.
+  rewrite* <- open_var_typ_eq. case_if*.
+Qed.
+
+Lemma path_replacement: forall p S,
+  lc_path p ->
+  (forall G t T, G ⊢ t : T -> forall t' T' y,
+    t = open_trm_p p t' ->
+    T = open_typ_p p T' ->
+    G ⊢ trm_path p : open_typ_p p S ->
+    G ⊢ tvar y : open_typ y S ->
+    y \notin ((fv_trm t') \u (fv_typ T')) ->
+    G ⊢ open_trm y t' : open_typ y T') /\
+  (forall z bs P G d D, z; bs; P; G ⊢ d : D -> forall d' D' y,
+    d = open_def_p p d' ->
+    D = open_dec_p p D' ->
+    G ⊢ trm_path p : open_typ_p p S ->
+    G ⊢ tvar y : open_typ y S ->
+    y \notin ((fv_def d') \u (fv_dec D')) ->
+    y; nil; P; G ⊢ open_def y d' : open_dec y D') /\
+  (forall z bs P G ds T, z; bs; P; G ⊢ ds :: T -> forall ds' T' y,
+    ds = open_defs_p p ds' ->
+    T = open_typ_p p T' ->
+    G ⊢ trm_path p : open_typ_p p S ->
+    G ⊢ tvar y : open_typ y S ->
+    y \notin ((fv_defs ds') \u (fv_typ T')) ->
+    y; nil; P; G ⊢ open_defs y ds' :: open_typ y T') /\
+  (forall G T U, G ⊢ T <: U -> forall T' U' y,
+    T = open_typ_p p T' ->
+    U = open_typ_p p U' ->
+    G ⊢ trm_path p : open_typ_p p S ->
+    G ⊢ tvar y : open_typ y S ->
+    y \notin ((fv_typ T') \u (fv_typ U')) ->
+    G ⊢ open_typ y T' <: open_typ y U').
+Proof.
+  introv Hl. apply rules_mutind; intros; subst.
+  - destruct t'; inversions H.
+  - Case "ty_def_typ".
+    destruct D'; inversions H0. destruct d'; inversions H.
+    assert (t0 = t1). admit. assert (t0 = t3). admit. subst. constructor.
+
+
+
+  - destruct t'; inversions H. destruct p0. destruct p. simpls. admit.
+
+Qed.
 
 Lemma renaming_def': forall G z T ds x bs P,
     ok G ->
@@ -628,7 +692,14 @@ Lemma renaming_def': forall G z T ds x bs P,
     x \notin (fv_ctx_types G \u fv_defs ds \u fv_typ T) ->
     z; bs; P; G ⊢ open_defs_p (p_sel (avar_f z) bs) ds :: open_typ_p (p_sel (avar_f z) bs) T ->
     G ⊢ trm_path (p_sel (avar_f z) bs) : open_typ_p (p_sel (avar_f z) bs) T ->
-    x; nil; P; G & x ~ open_typ x T ⊢ open_defs x ds :: open_typ x T. Admitted.
+    x; nil; P; G & x ~ open_typ x T ⊢ open_defs x ds :: open_typ x T.
+Proof.
+  introv Hok Hx Hx' Hds Hp.
+  assert (lc_path (p_sel (avar_f z) bs)) as Hl by constructor*.
+  apply weaken_ty_defs with (G2:=x ~ open_typ x T) in Hds; auto.
+  apply weaken_ty_trm with (G2:= x ~ open_typ x T) in Hp; auto.
+  lets Hpr: (proj43 (path_replacement T Hl)). eapply Hpr in Hds; eauto.
+Qed.
 
 Lemma renaming_typ: forall G z T U t x,
     ok G ->

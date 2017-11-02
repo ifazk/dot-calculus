@@ -152,7 +152,7 @@ Definition paths := list fields.
 
 (** The sequence of variable-to-value let bindings, [(let x = v in)*],
      is represented as a value environment that maps variables to values: *)
-Definition sto := env val.
+Definition ec := env val.
 
 (** * Opening *)
 (** Opening takes a bound variable that is represented with a de Bruijn index [k]
@@ -291,100 +291,75 @@ Definition open_val_p  u v := open_rec_val_p   0 u v.
 Definition open_def_p  u d := open_rec_def_p   0 u d.
 Definition open_defs_p u l := open_rec_defs_p 0 u l.
 
+(** * Closing *)
+(** Closing replaces a variable [u] with a de Bruijn index [k]. *)
 
-(** * Local Closure
+(** Closing for variables *)
+Definition close_rec_avar k u a : avar :=
+  match a with
+  | avar_b i => avar_b i
+  | avar_f x => If x = u then avar_b k else avar_f x
+  end.
+Hint Unfold close_rec_avar.
 
-  Our definition of [trm] accepts terms that contain de Bruijn indices that are unbound.
-  A symbol [X] is considered locally closed, denoted [lc X], if all de Bruijn indices
-  in [X] are bound.
-   We will require a term to be locally closed in the final safety theorem. *)
+Definition close_rec_path k u p : path :=
+  match p with
+  | p_sel x bs => p_sel (close_rec_avar k u x) bs
+  end.
+Hint Unfold close_rec_path.
 
-(** Only named variables are locally closed. *)
-Inductive lc_var : avar -> Prop :=
-| lc_var_x : forall x,
-    lc_var (avar_f x).
+(** Closing for types and declarations *)
+Fixpoint close_rec_typ (k: nat) (u: var) (T: typ): typ :=
+  match T with
+  | typ_top        => typ_top
+  | typ_bot        => typ_bot
+  | typ_rcd D      => typ_rcd (close_rec_dec k u D)
+  | typ_and T1 T2  => typ_and (close_rec_typ k u T1) (close_rec_typ k u T2)
+  | typ_path p L    => typ_path (close_rec_path k u p) L
+  | typ_bnd T      => typ_bnd (close_rec_typ (S k) u T)
+  | typ_all T1 T2  => typ_all (close_rec_typ k u T1) (close_rec_typ (S k) u T2)
+  end
+with close_rec_dec (k: nat) (u: var) (D: dec): dec :=
+  match D with
+  | dec_typ L T U => dec_typ L (close_rec_typ k u T) (close_rec_typ k u U)
+  | dec_trm m T   => dec_trm m (close_rec_typ k u T)
+  end.
+Hint Unfold close_rec_typ close_rec_dec.
 
-Inductive lc_path : path -> Prop :=
-| lc_p: forall x bs,
-    lc_var x ->
-    lc_path (p_sel x bs).
+(** Closing for terms, values, and definitions *)
+Fixpoint close_rec_trm (k: nat) (u: var) (t: trm): trm :=
+  match t with
+  | trm_path p     => trm_path (close_rec_path k u p)
+  | trm_val v      => trm_val (close_rec_val k u v)
+  | trm_app f a    => trm_app (close_rec_path k u f) (close_rec_path k u a)
+  | trm_let t1 t2  => trm_let (close_rec_trm k u t1) (close_rec_trm (S k) u t2)
+  end
+with close_rec_val (k: nat) (u: var) (v: val): val :=
+  match v with
+  | val_new T ds   => val_new (close_rec_typ (S k) u T) (close_rec_defs (S k) u ds)
+  | val_lambda T e => val_lambda (close_rec_typ k u T) (close_rec_trm (S k) u e)
+  end
+with close_rec_def (k: nat) (u: var) (d: def): def :=
+  match d with
+  | def_typ L T => def_typ L (close_rec_typ k u T)
+  | def_trm m e => def_trm m (close_rec_trm k u e)
+  end
+with close_rec_defs (k: nat) (u: var) (ds: defs): defs :=
+  match ds with
+  | defs_nil       => defs_nil
+  | defs_cons tl d => defs_cons (close_rec_defs k u tl) (close_rec_def k u d)
+  end.
+Hint Unfold close_rec_trm close_rec_val close_rec_def close_rec_defs.
 
-(** Locally closed types and declarations. *)
-Inductive lc_typ : typ -> Prop :=
-| lc_typ_top : lc_typ typ_top
-| lc_typ_bot : lc_typ typ_bot
-| lc_typ_rcd : forall D,
-    lc_dec D ->
-    lc_typ (typ_rcd D)
-| lc_typ_and : forall T1 T2,
-    lc_typ T1 ->
-    lc_typ T2 ->
-    lc_typ (typ_and T1 T2)
-| lc_typ_path : forall p L,
-    lc_path p ->
-    lc_typ (typ_path p L)
-| lc_typ_bnd : forall T,
-    (forall x, lc_typ (open_typ x T)) ->
-    lc_typ (typ_bnd T)
-| lc_typ_all : forall T1 T2,
-    (forall x, lc_typ (open_typ x T2)) ->
-    lc_typ T1 ->
-    lc_typ (typ_all T1 T2)
-with lc_dec : dec -> Prop :=
-| lc_dec_typ : forall L T U,
-    lc_typ T ->
-    lc_typ U ->
-    lc_dec (dec_typ L T U)
-| lc_dec_trm : forall a T,
-    lc_typ T ->
-    lc_dec (dec_trm a T).
-
-(** Locally closed terms, values, and definitions. *)
-Inductive lc_trm : trm -> Prop :=
-| lc_trm_path : forall p,
-    lc_path p ->
-    lc_trm (trm_path p)
-| lc_trm_val : forall v,
-    lc_val v ->
-    lc_trm (trm_val v)
-| lc_trm_app : forall f p,
-    lc_path f ->
-    lc_path p ->
-    lc_trm (trm_app f p)
-| lc_trm_let : forall t1 t2,
-    lc_trm t1 ->
-    (forall x, lc_trm (open_trm x t2)) ->
-    lc_trm (trm_let t1 t2)
-with lc_val : val -> Prop :=
-| lc_val_new : forall T ds,
-    (forall x, lc_typ (open_typ x T)) ->
-    (forall x, lc_defs (open_defs x ds)) ->
-    lc_val (val_new T ds)
-| lc_val_lam : forall T t,
-    lc_typ T ->
-    (forall x, lc_trm (open_trm x t)) ->
-    lc_val (val_lambda T t)
-with lc_def : def -> Prop :=
-| lc_def_typ : forall L T,
-    lc_typ T ->
-    lc_def (def_typ L T)
-| lc_def_trm : forall a t,
-    lc_trm t ->
-    lc_def (def_trm a t)
-with lc_defs : defs -> Prop :=
-| lc_defs_nil : lc_defs defs_nil
-| lc_defs_cons : forall ds d,
-    lc_defs ds ->
-    lc_def d ->
-    lc_defs (defs_cons ds d).
-
-(** Locally closed stores *)
-Inductive lc_sto : sto -> Prop :=
-| lc_sto_empty : lc_sto empty
-| lc_sto_cons : forall x v s,
-    lc_sto s ->
-    lc_val v ->
-    lc_sto (s & x ~ v).
+Definition close_avar u a := close_rec_avar  0 u a.
+Definition close_path u p := close_rec_path  0 u p.
+Definition close_typ  u t := close_rec_typ   0 u t.
+Definition close_dec  u D := close_rec_dec   0 u D.
+Definition close_trm  u e := close_rec_trm   0 u e.
+Definition close_val  u v := close_rec_val   0 u v.
+Definition close_def  u d := close_rec_def   0 u d.
+Definition close_defs u l := close_rec_defs  0 u l.
+Hint Unfold close_avar close_path close_typ close_dec close_trm close_val close_def close_defs.
 
 (** * Free variables
       Functions that retrieve the free variables of a symbol. *)
@@ -445,6 +420,7 @@ with fv_defs(ds: defs) : vars :=
 
 (** Free variables in the range (types) of a context *)
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
+Definition fv_ec_vals(e: ec): vars := (fv_in_values (fun v => fv_val v) e).
 
 (** ** Record types *)
 (** In the proof, it is useful to be able to distinguish record types from
@@ -779,7 +755,7 @@ where "G '⊢' T '<:' U" := (subtyp G T U).
 
 Reserved Notation "G '~~' s" (at level 40).
 
-Inductive wf_sto: ctx -> sto -> Prop :=
+Inductive wf_sto: ctx -> ec -> Prop :=
 | wf_sto_empty: empty ~~ empty
 | wf_sto_push: forall G s x v T,
     G ~~ s ->
@@ -1199,9 +1175,7 @@ where "G '⊢##v' v ':' T" := (ty_val_inv G v T).
 Hint Constructors
      inert_typ inert record_has record_dec record_typ
      ty_trm ty_def ty_defs subtyp ty_trm_p
-     ty_trm_t subtyp_t ty_var_inv ty_val_inv
-     (*lc_var lc_typ lc_dec lc_trm lc_val
-     lc_dec lc_defs lc_sto*).
+     ty_trm_t subtyp_t ty_var_inv ty_val_inv.
 
 Hint Unfold record_type.
 
@@ -1266,7 +1240,7 @@ Ltac gather_vars :=
   let A := gather_vars_with (fun x : vars      => x         ) in
   let B := gather_vars_with (fun x : var       => \{ x }    ) in
   let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_ctx_types x)) in
-  let D := gather_vars_with (fun x : sto       => dom x     ) in
+  let D := gather_vars_with (fun x : ec        => dom x     ) in
   let E := gather_vars_with (fun x : avar      => fv_avar  x) in
   let F := gather_vars_with (fun x : trm       => fv_trm   x) in
   let G := gather_vars_with (fun x : val       => fv_val   x) in
@@ -1321,3 +1295,5 @@ Ltac destruct_all :=
   | [ H : ?A /\ ?B |- _ ] => destruct H
   | [ H : ?A \/ ?B |- _ ] => destruct H
   end.
+
+Ltac omega := Coq.omega.Omega.omega.
