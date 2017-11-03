@@ -11,7 +11,7 @@ Set Implicit Arguments.
 
 Require Import Coq.Program.Equality List.
 Require Import LibLN.
-Require Import Definitions Narrowing Helper_lemmas Precise_types Invertible_typing
+Require Import Definitions Narrowing Helper_lemmas PreciseTypes InvertibleTyping
         General_to_tight Substitution Weakening.
 
 (** [G ~~ s]            #<br>#
@@ -134,7 +134,7 @@ Qed.
 Lemma canonical_forms_fun: forall G s x T U,
   inert G ->
   G ~~ s ->
-  G ⊢ tvar x : typ_all T U ->
+  G ⊢ trm_path p : typ_all T U ->
   (exists L T' t, binds x (val_lambda T' t) s /\ G ⊢ T <: T' /\
   (forall y, y \notin L -> G & y ~ T ⊢ open_trm y t : open_typ y U)).
 Proof.

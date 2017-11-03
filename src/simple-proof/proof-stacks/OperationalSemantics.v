@@ -1,6 +1,6 @@
 Set Implicit Arguments.
 
-Require Import List Coq.Program.Equality.
+Require Import Coq.Program.Equality.
 Require Import LibLN.
 Require Import Definitions Binding.
 
@@ -14,11 +14,9 @@ This corresponds to an evaluation context of the form
 or value [v]. *)
 
 Inductive normal_form: trm -> Prop :=
-| nf_var: forall p, normal_form (trm_path p)
+| nf_var: forall x, normal_form (trm_var x)
 | nf_val: forall v, normal_form (trm_val v)
 | nf_let: forall v t, normal_form t -> normal_form (trm_let (trm_val v) t).
-
-Hint Constructors normal_form.
 
 (** * Operational Semantics
 
@@ -71,28 +69,33 @@ that can represent all evaluation contexts of this form. The proof represents th
 contexts by a list of pairs of variables and values.
 *)
 
+
 Reserved Notation "e '[' t1 '|->' t2 ']'" (at level 60, t1 at level 39).
 
 Inductive red : ec -> trm -> trm -> Prop :=
-
-(** [e(x) = lambda(T)t]     #<br>#
+(** [e(x) = lambda(T)t]    #<br>#
     [――――――――――――――――――――]  #<br>#
     [e[x y] |-> e[t^y] ]  *)
-| red_apply : forall e p q T t,
-    lc_trm (trm_app p q) ->
-    e ∋ (p, val_lambda T t) ->
-    e [ trm_app p q |-> open_trm_p q t ]
-
-(** [e[let x = p in t] |-> e[t^p]] *)
-| red_let_var : forall p t e,
-    lc_trm (trm_let (trm_path p) t) ->
-    e [ trm_let (trm_path p) t |-> open_trm_p p t ]
-
+| red_apply : forall x y e T t,
+    lc_trm (trm_app (avar_f x) (avar_f y)) ->
+    binds x (val_lambda T t) e ->
+    e [ trm_app (avar_f x) (avar_f y) |-> open_trm y t ]
+(** [e(x) = nu(T)...{a = t}...]  #<br>#
+    [―――――――――――――――――――――――――]  #<br>#
+    [e[x.a] |-> e[t]]  *)
+| red_project : forall x a e T ds t,
+    lc_trm (trm_sel (avar_f x) a) ->
+    binds x (val_new T ds) e ->
+    defs_has (open_defs x ds) (def_trm a t) ->
+    e [ trm_sel (avar_f x) a |-> t ]
+(** [e[let x = y in t] |-> e[t^y]] *)
+| red_let_var : forall y t e,
+    lc_trm (trm_let (trm_var (avar_f y)) t) ->
+    e [ trm_let (trm_var (avar_f y)) t |-> open_trm y t ]
 (** [e[let x = (let y = s in t) in u] |-> e[let y = s in let x = t in u]] *)
 | red_let_let : forall s t u e,
     lc_trm (trm_let (trm_let s t) u) ->
     e [ trm_let (trm_let s t) u |-> trm_let s (trm_let t u) ]
-
 (** [e[t] |-> e[t']]                            #<br>#
     [――――――――――――――――――――――――――――――――――――――――]  #<br>#
     [e[let x = t in u] |-> e[let x = t' in u]]     *)
@@ -100,7 +103,6 @@ Inductive red : ec -> trm -> trm -> Prop :=
     lc_trm (trm_let t u) ->
     e [ t |-> t' ] ->
     e [ trm_let t u |-> trm_let t' u ]
-
 (** [(e, x = v) [t] |-> (e, x = v) [t']]        #<br>#
     [――――――――――――――――――――――――――――――――――――――――]   #<br>#
     [e[let x = v in t] |-> e[let x = v in t']]   *)
@@ -109,9 +111,7 @@ Inductive red : ec -> trm -> trm -> Prop :=
     (forall x, x \notin L  ->
       (e & x ~ v) [ open_trm x t |-> open_trm x t' ]) ->
     e [ trm_let (trm_val v) t |-> trm_let (trm_val v) t' ]
-
 where "e [ t |-> t' ]" := (red e t t').
-
 Hint Constructors red normal_form.
 
 (** Reduction in an empty context *)
@@ -140,7 +140,7 @@ Proof with auto.
        end;
     try applys lc_at_to_open_trm_val_def_defs;
     eauto.
-Admitted. (*  - apply lc_defs_has in H1... inversion H1...
+  - apply lc_defs_has in H1... inversion H1...
     applys lc_at_to_open_trm_val_def_defs...
   - eapply lc_at_relaxing_trm_val_def_defs; try eassumption.
     omega.
@@ -149,7 +149,7 @@ Admitted. (*  - apply lc_defs_has in H1... inversion H1...
     assert (lc_ec (e & x ~ v)); auto.
     specialize (H1 x H3 H6).
     applys open_to_lc_at_trm_val_def_defs. eassumption.
-Qed.*)
+Qed.
 
 (** The next two lemmas show that if [t^x] is in normal form, then [t] is in normal form. *)
 Lemma open_rec_preserve_normal_form: forall k x t,
@@ -205,7 +205,7 @@ Qed.
     [(e1, x=v, e2)[t1] |-> (e1, x=v, e2)[t2]]                     #<br>#
     [―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――] #<br>#
     [(e1, y=v[y/x], e2)[t1[y/x]] |-> (e1, y=v[y/x], e2)[t2[y/x]]] *)
-(*Lemma eval_renaming_subst : forall x y e1 e2 v t1 t2,
+Lemma eval_renaming_subst : forall x y e1 e2 v t1 t2,
     x \notin dom e1 \u fv_ec_vals e1 \u dom e2 ->
     y \notin dom e1 \u fv_ec_vals e1
       \u dom e2 \u fv_ec_vals e2 \u fv_val v \u fv_trm t1 ->
@@ -306,4 +306,3 @@ Proof.
       rewrite? concat_assoc in H1.
       apply H1. auto.
 Qed.
- *)

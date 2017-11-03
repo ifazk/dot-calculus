@@ -13,8 +13,37 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import Narrowing.
-Require Import Helper_lemmas.
-Require Import Precise_types.
+Require Import Binding.
+Require Import PreciseTypes.
+
+(** * Conversion into General Typing *)
+
+(** Precise typing implies general typing. *)
+Lemma precise_to_general: forall G t T,
+    G ⊢! t : T ->
+    G ⊢ t : T.
+Proof.
+  intros. induction H; intros; subst; eauto.
+Qed.
+
+Lemma inv_to_tight: forall G p T,
+    G ⊢## p: T ->
+    G ⊢# trm_path p: T.
+Proof.
+  introv Ht. induction Ht; eauto. dependent induction H; eauto. constructor; auto.
+Qed.
+
+(** Tight typing implies general typing. *)
+Lemma tight_to_general:
+  (forall G t T,
+     G ⊢# t : T ->
+     G ⊢ t : T) /\
+  (forall G S U,
+     G ⊢# S <: U ->
+     G ⊢ S <: U).
+Proof.
+  apply ts_mutind_ts; intros; subst; eauto using precise_to_general.
+Qed.
 
 (** Invertible-to-precise typing for field declarations: #<br>#
     [G |-## x: {a: T}]            #<br>#

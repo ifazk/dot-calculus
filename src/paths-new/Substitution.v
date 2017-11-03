@@ -8,12 +8,12 @@ Set Implicit Arguments.
 
 Require Import List Coq.Program.Equality.
 Require Import LibLN.
-Require Import Definitions Weakening Helper_lemmas.
+Require Import Definitions Weakening Binding.
 
 (** * Definitions *)
 
 (** Substitution on variables: [a[u/z]] (substituting [z] with [u] in [a]). *)
-
+(*
 Definition subst_var (z: var) (u: var) (x: var): var :=
   If x = z then u else x.
 
@@ -441,7 +441,7 @@ Proof.
   intros x y l ds. unfold defs_hasnt. induction ds; introv Eq; auto.
   unfold get_def. simpl. rewrite <- subst_label_of_def.
   simpl in Eq. case_if~.
-Qed.
+Qed.*)
 
 Ltac subst_fresh_solver :=
   fresh_constructor;
@@ -643,64 +643,6 @@ Proof.
   rewrite* <- open_var_typ_eq. case_if*.
 Qed.
 
-Lemma path_replacement: forall p S,
-  lc_path p ->
-  (forall G t T, G ⊢ t : T -> forall t' T' y,
-    t = open_trm_p p t' ->
-    T = open_typ_p p T' ->
-    G ⊢ trm_path p : open_typ_p p S ->
-    G ⊢ tvar y : open_typ y S ->
-    y \notin ((fv_trm t') \u (fv_typ T')) ->
-    G ⊢ open_trm y t' : open_typ y T') /\
-  (forall z bs P G d D, z; bs; P; G ⊢ d : D -> forall d' D' y,
-    d = open_def_p p d' ->
-    D = open_dec_p p D' ->
-    G ⊢ trm_path p : open_typ_p p S ->
-    G ⊢ tvar y : open_typ y S ->
-    y \notin ((fv_def d') \u (fv_dec D')) ->
-    y; nil; P; G ⊢ open_def y d' : open_dec y D') /\
-  (forall z bs P G ds T, z; bs; P; G ⊢ ds :: T -> forall ds' T' y,
-    ds = open_defs_p p ds' ->
-    T = open_typ_p p T' ->
-    G ⊢ trm_path p : open_typ_p p S ->
-    G ⊢ tvar y : open_typ y S ->
-    y \notin ((fv_defs ds') \u (fv_typ T')) ->
-    y; nil; P; G ⊢ open_defs y ds' :: open_typ y T') /\
-  (forall G T U, G ⊢ T <: U -> forall T' U' y,
-    T = open_typ_p p T' ->
-    U = open_typ_p p U' ->
-    G ⊢ trm_path p : open_typ_p p S ->
-    G ⊢ tvar y : open_typ y S ->
-    y \notin ((fv_typ T') \u (fv_typ U')) ->
-    G ⊢ open_typ y T' <: open_typ y U').
-Proof.
-  introv Hl. apply rules_mutind; intros; subst.
-  - destruct t'; inversions H. admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - Case "ty_def_typ".
-    destruct D'; inversions H0. destruct d'; inversions H.
-    assert (t0 = t1). admit. assert (t0 = t3). admit. subst. constructor.
-  - Case "ty_def_all".
-    destruct d'; inversions H0. destruct D'; inversions H1. destruct t2; inversions H7. destruct v; inversions H1.
-    rename t1 into T. rename t2 into t. rename t4 into U. rename t3 into a.
-    unfold open_def, open_dec. simpl. constructor.
-  - Case "ty_def_new".
-  - Case "ty_def_path".
-
-
-
-  - destruct t'; inversions H. destruct p0. destruct p. simpls. admit.
-
-Qed.
-
 Lemma renaming_def': forall G z T ds x bs P,
     ok G ->
     x # G ->
@@ -712,9 +654,9 @@ Proof.
   introv Hok Hx Hx' Hds Hp.
   assert (lc_path (p_sel (avar_f z) bs)) as Hl by constructor*.
   apply weaken_ty_defs with (G2:=x ~ open_typ x T) in Hds; auto.
-  apply weaken_ty_trm with (G2:= x ~ open_typ x T) in Hp; auto.
+  apply weaken_ty_trm with (G2:= x ~ open_typ x T) in Hp; auto. Admitted. (*
   lets Hpr: (proj43 (path_replacement T Hl)). eapply Hpr in Hds; eauto.
-Qed.
+Qed.*)
 
 Lemma renaming_typ: forall G z T U t x,
     ok G ->

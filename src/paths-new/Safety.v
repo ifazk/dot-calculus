@@ -40,13 +40,14 @@ Lemma progress_ec: forall G' G e t T,
     lc_trm t ->
     G' ⪯ G ->
     inert G' ->
-    well_typed G' e ->
+    wf_sto G' e ->
     G ⊢ t: T ->
     ok G ->
     (normal_form t \/ exists t', e[t |-> t']).
 Proof with auto.
   introv Hlce Hlc Hsenv Hig Hwt Ht Hokg. gen G' e.
   induction Ht; eauto; intros.
+  - Case "ty_var". left. constructor.
   - Case "ty_all_elim".
     apply narrow_typing with (G':=G') in Ht1; auto.
     destruct (canonical_forms_fun Hig Hwt Ht1) as [L [T' [t [Bis [Hsub Hty]]]]].
