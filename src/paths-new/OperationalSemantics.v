@@ -70,34 +70,50 @@ contexts by a list of pairs of variables and values.
 *)
 
 
-Reserved Notation "e '[' t1 '|->' t2 ']'" (at level 60, t1 at level 39).
+Reserved Notation "e '∋' t" (at level 60).
 
-Inductive lookup : ec -> path -> val -> Prop :=
-| lookup_v : forall e x v,
+Inductive lookup : ec -> path * val -> Prop :=
+
+(** [e(x) = v  ]    #<br>#
+    [――――――――――]    #<br>#
+    [e ∋ (x, v)]    *)
+| lookup_ec : forall e x v,
     binds x v e ->
-    lookup e (pvar x) v
-| lookup_p : forall e x b bs T ds v,
-    lookup e (p_sel x bs) (val_new T ds) ->
-    lookup_val ec ds b v ->
-    lookup e (p_sel x (b :: bs)) v
+    e ∋ (pvar x, v)
 
-with lookup_val : ec -> defs -> label -> val :=
-(** ds = ... { b = ν(T)ds } ... *)
-| lookup_val_v : forall e ds b v,
-    get_def b ds = Some (def_trm b (trm_val v)) ->
-    lookup_val e ds b v
-(** ds = ... { b = x.a1...an } ... *)
-| lookup_val_p_f : forall b ds p x bs e v,,
-    get_def b ds = Some (def_trm b (trm_path p)) ->
-    p = p_sel (avar_f x) bs ->
-    lookup e p v ->
-    lookup_val e ds b v
-(** ds = ... { b = 0.a1...an } ... *)
-| lookup_val_p_n : forall,
-    get_def b ds = Some (def_trm b (trm_path p)) ->
-    p = p_sel (avar_b 0) bs ->
+(** [e ∋ (p, ν(T)...{ b = v }...)]    #<br>#
+    [――――――――――――――――――――――――――――]    #<br>#
+    [e ∋ (p.b, v)                ]    *)
+| lookup_val : forall e p b T ds v,
+    e ∋ (p, val_new T ds) ->
+    get_def (label_trm b) ds = Some (def_trm b (trm_val v)) ->
+    e ∋ (p•b, v)
 
+(** [e ∋ (p, ν(T)...{ b = x.bs }...)] #<br>#
+    [e ∋ (x.bs, v)                  ] #<br>#
+    [―――――――――――――――――――――――――――――――] #<br>#
+    [e ∋ (p.b, v)                   ] *)
+| lookup_x : forall e p T ds b x bs v,
+    e ∋ (p, val_new T ds) ->
+    get_def (label_trm b) ds = Some (def_trm b (trm_path (p_sel (avar_f x) bs))) ->
+    e ∋ (p_sel (avar_f x) bs, v) ->
+    e ∋ (p•b, v)
 
+(** [e ∋ (p, ν(T)...{ b = n.bs }...)] #<br>#
+    [e ∋ ((p drop n).bs, v)         ] #<br>#
+    [―――――――――――――――――――――――――――――――] #<br>#
+    [e ∋ (p.b, v)                   ] *)
+| lookup_n : forall e p T ds b x bs v cs n,
+    e ∋ (p, val_new T ds) ->
+    get_def (label_trm b) ds = Some (def_trm b (trm_path (p_sel (avar_b n) bs))) ->
+    p = p_sel x cs ->
+    (* `skipn n cs` removes the n last fields of the path, yielding the path to bs *)
+    e ∋ (p_sel x (bs ++ skipn n cs), v) ->
+    e ∋ (p•b, v)
+
+where "e '∋' t" := (lookup e t).
+
+Reserved Notation "e '[' t1 '|->' t2 ']'" (at level 60, t1 at level 39).
 
 Inductive red : ec -> trm -> trm -> Prop :=
 (** [e(x) = lambda(T)t]    #<br>#
