@@ -157,6 +157,12 @@ Inductive ty_val_inv : ctx -> sigma -> val -> typ -> Prop :=
   G @@ S ⊢##v v : U ->
   G @@ S ⊢##v v : typ_and T U
 
+| ty_loc_inv_v : forall G S v T U,
+  G @@ S ⊢##v v : typ_ref T ->
+  G @@ S ⊢# T <: U ->
+  G @@ S ⊢# U <: T ->
+  G @@ S ⊢##v v : typ_ref U
+
 (** [G @@ S ⊢##v v: T]   #<br>#
     [――――――――――――――] #<br>#
     [G @@ S ⊢##v v: top]     *)
@@ -222,6 +228,21 @@ Proof.
       assert (Hnarrow: G & y ~ T @@ S ⊢ open_typ y U' <: open_typ y T0).
       { eapply narrow_subtyping; auto using subenv_last. }
       eauto.
+Qed.
+
+Lemma invertible_to_precise_typ_ref: forall G S x T,
+  ok G ->
+  G @@ S ⊢## x : typ_ref T ->
+  exists T',
+    G @@ S ⊢! trm_var (avar_f x) : typ_ref T' /\
+    G @@ S ⊢# T <: T' /\
+    G @@ S ⊢# T' <: T.
+Proof.
+  introv HG Hinv.
+  dependent induction Hinv.
+  - exists T; auto.
+  - destruct (IHHinv _ HG eq_refl) as [?T [? [? ?]]].
+    exists T1; auto. split*.
 Qed.
 
 (** ** Invertible Subtyping Closure *)

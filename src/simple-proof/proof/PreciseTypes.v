@@ -83,19 +83,6 @@ Inductive ty_trm_p : ctx -> sigma -> trm -> typ -> Prop :=
 | ty_and2_p : forall G S x T U,
     G @@ S ⊢! trm_var (avar_f x) : typ_and T U ->
     G @@ S ⊢! trm_var (avar_f x) : U
-
-| ty_ref_intro : forall G S x T,
-    G @@ S ⊢! trm_var (avar_f x) : T ->
-    G @@ S ⊢! (trm_ref (avar_f x) T) : typ_ref T
-
-| ty_ref_elim : forall G S x T,
-    G @@ S ⊢! trm_var (avar_f x) : typ_ref T ->
-    G @@ S ⊢! trm_deref (avar_f x) : T
-
-| ty_asgn : forall G S x y T,
-    G @@ S ⊢! trm_var (avar_f x) : typ_ref T ->
-    G @@ S ⊢! trm_var (avar_f y) : T ->
-    G @@ S ⊢! trm_asg (avar_f x) (avar_f y) : T
 where "G '@@' S '⊢!' t ':' T" := (ty_trm_p G S t T).
 
 Hint Constructors ty_trm_p.
@@ -244,6 +231,8 @@ Ltac flow_contra :=
   | [ H: precise_flow _ _ (typ_all _ _) _ |- _ ] => apply precise_flow_all_inv in H; inversion* H
   | [ H: precise_flow _ _ (typ_ref _) (typ_ref _) |- _ ] => idtac
   | [ H: precise_flow _ _ (typ_ref _) _ |- _ ] => apply precise_flow_ref_inv in H; inversion* H
+  | [ H: precise_flow _ _ (typ_bnd _) (typ_all _ _) |- _ ] => apply precise_flow_all_inv in H; inversion* H
+  | [ H: precise_flow _ _ (typ_bnd _) (typ_ref _) |- _ ] => apply precise_flow_ref_inv in H; inversion* H
   | _ => idtac
   end.
 
@@ -328,6 +317,31 @@ Proof.
   introv Hgd Htyp.
   destruct (precise_flow_lemma Htyp) as [V Pf].
   pose proof (pf_inert_lambda_U Hgd Pf) as H. subst.
+  apply* pf_binds.
+Qed.
+
+Lemma pf_inert_ref_U : forall x G T U,
+    inert G ->
+    precise_flow x G U (typ_ref T) ->
+    U = typ_ref T.
+Proof.
+  introv Hi Pf.
+  lets Hiu: (pf_inert_T Hi Pf).
+  inversions Hiu; flow_contra.
+  - destruct (pf_inert_or_rcd Hi Pf); try congruence.
+    inversion H0.
+    inversion H1.
+  - apply precise_flow_ref_inv in Pf; congruence.
+Qed.
+
+Lemma inert_precise_ref_inv : forall x G S T,
+    inert G ->
+    G @@ S ⊢! trm_var (avar_f x) : typ_ref T ->
+    binds x (typ_ref T) G.
+Proof.
+  introv Hgd Htyp.
+  destruct (precise_flow_lemma Htyp) as [U Pf].
+  pose proof (pf_inert_ref_U Hgd Pf) as H. subst.
   apply* pf_binds.
 Qed.
 

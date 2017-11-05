@@ -10,8 +10,7 @@
 
 Set Implicit Arguments.
 
-Require LibMap.
-Require Import LibLN.
+Require Import LibMap LibLN.
 Require Import String.
 
 Parameter typ_label: Set.
@@ -579,6 +578,11 @@ with subtyp : ctx -> sigma -> typ -> typ -> Prop :=
     (forall x, x \notin L ->
        G & x ~ T2 @@ S ⊢ open_typ x U1 <: open_typ x U2) ->
     G @@ S ⊢ typ_all T1 U1 <: typ_all T2 U2
+
+| subtyp_ref: forall G S T U,
+    G @@ S ⊢ T <: U ->
+    G @@ S ⊢ U <: T ->
+    G @@ S ⊢ (typ_ref T) <: (typ_ref U)
 where "G '@@' S '⊢' T '<:' U" := (subtyp G S T U).
 
 (** * Well-typed Evaluation Contexts *)
@@ -599,26 +603,34 @@ Inductive well_typed: ctx -> sigma -> ec -> Prop :=
     x # G ->
     x # e ->
     G @@ S ⊢ trm_val v : T ->
-    well_typed (G & x ~ T) S (e & x ~ v).
-
-(** * Well-typed Stacks *)
-Inductive wt_stack: ctx -> sigma -> ec -> Prop :=
-| wt_stack_empty: wt_stack empty empty empty
-| wt_stack_push: forall G S e x T v,
-    wt_stack G S e ->
-    x # G ->
-    x # e ->
-    G @@ S ⊢ trm_val v : T ->
-    wt_stack (G & x ~ T) S (e & x ~ v)
-| wf_store_push: forall G S l T e,
-    wt_stack G S e ->
+    well_typed (G & x ~ T) S (e & x ~ v)
+| well_typed_store_push: forall G S l T e,
+    well_typed G S e ->
     l # S ->
-    wt_stack G (S & l ~ T) e.
+    well_typed G (S & l ~ T) e.
+
+(** * Well-typed Stores *)
+Inductive wt_store: ctx -> sigma -> store -> Prop :=
+| wt_store_empty: wt_store empty empty emptyM
+| wt_store_update: forall G S sto l x T,
+    wt_store G S sto ->
+    binds l T S ->
+    G @@ S ⊢ (trm_var (avar_f x)) : T ->
+    wt_store G S sto[l := x]
+| wt_store_new: forall G S sto l x T,
+    wt_store G S sto ->
+    l # S ->
+    G @@ S ⊢ (trm_var (avar_f x)) : T ->
+    wt_store G (S & l ~ T) sto[l := x]
+| wt_stack_push: forall G S x T sto,
+    wt_store G S sto ->
+    x # G ->
+    wt_store (G & x ~ T) S sto.
 
 (** * Infrastructure *)
 
 Hint Constructors
-     wt_stack well_typed
+     wt_store well_typed
      ty_trm ty_def ty_defs subtyp.
 
 (** ** Mutual Induction Principles *)

@@ -10,7 +10,7 @@
 Set Implicit Arguments.
 
 Require Import Coq.Program.Equality.
-Require Import LibLN.
+Require Import LibMap LibLN.
 Require Import Definitions.
 Require Import RecordAndInertTypes.
 Require Import SubEnvironments.
@@ -43,6 +43,25 @@ Proof.
 Qed.
 Hint Resolve well_typed_to_ok_G.
 
+Lemma well_typed_to_ok_S: forall G S e,
+    well_typed G S e -> ok S.
+Proof.
+  introv H. induction H; jauto.
+Qed.
+Hint Resolve well_typed_to_ok_S.
+
+Lemma wt_store_to_ok_S : forall G S s,
+    wt_store G S s -> ok S.
+  introv H. induction H; jauto.
+Qed.
+Hint Resolve wt_store_to_ok_S.
+
+Lemma wt_store_to_ok_G : forall G S s,
+    wt_store G S s -> ok G.
+  introv H. induction H; jauto.
+Qed.
+Hint Resolve wt_store_to_ok_G.
+
 (** [e: G]              #<br>#
     [G(x) = T]          #<br>#
     [―――――――――――――]     #<br>#
@@ -64,6 +83,9 @@ Proof.
       specialize (IHHwt BiG) as [v' [Bis Ht]].
       exists v'. repeat split~. apply~ weaken_ty_trm.
       apply* ok_push.
+  - destruct (IHHwt BiG) as [v [? ?]]. exists v; split~.
+    apply~ weaken_ty_trm_sigma; auto.
+    apply* ok_push.
 Qed.
 
 (** [G @@ S ⊢##v v: forall(S)T]                 #<br>#
@@ -286,12 +308,12 @@ Qed.
 
 (** * Canonical Forms for Objects
 
-    [inert G]            #<br>#
-    [e: G]               #<br>#
-    [G @@ S ⊢ x: {a:T}]       #<br>#
-    [――――――――――――――――――] #<br>#
-    [exists S, ds, t,] #<br>#
-    [e(x) = nu(S)ds] #<br>#
+    [inert G]                    #<br>#
+    [e: G]                       #<br>#
+    [G @@ S ⊢ x: {a:T}]          #<br>#
+    [――――――――――――――――――――――――――] #<br>#
+    [exists S, ds, t,]                #<br>#
+    [e(x) = nu(S)ds]             #<br>#
     [ds^x = ... /\ {a = t} /\ ...] #<br>#
     [G @@ S ⊢ t: T] *)
 Lemma canonical_forms_obj: forall G S e x a T,
@@ -306,4 +328,147 @@ Proof.
   apply ty_var with (S:=S) in Bi. apply ty_rec_elim in Bi.
   destruct (val_mu_to_new Hi Ht Bi Hr) as [t [ds [Heq [Hdefs Ht']]]].
   subst. exists S' ds t. repeat split~. eapply ty_sub; eauto.
+Qed.
+
+(** * Canonical Forms for References
+
+    [inert G]            #<br>#
+    [e: G @@ S]          #<br>#
+    [G @@ S ⊢ x: {a:T}]  #<br>#
+    [――――――――――――――――――] #<br>#
+    [exists S, ds, t,] #<br>#
+    [e(x) = nu(S)ds] #<br>#
+    [ds^x = ... /\ {a = t} /\ ...] #<br>#
+    [G @@ S ⊢ t: T] *)
+
+Notation "'$' x" := (trm_var (avar_f x)) (at level 40).
+
+(*
+Lemma var_typ_ref_to_binds: forall G S x T,
+    inert G ->
+    G @@ S ⊢ trm_var (avar_f x) : typ_ref T ->
+        binds x (typ_ref T) G.
+Proof.
+  introv Hin Ht.
+  lets Htt: (general_to_tight_typing Hin Ht).
+  lets Hinv: (tight_to_invertible Hin Htt).
+  destruct (invertible_to_precise_typ_ref (inert_ok Hin) Hinv) as [T' [Htp [Hs1 Hs2]]].
+  exists T'. split.
+*)
+
+Lemma var_typ_ref_to_binds: forall G S x T,
+    inert G ->
+    G @@ S ⊢ trm_var (avar_f x) : typ_ref T ->
+    (exists T',
+        binds x (typ_ref T') G /\
+        G @@ S ⊢ T <: T' /\
+        G @@ S ⊢ T' <: T).
+Proof.
+  introv Hin Ht.
+  lets Htt: (general_to_tight_typing Hin Ht).
+  lets Hinv: (tight_to_invertible Hin Htt).
+  destruct (invertible_to_precise_typ_ref (inert_ok Hin) Hinv) as [T' [Htp [Hs1 Hs2]]].
+  exists T'. split.
+  - apply* inert_precise_ref_inv.
+  - split; apply~ tight_to_general.
+Qed.
+
+Lemma sigma_binds_to_store_binds_typing: forall sto G S l T,
+  wt_store G S sto ->
+  binds l T S ->
+  exists x, bindsM l x sto /\ G @@ S ⊢ (trm_var (avar_f x)) : T.
+Proof.
+  introv Hwt. gen l T.
+  induction Hwt; introv Bi.
+  - false* binds_empty_inv.
+  - pose proof (IHHwt _ _ Bi) as [?x [HBi Hty]]; clear IHHwt.
+    lets Hdec: (classicT (l = l0)). destruct Hdec as [Hdec | Hdec].
+    + subst l0. exists x. split.
+      * apply binds_update_eq.
+      * rewrite (binds_func Bi H); auto.
+    + exists x0. split.
+      * apply binds_update_neq; auto.
+      * auto.
+  - lets OkS: (wt_store_to_ok_S Hwt).
+    lets Hdec: (classicT (l = l0)). destruct Hdec as [Hdec | Hdec].
+    + subst l0. exists x. split.
+      * apply binds_update_eq.
+      * rewrite (binds_push_eq_inv Bi); auto using weaken_ty_trm_sigma.
+    + apply not_eq_sym in Hdec.
+      pose proof (binds_push_neq_inv Bi Hdec).
+      pose proof (IHHwt _ _ H1) as [?x [HBi Hty]]; clear IHHwt.
+      exists x0. split.
+      * apply binds_update_neq; auto.
+      * auto using weaken_ty_trm_sigma.
+  - pose proof (IHHwt _ _ Bi) as [?x [HBi Hty]].
+    exists x0. split; auto.
+    lets OkG: (wt_store_to_ok_G Hwt).
+    apply weaken_ty_trm; auto.
+Qed.
+
+Lemma ref_binds_typ: forall G S l T,
+  G @@ S ⊢! trm_val (val_loc l) : typ_ref T ->
+  binds l T S.
+Proof.
+  introv Hty.
+  inversion Hty; assumption.
+Qed.
+
+Lemma invertible_val_to_precise_ref: forall G S v T,
+    inert G ->
+    G @@ S ⊢##v v : typ_ref T ->
+    exists T',
+      G @@ S ⊢! trm_val v : typ_ref T' /\
+      G @@ S ⊢# T <: T' /\
+      G @@ S ⊢# T' <: T.
+Proof.
+  introv Hin Ht. dependent induction Ht.
+  - exists T; auto.
+  - pose proof (IHHt _ Hin eq_refl) as [T' [? [? ?]]].
+    exists T'. eauto.
+Qed.
+
+Lemma val_typ_ref_to_loc: forall G S v T,
+    inert G ->
+    G @@ S ⊢ trm_val v : typ_ref T ->
+    exists l T',
+      v = val_loc l /\
+      binds l T' S /\
+      G @@ S ⊢# T <: T' /\ G @@ S ⊢# T' <: T.
+Proof.
+  introv Hin Ht.
+  lets Htt: (general_to_tight_typing Hin Ht).
+  lets Hinv: (tight_to_invertible_v Hin Htt).
+  pose proof (invertible_val_to_precise_ref Hin Hinv) as [T' [Htp ?]].
+  inversions Htp.
+  exists l T'. auto.
+Qed.
+
+Lemma canonical_forms_ref: forall G S e s x T,
+  inert G ->
+  well_typed G S e ->
+  wt_store G S s ->
+  G @@ S ⊢ trm_var (avar_f x) : typ_ref T ->
+  (exists l y, binds x (val_loc l) e /\
+          (G @@ S ⊢ (trm_val (val_loc l)) : (typ_ref T)) /\
+          bindsM l y s /\
+          (G @@ S ⊢ (trm_var (avar_f y)) : T)).
+Proof.
+  introv Hi Hwt Hws Hty.
+  destruct (var_typ_ref_to_binds Hi Hty) as [T' [Bi [Hr Hs]]].
+  destruct (corresponding_types Hwt Bi) as [v [Bis Ht]].
+  pose proof (val_typ_ref_to_loc Hi Ht) as [l [?T [Hv [HBi [Hs1 Hs2]]]]].
+  pose proof (sigma_binds_to_store_binds_typing Hws HBi) as [?x [? ?]].
+  exists l x0.
+  split.
+  - rewrite <- Hv. auto.
+  - split.
+    + eapply ty_sub.
+      * rewrite <- Hv. apply Ht.
+      * eapply subtyp_ref; auto.
+    + split; auto. eapply ty_sub; try eassumption.
+      apply tight_to_general in Hs2.
+      eapply subtyp_trans.
+      * eapply Hs2.
+      * eauto.
 Qed.

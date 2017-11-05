@@ -71,12 +71,44 @@ Proof.
     end.
 Qed.
 
+Lemma weaken_rules_sigma:
+  (forall G S t T, G @@ S ⊢ t : T -> forall S1 S2 S3,
+    S = S1 & S3 ->
+    ok (S1 & S2 & S3) ->
+    G @@ (S1 & S2 & S3) ⊢ t : T) /\
+  (forall G S d D, G @@ S /- d : D -> forall S1 S2 S3,
+    S = S1 & S3 ->
+    ok (S1 & S2 & S3) ->
+    G @@ (S1 & S2 & S3) /- d : D) /\
+  (forall G S ds T, G @@ S /- ds :: T -> forall S1 S2 S3,
+    S = S1 & S3 ->
+    ok (S1 & S2 & S3) ->
+    G @@ (S1 & S2 & S3) /- ds :: T) /\
+  (forall G S T U, G @@ S ⊢ T <: U -> forall S1 S2 S3,
+    S = S1 & S3 ->
+    ok (S1 & S2 & S3) ->
+    G @@ (S1 & S2 & S3) ⊢ T <: U).
+Proof.
+  apply rules_mutind; try solve [eauto].
+  intros. subst.
+  eapply ty_loc. eapply binds_weaken; eauto.
+Qed.
+
 Ltac weaken_specialize :=
   intros;
   match goal with
   | [ Hok: ok (?G1 & ?G2) |- _ ] =>
     assert (G1 & G2 = G1 & G2 & empty) as EqG by rewrite~ concat_empty_r;
     rewrite EqG; apply~ weaken_rules;
+    (rewrite concat_empty_r || rewrite <- EqG); assumption
+  end.
+
+Ltac weaken_specialize_sigma :=
+  intros;
+  match goal with
+  | [ Hok: ok (?G1 & ?G2) |- _ ] =>
+    assert (G1 & G2 = G1 & G2 & empty) as EqG by rewrite~ concat_empty_r;
+    rewrite EqG; apply~ weaken_rules_sigma;
     (rewrite concat_empty_r || rewrite <- EqG); assumption
   end.
 
@@ -89,6 +121,14 @@ Proof.
   weaken_specialize.
 Qed.
 
+Lemma weaken_ty_trm_sigma: forall G S1 S2 t T,
+  G @@ S1 ⊢ t : T ->
+  ok (S1 & S2) ->
+  G @@ (S1 & S2) ⊢ t : T.
+Proof.
+  weaken_specialize_sigma.
+Qed.
+
 (** Weakening lemma specialized to subtyping. *)
 Lemma weaken_subtyp: forall G1 G2 S T U,
   G1 @@ S ⊢ T <: U ->
@@ -96,4 +136,12 @@ Lemma weaken_subtyp: forall G1 G2 S T U,
   G1 & G2 @@ S ⊢ T <: U.
 Proof.
   weaken_specialize.
+Qed.
+
+Lemma weaken_subtyp_sigma: forall G S1 S2 T U,
+  G @@ S1 ⊢ T <: U ->
+  ok (S1 & S2) ->
+  G @@ (S1 & S2) ⊢ T <: U.
+Proof.
+  weaken_specialize_sigma.
 Qed.

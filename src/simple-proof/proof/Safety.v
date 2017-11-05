@@ -53,16 +53,16 @@ Proof with auto.
     right. repeat eexists. apply* red_apply.
   - Case "ty_new_elim".
     apply narrow_typing with (G':=G') in Ht; auto.
-    destruct (canonical_forms_obj Hig Hwt Ht) as [S [ds [t [Bis [Has Ty]]]]].
+    destruct (canonical_forms_obj Hig Hwt Ht) as [S' [ds [t [Bis [Has Ty]]]]].
     right. repeat eexists. apply* red_project.
   - Case "ty_let".
     destruct t.
     + SCase "t = trm_var a".
       apply narrow_typing with (G':=G') in Ht; auto.
       right.
-      assert (var_typing_implies_avar_f: forall G a T, G ⊢ trm_var a : T -> exists x, a = avar_f x)
+      assert (var_typing_implies_avar_f: forall G S a T, G @@ S ⊢ trm_var a : T -> exists x, a = avar_f x)
         by (introv HGat; dependent induction HGat; eauto).
-      destruct (var_typing_implies_avar_f _ _ _ Ht); subst.
+      destruct (var_typing_implies_avar_f _ _ _ _ Ht); subst.
       exists (open_trm x u). constructor...
     + SCase "t = trm_val v".
       apply val_typing in Ht.
@@ -127,6 +127,7 @@ Proof with auto.
       eexists. constructor*.
     + SCase "t = trm_let t1 t2".
       right. eexists. constructor. inversion Hlc. trivial.
+    + SCase "t = trm_letref a t".
 Qed.
 
 (** ** Progress Theorem

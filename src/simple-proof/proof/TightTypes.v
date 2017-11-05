@@ -211,6 +211,11 @@ with subtyp_t : ctx -> sigma -> typ -> typ -> Prop :=
     (forall x, x \notin L ->
        G & x ~ S2 @@ S ⊢ open_typ x T1 <: open_typ x T2) ->
     G @@ S ⊢# typ_all S1 T1 <: typ_all S2 T2
+
+| subtyp_ref_t: forall G S T U,
+    G @@ S ⊢# T <: U ->
+    G @@ S ⊢# U <: T ->
+    G @@ S ⊢# (typ_ref T) <: (typ_ref U)
 where "G '@@' S '⊢#' T '<:' U" := (subtyp_t G S T U).
 
 Hint Constructors ty_trm_t subtyp_t.
