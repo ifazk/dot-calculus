@@ -43,6 +43,13 @@ Proof.
 Qed.
 Hint Resolve well_typed_to_ok_G.
 
+Lemma well_typed_notin_dom: forall G e x,
+    well_typed G e ->
+    x # e -> x # G.
+Proof.
+  intros. induction H; auto.
+Qed.
+
 (** [e: G]              #<br>#
     [G(x) = T]          #<br>#
     [―――――――――――――]     #<br>#

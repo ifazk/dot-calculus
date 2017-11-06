@@ -128,15 +128,10 @@ Definition defs_hasnt(ds: defs)(l: label) := get_def l ds = None.
 (** Typing environment ([G]) *)
 Definition ctx := env typ.
 
-(** A stack, represented as the sequence of variable-to-value
-    let bindings, [(let x = v in)*], that is represented as a value environment
-    which maps variables to values.
-    The operational semantics will be defined in terms of pairs [(s, t)] where
-    [s] is a stack and [t] is a term.
-    For example, the term [let x1 = v1 in let x2 = v2 in t] is represented as
-    [({(x1 = v1), (x2 = v2)}, t)].
-    *)
-Definition sta := env val.
+(** An evaluation context, represented as the sequence of variable-to-value
+     let bindings, [(let x = v in)*], that is represented as a value environment
+     which maps variables to values: *)
+Definition ec := env val.
 
 (** * Opening *)
 (** Opening takes a bound variable that is represented with a de Bruijn index [k]
@@ -320,7 +315,7 @@ with fv_defs(ds: defs) : vars :=
 
 (** Free variables in the range (types) of a context *)
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
-Definition fv_sta_vals(s: sta): vars := (fv_in_values (fun v => fv_val v) s).
+Definition fv_ec_vals(e: ec): vars := (fv_in_values (fun v => fv_val v) e).
 
 (** * Typing Rules *)
 
@@ -535,28 +530,26 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     G ⊢ typ_all S1 T1 <: typ_all S2 T2
 where "G '⊢' T '<:' U" := (subtyp G T U).
 
-(** * Well-typed stacks *)
+(** * Well-typed Evaluation Contexts *)
 
-(** The operational semantics is defined in terms of pairs [(s, t)], where
-    [s] is a stack and [t] is a term.
-    Given a typing [G ⊢ (s, t): T], [well_typed] establishes a correspondence
-    between [G] and the stack [s].
+(** Given a typing [G ⊢ e[t]: T], [well_typed] establishes a correspondence
+    between [G] and the evaluation context [e].
 
-    We say that [s] is well-typed with respect to [G] if
+    We say that [e] is well-typed with respect to [G] if
     - [G = {(xi mapsto Ti) | i = 1, ..., n}]
-    - [s = {(xi mapsto vi) | i = 1, ..., n}]
+    - [e = {(xi mapsto vi) | i = 1, ..., n}]
     - [G ⊢ vi: Ti].
 
-    We say that [e] is well-typed with respect to [G], denoted as [s: G]. *)
+    We say that [e] is well-typed with respect to [G], denoted as [e: G]. *)
 
-Inductive well_typed: ctx -> sta -> Prop :=
+Inductive well_typed: ctx -> ec -> Prop :=
 | well_typed_empty: well_typed empty empty
-| well_typed_push: forall G s x T v,
-    well_typed G s ->
+| well_typed_push: forall G e x T v,
+    well_typed G e ->
     x # G ->
-    x # s ->
+    x # e ->
     G ⊢ trm_val v : T ->
-    well_typed (G & x ~ T) (s & x ~ v).
+    well_typed (G & x ~ T) (e & x ~ v).
 
 (** * Infrastructure *)
 
@@ -595,7 +588,7 @@ Ltac gather_vars :=
   let A := gather_vars_with (fun x : vars      => x         ) in
   let B := gather_vars_with (fun x : var       => \{ x }    ) in
   let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_ctx_types x)) in
-  let D := gather_vars_with (fun x : sta       => dom x \u fv_sta_vals x) in
+  let D := gather_vars_with (fun x : ec        => dom x \u fv_ec_vals x) in
   let E := gather_vars_with (fun x : avar      => fv_avar  x) in
   let F := gather_vars_with (fun x : trm       => fv_trm   x) in
   let G := gather_vars_with (fun x : val       => fv_val   x) in

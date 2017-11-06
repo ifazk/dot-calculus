@@ -321,14 +321,14 @@ with   lc_at_dec_mut := Induction for lc_at_dec Sort Prop.
 Combined Scheme lc_at_typ_mutind from lc_at_typ_mut, lc_at_dec_mut.
 
 
-(** Locally closed stacks *)
-Inductive lc_sta : sta -> Prop :=
-| lc_sta_empty : lc_sta empty
-| lc_sta_cons : forall x v s,
-    lc_sta s ->
+(** Locally closed evaluation contexts *)
+Inductive lc_ec : ec -> Prop :=
+| lc_ec_empty : lc_ec empty
+| lc_ec_cons : forall x v e,
+    lc_ec e ->
     lc_val v ->
-    lc_sta (s & x ~ v).
-Hint Constructors lc_sta.
+    lc_ec (e & x ~ v).
+Hint Constructors lc_ec.
 
 (** ** Local Closure Lemmas *)
 
@@ -570,12 +570,12 @@ Proof.
   intros. eapply lc_at_opening_trm_val_def_defs; try eassumption; try omega.
 Qed.
 
-(** When a binding is removed from a locally stack, the
+(** When a binding is removed from a locally closed evaluation context, the
     resulting evaluation context and the value in the binding are both
     locally closed. *)
-Lemma lc_sta_push_inv : forall s x v,
-    lc_sta (s & x ~ v) ->
-    lc_sta s /\ lc_val v.
+Lemma lc_ec_push_inv : forall s x v,
+    lc_ec (s & x ~ v) ->
+    lc_ec s /\ lc_val v.
 Proof.
   intros s x v H.
   inversion H.
@@ -584,21 +584,21 @@ Proof.
     auto.
 Qed.
 
-(*
+
 (** Values in a locally closed evaluation context are also locally closed. *)
-Lemma lc_sta_binds_inv : forall s x v,
-    lc_sta s->
-    binds x v s ->
+Lemma lc_ec_binds_inv : forall e x v,
+    lc_ec e ->
+    binds x v e ->
     lc_val v.
 Proof.
   intros.
   induction e using env_ind.
   - destruct (binds_empty_inv H0).
   - destruct (binds_push_inv H0) as [[? ?] | [? ?]]; subst.
-    + apply (lc_sta_push_inv H).
+    + apply (lc_ec_push_inv H).
     + apply IHe; auto.
-      apply (lc_sta_push_inv H).
-Qed.*)
+      apply (lc_ec_push_inv H).
+Qed.
 
 
 (** A definition in a locally closed list of definitions is also
@@ -672,17 +672,17 @@ Proof.
   unfold fv_ctx_types, fv_in_values; rewrite values_def.
   rewrite union_comm. reflexivity.
 Qed.
-(*
+
 (** [fv(e, x = v) = fv(e) ∪ fv(v)] *)
 Lemma fv_ec_vals_push_eq : forall e x v,
-    fvsta_vals (e & x ~ v) = fv_ec_vals e \u fv_val v.
+    fv_ec_vals (e & x ~ v) = fv_ec_vals e \u fv_val v.
 Proof.
   intros.
   rewrite concat_def, single_def.
   unfold fv_ec_vals, fv_in_values; rewrite values_def.
   rewrite union_comm. reflexivity.
-Qed.*)
-(*
+Qed.
+
 (** [e(y) = v]       #<br>#
     [x \notin fv(e)] #<br>#
     [――――――――――――――] #<br>#
@@ -694,7 +694,7 @@ Lemma binds_fv_ec_vals : forall x y v e,
 Proof.
   intros. unfold fv_ec_vals in H0.
   eapply fv_in_values_binds; eauto.
-Qed.*)
+Qed.
 
 (** * Variable Substitution Lemmas *)
 
@@ -985,44 +985,4 @@ Proof.
     simpls; case_if; destruct d; simpls; case_if; auto.
     subst; inversion H0.
     rewrite subst_open_commut_trm. unfold subst_fvar. case_if; auto.
-Qed.
-
-Lemma var_typing_implies_avar_f: forall G a T,
-    G ⊢ trm_var a : T ->
-    exists x, a = avar_f x.
-Proof.
-  introv H; dependent induction H; eauto.
-Qed.
-
-Lemma fv_ctx_types_concat_eq : forall G1 G2,
-    fv_ctx_types (G1 & G2) = fv_ctx_types G1 \u fv_ctx_types G2.
-Proof.
-  intros G1 G2. induction G2 using env_ind.
-  - unfold fv_ctx_types, fv_in_values; rewrite values_def.
-    rewrite concat_empty_r, empty_def, union_empty_r; reflexivity.
-  - rewrite concat_assoc. rewrite fv_ctx_types_push_eq.
-    rewrite IHG2. rewrite <- union_assoc. f_equal.
-    symmetry. apply fv_ctx_types_push_eq.
-Qed.
-
-Lemma notin_fv_ctx_concat : forall x G2 G1,
-    x \notin fv_ctx_types (G1 & G2) <->
-    x \notin fv_ctx_types G1 /\ x \notin fv_ctx_types G2.
-Proof.
-  intros. rewrite <- notin_union.
-  rewrite <- fv_ctx_types_concat_eq.
-  split; intros; assumption.
-Qed.
-
-(** [x \notin fv(T)]           #<br>#
-    [x \notin fv(G)]       #<br>#
-    [―――――――――――――――――――――――] #<br>#
-    [x \notin fv(G, z: T)] *)
-Lemma fv_ctx_types_push: forall x z T G,
-    x \notin fv_typ T ->
-    x \notin fv_ctx_types G ->
-    x \notin fv_ctx_types (G & z ~ T).
-Proof.
-  intros. rewrite fv_ctx_types_push_eq.
-  apply notin_union. split~.
 Qed.
