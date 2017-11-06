@@ -13,7 +13,7 @@ The documentation can be accessed from the [table of contents](https://amaurremi
 The Coq proof is split up into the following modules:
   * [Definitions.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/Definitions.html): The main inductive definitions and functions that are used in the proof. Defines the abstract syntax and type system.
   * [Binding.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/Binding.html): Proves helper lemmas related to opening, closing, and local closure.
-  * [SubEnvironments.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/SubEnvironments.v): Defines and proves lemmas related to subenvironments.
+  * [SubEnvironments.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/SubEnvironments.html): Defines and proves lemmas related to subenvironments.
   * [Weakening.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/Weakening.html): Proves the Weakening Lemma.
   * [RecordAndInertTypes.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/RecordAndInertTypes.html): Defines and proves lemmas related to record and inert types.
   * [Narrowing.v](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/Narrowing.html): Proves the Narrowing Lemma.
