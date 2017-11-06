@@ -29,6 +29,15 @@ The Coq proof is split up into the following modules:
 The following figure shows a dependency graph between the Coq modules.
 ![Dependency graph](https://amaurremi.github.io/dot-calculus/src/simple-proof/doc/graph.png)
 
+### Evaluation Contexts vs. Runtime Environments
+
+On paper, DOT's operational semantics is defined in terms of evaluation contexts. A type-soundness proof based on that semantics can be found in the [proof-ec](https://github.com/amaurremi/dot-calculus/tree/master/src/simple-proof/proof-ec) directory.
+
+Evaluation contexts introduce complexity into the proof, which can be avoided by using an alternative semantics that is based on stacks.
+
+A stack is a sequence of variable-to-value bindings, which serves as a runtime environment (in the literature, stacks are commonly referred to as stores). In the stack representation, the operational semantics is defined on pairs `(s, t)`, where `s` is a stack and `t` is a term. For example, the term `let x1 = v1 in let x1 = v2 in t` is represented as `({(x1, v1), (x2, v2)}, t)`.
+
+
 ## Compiling the Proof
 
 To compile the proof, we require `coq 8.6` and related tooling to be run in a unix-like environment. In particular, we require the following tools (all version 8.6) in the `PATH` enviroment variable:
