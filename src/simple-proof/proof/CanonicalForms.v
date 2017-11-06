@@ -11,16 +11,8 @@ Set Implicit Arguments.
 
 Require Import Coq.Program.Equality.
 Require Import LibLN.
-Require Import Definitions.
-Require Import RecordAndInertTypes.
-Require Import SubEnvironments.
-Require Import Narrowing.
-Require Import PreciseTypes.
-Require Import TightTypes.
-Require Import InvertibleTypes.
-Require Import GeneralToTight.
-Require Import Substitution.
-Require Import Weakening.
+Require Import Definitions RecordAndInertTypes SubEnvironments Narrowing PreciseTypes
+        TightTypes InvertibleTypes GeneralToTight Substitution Weakening.
 
 (** * Simple Implications of Typing *)
 

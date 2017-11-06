@@ -92,9 +92,7 @@ Proof.
     end.
     exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
     pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
-    rewrite subst_intro_typ with (x:=y); auto.
-    rewrite subst_intro_trm with (x:=y); auto.
-    eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
+    eapply renaming_typ; eauto.
   - Case "ty_new_elim".
     pose proof (canonical_forms_obj Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
     invert_red. binds_eq.
@@ -105,32 +103,22 @@ Proof.
     end.
   - Case "ty_let".
     destruct t; try solve [solve_let].
-    + SCase "[t = let x = a in u] where a is a variable".
-      repeat invert_red. pick_fresh y.
+    + SCase "[t = (let x = a in u)] where a is a variable".
+      repeat invert_red.
       exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
-      rewrite subst_intro_trm with (x:=y); auto.
-      rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
-      eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
-    + SCase "[t = let x = v in u] where v is a value".
+      lets Hok: (well_typed_to_ok_G Hwf). apply* renaming_fresh.
+    + SCase "[t = (let x = v in u)] where v is a value".
       repeat invert_red.
       match goal with
         | [Hn: ?x # ?s |- _] =>
           pose proof (well_typed_notin_dom Hwf Hn) as Hng
       end.
       pose proof (val_typing Ht) as [V [Hv Hs]].
-      pick_fresh y. assert (y \notin L) as Hy by auto.
-      specialize (H y Hy).
       exists (x ~ V). repeat split.
       ** rewrite <- concat_empty_l. constructor~. apply (precise_inert_typ Hv).
       ** constructor~. apply (precise_to_general Hv).
-      ** rewrite subst_intro_trm with (x:=y); auto.
-         rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
-         eapply subst_ty_trm; eauto.
-         { eapply weaken_rules; eauto. }
-         { apply~ fv_ctx_types_push. }
-         { rewrite~ subst_fresh_typ.
-           pose proof (ty_var (binds_tail x V G)).
-           eapply ty_sub. eauto. apply* weaken_subtyp. }
+      ** eapply renaming_fresh with (L:=L \u dom G \u \{x}). apply* ok_push.
+         intros. apply* weaken_rules. apply ty_sub with (T:=V); auto. apply* weaken_subtyp.
   - Case "ty_sub".
     solve_IH.
     match goal with
