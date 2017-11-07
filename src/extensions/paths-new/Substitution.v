@@ -8,7 +8,7 @@ Set Implicit Arguments.
 
 Require Import List Coq.Program.Equality.
 Require Import LibLN.
-Require Import Definitions Binding Weakening.
+Require Import Definitions Binding LocalClosure Weakening.
 
 Ltac subst_open_fresh :=
   match goal with
@@ -200,12 +200,14 @@ Lemma subst_ty_defs: forall z bs P G x S ds T p p_x p_bs sbs,
     subst_var x p_x z; sbs; P; G ⊢ subst_defs x p ds :: subst_typ x p T.
 Proof.
   introv Hds Heq Hok Hx Hp Hsbs.
-  assert (lc_path p) as Hl by (destruct p, a; inversion* Heq). subst p.
+  assert (lc_path p) as Hl by (destruct p; inversion Heq; auto).
+  Admitted. (*
   eapply (proj43 (subst_rules S Hl)) with
       (G1:=G) (G2:=empty) (x:=x) (p_x0:=p_x) (p_bs0:=p_bs) (sbs:=sbs) in Hds;
     unfold subst_ctx in *; try rewrite map_empty in *; try rewrite concat_empty_r in *; auto.
-Qed.
+Qed.*)
 
+(*
 (** * Renaming  *)
 
 (** Renaming the name of the opening variable for definition typing.  #<br>#
@@ -262,3 +264,4 @@ Proof.
   rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
   eapply subst_ty_trm; eauto. rewrite~ subst_fresh_typ.
 Qed.
+*)

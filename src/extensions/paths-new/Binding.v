@@ -10,8 +10,7 @@ Set Implicit Arguments.
 
 Require Import Coq.Program.Equality List.
 Require Import LibLN.
-Require Import Definitions.
-
+Require Import Definitions LocalClosure.
 
 (** Substitution on variables: [a[u/z]] (substituting [z] with [u] in [a]). *)
 
@@ -85,6 +84,42 @@ Definition subst_ctx (z: var) (u: path) (G: ctx) : ctx :=
 (** Substitution on the values of an evaluation context: [e[y/x]]. *)
 Definition subst_env x y e := map (subst_val x y) e.
 
+(** ** Field selection *)
+
+(** [(p^q).bs = (p.bs)^q ] *)
+Lemma sel_fields_open : forall n p q bs,
+  sel_fields (open_rec_path_p n p q) bs = open_rec_path_p n p (sel_fields q bs).
+Proof.
+  intros. destruct q. simpl. destruct p. destruct a. case_if; simpl; auto. rewrite* app_assoc.
+  simpl. auto.
+Qed.
+
+(** [y.bs.b [p/x] = (y.bs [p/x]).b] *)
+Lemma sel_fields_subst : forall x p y bs b,
+    subst_path x p (p_sel y bs) • b = (subst_path x p (p_sel y bs)) • b.
+Proof.
+  intros. destruct p, y; auto. simpl. unfold subst_var_p. case_if; simpl; auto.
+Qed.
+
+(** [p.a = x.bs]    #<br>#
+    [―――――――――――――] #<br>#
+    [bs = a :: bs'] *)
+Lemma last_field : forall p a x bs,
+    p • a = p_sel x bs ->
+    exists bs', bs = a :: bs'.
+Proof.
+  introv Heq. destruct* p. inversion* Heq.
+Qed.
+
+(** [p.a = q.b]    #<br>#
+    [――――――――――――] #<br>#
+    [p = q, a = b] *)
+Lemma invert_path_sel : forall p q a b,
+    p • a = q • b -> p = q /\ a = b.
+Proof.
+  introv Heq. destruct p as [x1 bs1]. destruct q as [x2 bs2].
+  induction bs1; inversion* Heq.
+Qed.
 
 (** * Opening Lemmas *)
 
@@ -570,21 +605,4 @@ Proof.
   intros x y l ds. unfold defs_hasnt. induction ds; introv Eq; auto.
   unfold get_def. simpl. rewrite <- subst_label_of_def.
   simpl in Eq. case_if~.
-Qed.
-
-(** ** Field selection *)
-
-(** [(p^q).bs = (p.bs)^q ] *)
-Lemma sel_fields_open : forall n p q bs,
-  sel_fields (open_rec_path_p n p q) bs = open_rec_path_p n p (sel_fields q bs).
-Proof.
-  intros. destruct q. simpl. destruct p. destruct a. case_if; simpl; auto. rewrite* app_assoc.
-  simpl. auto.
-Qed.
-
-(** [y.bs.b [p/x] = (y.bs [p/x]).b] *)
-Lemma sel_fields_subst : forall x p y bs b,
-    subst_path x p (p_sel y bs) • b = (subst_path x p (p_sel y bs)) • b.
-Proof.
-  intros. destruct p, y; auto. simpl. unfold subst_var_p. case_if; simpl; auto.
 Qed.

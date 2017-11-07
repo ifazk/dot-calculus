@@ -11,8 +11,8 @@ Set Implicit Arguments.
 
 Require Import Coq.Program.Equality.
 Require Import LibLN.
-Require Import Definitions RecordAndInertTypes SubEnvironments Narrowing PreciseTypes
-        TightTypes InvertibleTypes GeneralToTight Substitution Weakening.
+Require Import Definitions GeneralToTight InvertibleTyping Narrowing PreciseTyping RecordAndInertTypes
+            Subenvironments Substitution TightTyping Weakening.
 
 (** * Simple Implications of Typing *)
 
@@ -42,15 +42,15 @@ Proof.
   intros. induction H; auto.
 Qed.
 
-(** [e: G]              #<br>#
+(** [s: G]              #<br>#
     [G(x) = T]          #<br>#
     [―――――――――――――]     #<br>#
-    [exists v, e(x) = v]     #<br>#
+    [exists v, s(x) = v]     #<br>#
     [G ⊢ v: T]          *)
-Lemma corresponding_types: forall G e x T,
-    well_typed G e ->
+Lemma corresponding_types: forall G s x T,
+    well_typed G s ->
     binds x T G ->
-    (exists v, binds x v e /\
+    (exists v, binds x v s /\
           G ⊢ trm_val v : T).
 Proof.
   introv Hwt BiG. induction Hwt.
@@ -153,17 +153,17 @@ Qed.
 (** * Canonical Forms for Functions
 
     [inert G]            #<br>#
-    [e: G]               #<br>#
+    [s: G]               #<br>#
     [G ⊢ x: forall(T)U]       #<br>#
     [――――――――――――――――――] #<br>#
-    [e(x) = lambda(T')t] #<br>#
+    [s(x) = lambda(T')t] #<br>#
     [G ⊢ T <: T']        #<br>#
     [G, x: T ⊢ t: U]          *)
-Lemma canonical_forms_fun: forall G e x T U,
+Lemma canonical_forms_fun: forall G s x T U,
   inert G ->
-  well_typed G e ->
+  well_typed G s ->
   G ⊢ trm_var (avar_f x) : typ_all T U ->
-  (exists L T' t, binds x (val_lambda T' t) e /\ G ⊢ T <: T' /\
+  (exists L T' t, binds x (val_lambda T' t) s /\ G ⊢ T <: T' /\
   (forall y, y \notin L -> G & y ~ T ⊢ open_trm y t : open_typ y U)).
 Proof.
   introv Hin Hwt Hty.
@@ -286,18 +286,18 @@ Qed.
 (** * Canonical Forms for Objects
 
     [inert G]            #<br>#
-    [e: G]               #<br>#
+    [s: G]               #<br>#
     [G ⊢ x: {a:T}]       #<br>#
     [――――――――――――――――――] #<br>#
     [exists S, ds, t,] #<br>#
-    [e(x) = nu(S)ds] #<br>#
+    [s(x) = nu(S)ds] #<br>#
     [ds^x = ... /\ {a = t} /\ ...] #<br>#
     [G ⊢ t: T] *)
-Lemma canonical_forms_obj: forall G e x a T,
+Lemma canonical_forms_obj: forall G s x a T,
   inert G ->
-  well_typed G e ->
+  well_typed G s ->
   G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
-  (exists S ds t, binds x (val_new S ds) e /\ defs_has (open_defs x ds) (def_trm a t) /\ G ⊢ t : T).
+  (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ G ⊢ t : T).
 Proof.
   introv Hi Hwt Hty.
   destruct (var_typ_rcd_to_binds Hi Hty) as [S [T' [Bi [Hr Hs]]]].

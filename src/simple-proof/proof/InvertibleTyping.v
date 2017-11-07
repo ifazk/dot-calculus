@@ -11,12 +11,9 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Definitions.
-Require Import RecordAndInertTypes.
-Require Import SubEnvironments.
-Require Import Narrowing.
-Require Import PreciseTypes.
-Require Import TightTypes.
+Require Import Definitions Narrowing PreciseTyping RecordAndInertTypes TightTyping Subenvironments.
+
+(** ** Invertible typing *)
 
 (** The invertible-typing relation describes the possible types that a variable or value
 can be typed with in an inert context. For example, if [G] is inert, [G ⊢! x: {a: T}],
@@ -28,7 +25,7 @@ repeated applications of recursion introduction and elimination.
 For this case, invertible typing defines only recursion introduction (whereas precise typing
 defines only recursion elimination). *)
 
-(** * Invertible typing of variables [G ⊢## x: T] *)
+(** ** Invertible typing of variables [G ⊢## x: T] *)
 
 Reserved Notation "G '⊢##' x ':' T" (at level 40, x at level 59).
 
@@ -107,7 +104,7 @@ Inductive ty_var_inv : ctx -> var -> typ -> Prop :=
   G ⊢## x : typ_top
 where "G '⊢##' x ':' T" := (ty_var_inv G x T).
 
-(** *** Invertible typing of values [G ⊢##v v: T] *)
+(** ** Invertible typing for values [G ⊢##v v: T] *)
 
 Reserved Notation "G '⊢##v' v ':' T" (at level 40, v at level 59).
 

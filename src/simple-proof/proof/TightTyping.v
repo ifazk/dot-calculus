@@ -4,14 +4,12 @@
 (** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
-(** This module contains lemmas related to invertible typing
-    ([ty_var_inv], [⊢##] and [ty_val_inv], [⊢##v]). *)
+(** This module contains lemmas related to tight typing [G ⊢# t: T] *)
 
 Set Implicit Arguments.
 
 Require Import LibLN.
-Require Import Definitions.
-Require Import PreciseTypes.
+Require Import Definitions PreciseTyping.
 
 (** * Tight typing [G |-# t: T] *)
 

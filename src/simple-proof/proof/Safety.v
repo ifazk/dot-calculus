@@ -2,8 +2,8 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Definitions Weakening Narrowing Binding PreciseTypes Substitution CanonicalForms
-        RecordAndInertTypes InvertibleTypes GeneralToTight OperationalSemantics.
+Require Import Binding CanonicalForms Definitions GeneralToTight InvertibleTyping Narrowing
+            OperationalSemantics PreciseTyping RecordAndInertTypes Substitution Weakening.
 
 (** For the purposes of our evaluation semantics, a term is a
  The typing of a term with a stack *)
@@ -106,7 +106,7 @@ Proof.
     + SCase "[t = (let x = a in u)] where a is a variable".
       repeat invert_red.
       exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
-      lets Hok: (well_typed_to_ok_G Hwf). apply* renaming_fresh.
+      apply* renaming_fresh.
     + SCase "[t = (let x = v in u)] where v is a value".
       repeat invert_red.
       match goal with
