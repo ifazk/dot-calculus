@@ -341,8 +341,6 @@ Qed.
     [ds^x = ... /\ {a = t} /\ ...] #<br>#
     [G @@ S ⊢ t: T] *)
 
-Notation "'$' x" := (trm_var (avar_f x)) (at level 40).
-
 (*
 Lemma var_typ_ref_to_binds: forall G S x T,
     inert G ->
