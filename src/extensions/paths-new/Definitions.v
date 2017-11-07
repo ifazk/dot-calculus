@@ -698,49 +698,6 @@ Inductive well_typed: ctx -> sta -> Prop :=
     G ⊢ trm_val v : T ->
     well_typed (G & x ~ T) (s & x ~ v).
 
-Reserved Notation "e '∋' t" (at level 60).
-
-Inductive lookup : sta -> path * val -> Prop :=
-
-(** [e(x) = v  ]    #<br>#
-    [――――――――――]    #<br>#
-    [e ∋ (x, v)]    *)
-| lookup_ec : forall e x v,
-    binds x v e ->
-    e ∋ (pvar x, v)
-
-(** [e ∋ (p, ν(T)...{ b = v }...)]    #<br>#
-    [――――――――――――――――――――――――――――]    #<br>#
-    [e ∋ (p.b, v)                ]    *)
-| lookup_val : forall e p b T ds v,
-    e ∋ (p, val_new T ds) ->
-    get_def (label_trm b) ds = Some (def_trm b (trm_val v)) ->
-    e ∋ (p•b, v)
-
-(** [e ∋ (p, ν(T)...{ b = x.bs }...)] #<br>#
-    [e ∋ (x.bs, v)                  ] #<br>#
-    [―――――――――――――――――――――――――――――――] #<br>#
-    [e ∋ (p.b, v)                   ] *)
-| lookup_x : forall e p T ds b x bs v,
-    e ∋ (p, val_new T ds) ->
-    get_def (label_trm b) ds = Some (def_trm b (trm_path (p_sel (avar_f x) bs))) ->
-    e ∋ (p_sel (avar_f x) bs, v) ->
-    e ∋ (p•b, v)
-
-(** [e ∋ (p, ν(T)...{ b = n.bs }...)] #<br>#
-    [e ∋ ((p drop n).bs, v)         ] #<br>#
-    [―――――――――――――――――――――――――――――――] #<br>#
-    [e ∋ (p.b, v)                   ] *)
-| lookup_n : forall e p T ds b x bs v cs n,
-    e ∋ (p, val_new T ds) ->
-    get_def (label_trm b) ds = Some (def_trm b (trm_path (p_sel (avar_b n) bs))) ->
-    p = p_sel x cs ->
-    (* `skipn n cs` removes the n last fields of the path, yielding the path to bs *)
-    e ∋ (p_sel x (bs ++ skipn n cs), v) ->
-    e ∋ (p•b, v)
-
-where "e '∋' t" := (lookup e t).
-
 (** * Infrastructure *)
 
 Hint Constructors
