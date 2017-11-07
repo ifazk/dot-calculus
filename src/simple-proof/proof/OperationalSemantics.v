@@ -9,17 +9,17 @@ Require Import Definitions Binding.
 Reserved Notation "t1 '|->' t2" (at level 40, t2 at level 39).
 
 Inductive red : sta * trm -> sta * trm -> Prop :=
-(** [s(x) = lambda(T)t]      #<br>#
-    [―――――――――――――――――――――]  #<br>#
-    [(s, x y) |-> (s, t^y)]  *)
+(** [s(x) = nu(T)...{a = t}...]  #<br>#
+    [―――――――――――――――――――――――――]  #<br>#
+    [(s, x.a) |-> (s, t)      ]  *)
 | red_sel : forall x m s t T ds,
     binds x (val_new T ds) s ->
     defs_has (open_defs x ds) (def_trm m t) ->
     (s, trm_sel (avar_f x) m) |-> (s, t)
 
-(** [s(x) = nu(T)...{a = t}...]  #<br>#
-    [―――――――――――――――――――――――――]  #<br>#
-    [(s, x.a) |-> (s, t)      ]  *)
+(** [s(x) = lambda(T)t]      #<br>#
+    [―――――――――――――――――――――]  #<br>#
+    [(s, x y) |-> (s, t^y)]  *)
 | red_app : forall f a s T t,
     binds f (val_lambda T t) s ->
     (s, trm_app (avar_f f) (avar_f a)) |-> (s, open_trm a t)

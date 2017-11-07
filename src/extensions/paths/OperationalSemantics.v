@@ -56,20 +56,20 @@ where "s '↓' p '==' ds" := (lookup_open s p ds).
 Reserved Notation "t1 '|->' t2" (at level 40, t2 at level 39).
 
 Inductive red : sta * trm -> sta * trm -> Prop :=
-(** [s(x) = lambda(T)t]      #<br>#
-    [―――――――――――――――――――――]  #<br>#
-    [(s, x y) |-> (s, t^y)]  *)
+(** [s(x) = nu(T)...{a = t}...]  #<br>#
+    [―――――――――――――――――――――――――]  #<br>#
+    [(s, x.a) |-> (s, t)      ]  *)
 | red_sel : forall x m s t T ds,
     binds x (val_new T ds) s ->
     defs_has (open_defs x ds) (def_trm m t) ->
     (s, trm_sel (avar_f x) m) |-> (s, t)
 
-(** [s(x) = nu(T)...{a = t}...]  #<br>#
-    [―――――――――――――――――――――――――]  #<br>#
-    [(s, x.a) |-> (s, t)      ]  *)
-| red_app : forall f a s T t,
-    binds f (val_lambda T t) s ->
-    (s, trm_app (avar_f f) (avar_f a)) |-> (s, open_trm a t)
+(** [s ∋ (p, lambda(T)t)  ]      #<br>#
+    [―――――――――――――――――――――]      #<br>#
+    [(s, p q) |-> (s, t^q)]      *)
+| red_app: forall s p T t,
+    s ∋ (p, val_lambda T t) ->
+    (s, trm_app p q) |-> (s, open_trm_p p t)
 
 (** [(s, let x = v in t) |-> ((s, x = v), t^x)] *)
 | red_let : forall v t s x,
