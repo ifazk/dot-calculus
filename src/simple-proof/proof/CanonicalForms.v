@@ -27,9 +27,9 @@ Qed.
 
 (** * Well-typedness *)
 
-(** If [e: G], the variables in the domain of [e] are distinct. *)
-Lemma well_typed_to_ok_G: forall e G,
-    well_typed G e -> ok G.
+(** If [s: G], the variables in the domain of [s] are distinct. *)
+Lemma well_typed_to_ok_G: forall s G,
+    well_typed G s -> ok G.
 Proof.
   intros. induction H; jauto.
 Qed.
