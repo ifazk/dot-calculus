@@ -8,9 +8,11 @@ Require Import Definitions Binding.
 
 (** * Path Lookup *)
 
-(** Looking up a path in a stack. *)
-
 Reserved Notation "s '∋' t" (at level 60).
+Reserved Notation "s '↓' p '==' ds" (at level 60).
+
+
+(** Looking up a path in a stack. *)
 
 Inductive lookup : sta -> path * val -> Prop :=
 
@@ -21,46 +23,35 @@ Inductive lookup : sta -> path * val -> Prop :=
     binds x v s ->
     s ∋ (pvar x, v)
 
+(** [s ↓ p = ...{a = v}...  ]    #<br>#
+    [―――――――――――――――――――――――]    #<br>#
+    [s ∋ (p.a, v)]               *)
+| lookup_val : forall s p ds a v,
+    s ↓ p == ds ->
+    defs_has ds (def_trm a (trm_val v)) ->
+    s ∋ (p•a, v)
+
+| lookup_path : forall s ds a p v,
+    s ↓ p == ds ->
+    defs_has ds (def_trm a (trm_path p)) ->
+    s ∋ (p, v) ->
+    s ∋ (p•a, v)
 
 where "s '∋' t" := (lookup s t)
 
+(** Opening of definitions:
+    If [s ∋ (p, ν(x: T)ds)], then [lookup_open] gives us [ds] opened with [p]. *)
+
 with lookup_open : sta -> path -> defs -> Prop :=
+
+(** [s ∋ (p, ν(T)ds         ]    #<br>#
+    [―――――――――――――――――――――――]    #<br>#
+    [s ↓ p = ds^p           ]    *)
      | lo_ds : forall s p T ds,
          s ∋ (p, val_new T ds) ->
-         lookup_open s p (open_defs_p p ds).
+         s ↓ p == open_defs_p p ds
 
-
-
-
-(** [e ∋ (p, ν(T)...{ b = v }...)]    #<br>#
-    [――――――――――――――――――――――――――――]    #<br>#
-    [e ∋ (p.b, v)                ]    *)
-| lookup_val : forall s p b T ds v,
-    s ∋ (p, val_new T ds) ->
-    get_def (label_trm b) ds = Some (def_trm b (trm_val v)) ->
-    s ∋ (p•b, v)
-
-(** [e ∋ (p, ν(T)...{ b = x.bs }...)] #<br>#
-    [e ∋ (x.bs, v)                  ] #<br>#
-    [―――――――――――――――――――――――――――――――] #<br>#
-    [e ∋ (p.b, v)                   ] *)
-| lookup_x : forall s p T ds b x bs v,
-    s ∋ (p, val_new T ds) ->
-    get_def (label_trm b) ds = Some (def_trm b (trm_path (p_sel (avar_f x) bs))) ->
-    s ∋ (p_sel (avar_f x) bs, v) ->
-    s ∋ (p•b, v)
-
-(** [e ∋ (p, ν(T)...{ b = n.bs }...)] #<br>#
-    [e ∋ ((p drop n).bs, v)         ] #<br>#
-    [―――――――――――――――――――――――――――――――] #<br>#
-    [e ∋ (p.b, v)                   ] *)
-| lookup_n : forall s p T ds b x bs v cs n,
-    s ∋ (p, val_new T ds) ->
-    get_def (label_trm b) ds = Some (def_trm b (trm_path (p_sel (avar_b n) bs))) ->
-    p = p_sel x cs ->
-    (* `skipn n cs` removes the n last fields of the path, yielding the path to bs *)
-    s ∋ (p_sel x (bs ++ skipn n cs), v) ->
-    s ∋ (p•b, v)
+where "s '↓' p '==' ds" := (lookup_open s p ds).
 
 Reserved Notation "t1 '|->' t2" (at level 40, t2 at level 39).
 

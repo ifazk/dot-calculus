@@ -1,106 +1,98 @@
+(** printing |-#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
+(** printing |-##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
+(** printing |-##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
+(** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
+(** remove printing ~ *)
+
 Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Definitions.
-Require Import Weakening.
+Require Import Definitions Subenvironments Weakening.
 
-(* ###################################################################### *)
-(** ** Narrowing *)
+(** * Narrowing Lemma *)
+(** The narrowing lemma states that typing is preserved under subenvironments.
+    The lemma corresponds to Lemma 3.11 in the paper.
+    The proof is by mutual induction on term typing, definition typing,
+    and subtyping. *)
 
-Definition subenv(G1 G2: ctx) :=
-  forall x T2, binds x T2 G2 ->
-    binds x T2 G1 \/
-    exists T1,
-      binds x T1 G1 /\ G1 |- T1 <: T2.
+(** [G ⊢ t: T]                 #<br>#
+    [G' subG G]                #<br>#
+    [ok G']                    #<br>#
+    [―――――――――――――――――]        #<br>#
+    [G' ⊢ t: T]
 
-Lemma subenv_push: forall G G' x T,
-  subenv G' G ->
-  ok (G' & x ~ T) ->
-  subenv (G' & x ~ T) (G & x ~ T).
-Proof.
-  intros.
-  unfold subenv. intros xb Tb Bi. apply binds_push_inv in Bi.
-  destruct Bi as [Bi | Bi].
-  + destruct Bi as [Bi1 Bi2]. subst.
-    left. eauto.
-  + destruct Bi as [Bi1 Bi2].
-    unfold subenv in H. specialize (H xb Tb Bi2). destruct H as [Bi' | Bi'].
-    * left. eauto.
-    * right. destruct Bi' as [T' [Bi1' Bi2']].
-      exists T'. split. eauto. apply weaken_subtyp. assumption. eauto.
-Qed.
+    and
 
-Lemma subenv_last: forall G x S U,
-  G |- S <: U ->
-  ok (G & x ~ S) ->
-  subenv (G & x ~ S) (G & x ~ U).
-Proof.
-  intros. unfold subenv. intros y T Bi.
-  apply binds_push_inv in Bi. destruct Bi as [Bi | Bi].
-  - destruct Bi. subst. right. exists S. split; eauto using weaken_subtyp.
-  - destruct Bi. left. eauto.
-Qed.
+    [G ⊢ d: D]                 #<br>#
+    [G' subG G]                #<br>#
+    [ok G']                    #<br>#
+    [―――――――――――――――――]        #<br>#
+    [G' ⊢ d: D]
 
+    and
+
+    [G ⊢ ds :: T]              #<br>#
+    [G' subG G]                #<br>#
+    [ok G']                    #<br>#
+    [―――――――――――――――――]        #<br>#
+    [G' ⊢ ds :: T]
+
+    and
+
+    [G ⊢ S <: U]               #<br>#
+    [G' subG G]                #<br>#
+    [ok G']                    #<br>#
+    [―――――――――――――――――]        #<br>#
+    [G' ⊢ S <: U]              #<br>#
+
+Note: for simplicity, the definition typing judgements and [ok] conditions
+      are omitted from the paper formulation. *)
 Lemma narrow_rules:
-  (forall G t T, G |- t : T -> forall G',
-    ok G' ->
-    subenv G' G ->
-    G' |- t : T)
-/\ (forall G p T, G |-\||/ p: T -> forall G',
-    ok G' ->
-    subenv G' G ->
-    G' |-\||/ p : T)
-/\ (forall G z U d D, G && z ~ U |- d : D -> forall G',
-    ok (G' & z ~ U) ->
-    subenv G' G ->
-    G' && z ~ U |- d : D)
-/\ (forall G z U ds T, G && z ~ U |- ds :: T -> forall G',
-    ok (G' & z ~ U) ->
-    subenv G' G ->
-    G' && z ~ U |- ds :: T)
-/\ (forall G S U, G |- S <: U -> forall G',
-    ok G' ->
-    subenv G' G ->
-    G' |- S <: U).
+  (forall G t T, G ⊢ t : T -> forall G',
+    G' ⪯ G ->
+    G' ⊢ t : T)
+/\ (forall z bs P G d D, z; bs; P; G ⊢ d : D -> forall G',
+    G' ⪯ G ->
+    z; bs; P; G' ⊢ d : D)
+/\ (forall z bs P G ds T, z; bs; P; G ⊢ ds :: T -> forall G',
+    G' ⪯ G ->
+    z; bs; P; G' ⊢ ds :: T)
+/\ (forall G S U, G ⊢ S <: U -> forall G',
+    G' ⪯ G ->
+    G' ⊢ S <: U).
 Proof.
-  apply rules_mutind; intros; eauto 4.
-  - (* ty_var *)
-    subst. unfold subenv in H0. specialize (H0 x T b).
-    destruct* H0. destruct H0 as [T' [Bi Hsub]]. eapply ty_sub; eauto.
-  - (* ty_all_intro *)
-    subst.
-    apply_fresh ty_all_intro as y; eauto using subenv_push.
-  - (* ty_new_intro *)
-    subst.
-    apply_fresh ty_new_intro as z. apply H; auto.
-  - (* ty_let *)
-    subst.
-    apply_fresh ty_let as y; eauto using subenv_push.
- - (* ty_def_path *)
-    constructor. apply H; auto. apply subenv_push. assumption. assumption.
-  - (* ty_def_val *)
-    constructor. apply H; auto. apply subenv_push. assumption. assumption.
-  - (* subtyp_all *)
-    subst.
-    apply_fresh subtyp_all as y; eauto.
-    apply H0; eauto. apply subenv_push; eauto.
+  apply rules_mutind; intros; eauto 4;
+    try solve [
+          match goal with
+          | [ H : _ ⪯ _ |- _ ] => destruct (subenv_implies_ok H)
+          end;
+          fresh_constructor].
+
+  Case "ty_var".
+  induction H; auto;
+  match goal with
+  | [ H : binds _ _ (_ & _) |- _ ] =>
+    apply binds_push_inv in H; destruct_all; subst
+  end;
+  [ eapply ty_sub; [eauto 2 | apply weaken_subtyp; trivial]
+  | apply weaken_ty_trm; auto].
 Qed.
 
+(** The narrowing lemma, formulated only for term typing. *)
 Lemma narrow_typing: forall G G' t T,
-  G |- t : T ->
-  subenv G' G ->
-  ok G' ->
-  G' |- t : T.
+  G ⊢ t : T ->
+  G' ⪯ G ->
+  G' ⊢ t : T.
 Proof.
   intros. apply* narrow_rules.
 Qed.
 
+(** The narrowing lemma, formulated only for subtyping. *)
 Lemma narrow_subtyping: forall G G' S U,
-  G |- S <: U ->
-  subenv G' G ->
-  ok G' ->
-  G' |- S <: U.
+  G ⊢ S <: U ->
+  G' ⪯ G ->
+  G' ⊢ S <: U.
 Proof.
   intros. apply* narrow_rules.
 Qed.

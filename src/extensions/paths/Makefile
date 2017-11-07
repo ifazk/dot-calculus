@@ -1,27 +1,6 @@
 FILES=Safety.v
 OBJECTS=$(FILES:.v=.vo)
 
-PROOFS= \
-    Definitions.v \
-    Wellformed_store.v \
-    Weakening.v \
-    Some_lemmas.v \
-    Precise_flow.v \
-    Has_member.v \
-    Inert_types.v \
-    Invertible_typing.v \
-    Tight_bound_completeness.v \
-    Substitution.v \
-    Narrowing.v \
-    General_to_tight.v \
-    Extra_rec.v \
-    Canonical_forms1.v \
-    Canonical_forms2.v \
-    Renaming.v \
-    Misc.v \
-    Safety.v
-PROOFOBJECTS=$(PROOFS:.v=.vo)
-
 TLCDIR=../../../lib/tlc/
 LIBLN=$(TLCDIR)/LibLN.vo
 TLCNAME=TLC
@@ -30,33 +9,52 @@ COQINCLUDE=-R $(TLCDIR) $(TLCNAME) -R . \"\"
 COQMAKEFILE=$(COQBIN)coq_makefile
 
 PROOFMAKEFILE=Makefile.coq
+PROOFS=$(wildcard *.v)
 
 ##############
 # Main Rules #
 ##############
 
-.PHONY: all clean
-all:
+.PHONY: all doc proofs clean cleanall
+all: proofs #doc
+
+proofs: $(PROOFMAKEFILE)
 	$(MAKE) -f $(PROOFMAKEFILE) $(OBJECTS)
 
-clean:
+clean: $(PROOFMAKEFILE)
 	$(MAKE) -f $(PROOFMAKEFILE) cleanall
+
+cleanall:: clean
+cleanall::
+	-rm .*.aux
+	-rm *.vo
+	-rm *.glob
+	-rm *.v.d
+	-rm $(PROOFMAKEFILE)
+
+doc:
+	$(MAKE) -f $(PROOFMAKEFILE) html
 
 %.vo:
 	$(MAKE) -f $(PROOFMAKEFILE) $@
 
-all clean: $(PROOFMAKEFILE)
+all doc clean: $(PROOFMAKEFILE)
 %vo: $(PROOFMAKEFILE)
 
 all: $(LIBLN)
+doc: $(LIBLN)
+proofs: $(LIBLN)
 %vo: $(LIBLN)
 
 ##############
 # Main Rules #
 ##############
 
-.PHONY: ide
+.PHONY: ide _CoqProject
 ide: _CoqProject
+
+_CoqProject:
+	@echo $(COQINCLUDE) > $@
 
 ########################
 # Library Dependencies #
@@ -69,13 +67,26 @@ $(LIBLN):
 # Forced Rebuilds #
 ###################
 
-.PHONY: init
-init: $(PROOFMAKEFILE) _CoqProject
+.PHONY: $(PROOFMAKEFILE)
 
-$(PROOFMAKEFILE): .FORCE
-	@$(COQMAKEFILE) $(COQINCLUDE) -install none $(PROOFS) > $@
+$(PROOFMAKEFILE):
+	$(COQMAKEFILE) $(COQINCLUDE) -install none -o $(PROOFMAKEFILE) $(PROOFS)
+	sed -i -e "s|mkdir -p html|mkdir -p ../doc|g" $(PROOFMAKEFILE)
+	sed -i -e "s|-d html|-d ../doc|g" $(PROOFMAKEFILE)
+#sed -i -e "s|rm -rf html|rm -rf ../doc|g" $(PROOFMAKEFILE)
 
-_CoqProject: .FORCE
-	@echo $(COQINCLUDE) > $@
+graph.png: $(PROOFS)
+	coqdep -dumpgraph graph.dot *.v
+	dot -Tpng graph.dot > graph.png
 
-.FORCE:
+#################
+# Documentation #
+#################
+
+EXTRA_DIR:=../doc/assets
+COQDOCFLAGS:= \
+  --no-externals \
+  --toc --toc-depth 2 --html \
+  --index indexpage --no-lib-name --parse-comments \
+  --with-header $(EXTRA_DIR)/header.html --with-footer $(EXTRA_DIR)/footer.html
+export COQDOCFLAGS

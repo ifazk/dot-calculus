@@ -1,119 +1,116 @@
+(** printing |-#    %\vdash_{\#}%    #&vdash;<sub>&#35;</sub>#     *)
+(** printing |-##   %\vdash_{\#\#}%  #&vdash;<sub>&#35&#35</sub>#  *)
+(** printing |-##v  %\vdash_{\#\#v}% #&vdash;<sub>&#35&#35v</sub># *)
+(** printing |-!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
+(** remove printing ~ *)
+
 Set Implicit Arguments.
 
 Require Import LibLN.
-Require Import Coq.Program.Equality.
 Require Import Definitions.
 
-(* ###################################################################### *)
-(** ** Weakening *)
+(** * Weakening Lemma *)
+(** Weakening states that typing is preserved in extended environments. *)
+
+(** [G1, G3 |- t: T]                    #<br>#
+    [ok(G1, G2, G3)]                   #<br>#
+    [――――――――――――――――――――]             #<br>#
+    [G1, G2, G3 |- t: T] #<br># #<br>#
+
+    and
+
+    [G1, G3 |- d: D]                    #<br>#
+    [ok(G1, G2, G3)]                   #<br>#
+    [――――――――――――――――――――]             #<br>#
+    [G1, G2, G3 |- d: D] #<br># #<br>#
+
+    and
+
+    [G1, G3 |- ds :: T]                 #<br>#
+    [ok(G1, G2, G3)]                   #<br>#
+    [――――――――――――――――――――]             #<br>#
+    [G1, G2, G3 |- ds :: T] #<br># #<br>#
+
+    and
+
+    [G1, G3 |- T <: U]                  #<br>#
+    [ok(G1, G2, G3)]                   #<br>#
+    [――――――――――――――――――――]             #<br>#
+    [G1, G2, G3 |- T <: U] #<br># #<br>#
+
+    The proof is by mutual induction on term typing, definition typing, and subtyping. *)
 
 Lemma weaken_rules:
-  (forall G t T, G |- t : T -> forall G1 G2 G3,
-    G = G1 & G3 ->
-    ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 |- t : T) /\
-  (forall G p T, G |-\||/ p: T -> forall G1 G2 G3,
-    G = G1 & G3 ->
-    ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 |-\||/ p: T) /\
-  (forall G x T d D, G && x ~ T |- d : D -> forall G1 G2 G3,
-    G = G1 & G3 ->
-    ok (G1 & G2 & G3 & x ~ T) ->
-    (G1 & G2 & G3) && x ~ T |- d : D) /\
-  (forall G x U ds T, G && x ~ U |- ds :: T -> forall G1 G2 G3,
-    G = G1 & G3 ->
-    ok (G1 & G2 & G3 & x ~ U) ->
-    G1 & G2 & G3 && x ~ U |- ds :: T) /\
-  (forall G T U, G |- T <: U -> forall G1 G2 G3,
-    G = G1 & G3 ->
-    ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 |- T <: U).
+  (forall G t T,
+      G ⊢ t : T ->
+      forall G1 G2 G3,
+        G = G1 & G3 ->
+        ok (G1 & G2 & G3) ->
+        G1 & G2 & G3 ⊢ t : T) /\
+  (forall x bs P G d D,
+      x; bs; P; G ⊢ d : D ->
+      forall G1 G2 G3,
+        G = G1 & G3 ->
+        ok (G1 & G2 & G3) ->
+        x; bs; P; G1 & G2 & G3 ⊢ d : D) /\
+  (forall x bs P G ds T,
+      x; bs; P; G ⊢ ds :: T ->
+      forall G1 G2 G3,
+        G = G1 & G3 ->
+        ok (G1 & G2 & G3) ->
+        x; bs; P; G1 & G2 & G3 ⊢ ds :: T) /\
+  (forall G T U,
+      G ⊢ T <: U ->
+      forall G1 G2 G3,
+        G = G1 & G3 ->
+        ok (G1 & G2 & G3) ->
+        G1 & G2 & G3 ⊢ T <: U).
 Proof.
-  apply rules_mutind; eauto 4; intros; subst.
-  + eapply ty_var. eapply binds_weaken; eauto.
-  + apply_fresh ty_all_intro as z.
-    assert (zL: z \notin L) by auto.
-    specialize (H z zL G1 G2 (G3 & z ~ T)).
-    repeat rewrite concat_assoc in H.
-    apply* H.
-  + apply_fresh ty_new_intro as z; assert (zL: z \notin L) by auto.
-    specialize (H z zL G1 G2 G3). apply* H.
-  + apply_fresh ty_let as z.
-    - auto.
-    - assert (zL: z \notin L) by auto.
-      specialize (H0 z zL G1 G2 (G3 & z ~ T)).
-      repeat rewrite concat_assoc in H0.
-      apply* H0.
-  + apply ty_def_trm.
-    rewrite <- concat_assoc. apply H;rewrite concat_assoc. reflexivity. assumption.
-  + apply ty_def_val. rewrite <- concat_assoc. apply H; rewrite concat_assoc. reflexivity. assumption.
-  + apply_fresh subtyp_all as z.
-    auto.
-    assert (zL: z \notin L) by auto.
-    specialize (H0 z zL G1 G2 (G3 & z ~ S2)).
-    repeat rewrite concat_assoc in H0.
-    apply* H0.
+  apply rules_mutind; intros; subst;
+  eauto 4 using binds_weaken;
+  fresh_constructor; auto;
+    match goal with
+    | [ H: forall z, z \notin ?L -> forall G, _,
+        Hok: ok (?G1 & ?G2 & ?G3)
+        |- context [?z ~ ?T] ] =>
+      assert (zL : z \notin L) by auto;
+      specialize (H z zL G1 G2 (G3 & z ~ T));
+      rewrite? concat_assoc in H;
+      apply~ H
+    end.
 Qed.
 
-Lemma weaken_ty_trm:  forall G1 G2 t T,
-    G1 |- t : T ->
+Ltac weaken_specialize :=
+  intros;
+  match goal with
+  | [ Hok: ok (?G1 & ?G2) |- _ ] =>
+    assert (G1 & G2 = G1 & G2 & empty) as EqG by rewrite~ concat_empty_r;
+    rewrite EqG; apply~ weaken_rules;
+    (rewrite concat_empty_r || rewrite <- EqG); assumption
+  end.
+
+(** Weakening lemma specialized to term typing. *)
+Lemma weaken_ty_trm: forall G1 G2 t T,
+    G1 ⊢ t : T ->
     ok (G1 & G2) ->
-    G1 & G2 |- t : T.
+    G1 & G2 ⊢ t : T.
 Proof.
-  intros.
-    assert (G1 & G2 = G1 & G2 & empty) as EqG. {
-    rewrite concat_empty_r. reflexivity.
-  }
-  rewrite EqG. apply* weaken_rules.
-  rewrite concat_empty_r. reflexivity.
-  rewrite <- EqG. assumption.
+  weaken_specialize.
 Qed.
 
+(** Weakening lemma specialized to subtyping. *)
 Lemma weaken_subtyp: forall G1 G2 S U,
-  G1 |- S <: U ->
+  G1 ⊢ S <: U ->
   ok (G1 & G2) ->
-  G1 & G2 |- S <: U.
+  G1 & G2 ⊢ S <: U.
 Proof.
-  intros.
-    assert (G1 & G2 = G1 & G2 & empty) as EqG. {
-    rewrite concat_empty_r. reflexivity.
-  }
-  rewrite EqG. apply* weaken_rules.
-  rewrite concat_empty_r. reflexivity.
-  rewrite <- EqG. assumption.
+  weaken_specialize.
 Qed.
 
-Lemma weaken_rules_p: forall G t T G1 G2 G3,
-    G |-! t : T ->
-    G = G1 & G3 ->
-    ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 |-! t : T.
-Proof.
-  introv Hp Heq ok. dependent induction Hp; eauto.
-  - apply ty_var_p. apply* binds_weaken. subst*.
-  - apply_fresh ty_all_intro_p as z.
-    assert (zL: z \notin L) by auto.
-    specialize (H z zL).
-    assert (Hz: G & z ~ T = G1 & G3 & z ~ T) by rewrite* Heq.
-    assert(Hok: LibEnv.ok (G1 & G2 & G3 & z ~ T)) by auto.
-    rewrite <- concat_assoc.
-    apply ((proj41 weaken_rules) (G & z ~ T)).
-    + assumption.
-    + rewrite concat_assoc. subst*.
-    + rewrite concat_assoc. subst*.
-  - apply_fresh ty_new_intro_p as z. apply* weaken_rules.
-Qed.
-
-Lemma weaken_ty_trm_p: forall G1 G2 t T,
-    G1 |-! t : T ->
+Lemma weaken_ty_defs: forall G1 G2 z bs P ds T,
+    z; bs; P; G1 ⊢ ds :: T ->
     ok (G1 & G2) ->
-    G1 & G2 |-! t : T.
+    z; bs; P; G1 & G2 ⊢ ds :: T.
 Proof.
-  intros.
-    assert (G1 & G2 = G1 & G2 & empty) as EqG. {
-    rewrite concat_empty_r. reflexivity.
-  }
-  rewrite EqG. apply* weaken_rules_p.
-  rewrite concat_empty_r. reflexivity.
-  rewrite <- EqG. assumption.
+  weaken_specialize.
 Qed.
