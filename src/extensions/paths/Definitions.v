@@ -698,6 +698,56 @@ Inductive well_typed: ctx -> sta -> Prop :=
     G ⊢ trm_val v : T ->
     well_typed (G & x ~ T) (s & x ~ v).
 
+(** * Path Lookup *)
+
+Reserved Notation "s '∋' t" (at level 60).
+Reserved Notation "s '↓' p '==' ds" (at level 60).
+
+
+(** Looking up a path in a stack. *)
+
+Inductive lookup : sta -> path * val -> Prop :=
+
+(** [s(x) = v  ]    #<br>#
+    [――――――――――]    #<br>#
+    [s ∋ (x, v)]    *)
+| lookup_var : forall s x v,
+    binds x v s ->
+    s ∋ (pvar x, v)
+
+(** [s ↓ p = ...{a = v}...  ]    #<br>#
+    [―――――――――――――――――――――――]    #<br>#
+    [s ∋ (p.a, v)]               *)
+| lookup_val : forall s p ds a v,
+    s ↓ p == ds ->
+    defs_has ds (def_trm a (trm_val v)) ->
+    s ∋ (p•a, v)
+
+| lookup_path : forall s ds a p v,
+    s ↓ p == ds ->
+    defs_has ds (def_trm a (trm_path p)) ->
+    s ∋ (p, v) ->
+    s ∋ (p•a, v)
+
+where "s '∋' t" := (lookup s t)
+
+(** Opening of definitions:
+    If [s ∋ (p, ν(x: T)ds)], then [lookup_open] gives us [ds] opened with [p]. *)
+
+with lookup_open : sta -> path -> defs -> Prop :=
+
+(** [s ∋ (p, ν(T)ds         ]    #<br>#
+    [―――――――――――――――――――――――]    #<br>#
+    [s ↓ p = ds^p           ]    *)
+     | lo_ds : forall s p T ds,
+         s ∋ (p, val_new T ds) ->
+         s ↓ p == open_defs_p p ds
+
+where "s '↓' p '==' ds" := (lookup_open s p ds).
+
+Reserved Notation "t1 '|->' t2" (at level 40, t2 at level 39).
+Hint Constructors lookup lookup_open.
+
 (** * Infrastructure *)
 
 Hint Constructors

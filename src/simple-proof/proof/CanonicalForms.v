@@ -35,9 +35,14 @@ Proof.
 Qed.
 Hint Resolve well_typed_to_ok_G.
 
-Lemma well_typed_notin_dom: forall G e x,
-    well_typed G e ->
-    x # e -> x # G.
+(** [s: G]       #<br>#
+    [x ∉ dom(G)] #<br>#
+    [――――――――――] #<br>#
+    [x ∉ dom(s)] *)
+Lemma well_typed_notin_dom: forall G s x,
+    well_typed G s ->
+    x # s ->
+    x # G.
 Proof.
   intros. induction H; auto.
 Qed.

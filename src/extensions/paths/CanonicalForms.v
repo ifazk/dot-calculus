@@ -46,9 +46,14 @@ Proof.
 Qed.
 Hint Resolve well_typed_to_ok_G.
 
-Lemma well_typed_notin_dom: forall G e x,
-    well_typed G e ->
-    x # e -> x # G.
+(** [s: G]       #<br>#
+    [x ∉ dom(G)] #<br>#
+    [――――――――――] #<br>#
+    [x ∉ dom(s)] *)
+Lemma well_typed_notin_dom: forall G s x,
+    well_typed G s ->
+    x # s ->
+    x # G.
 Proof.
   intros. induction H; auto.
 Qed.
@@ -167,11 +172,11 @@ Qed.
     [s(x) = lambda(T')t] #<br>#
     [G ⊢ T <: T']        #<br>#
     [G, x: T ⊢ t: U]          *)
-(*Lemma canonical_forms_fun: forall G s p T U,
+Lemma canonical_forms_fun: forall G s p T U,
   inert G ->
-  G ~~ s ->
+  well_typed G s ->
   G ⊢ trm_path p : typ_all T U ->
-  (exists L T' t, binds x (val_lambda T' t) s /\ G ⊢ T <: T' /\
+  (exists L T' t, s ∋ (p, val_lambda T' t) /\ G ⊢ T <: T' /\
   (forall y, y \notin L -> G & y ~ T ⊢ open_trm y t : open_typ y U)).
 Proof.
   introv Hin Hwt Hty.
@@ -189,7 +194,7 @@ Proof.
     apply narrow_typing with (G':=G & y ~ T) in Hs2'; auto.
     + eapply ty_sub; eauto.
     + apply~ subenv_last.
-Qed.*)
+Qed.
 
 (** [d1 isin ds]             #<br>#
     [label(d2) \notin ds]     #<br>#
