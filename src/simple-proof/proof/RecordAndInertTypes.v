@@ -8,11 +8,7 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Definitions.
-Require Import Binding.
-
-(** The following typing relations are not part of the DOT calculus, but are used
-    in the proof of DOT's safety theorems. *)
+Require Import Definitions Binding.
 
 (** * Record Types *)
 

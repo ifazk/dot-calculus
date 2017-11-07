@@ -82,18 +82,13 @@ with subst_defs (z: var) (u: path) (ds: defs) : defs :=
 Definition subst_ctx (z: var) (u: path) (G: ctx) : ctx :=
   map (subst_typ z u) G.
 
-(** * Lemmas *)
-
-(** The following [subst_fresh_XYZ] lemmas state that if [x] is not free
-    in a symbol [Y], then [Y[z/x] = Y]. *)
-
 (** Substitution on the values of an evaluation context: [e[y/x]]. *)
 Definition subst_env x y e := map (subst_val x y) e.
 
 
 (** * Opening Lemmas *)
 
-(** * Lemmas About Opening *)
+(** ** Conversion between opening with paths and variables *)
 
 Lemma open_var_path_eq : forall x p n,
     open_rec_path n x p = open_rec_path_p n (pvar x) p.
@@ -174,660 +169,90 @@ Proof.
   intros. avar_solve; inversion* H1; try (inversions H3; false* notin_same).
 Qed.
 
-(** The following [lc_open_rec_open_XYZ] lemmas state that if opening
-    a symbol (variables, types, terms, etc.) at index [n] that is
-    already opened at index [m] results in the same opened symbol,
-    opening the symbol itself at index [n] results in the same symbol. *)
-
 (** - paths *)
-Lemma lc_open_rec_open_path: forall p T n m x,
-    n <> m ->
-    open_rec_path n x (open_rec_path m p T) = open_rec_path m p T ->
-    open_rec_path n x T = T.
-Proof. Admitted.
+Lemma open_fresh_path_injective : forall p q k z,
+    z \notin fv_path p ->
+    z \notin fv_path q ->
+    open_rec_path k z p = open_rec_path k z q ->
+    p = q.
+Proof.
+  intros. destruct p, q. inversions* H1. simpl in *; f_equal.
+  Admitted.
+
+ Ltac invert_open :=
+    match goal with
+    | [ H: _ = open_rec_typ _ _ ?T' |- _ ] =>
+       destruct T'; inversions* H
+    | [ H: _ = open_rec_dec _ _ ?D' |- _ ] =>
+       destruct D'; inversions* H
+    end.
 
 (** - types and declarations *)
-Lemma lc_open_rec_open_typ_dec: forall x y,
-    (forall T n m,
-        n <> m ->
-        open_rec_typ n x (open_rec_typ m y T) = open_rec_typ m y T ->
-        open_rec_typ n x T = T) /\
-    (forall D n m,
-        n <> m ->
-        open_rec_dec n x (open_rec_dec m y D) = open_rec_dec m y D ->
-        open_rec_dec n x D = D).
+Lemma open_fresh_typ_dec_injective:
+  (forall T T' k x,
+    x \notin fv_typ T ->
+    x \notin fv_typ T' ->
+    open_rec_typ k x T = open_rec_typ k x T' ->
+    T = T') /\
+  (forall D D' k x,
+    x \notin fv_dec D ->
+    x \notin fv_dec D' ->
+    open_rec_dec k x D = open_rec_dec k x D' ->
+    D = D').
 Proof.
-  introv. apply typ_mutind; intros; simpls; auto; avar_solve;
-            try solve [(inversions H1; erewrite H; eauto)
-                       || (inversions H2; erewrite H; eauto; erewrite H0; eauto)].
-Admitted. (*
-  - inversions H1. rewrite H with (m:=S m); auto.
-  - inversions H2. erewrite H; eauto. rewrite H0 with (m:=S m); auto.
-Qed.*)
-
-(** - terms, values, definitions, and list of definitions *)
-Lemma lc_open_rec_open_trm_val_def_defs: forall x y,
-    (forall t n m,
-        n <> m ->
-        open_rec_trm n x (open_rec_trm m y t) = open_rec_trm m y t ->
-        open_rec_trm n x t = t) /\
-    (forall v n m,
-        n <> m ->
-        open_rec_val n x (open_rec_val m y v) = open_rec_val m y v ->
-        open_rec_val n x v = v) /\
-    (forall d n m,
-        n <> m ->
-        open_rec_def n x (open_rec_def m y d) = open_rec_def m y d ->
-        open_rec_def n x d = d) /\
-    (forall ds n m,
-        n <> m ->
-        open_rec_defs n x (open_rec_defs m y ds) = open_rec_defs m y ds ->
-        open_rec_defs n x ds = ds).
-Proof.
-  intros.
-  pose proof (proj21 (lc_open_rec_open_typ_dec x y)) as Htyp.
-  apply trm_mutind;
-    intros; simpls; auto;
-      match goal with
-      | [ H : _ = _ |- _ ] => injection H as ?; f_equal; eauto
-      end; avar_solve.
-Admitted.
-
-(** [x \notin fv(x, y)] #<br>#
-    [―――――――――――――――――] #<br>#
-    [x \notin fv(x^y)] *)
-Lemma open_fv_avar : forall x z y k,
-    x \notin fv_avar z \u \{y} ->
-    x \notin fv_avar (open_rec_avar k y z).
-Proof.
-  intros. destruct z; simpls; try case_if; unfold fv_avar; auto.
+  apply typ_mutind; intros; invert_open; simpl in *;
+    f_equal; eauto using open_fresh_avar_injective, open_fresh_path_injective.
 Qed.
 
-Lemma open_fv_path : forall x y k p,
-    x \notin fv_path p \u \{y} ->
-    x \notin fv_path (open_rec_path k y p).
+Lemma open_fresh_trm_val_def_defs_injective:
+  (forall t t' k x,
+      x \notin fv_trm t ->
+      x \notin fv_trm t' ->
+      open_rec_trm k x t = open_rec_trm k x t' ->
+      t = t') /\
+  (forall v v' k x,
+      x \notin fv_val v ->
+      x \notin fv_val v' ->
+      open_rec_val k x v = open_rec_val k x v' ->
+      v = v') /\
+  (forall d d' k x,
+      x \notin fv_def d ->
+      x \notin fv_def d' ->
+      open_rec_def k x d = open_rec_def k x d' ->
+      d = d') /\
+  (forall ds ds' k x,
+      x \notin fv_defs ds ->
+      x \notin fv_defs ds' ->
+      open_rec_defs k x ds = open_rec_defs k x ds' ->
+      ds = ds').
 Proof.
-  intros. destruct p; simpls. apply* open_fv_avar.
-Qed.
 
-(** [x \notin fv(T, y)] #<br>#
-    [―――――――――――――――――] #<br>#
-    [x \notin fv(T^y)] *)
-Lemma open_fv_typ_dec :
-  (forall T x y k, x \notin fv_typ T \u \{y} -> x \notin fv_typ (open_rec_typ k y T)) /\
-  (forall D x y k, x \notin fv_dec D \u \{y} -> x \notin fv_dec (open_rec_dec k y D)).
-Proof.
-  apply typ_mutind; intros; simpls; auto;
-    apply open_fv_path; auto.
-Qed.
-
-(** [x \notin fv(t, y)] #<br>#
-    [―――――――――――――――――] #<br>#
-    [x \notin fv(t^y)] *)
-Lemma open_fv_trm_val_def_defs :
-  (forall t x y k, x \notin fv_trm t \u \{y} -> x \notin fv_trm (open_rec_trm k y t)) /\
-  (forall v x y k, x \notin fv_val v \u \{y} -> x \notin fv_val (open_rec_val k y v)) /\
-  (forall d x y k, x \notin fv_def d \u \{y} -> x \notin fv_def (open_rec_def k y d)) /\
-  (forall ds x y k, x \notin fv_defs ds \u \{y} -> x \notin fv_defs (open_rec_defs k y ds)).
-Proof.
-  Local Hint Resolve open_fv_avar.
-  apply trm_mutind; intros; simpls; auto;
-    try apply notin_union_l;
-    try (apply open_fv_typ_dec || apply open_fv_path); auto.
-Qed.
-
-(** * Local Closure
-
-  Our definition of [trm] accepts terms that contain de Bruijn indices that are unbound.
-  A symbol [X] is considered locally closed, denoted [lc X], if all de Bruijn indices
-  in [X] are bound.
-   We will require a term to be locally closed in the final safety theorem. *)
-
-(** Only named variables are locally closed. *)
-Inductive lc_at_var (k : nat) : avar -> Prop :=
-| lc_at_f : forall x, lc_at_var k (avar_f x)
-| lc_at_b : forall i, i < k -> lc_at_var k (avar_b i).
-Hint Constructors lc_at_var.
-
-Inductive lc_at_path (k: nat) : path -> Prop :=
-| lc_at_p : forall x bs, lc_at_var k x -> lc_at_path k (p_sel x bs).
-Hint Constructors lc_at_path.
-
-(** Locally closed types and declarations. *)
-Inductive lc_at_typ (k : nat) : typ -> Prop :=
-| lc_at_typ_top : lc_at_typ k typ_top
-| lc_at_typ_bot : lc_at_typ k typ_bot
-| lc_at_typ_rcd : forall D,
-    lc_at_dec k D ->
-    lc_at_typ k (typ_rcd D)
-| lc_at_typ_and : forall T1 T2,
-    lc_at_typ k T1 ->
-    lc_at_typ k T2 ->
-    lc_at_typ k (typ_and T1 T2)
-| lc_at_typ_sel : forall x L,
-    lc_at_path k x ->
-    lc_at_typ k (typ_path x L)
-| lc_at_typ_bnd : forall T,
-    lc_at_typ (S k) T ->
-    lc_at_typ k (typ_bnd T)
-| lc_at_typ_all : forall T1 T2,
-    lc_at_typ (S k) T2 ->
-    lc_at_typ k T1 ->
-    lc_at_typ k (typ_all T1 T2)
-with lc_at_dec (k : nat) : dec -> Prop :=
-| lc_at_dec_typ : forall L T U,
-    lc_at_typ k T ->
-    lc_at_typ k U ->
-    lc_at_dec k (dec_typ L T U)
-| lc_at_dec_trm : forall a T,
-    lc_at_typ k T ->
-    lc_at_dec k (dec_trm a T).
-Hint Constructors lc_at_typ lc_at_dec.
-
-
-(** Locally closed terms, values, and definitions. *)
-Inductive lc_at_trm (k : nat) : trm -> Prop :=
-| lc_at_trm_path : forall p,
-    lc_at_path k p ->
-    lc_at_trm k (trm_path p)
-| lc_at_trm_val : forall v,
-    lc_at_val k v ->
-    lc_at_trm k (trm_val v)
-| lc_at_trm_app : forall f a,
-    lc_at_path k f ->
-    lc_at_path k a ->
-    lc_at_trm k (trm_app f a)
-| lc_at_trm_let : forall t1 t2,
-    lc_at_trm k t1 ->
-    lc_at_trm (S k) t2 ->
-    lc_at_trm k (trm_let t1 t2)
-with lc_at_val (k : nat) : val -> Prop :=
-| lc_at_val_new : forall T ds,
-    lc_at_typ (S k) T ->
-    lc_at_defs (S k) ds ->
-    lc_at_val k (val_new T ds)
-| lc_at_val_lam : forall T t,
-    lc_at_typ k T ->
-    lc_at_trm (S k) t ->
-    lc_at_val k (val_lambda T t)
-with lc_at_def (k : nat) : def -> Prop :=
-| lc_at_def_typ : forall L T,
-    lc_at_typ k T ->
-    lc_at_def k (def_typ L T)
-| lc_at_def_trm : forall a t,
-    lc_at_trm k t ->
-    lc_at_def k (def_trm a t)
-with lc_at_defs (k : nat) : defs -> Prop :=
-| lc_at_defs_nil : lc_at_defs k defs_nil
-| lc_at_defs_cons : forall ds d,
-    lc_at_defs k ds ->
-    lc_at_def k d ->
-    lc_at_defs k (defs_cons ds d).
-Hint Constructors lc_at_trm lc_at_val lc_at_def lc_at_defs.
-
-
-Notation "'lc_var' x" := (lc_at_var 0 x) (at level 0).
-Notation "'lc_path' p" := (lc_at_path 0 p) (at level 0).
-Notation "'lc_typ' T" := (lc_at_typ 0 T) (at level 0).
-Notation "'lc_dec' D" := (lc_at_dec 0 D) (at level 0).
-
-Notation "'lc_trm' t" := (lc_at_trm 0 t) (at level 0).
-Notation "'lc_val' v" := (lc_at_val 0 v) (at level 0).
-Notation "'lc_def' d" := (lc_at_def 0 d) (at level 0).
-Notation "'lc_defs' ds" := (lc_at_defs 0 ds) (at level 0).
-
-
-Scheme lc_at_trm_mut  := Induction for lc_at_trm Sort Prop
-with   lc_at_val_mut  := Induction for lc_at_val Sort Prop
-with   lc_at_def_mut  := Induction for lc_at_def Sort Prop
-with   lc_at_defs_mut := Induction for lc_at_defs Sort Prop.
-Combined Scheme lc_at_mutind from lc_at_trm_mut, lc_at_val_mut, lc_at_def_mut, lc_at_defs_mut.
-
-Scheme lc_at_typ_mut := Induction for lc_at_typ Sort Prop
-with   lc_at_dec_mut := Induction for lc_at_dec Sort Prop.
-Combined Scheme lc_at_typ_mutind from lc_at_typ_mut, lc_at_dec_mut.
-
-
-(** Locally closed evaluation contexts *)
-Inductive lc_ec : ec -> Prop :=
-| lc_ec_empty : lc_ec empty
-| lc_ec_cons : forall x v e,
-    lc_ec e ->
-    lc_val v ->
-    lc_ec (e & x ~ v).
-Hint Constructors lc_ec.
-
-(** ** Local Closure Lemmas *)
-
-Lemma lc_at_relaxing_path : forall k j p,
-    lc_at_path k p -> j >= k -> lc_at_path j p.
-Proof.
-  introv Hl Hjk. inversions Hl. constructor. inversions H; constructor. omega.
-Qed.
-
-Lemma lc_at_relaxing_typ_dec :
-    (forall T k j, lc_at_typ k T -> j >= k -> lc_at_typ j T) /\
-    (forall D k j, lc_at_dec k D -> j >= k -> lc_at_dec j D).
-Proof with auto.
-  apply typ_mutind; intros; simpl; auto;
+  Ltac injective_solver :=
     match goal with
-    | [ H : lc_at_typ _ _ |- _ ] => inversions H
-    | [ H : lc_at_dec _ _ |- _ ] => inversions H
-    end;
-    try match goal with
-    | [ H : lc_at_var _ _ |- _ ] => inversions H
-    end;
-    repeat constructor;
-    try match goal with
-        | [ H : _ -> _ |- _ ] => eapply H; try eassumption
-        end;
-    try (apply* lc_at_relaxing_path);
-    omega.
-Qed.
+    | [ H: _ = open_rec_trm _ _ ?t |- _ ] =>
+      destruct t; inversions H;
+      try (f_equal; simpl in *);
+           try (apply* open_fresh_avar_injective || apply* open_fresh_path_injective);
+           match goal with
+           | [ Ho: open_rec_avar _ _ _ = open_rec_avar _ _ _ |- _ ] =>
+             apply open_fresh_avar_injective in Ho; subst*
+           | [ Heq: forall _ _ _, _ -> _ -> _ -> ?u = _ |- ?u = _ ] =>
+             apply* Heq
+           end
+    | [ H: _ = open_rec_val _ _ ?v |- _ ] =>
+      destruct v; inversions H; f_equal; simpl in *;
+      try apply* open_fresh_typ_dec_injective; eauto
+    | [ H: _ = open_rec_def _ _ ?d |- _ ] =>
+      destruct d; inversions H; f_equal;
+      try apply* open_fresh_typ_dec_injective; eauto
+    | [ H: _ = open_rec_defs _ _ ?ds |- _ ] =>
+      destruct ds; inversions H; f_equal; simpl in *; eauto
+    end.
 
-Lemma lc_at_relaxing_trm_val_def_defs:
-  (forall t k j, lc_at_trm k t -> j >= k -> lc_at_trm j t) /\
-  (forall v k j, lc_at_val k v -> j >= k -> lc_at_val j v) /\
-  (forall d k j, lc_at_def k d -> j >= k -> lc_at_def j d) /\
-  (forall ds k j, lc_at_defs k ds -> j >= k -> lc_at_defs j ds).
-Proof.
-  apply trm_mutind; intros; simpl; auto;
-    match goal with
-    | [ H : lc_at_trm _ _ |- _ ] => inversions H
-    | [ H : lc_at_val _ _ |- _ ] => inversions H
-    | [ H : lc_at_def _ _ |- _ ] => inversions H
-    | [ H : lc_at_defs _ _ |- _ ] => inversions H
-    | [ H : lc_at_typ _ _ |- _ ] => inversions H
-    end;
-    repeat match goal with
-           | [ H : lc_at_var _ _ |- _ ] => inversions H
-           end;
-    repeat constructor;
-    try eapply lc_at_relaxing_typ_dec; try eassumption;
-    try match goal with
-        | [ H : _ -> _ |- _ ] => eapply H; try eassumption
-        end;
-    try (apply* lc_at_relaxing_path);
-    omega.
-Qed.
-
-
-Lemma lc_at_to_open_avar : forall x v k,
-    lc_at_var (S k) v -> lc_at_var k (open_rec_avar k x v).
-Proof with auto.
-  intros. inversion H; subst; repeat constructor.
-  simpl. case_if...
-  constructor. omega.
-Qed.
-
-Lemma lc_at_to_open_path : forall p k x,
-    lc_at_path (S k) p -> lc_at_path k (open_rec_path k x p).
-Proof.
-  introv Hl. inversions Hl. constructor. apply* lc_at_to_open_avar.
-Qed.
-
-Lemma lc_at_to_open_typ_dec : forall x,
-    (forall T k, lc_at_typ (S k) T -> lc_at_typ k (open_rec_typ k x T)) /\
-    (forall D k, lc_at_dec (S k) D -> lc_at_dec k (open_rec_dec k x D)).
-Proof.
-  intro x.
-  apply typ_mutind; intros; simpl; auto;
-    match goal with
-    | [ H : lc_at_typ (S _) _ |- _ ] => inversions H
-    | [ H : lc_at_dec (S _) _ |- _ ] => inversions H
-    end;
-    try solve [constructor; try fold open_rec_dec; try fold open_rec_typ; auto];
-    solve [repeat constructor; apply lc_at_to_open_path; auto].
-Qed.
-
-Lemma lc_at_to_open_trm_val_def_defs : forall x,
-    (forall t k, lc_at_trm (S k) t -> lc_at_trm k (open_rec_trm k x t)) /\
-    (forall v k, lc_at_val (S k) v -> lc_at_val k (open_rec_val k x v)) /\
-    (forall d k, lc_at_def (S k) d -> lc_at_def k (open_rec_def k x d)) /\
-    (forall ds k, lc_at_defs (S k) ds -> lc_at_defs k (open_rec_defs k x ds)).
-Proof.
-  intro x.
-  apply trm_mutind; intros; simpl; auto;
-    match goal with
-    | [ H : lc_at_trm (S _) _ |- _ ] => inversions H
-    | [ H : lc_at_val (S _) _ |- _ ] => inversions H
-    | [ H : lc_at_def (S _) _ |- _ ] => inversions H
-    | [ H : lc_at_defs (S _) _ |- _ ] => inversions H
-    | [ H : lc_at_typ (S _) _ |- _ ] => inversions H
-    end;
-    repeat constructor; auto;
-    try solve [try fold open_rec_trm; auto];
-    try solve [apply lc_at_to_open_typ_dec; auto];
-    solve [apply lc_at_to_open_path; auto].
-Qed.
-
-Lemma open_to_lc_at_avar : forall x y k,
-    lc_at_var k (open_rec_avar k x y) ->
-    lc_at_var (S k) y.
-Proof.
-  intros. inversion H; subst;
-      destruct y; simpl in *;
-        try case_if; subst; repeat constructor; auto.
-  inversion H0. omega.
-Qed.
-
-Lemma open_to_lc_at_path : forall k x p,
-    lc_at_path k (open_rec_path k x p) ->
-    lc_at_path (S k) p.
-Proof.
-  introv Hl. inversions Hl. destruct p. inversions H. constructor. apply* open_to_lc_at_avar.
-Qed.
-
-Lemma open_to_lc_at_typ_dec : forall x,
-    (forall T k, lc_at_typ k (open_rec_typ k x T) -> lc_at_typ (S k) T) /\
-    (forall D k, lc_at_dec k (open_rec_dec k x D) -> lc_at_dec (S k) D).
-Proof with eauto.
-  intro x.
-  apply typ_mutind; intros; simpl; auto;
-    match goal with
-    | [ H : lc_at_typ _ _ |- _ ] => inversions H
-    | [ H : lc_at_dec _ _ |- _ ] => inversions H
-    end;
-    repeat constructor; auto;
-      eapply open_to_lc_at_path...
-Qed.
-
-Lemma open_to_lc_at_trm_val_def_defs : forall x,
-    (forall t k, lc_at_trm k (open_rec_trm k x t) -> lc_at_trm (S k) t) /\
-    (forall v k, lc_at_val k (open_rec_val k x v) -> lc_at_val (S k) v) /\
-    (forall d k, lc_at_def k (open_rec_def k x d) -> lc_at_def (S k) d) /\
-    (forall ds k, lc_at_defs k (open_rec_defs k x ds) -> lc_at_defs (S k) ds).
-Proof.
-  intro x.
-  apply trm_mutind; intros; simpl;
-    match goal with
-    | [ H : lc_at_trm _ _ |- _ ] => inversions H
-    | [ H : lc_at_val _ _ |- _ ] => inversions H
-    | [ H : lc_at_def _ _ |- _ ] => inversions H
-    | [ H : lc_at_defs _ _ |- _ ] => inversions H
-    | [ H : lc_at_typ _ _ |- _ ] => inversions H
-    end;
-    repeat constructor; auto;
-    try solve [try fold open_rec_trm; auto];
-    first [eapply open_to_lc_at_typ_dec | eapply open_to_lc_at_path]; eauto.
-Qed.
-
-
-Lemma open_left_inverse_close_avar:
-  forall y x k, lc_at_var k y -> open_rec_avar k x (close_rec_avar k x y) = y.
-Proof with auto.
-  intros. unfold open_rec_avar, close_rec_avar.
-  inversion H; repeat case_if; subst...
-  omega.
-Qed.
-Hint Resolve open_left_inverse_close_avar.
-(*
-Lemma open_left_inverse_close_path:
-  forall p x k, lc_at_path k p -> open_rec_avar k x (close_rec_path k x p) = p.*)
-
-Lemma open_left_inverse_close_typ_dec:
-  (forall T x k, lc_at_typ k T -> open_rec_typ k x (close_rec_typ k x T) = T) /\
-  (forall D x k, lc_at_dec k D -> open_rec_dec k x (close_rec_dec k x D) = D).
-Proof with auto.
-  apply typ_mutind; intros; simpl in *; auto;
-  match goal with
-  | [ H : lc_at_typ _ _ |- _ ] => inversions H
-  | [ H : lc_at_dec _ _ |- _ ] => inversions H
-  end;
-  try apply func_eq_2;
-  try apply func_eq_1... Admitted.
-
-
-Lemma open_left_inverse_close_trm_val_def_defs :
-  (forall t k x, lc_at_trm k t -> open_rec_trm k x (close_rec_trm k x t) = t) /\
-  (forall v k x, lc_at_val k v -> open_rec_val k x (close_rec_val k x v) = v) /\
-  (forall d k x, lc_at_def k d -> open_rec_def k x (close_rec_def k x d) = d) /\
-  (forall ds k x, lc_at_defs k ds -> open_rec_defs k x (close_rec_defs k x ds) = ds).
-Proof. Admitted. (*
-  apply trm_mutind; intros; simpl in *; auto;
-    match goal with
-    | [ H : lc_at_trm _ _ |- _ ] => inversions H
-    | [ H : lc_at_val _ _ |- _ ] => inversions H
-    | [ H : lc_at_def _ _ |- _ ] => inversions H
-    | [ H : lc_at_defs _ _ |- _ ] => inversions H
-    end;
-    try apply func_eq_2;
-    try apply func_eq_1; auto;
-      apply open_left_inverse_close_typ_dec; auto.
-Qed.*)
-
-
-(** The following [lc_at_opening_XYZ] lemmas state that opening a locally
-    closed symbol (variables, types, terms, etc.) at any index
-    results in the same symbol. *)
-
-(** - variables *)
-Lemma lc_at_opening_avar: forall m n x y,
-    n >= m ->
-    lc_at_var m y ->
-    open_rec_avar n x y = y.
-Proof.
-  introv Hge Hl. inversion Hl; simpls~.
-  case_if~. omega.
-Qed.
-
-
-(** - types and declarations *)
-Lemma lc_at_opening_typ_dec: forall x m,
-    (forall T, lc_at_typ m T -> forall n, n >= m -> open_rec_typ n x T = T) /\
-    (forall D, lc_at_dec m D -> forall n, n >= m -> open_rec_dec n x D = D).
-Proof.
-  Local Hint Resolve lc_at_opening_avar.
-  intro x. Admitted. (*apply lc_at_typ_mutind; intros; simpls; f_equal*;
-  match goal with
-  | [ H : _ -> _ -> open_rec_typ _ _ _ = _ |- _ ] => apply H
-  end; omega.
-Qed.*)
-
-
-(** - terms, values, definitions, and list of definitions *)
-Lemma lc_at_opening_trm_val_def_defs: forall x m,
-  (forall t, lc_at_trm m t -> forall n, n >= m -> open_rec_trm n x t = t) /\
-  (forall v, lc_at_val m v -> forall n, n >= m -> open_rec_val n x v = v) /\
-  (forall d, lc_at_def m d -> forall n, n >= m -> open_rec_def n x d = d) /\
-  (forall ds, lc_at_defs m ds -> forall n, n >= m -> open_rec_defs n x ds = ds).
-Proof.
-  Local Hint Resolve lc_at_opening_avar.
-  intro x. Admitted. (*
-  apply lc_at_mutind; intros; simpls; f_equal*;
-    try solve
-        [match goal with
-         | [ H : _ -> _ -> ?f _ _ ?t = ?t |- ?f _ _ ?t = ?t ] => apply H
-         end; omega];
-  eapply lc_at_opening_typ_dec;
-    try eassumption;
-    try omega.
-Qed.*)
-
-
-(** The [lc_at_opening_trm_val_def_defs] lemma, specialized to terms. *)
-Lemma lc_at_opening : forall t n x,
-    lc_trm t ->
-    open_rec_trm n x t = t.
-Proof.
-  intros. eapply lc_at_opening_trm_val_def_defs; try eassumption; try omega.
-Qed.
-
-(** When a binding is removed from a locally closed evaluation context, the
-    resulting evaluation context and the value in the binding are both
-    locally closed. *)
-Lemma lc_ec_push_inv : forall s x v,
-    lc_ec (s & x ~ v) ->
-    lc_ec s /\ lc_val v.
-Proof.
-  intros s x v H.
-  inversion H.
-  - destruct (empty_push_inv H1).
-  - destruct (eq_push_inv H0) as [? [? ?] ]; subst.
-    auto.
-Qed.
-
-
-(** Values in a locally closed evaluation context are also locally closed. *)
-Lemma lc_ec_binds_inv : forall e x v,
-    lc_ec e ->
-    binds x v e ->
-    lc_val v.
-Proof.
-  intros.
-  induction e using env_ind.
-  - destruct (binds_empty_inv H0).
-  - destruct (binds_push_inv H0) as [[? ?] | [? ?]]; subst.
-    + apply (lc_ec_push_inv H).
-    + apply IHe; auto.
-      apply (lc_ec_push_inv H).
-Qed.
-
-
-(** A definition in a locally closed list of definitions is also
-    locally closed. *)
-Lemma lc_defs_has : forall ds d,
-    lc_defs ds ->
-    defs_has ds d ->
-    lc_def d.
-Proof.
-  intros.
-  induction ds.
-  - inversion H0.
-  - unfold defs_has in H0; simpl in H0.
-    cases_if.
-    + inversions H0. inversion H; auto.
-    + apply IHds; auto. inversion H; auto.
-Qed.
-
-Lemma open_bound_lc_trm : forall k x t,
-    lc_trm (open_trm x t) ->
-    open_rec_trm (S k) x t = t.
-Proof.
-  intros.
-  apply lc_at_opening with (n:=S k) (x:=x) in H.
-  eapply (proj1 (lc_open_rec_open_trm_val_def_defs x _)).
-  - instantiate (1 := 0). auto.
-  - eassumption.
-Qed.
-
-(** If [x] is closed in [t], then [x \notin fv(t)]. *)
-
-(** - for types and declarations *)
-Lemma close_rec_typ_dec_no_capture : forall x,
-    (forall T k, x \notin fv_typ (close_rec_typ k x T)) /\
-    (forall D k, x \notin fv_dec (close_rec_dec k x D)).
-Proof.
-  intros x. Admitted. (*
-  apply typ_mutind; intros; simpl; auto;
-    match goal with
-    | [ |- _ \notin fv_avar (close_rec_avar _ _ ?a) ] => destruct a
-    end; simpl;
-      try case_if; unfold fv_avar; auto.
-Qed.*)
-
-(** - for terms, values, and definitions *)
-Lemma close_rec_trm_val_def_defs_no_capture: forall x,
-    (forall t k, x \notin fv_trm (close_rec_trm k x t)) /\
-    (forall v k, x \notin fv_val (close_rec_val k x v)) /\
-    (forall d k, x \notin fv_def (close_rec_def k x d)) /\
-    (forall ds k, x \notin fv_defs (close_rec_defs k x ds)).
-Proof.
-  intro x.
-  apply trm_mutind; intros; simpl; auto;
-    try apply notin_union;
-    repeat split;
-    try apply close_rec_typ_dec_no_capture;
-    repeat
-      match goal with
-      | [ |- _ \notin fv_avar (close_rec_avar _ _ ?a) ] => destruct a; simpl
-      end;
-    repeat case_if; unfold fv_avar; auto. Admitted.
-
-(** * Free Variables Lemmas *)
-
-Lemma fv_ctx_types_push_eq : forall G x T,
-    fv_ctx_types (G & x ~ T) = fv_ctx_types G \u fv_typ T.
-Proof.
-  intros.
-  rewrite concat_def, single_def.
-  unfold fv_ctx_types, fv_in_values; rewrite values_def.
-  rewrite union_comm. reflexivity.
-Qed.
-
-(** [fv(e, x = v) = fv(e) ∪ fv(v)] *)
-Lemma fv_ec_vals_push_eq : forall e x v,
-    fv_ec_vals (e & x ~ v) = fv_ec_vals e \u fv_val v.
-Proof.
-  intros.
-  rewrite concat_def, single_def.
-  unfold fv_ec_vals, fv_in_values; rewrite values_def.
-  rewrite union_comm. reflexivity.
-Qed.
-
-(** [e(y) = v]       #<br>#
-    [x \notin fv(e)] #<br>#
-    [――――――――――――――] #<br>#
-    [x \notin fv(v)] *)
-Lemma binds_fv_ec_vals : forall x y v e,
-    binds y v e ->
-    x \notin fv_ec_vals e ->
-    x \notin fv_val v.
-Proof.
-  intros. unfold fv_ec_vals in H0.
-  eapply fv_in_values_binds; eauto.
+  apply trm_mutind; intros; try solve [injective_solver].
 Qed.
 
 (** * Variable Substitution Lemmas *)
-
-(** [e(b) = v]            #<br>#
-    [――――――――――――――――――]  #<br>#
-    [e[y/x](b) = v[y/x]]  *)
-Lemma binds_subst_env : forall x y b v e,
-    binds b v e -> binds b (subst_val x y v) (subst_env x y e).
-Proof.
-  introv. gen x y b v. induction e using env_ind; intros.
-  - destruct (binds_empty_inv H).
-  - apply binds_push_inv in H.
-    destruct_all; subst; unfold subst_env; rewrite map_push.
-    + auto.
-    + apply binds_push_neq; auto.
-Qed.
-
-(** Substitution preserves local closure. *)
-
-(** - for variables *)
-(*Lemma lc_at_subst_avar : forall v x y k,
-    lc_at_var k v <-> lc_at_var k (subst_avar x y v).
-Proof.
-  intros.
-  split; intros;
-    try solve [inversion H; simpls; auto].
-  destruct v; auto.
-Qed.
-*)
-(** - for types and declarations *)
-Lemma lc_at_subst_typ_dec : forall k,
-  (forall T, lc_at_typ k T -> forall x y, lc_at_typ k (subst_typ x y T)) /\
-  (forall D, lc_at_dec k D -> forall x y, lc_at_dec k (subst_dec x y D)).
-Proof.
-  apply lc_at_typ_mutind; intros; simpls; auto.
-  constructor. Admitted. (*apply lc_at_subst_avar. trivial.*)
-
-(** - for terms, values, and definitions *)
-Lemma lc_at_subst_trm_val_def_defs : forall k,
-    (forall t, lc_at_trm k t -> forall x y, lc_at_trm k (subst_trm x y t)) /\
-    (forall v, lc_at_val k v -> forall x y, lc_at_val k (subst_val x y v)) /\
-    (forall d, lc_at_def k d -> forall x y, lc_at_def k (subst_def x y d)) /\
-    (forall ds, lc_at_defs k ds -> forall x y, lc_at_defs k (subst_defs x y ds)).
-Proof.
-  apply lc_at_mutind; intros; simpls; auto;
-    repeat constructor;
-    try solve [apply lc_at_subst_avar; trivial];
-    try apply lc_at_subst_typ_dec; trivial.
-Admitted.
-
-(** * Lemmas *)
 
 (** The following [subst_fresh_XYZ] lemmas state that if [x] is not free
     in a symbol [Y], then [Y[z/x] = Y]. *)
@@ -840,6 +265,7 @@ Proof.
   intros. destruct* a. simpl. autounfold. case_var*. simpls. notin_false.
 Qed.
 
+(** - in paths *)
 Lemma subst_fresh_path : forall x q p,
     x \notin fv_path p ->
     subst_path x q p = p.
@@ -852,7 +278,7 @@ Proof.
     simpl. rewrite* app_nil_r.
 Qed.
 
-(** - in types, declarations, paths *)
+(** - in types, declarations *)
 Lemma subst_fresh_typ_dec: forall x y,
   (forall T : typ  , x \notin fv_typ  T  -> subst_typ  x y T  = T ) /\
   (forall D : dec  , x \notin fv_dec  D  -> subst_dec  x y D  = D ).
@@ -873,37 +299,14 @@ Proof.
     (apply* subst_fresh_typ_dec || apply* subst_fresh_path).
 Qed.
 
-Lemma fv_ctx_types_concat_eq : forall G1 G2,
-    fv_ctx_types (G1 & G2) = fv_ctx_types G1 \u fv_ctx_types G2.
+(** [fv(G, x: T) = fv(G) \u fv(T)] *)
+Lemma fv_ctx_types_push_eq : forall G x T,
+    fv_ctx_types (G & x ~ T) = fv_ctx_types G \u fv_typ T.
 Proof.
-  intros G1 G2. induction G2 using env_ind.
-  - unfold fv_ctx_types, fv_in_values; rewrite values_def.
-    rewrite concat_empty_r, empty_def, union_empty_r; reflexivity.
-  - rewrite concat_assoc. rewrite fv_ctx_types_push_eq.
-    rewrite IHG2. rewrite <- union_assoc. f_equal.
-    symmetry. apply fv_ctx_types_push_eq.
-Qed.
-
-Lemma notin_fv_ctx_concat : forall x G2 G1,
-    x \notin fv_ctx_types (G1 & G2) <->
-    x \notin fv_ctx_types G1 /\ x \notin fv_ctx_types G2.
-Proof.
-  intros. rewrite <- notin_union.
-  rewrite <- fv_ctx_types_concat_eq.
-  split; intros; assumption.
-Qed.
-
-(** [x \notin fv(T)]           #<br>#
-    [x \notin fv(G)]       #<br>#
-    [―――――――――――――――――――――――] #<br>#
-    [x \notin fv(G, z: T)] *)
-Lemma fv_ctx_types_push: forall x z T G,
-    x \notin fv_typ T ->
-    x \notin fv_ctx_types G ->
-    x \notin fv_ctx_types (G & z ~ T).
-Proof.
-  intros. rewrite fv_ctx_types_push_eq.
-  apply notin_union. split~.
+  intros.
+  rewrite concat_def, single_def.
+  unfold fv_ctx_types, fv_in_values; rewrite values_def.
+  rewrite union_comm. reflexivity.
 Qed.
 
 (** [x \notin fv(G, z: T)]                   #<br>#
@@ -933,10 +336,10 @@ Proof.
     rewrite ((proj1 (subst_fresh_typ_dec _ _)) _ N1).
     reflexivity.
 Qed.
-(*
+
 (** Definition of substitution on named variables: #<br>#
     [z[y/x] := if z == x then y else z], where [z] is a named variable. *)
-Definition subst_fvar(x y z: var): var := If z = x then y else z.*)
+Definition subst_fvar(x y z: var): var := If z = x then y else z.
 
 (** The following lemmas state that substitution commutes with opening:
     for a symbol [Z], #<br>#
@@ -944,7 +347,7 @@ Definition subst_fvar(x y z: var): var := If z = x then y else z.*)
 
 (** Substitution commutes with opening
     - variables *)
-Lemma subst_open_commut: forall x p u y n,
+Lemma subst_open_commut_avar: forall x p u y n,
     lc_path p ->
     subst_avar x p (open_rec_avar n u y)
     = open_rec_path_p n (subst_var_p x p u) (subst_avar x p y).
@@ -954,26 +357,13 @@ Proof.
     repeat case_if; simpl; try case_if*; eauto; inversions  Hl; inversion H0; inversion H1.
 Qed.
 
-Lemma sel_fields_open : forall n p q bs,
-  sel_fields (open_rec_path_p n p q) bs = open_rec_path_p n p (sel_fields q bs).
-Proof.
-  intros. destruct q. simpl. destruct p. destruct a. case_if; simpl; auto. rewrite* app_assoc.
-  simpl. auto.
-Qed.
-
-Lemma sel_fields_subst : forall x p y bs b,
-    subst_path x p (p_sel y bs) • b = (subst_path x p (p_sel y bs)) • b.
-Proof.
-  intros. destruct p, y; auto. simpl. unfold subst_var_p. case_if; simpl; auto.
-Qed.
-
 (** - paths *)
 Lemma subst_open_commut_path: forall p n x q u,
     lc_path p ->
     subst_path x p (open_rec_path n u q)
     = open_rec_path_p n (subst_var_p x p u) (subst_path x p q).
 Proof.
-  introv Hl. destruct q as [z bs]. simpl. rewrite* subst_open_commut. rewrite* sel_fields_open.
+  introv Hl. destruct q as [z bs]. simpl. rewrite* subst_open_commut_avar. rewrite* sel_fields_open.
 Qed.
 
 (** - types and declarations *)
@@ -1182,128 +572,19 @@ Proof.
   simpl in Eq. case_if~.
 Qed.
 
-(** Definition of substitution on named variables: #<br>#
-    [z[y/x] := if z == x then y else z], where [z] is a named variable. *)
-Definition subst_fvar(x y z: var): var := If z = x then y else z.
+(** ** Field selection *)
 
-
-(** [z <> x]                             #<br>#
-    [ds^z = ...{a = t}...]              #<br>#
-    [――――――――――――――――――――――――――――――――]  #<br>#
-    [(ds[y/x])^z = ...{a = t[y/x]}...]  *)
-Lemma open_subst_defs : forall x y z a ds t,
-    z <> x ->
-    defs_has (open_defs z ds) (def_trm a t) ->
-    defs_has (open_defs z (subst_defs x y ds)) (def_trm a (subst_trm x y t)).
+(** [(p^q).bs = (p.bs)^q ] *)
+Lemma sel_fields_open : forall n p q bs,
+  sel_fields (open_rec_path_p n p q) bs = open_rec_path_p n p (sel_fields q bs).
 Proof.
-  introv. gen x y z a t. induction ds; intros.
-  - inversion H0.
-  - unfold open_defs, defs_has in *; simpls. case_if.
-    + destruct d; simpls; case_if; auto.
-      inversions H0.
-      rewrite subst_open_commut_trm. unfold subst_fvar.
-      Admitted. (*case_if. auto.
-    + case_if; apply IHds; destruct d; auto; contradiction.
-Qed.*)
-
-(** [y <> x]                             #<br>#
-    [ds^x = ...{a = t}...]              #<br>#
-    [――――――――――――――――――――――――――――――――]  #<br>#
-    [(ds[y/x])^y = ...{a = t[y/x]}...]  *)
-(*Lemma open_subst_defs2 : forall x y a ds t,
-    y <> x ->
-    defs_has (open_defs x ds) (def_trm a t) ->
-    defs_has (open_defs y (subst_defs x y ds)) (def_trm a (subst_trm x y t)).
-Proof.
-  introv. gen x y a t. induction ds; intros.
-  - inversion H0.
-  - unfold open_defs, defs_has in *.
-    simpls; case_if; destruct d; simpls; case_if; auto.
-    subst; inversion H0.
-    rewrite subst_open_commut_trm. unfold subst_fvar. case_if; auto.
-Qed.
-*)
-
-(** - variables *)
-
-Lemma open_fresh_path_injective : forall p q k z,
-    z \notin fv_path p ->
-    z \notin fv_path q ->
-    open_rec_path k z p = open_rec_path k z q ->
-    p = q.
-Proof.
-  intros. destruct p, q. inversions* H1. simpl in *; f_equal.
-  Admitted.
-
- Ltac invert_open :=
-    match goal with
-    | [ H: _ = open_rec_typ _ _ ?T' |- _ ] =>
-       destruct T'; inversions* H
-    | [ H: _ = open_rec_dec _ _ ?D' |- _ ] =>
-       destruct D'; inversions* H
-    end.
-
-(** - types and declarations *)
-Lemma open_fresh_typ_dec_injective:
-  (forall T T' k x,
-    x \notin fv_typ T ->
-    x \notin fv_typ T' ->
-    open_rec_typ k x T = open_rec_typ k x T' ->
-    T = T') /\
-  (forall D D' k x,
-    x \notin fv_dec D ->
-    x \notin fv_dec D' ->
-    open_rec_dec k x D = open_rec_dec k x D' ->
-    D = D').
-Proof.
-  apply typ_mutind; intros; invert_open; simpl in *;
-    f_equal; eauto using open_fresh_avar_injective, open_fresh_path_injective.
+  intros. destruct q. simpl. destruct p. destruct a. case_if; simpl; auto. rewrite* app_assoc.
+  simpl. auto.
 Qed.
 
-Lemma open_fresh_trm_val_def_defs_injective:
-  (forall t t' k x,
-      x \notin fv_trm t ->
-      x \notin fv_trm t' ->
-      open_rec_trm k x t = open_rec_trm k x t' ->
-      t = t') /\
-  (forall v v' k x,
-      x \notin fv_val v ->
-      x \notin fv_val v' ->
-      open_rec_val k x v = open_rec_val k x v' ->
-      v = v') /\
-  (forall d d' k x,
-      x \notin fv_def d ->
-      x \notin fv_def d' ->
-      open_rec_def k x d = open_rec_def k x d' ->
-      d = d') /\
-  (forall ds ds' k x,
-      x \notin fv_defs ds ->
-      x \notin fv_defs ds' ->
-      open_rec_defs k x ds = open_rec_defs k x ds' ->
-      ds = ds').
+(** [y.bs.b [p/x] = (y.bs [p/x]).b] *)
+Lemma sel_fields_subst : forall x p y bs b,
+    subst_path x p (p_sel y bs) • b = (subst_path x p (p_sel y bs)) • b.
 Proof.
-
-  Ltac injective_solver :=
-    match goal with
-    | [ H: _ = open_rec_trm _ _ ?t |- _ ] =>
-      destruct t; inversions H;
-      try (f_equal; simpl in *);
-           try (apply* open_fresh_avar_injective || apply* open_fresh_path_injective);
-           match goal with
-           | [ Ho: open_rec_avar _ _ _ = open_rec_avar _ _ _ |- _ ] =>
-             apply open_fresh_avar_injective in Ho; subst*
-           | [ Heq: forall _ _ _, _ -> _ -> _ -> ?u = _ |- ?u = _ ] =>
-             apply* Heq
-           end
-    | [ H: _ = open_rec_val _ _ ?v |- _ ] =>
-      destruct v; inversions H; f_equal; simpl in *;
-      try apply* open_fresh_typ_dec_injective; eauto
-    | [ H: _ = open_rec_def _ _ ?d |- _ ] =>
-      destruct d; inversions H; f_equal;
-      try apply* open_fresh_typ_dec_injective; eauto
-    | [ H: _ = open_rec_defs _ _ ?ds |- _ ] =>
-      destruct ds; inversions H; f_equal; simpl in *; eauto
-    end.
-
-  apply trm_mutind; intros; try solve [injective_solver].
+  intros. destruct p, y; auto. simpl. unfold subst_var_p. case_if; simpl; auto.
 Qed.
