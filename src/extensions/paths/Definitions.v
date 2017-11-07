@@ -700,6 +700,8 @@ Inductive well_typed: ctx -> sta -> Prop :=
 
 (** * Path Lookup *)
 
+(** ** Path lookup in stacks *)
+
 Reserved Notation "s '∋' t" (at level 60).
 Reserved Notation "s '↓' p '==' ds" (at level 60).
 
@@ -739,14 +741,57 @@ with lookup_open : sta -> path -> defs -> Prop :=
 (** [s ∋ (p, ν(T)ds         ]    #<br>#
     [―――――――――――――――――――――――]    #<br>#
     [s ↓ p = ds^p           ]    *)
-     | lo_ds : forall s p T ds,
-         s ∋ (p, val_new T ds) ->
-         s ↓ p == open_defs_p p ds
+| lo_ds : forall s p T ds,
+    s ∋ (p, val_new T ds) ->
+    s ↓ p == open_defs_p p ds
 
 where "s '↓' p '==' ds" := (lookup_open s p ds).
 
 Reserved Notation "t1 '|->' t2" (at level 40, t2 at level 39).
 Hint Constructors lookup lookup_open.
+
+(** ** Path lookup in typing contexts *)
+
+Reserved Notation "G '∋' p ':' T" (at level 60, p at level 50).
+Reserved Notation "G '↓↓' p '==' ds" (at level 60).
+
+(** Looking up a path in a typing context. *)
+
+Inductive lookup_ctx : ctx -> path -> typ -> Prop :=
+
+(** [G(x) = T   ]    #<br>#
+    [―――――――――――]    #<br>#
+    [G ∋ (x : T)]    *)
+| lookup_ctx_var : forall G x T,
+    binds x T G ->
+    G ∋ pvar x : T
+
+(** [G ↓↓ p = ...{a: T}...  ]    #<br>#
+    [―――――――――――――――――――――――]    #<br>#
+    [G ∋ (p.a, T)]               *)
+| lookup_ctx_path : forall G p a T,
+    G ↓↓ p == T ->
+    record_has T (dec_trm a T) ->
+    G ∋ p•a : T
+
+where "G '∋' p ':' T" := (lookup_ctx G p T )
+
+(** Opening of definitions:
+    If [s ∋ (p, ν(x: T)ds)], then [lookup_open] gives us [ds] opened with [p]. *)
+
+with lookup_ctx_open : ctx -> path -> typ -> Prop :=
+
+(** [G ∋ (p: μ(T))         ]    #<br>#
+    [――――――――――――――――――――――]    #<br>#
+    [G ↓↓ p = T^p          ]    *)
+| lo_ctx_ds : forall G p T ,
+    G ∋ p : typ_bnd T ->
+    G ↓↓ p == open_typ_p p T
+
+where "G '↓↓' p '==' T" := (lookup_ctx_open G p T).
+
+Reserved Notation "t1 '|->' t2" (at level 40, t2 at level 39).
+Hint Constructors lookup_ctx lookup_ctx_open.
 
 (** * Infrastructure *)
 
