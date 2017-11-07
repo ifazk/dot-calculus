@@ -128,8 +128,6 @@ Lemma ty_defs_record_type : forall G ds T,
     G /- ds :: T ->
     record_type T.
 Proof.
-
-
  intros. induction H; destruct D;
     repeat match goal with
         | [ H: record_type _ |- _ ] =>

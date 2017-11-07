@@ -9,6 +9,22 @@ Set Implicit Arguments.
 Require Import LibLN.
 Require Import Definitions Binding Weakening.
 
+Ltac subst_open_fresh :=
+  repeat match goal with
+    | [ |- context [ open_typ ?z (subst_typ ?x ?y ?T) ] ] =>
+        replace (open_typ z (subst_typ x y T)) with (open_typ (subst_fvar x y z) (subst_typ x y T))
+          by (unfold subst_fvar; rewrite~ If_r);
+        rewrite_all <- subst_open_commut_typ
+    | [ |- context [ open_defs ?z (subst_defs ?x ?y ?ds) ] ] =>
+        replace (open_defs z (subst_defs x y ds)) with (open_defs (subst_fvar x y z) (subst_defs x y ds))
+          by (unfold subst_fvar; rewrite~ If_r);
+        rewrite_all <- subst_open_commut_defs
+     | [ |- context [ open_trm ?z (subst_trm ?x ?y ?t) ] ] =>
+        replace (open_trm z (subst_trm x y t)) with (open_trm (subst_fvar x y z) (subst_trm x y t))
+          by (unfold subst_fvar; rewrite~ If_r);
+        rewrite_all <- subst_open_commut_trm
+    end.
+
 Ltac subst_solver :=
     fresh_constructor;
     subst_open_fresh;
