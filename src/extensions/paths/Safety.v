@@ -5,8 +5,7 @@ Require Import Coq.Program.Equality.
 Require Import Binding CanonicalForms Definitions GeneralToTight InvertibleTyping Narrowing
             OperationalSemantics PreciseTyping RecordAndInertTypes Substitution Weakening.
 
-(** For the purposes of our evaluation semantics, a term is a
- The typing of a term with a stack *)
+(** The typing of a term with a stack *)
 Inductive sta_trm_typ : sta * trm -> typ -> Prop :=
 | sta_trm_typ_c : forall G s t T,
     inert G ->
