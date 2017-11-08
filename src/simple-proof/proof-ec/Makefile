@@ -1,8 +1,8 @@
 FILES=Safety.v
 OBJECTS=$(FILES:.v=.vo)
 
-TLCDIR=../lib/tlc
-DOCDIR=../doc
+TLCDIR=../../../lib/tlc
+DOCDIR=doc
 
 TLCSRC=$(TLCDIR)/src
 LIBLN=$(TLCSRC)/LibLN.vo
