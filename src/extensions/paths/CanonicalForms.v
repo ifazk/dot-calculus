@@ -43,17 +43,17 @@ Qed.
     [G |- v: T]          *)
 Lemma corresponding_types: forall G s p T,
     well_typed G s ->
-    G ∋ p : T ->
+    G ⊢! trm_path p: T ->
     (exists v, s ∋ (p, v) /\
           G ⊢ trm_val v : T).
 Proof.
   introv Hwf BiG. induction Hwf.
-  - false* lookup_ctx_empty.
+  - false. dependent induction BiG; eauto; false* binds_empty_inv.
   - destruct p as [y bs].
-    lets Hn: ((proj21 lookup_implies_named_mut) _ _ _ BiG).
-    inversions Hn. destruct H2 as [bs' Heq]. inversions Heq.
-    assert (p_sel (avar_f x0) nil = pvar x0) as Heq by auto.
-    destruct (classicT (x = x0)).
+    lets Hg: (precise_to_general BiG). apply typed_paths_named in Hg. destruct Hg as [z [bs' Heq]].
+    inversions Heq.
+    assert (p_sel (avar_f z) nil = pvar z) as Heq by auto.
+    destruct (classicT (x = z)).
     * subst. destruct bs'.
       + inversions Heq. apply lookup_ctx_push_eq_inv_var in BiG. subst.
         exists v. split. constructor. auto.
