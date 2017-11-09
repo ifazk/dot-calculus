@@ -64,7 +64,7 @@ Ltac solve_let :=
   invert_red; solve_IH; fresh_constructor; eauto; apply* weaken_rules.
 
 (** [s: G]                  #<br>#
-    [inert [G]              #<br>#
+    [inert G]               #<br>#
     [(s, t) |-> (s', t')]   #<br>#
     [G ⊢ t: T]              #<br>#
     [―――――――――――――――――――]   #<br>#
