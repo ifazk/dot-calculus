@@ -41,27 +41,33 @@ Qed.
     [―――――――――――――――]     #<br>#
     [exists v, s ∋ (p, v)]     #<br>#
     [G |- v: T]          *)
-Lemma corresponding_types: forall G s p T,
+Lemma corresponding_types: forall G s p T T',
     well_typed G s ->
-    G ⊢! trm_path p: T ->
+    precise_flow p G T T' ->
     (exists v, s ∋ (p, v) /\
           G ⊢ trm_val v : T).
 Proof.
   introv Hwf BiG. induction Hwf.
   - false. dependent induction BiG; eauto; false* binds_empty_inv.
   - destruct p as [y bs].
-    lets Hg: (precise_to_general BiG). apply typed_paths_named in Hg. destruct Hg as [z [bs' Heq]].
-    inversions Heq.
+    assert (exists z, y = avar_f z) as Heq by admit.
+    destruct Heq as [z Heq]. subst.
     assert (p_sel (avar_f z) nil = pvar z) as Heq by auto.
     destruct (classicT (x = z)).
-    * subst. destruct bs'.
-      + inversions Heq. apply lookup_ctx_push_eq_inv_var in BiG. subst.
+    * subst. destruct bs.
+    + inversions Heq. assert (T0 = T) as Heq by admit. subst.
         exists v. split. constructor. auto.
         apply* weaken_ty_trm.
       + admit.
     * apply lookup_ctx_push_neq_inv_var in BiG. specialize (IHHwf BiG) as [v' [Hl Ht]].
       exists v'. repeat split. apply* lookup_push_neq. apply* weaken_ty_trm. auto.
 Qed.
+
+Lemma precise_val_correspondence: forall ,
+    G ⊢! trm_val v: T ->
+    precise_flow p G T T' ->
+
+
 
 (** [G ⊢##v v: forall(S)T]                 #<br>#
     [inert G]                          #<br>#

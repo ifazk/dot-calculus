@@ -93,20 +93,24 @@ Hint Constructors ty_trm_p.
     is bound to in the context [G(x)=T'].#<br>#
     If [G(x) = T], the [precise_flow] relation describes all the types [U] that [x] can
     derive through precise typing ([|-!], see [ty_trm_p]).
-    If [precise_flow x G T U], then [G(x) = T] and [G |-! x: U].   #<br>#
+    If [precise_flow x G T U], denoted as [G ⊢! x : T ⪼ U],
+    then [G(x) = T] and [G |-! x: U].   #<br>#
     For example, if [G(x) = mu(x: {a: T} /\ {B: S..U})], then we can derive the following
     precise flows for [x]:                                                 #<br>#
     [precise_flow x G mu(x: {a: T} /\ {B: S..U}) mu(x: {a: T} /\ {B: S..U}]  #<br>#
     [precise_flow x G mu(x: {a: T} /\ {B: S..U}) {a: T} /\ {B: S..U}]        #<br>#
     [precise_flow x G mu(x: {a: T} /\ {B: S..U}) {a: T}]                    #<br>#
     [precise_flow x G mu(x: {a: T} /\ {B: S..U}) {B: S..U}]. *)
+
+Reserved Notation "G '⊢!' p ':' T '⪼' U" (at level 40, p at level 59).
+
 Inductive precise_flow : path -> ctx -> typ -> typ -> Prop :=
   | pf_bind : forall x G T,
       binds x T G ->
-      precise_flow (pvar x) G T T
+      G ⊢! pvar x: T ⪼ T
   | pf_fld : forall G p a T U,
-      precise_flow p G T (typ_rcd (dec_trm a U)) ->
-      precise_flow (p • a) G U U
+      G ⊢! p: T ⪼ typ_rcd (dec_trm a U) ->
+      G ⊢! p•a : U ⪼ U
   | pf_rec : forall p G T U,
       precise_flow p G T (typ_bnd U) ->
       precise_flow p G T (open_typ_p p U)
@@ -115,7 +119,9 @@ Inductive precise_flow : path -> ctx -> typ -> typ -> Prop :=
       precise_flow p G T U1
   | pf_and2 : forall p G T U1 U2,
       precise_flow p G T (typ_and U1 U2) ->
-      precise_flow p G T U2.
+      precise_flow p G T U2
+
+where "G '⊢!' x ':' T '⪼' U" := (precise_flow x G T U).
 
 Hint Constructors precise_flow.
 

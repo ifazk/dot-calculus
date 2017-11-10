@@ -804,7 +804,7 @@ Qed.
 
 Reserved Notation "T '▼' bs '==' U" (at level 5, U at level 50).
 
-Inductive field_sel_typ : typ -> fields -> typ -> Prop :=
+Inductive field_sel_typ : typ -> var -> fields -> typ -> Prop :=
 
 (** [T ▼ [] == T] *)
 | fields_empty : forall T,
