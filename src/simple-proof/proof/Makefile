@@ -37,7 +37,7 @@ cleanall::
 
 doc: $(DOCDIR)/toc.html
 
-%.vo:
+%.vo: %.v
 	$(MAKE) -f $(PROOFMAKEFILE) $@
 
 all doc clean: $(PROOFMAKEFILE)

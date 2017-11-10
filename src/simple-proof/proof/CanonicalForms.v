@@ -10,7 +10,7 @@
 Set Implicit Arguments.
 
 Require Import Coq.Program.Equality.
-Require Import LibMap LibLN.
+Require Import LibBag LibMap LibLN.
 Require Import Definitions.
 Require Import RecordAndInertTypes.
 Require Import SubEnvironments.
@@ -61,6 +61,92 @@ Lemma wt_store_to_ok_G : forall G S s,
   introv H. induction H; jauto.
 Qed.
 Hint Resolve wt_store_to_ok_G.
+
+Lemma well_typed_notin_dom: forall G Sigma s x,
+    well_typed G Sigma s ->
+    x # s -> x # G.
+Proof.
+  intros. induction H; auto.
+Qed.
+
+Lemma notindom_update: forall A B (x y : A) (v : B) m,
+    x \notindom m[y:=v] ->
+    x \notindom m /\ x <> y.
+Proof.
+  introv.
+  unfold LibBag.notin.
+  intros. split.
+  + unfold not; intros. apply H.
+    rewrite indom_update; auto.
+  + unfold not. intros. apply H.
+    subst. apply indom_update_self; auto.
+Qed.
+
+Lemma wt_store_fresh_in_Sigma: forall G Sigma sigma l,
+    wt_store G Sigma sigma ->
+    l \notindom sigma ->
+    l # Sigma.
+Proof.
+  intros.
+  induction H;
+    match goal with
+    | [H: LibBag.notin ?l (LibBag.dom ?s [?l1 := ?v]) |- _] =>
+      pose proof (notindom_update H) as [? ?]
+    | _ => idtac
+    end;
+    auto.
+Qed.
+
+Lemma wt_store_notindom: forall G Sigma s l,
+  wt_store G Sigma s ->
+  l # Sigma ->
+  l \notindom s.
+Proof.
+  introv Hws. induction Hws.
+  - intros. unfold LibBag.notin, not.
+    intros. eapply LibMap.in_dom_empty.
+    apply H0.
+  - intros. unfold LibBag.notin, not.
+    intros.
+    apply indom_update_inv in H2; auto.
+    destruct_all; subst.
+    eauto using binds_fresh_inv.
+    apply IHHws; auto.
+  - intros. unfold LibBag.notin, not.
+    intros.
+    apply indom_update_inv in H2; auto.
+    destruct_all; subst.
+    pose proof (binds_push_eq l0 T (S & l0 ~ T)).
+    eauto using binds_fresh_inv.
+    apply IHHws; auto.
+  - auto.
+Qed.
+
+Lemma wt_store_binds: forall G Sigma sigma l,
+    wt_store G Sigma sigma ->
+    l \indom sigma ->
+    exists T, binds l T Sigma.
+Proof.
+  introv Hws. induction Hws.
+  - intros. exfalso.
+    apply (in_dom_empty H).
+  - intros.
+    pose proof (indom_update_inv H1).
+    destruct_all; auto.
+    subst. exists T; auto.
+  - intros.
+    pose proof (indom_update_inv H1).
+    destruct_all; subst.
+    + exists T; auto.
+    + pose proof (IHHws H2) as [?T ?].
+      exists T0.
+      apply binds_push_neq; auto.
+      unfold not. intros.
+      subst.
+      eauto using binds_fresh_inv.
+  - auto.
+Qed.
+
 
 (** [e: G]              #<br>#
     [G(x) = T]          #<br>#

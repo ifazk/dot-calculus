@@ -138,7 +138,8 @@ Definition ctx := env typ.
 (** An evaluation context, represented as the sequence of variable-to-value
      let bindings, [(let x = v in)*], that is represented as a value environment
      which maps variables to values: *)
-Definition ec := env val.
+Definition sta := env val.
+Definition ec := sta.
 
 (** Store typing ([Sigma]) *)
 Definition sigma := env typ.
@@ -632,6 +633,9 @@ Inductive wt_store: ctx -> sigma -> store -> Prop :=
 Hint Constructors
      wt_store well_typed
      ty_trm ty_def ty_defs subtyp.
+
+
+Hint Extern 1 (Inhab _) => apply prove_Inhab; assumption.
 
 (** ** Mutual Induction Principles *)
 

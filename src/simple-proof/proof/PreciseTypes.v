@@ -162,6 +162,7 @@ Proof.
   pick_fresh z. assert (Hz: z \notin L) by auto.
   eauto using record_type_open, ty_defs_record_type.
 Qed.
+Hint Resolve precise_inert_typ.
 
 (** The following two lemmas say that the type to which a variable is bound in an inert context is inert. *)
 Lemma binds_inert : forall G x T,

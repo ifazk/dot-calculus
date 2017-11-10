@@ -193,3 +193,21 @@ Proof.
   introv Hok Hnz Hnz' Hz Hx. rewrite subst_intro_typ with (x:=z). rewrite subst_intro_trm with (x:=z).
   eapply subst_ty_trm; auto. eapply Hz. rewrite subst_fresh_typ. all: auto.
 Qed.
+
+(** Renaming the name of the opening variable for term typing. #<br>#
+    [ok G]                   #<br>#
+    [z] fresh                #<br>#
+    [G, z: U ⊢ t^z : T^z]    #<br>#
+    [――――――――――――――――――――――] #<br>#
+    [G ⊢ t^x : T^x]         *)
+Lemma renaming_fresh : forall L G Sigma T u U x,
+    ok G ->
+    (forall x : var, x \notin L -> G & x ~ T @@ Sigma ⊢ open_trm x u : U) ->
+    G @@ Sigma ⊢ trm_var (avar_f x) : T ->
+    G @@ Sigma ⊢ open_trm x u : U.
+Proof.
+  introv Hok Hu Hx. pick_fresh y.
+  rewrite subst_intro_trm with (x:=y); auto.
+  rewrite <- subst_fresh_typ with (x:=y) (y:=x); auto.
+  eapply subst_ty_trm; auto. rewrite~ subst_fresh_typ.
+Qed.
