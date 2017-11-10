@@ -13,10 +13,10 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import RecordAndInertTypes.
-Require Import SubEnvironments.
+Require Import Subenvironments.
 Require Import Narrowing.
-Require Import PreciseTypes.
-Require Import TightTypes.
+Require Import PreciseTyping.
+Require Import TightTyping.
 
 (** The invertible-typing relation describes the possible types that a variable or value
 can be typed with in an inert context. For example, if [G] is inert, [G ⋆ Sigma ⊢! x: {a: T}],

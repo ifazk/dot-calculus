@@ -8,7 +8,7 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Definitions.
-Require Import SubEnvironments.
+Require Import Subenvironments.
 Require Import Weakening.
 Require Import Coq.Program.Equality.
 

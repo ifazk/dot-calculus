@@ -13,11 +13,11 @@ Require Import Coq.Program.Equality.
 Require Import LibBag LibMap LibLN.
 Require Import Definitions.
 Require Import RecordAndInertTypes.
-Require Import SubEnvironments.
+Require Import Subenvironments.
 Require Import Narrowing.
-Require Import PreciseTypes.
-Require Import TightTypes.
-Require Import InvertibleTypes.
+Require Import PreciseTyping.
+Require Import TightTyping.
+Require Import InvertibleTyping.
 Require Import GeneralToTight.
 Require Import Substitution.
 Require Import Weakening.

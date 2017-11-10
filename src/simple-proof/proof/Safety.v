@@ -2,8 +2,8 @@ Set Implicit Arguments.
 
 Require Import LibBag LibMap LibLN.
 Require Import Coq.Program.Equality.
-Require Import Binding CanonicalForms Definitions TightTypes GeneralToTight InvertibleTypes Narrowing
-            OperationalSemantics PreciseTypes RecordAndInertTypes Substitution Weakening.
+Require Import Binding CanonicalForms Definitions TightTyping GeneralToTight InvertibleTyping Narrowing
+            OperationalSemantics PreciseTyping RecordAndInertTypes Substitution Weakening.
 
 (** For the purposes of our evaluation semantics, a term is a
  The typing of a term with a stack *)

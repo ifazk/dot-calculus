@@ -11,7 +11,7 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Definitions.
-Require Import PreciseTypes.
+Require Import PreciseTyping.
 
 (** * Tight typing [G |-# t: T] *)
 
