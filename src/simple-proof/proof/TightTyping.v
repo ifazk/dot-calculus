@@ -35,6 +35,9 @@ Inductive ty_trm_t : ctx -> stoty -> trm -> typ -> Prop :=
     binds x T G ->
     G ⋆ Sigma ⊢# trm_var (avar_f x) : T
 
+(** [Sigma(l) = T]      #<br>#
+    [―――――――――――――] #<br>#
+    [G ⋆ Sigma ⊢# l: T] *)
 | ty_loc : forall G Sigma l T,
     binds l T Sigma ->
     G ⋆ Sigma ⊢# trm_val (val_loc l) : (typ_ref T)
@@ -116,14 +119,24 @@ Inductive ty_trm_t : ctx -> stoty -> trm -> typ -> Prop :=
     G ⋆ Sigma ⊢# T <: U ->
     G ⋆ Sigma ⊢# t : U
 
+(** [G ⋆ Sigma ⊢# x: T]             #<br>#
+    [―――――――――――――――――――――――――] #<br>#
+    [G ⋆ Sigma ⊢# ref x T : Ref T ] *)
 | ty_ref_intro : forall G Sigma x T,
     G ⋆ Sigma ⊢# trm_var (avar_f x) : T ->
     G ⋆ Sigma ⊢# (trm_ref (avar_f x) T) : typ_ref T
 
+(** [G ⋆ Sigma ⊢# x : Ref T ] #<br>#
+    [―――――――――――――――――――] #<br>#
+    [G ⋆ Sigma ⊢# !x : T ] *)
 | ty_ref_elim : forall G Sigma x T,
     G ⋆ Sigma ⊢# trm_var (avar_f x) : typ_ref T ->
     G ⋆ Sigma ⊢# trm_deref (avar_f x) : T
 
+(** [G ⋆ Sigma ⊢# x : Ref T ]  #<br>#
+    [G ⋆ Sigma ⊢# y : T ]      #<br>#
+    [――――――――――――――――――――] #<br>#
+    [G ⋆ Sigma ⊢# x := y : T ] *)
 | ty_asgn : forall G Sigma x y T,
     G ⋆ Sigma ⊢# trm_var (avar_f x) : typ_ref T ->
     G ⋆ Sigma ⊢# trm_var (avar_f y) : T ->
@@ -212,6 +225,10 @@ with subtyp_t : ctx -> stoty -> typ -> typ -> Prop :=
        G & x ~ S2 ⋆ Sigma ⊢ open_typ x T1 <: open_typ x T2) ->
     G ⋆ Sigma ⊢# typ_all S1 T1 <: typ_all S2 T2
 
+(** [G ⋆ Sigma ⊢# T <: U ]            #<br>#
+    [G ⋆ Sigma ⊢# U <: T ]            #<br>#
+    [―――――――――――――――――――――――]     #<br>#
+    [G ⋆ Sigma ⊢# Ref T <: Ref U]      *)
 | subtyp_ref_t: forall G Sigma T U,
     G ⋆ Sigma ⊢# T <: U ->
     G ⋆ Sigma ⊢# U <: T ->

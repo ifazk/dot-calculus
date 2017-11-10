@@ -150,7 +150,7 @@ Proof.
     exists (@empty typ) (@empty typ). rewrite? concat_empty_r. repeat split; auto.
     pose proof (canonical_forms_ref Hin Hwf Hws Ht1) as [?l [?y [? [? [? ?]]]]].
     assert (l0 = l) by congruence; subst l0. clear H.
-    pose proof (val_typ_ref_to_loc Hin H0) as [?l [?T [? [? ?]]]].
+    pose proof (val_typ_ref_to_loc Hin H1) as [?l [?T [? [? ?]]]].
     assert (l0 = l) by congruence; subst l0; clear H.
     eapply wt_store_update; auto.
     + apply H4.

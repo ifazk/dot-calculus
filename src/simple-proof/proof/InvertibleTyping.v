@@ -20,7 +20,7 @@ Require Import TightTyping.
 
 (** The invertible-typing relation describes the possible types that a variable or value
 can be typed with in an inert context. For example, if [G] is inert, [G ⋆ Sigma ⊢! x: {a: T}],
-and [G ⋆ Sigma ⊢ T <: T'], then [G ⊢## x: {a: T'}].
+and [G ⋆ Sigma ⊢ T <: T'], then [G ⋆ Sigma ⊢## x: {a: T'}].
 
 The purpose of invertible typing is to be easily invertible into a precise typing relation.
 To achieve that, invertible typing avoids typing cycles that could result from, for example,
@@ -99,6 +99,11 @@ Inductive ty_var_inv : ctx -> stoty -> var -> typ -> Prop :=
   G ⋆ Sigma ⊢! trm_var y : typ_rcd (dec_typ A T T) ->
   G ⋆ Sigma ⊢## x : typ_sel y A
 
+(** [G ⋆ Sigma ⊢## x : Ref T] #<br>#
+    [G ⋆ Sigma ⊢## T <: U]    #<br>#
+    [G ⋆ Sigma ⊢## U <: T]    #<br>#
+    [―――――――――――――――――――] #<br>#
+    [G ⋆ Sigma ⊢## x : Ref T]     *)
 | ty_loc_inv : forall G Sigma x T U,
   G ⋆ Sigma ⊢## x : typ_ref T ->
   G ⋆ Sigma ⊢# T <: U ->
@@ -157,6 +162,11 @@ Inductive ty_val_inv : ctx -> stoty -> val -> typ -> Prop :=
   G ⋆ Sigma ⊢##v v : U ->
   G ⋆ Sigma ⊢##v v : typ_and T U
 
+(** [G ⋆ Sigma ⊢##v v : Ref T] #<br>#
+    [G ⋆ Sigma ⊢##v T <: U]    #<br>#
+    [G ⋆ Sigma ⊢##v U <: T]    #<br>#
+    [――――――――――――――――――――] #<br>#
+    [G ⋆ Sigma ⊢##v v : Ref T]     *)
 | ty_loc_inv_v : forall G Sigma v T U,
   G ⋆ Sigma ⊢##v v : typ_ref T ->
   G ⋆ Sigma ⊢# T <: U ->

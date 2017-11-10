@@ -13,22 +13,22 @@ Require Import Coq.Program.Equality.
 Require Import Definitions.
 Require Import RecordAndInertTypes.
 
-(** * Precise typing [G ⊢! t: T] *)
+(** * Precise typing [G ⋆ Sigma ⊢! t: T] *)
 (** Precise typing is used to reason about the types of variables and values.
     Precise typing does not "modify" a variable's or value's type through subtyping.
     - For values, precise typing allows to only retrieve the "immediate" type of the value.
       It types objects with recursive types, and functions with dependent-function types. #<br>#
       For example, if a value is the object [nu(x: {a: T}){a = x.a}], the only way to type
-      the object through precise typing is [G ⊢! nu(x: {a: T}){a = x.a}: mu(x: {a: T})].
+      the object through precise typing is [G ⋆ Sigma ⊢! nu(x: {a: T}){a = x.a}: mu(x: {a: T})].
     - For variables, we start out with a type [T=G(x)] (the type to which the variable is
       bound in [G]). Then we use precise typing to additionally deconstruct [T]
       by using recursion elimination and intersection elimination. #<br>#
       For example, if [G(x)=mu(x: {a: T} /\ {B: S..U})], then we can derive the following
       precise types for [x]:               #<br>#
-      [G ⊢! x: mu(x: {a: T} /\ {B: S..U})] #<br>#
-      [G ⊢! x: {a: T} /\ {B: S..U}]        #<br>#
-      [G ⊢! x: {a: T}]                    #<br>#
-      [G ⊢! x: {B: S..U}].                *)
+      [G ⋆ Sigma ⊢! x: mu(x: {a: T} /\ {B: S..U})] #<br>#
+      [G ⋆ Sigma ⊢! x: {a: T} /\ {B: S..U}]        #<br>#
+      [G ⋆ Sigma ⊢! x: {a: T}]                    #<br>#
+      [G ⋆ Sigma ⊢! x: {B: S..U}].                *)
 
 Reserved Notation "G '⋆' S '⊢!' t ':' T" (at level 40, t at level 59).
 
@@ -36,11 +36,14 @@ Inductive ty_trm_p : ctx -> stoty -> trm -> typ -> Prop :=
 
 (** [G(x) = T]      #<br>#
     [―――――――――――――] #<br>#
-    [G ⊢! x: T] *)
+    [G ⋆ Sigma ⊢! x: T] *)
 | ty_var_p : forall G Sigma x T,
     binds x T G ->
     G ⋆ Sigma ⊢! trm_var (avar_f x) : T
 
+(** [Sigma(l) = T]      #<br>#
+    [―――――――――――――] #<br>#
+    [G ⋆ Sigma ⊢! l: T] *)
 | ty_loc : forall G Sigma l T,
     binds l T Sigma ->
     G ⋆ Sigma ⊢! trm_val (val_loc l) : (typ_ref T)
@@ -48,7 +51,7 @@ Inductive ty_trm_p : ctx -> stoty -> trm -> typ -> Prop :=
 (** [G, x: T ⊢ t^x: U^x]       #<br>#
     [x fresh]                  #<br>#
     [――――――――――――――――――――――――] #<br>#
-    [G ⊢! lambda(T)t: forall(T) U]     *)
+    [G ⋆ Sigma ⊢! lambda(T)t: forall(T) U]     *)
 | ty_all_intro_p : forall L G Sigma T t U,
     (forall x, x \notin L ->
       G & x ~ T ⋆ Sigma ⊢ open_trm x t : open_typ x U) ->
@@ -57,29 +60,29 @@ Inductive ty_trm_p : ctx -> stoty -> trm -> typ -> Prop :=
 (** [G, x: T^x ⊢ ds^x :: T^x]   #<br>#
     [x fresh]                   #<br>#
     [―――――――――――――――――――――――]   #<br>#
-    [G ⊢! nu(T)ds :: mu(T)]        *)
+    [G ⋆ Sigma ⊢! nu(T)ds :: mu(T)]        *)
 | ty_new_intro_p : forall L G Sigma T ds,
     (forall x, x \notin L ->
       G & (x ~ open_typ x T) ⋆ Sigma /- open_defs x ds :: open_typ x T) ->
     G ⋆ Sigma ⊢! trm_val (val_new T ds) : typ_bnd T
 
-(** [G ⊢! x: mu(T)] #<br>#
+(** [G ⋆ Sigma ⊢! x: mu(T)] #<br>#
     [――――――――――――――] #<br>#
-    [G ⊢! x: T^x]       *)
+    [G ⋆ Sigma ⊢! x: T^x]       *)
 | ty_rec_elim_p : forall G Sigma x T,
     G ⋆ Sigma ⊢! trm_var (avar_f x) : typ_bnd T ->
     G ⋆ Sigma ⊢! trm_var (avar_f x) : open_typ x T
 
-(** [G ⊢! x: T /\ U] #<br>#
+(** [G ⋆ Sigma ⊢! x: T /\ U] #<br>#
     [――――――――――――――] #<br>#
-    [G ⊢! x: T]     *)
+    [G ⋆ Sigma ⊢! x: T]     *)
 | ty_and1_p : forall G Sigma x T U,
     G ⋆ Sigma ⊢! trm_var (avar_f x) : typ_and T U ->
     G ⋆ Sigma ⊢! trm_var (avar_f x) : T
 
-(** [G ⊢! x: T /\ U] #<br>#
+(** [G ⋆ Sigma ⊢! x: T /\ U] #<br>#
     [――――――――――――――] #<br>#
-    [G ⊢! x: U]     *)
+    [G ⋆ Sigma ⊢! x: U]     *)
 | ty_and2_p : forall G Sigma x T U,
     G ⋆ Sigma ⊢! trm_var (avar_f x) : typ_and T U ->
     G ⋆ Sigma ⊢! trm_var (avar_f x) : U
@@ -89,11 +92,11 @@ Hint Constructors ty_trm_p.
 
 (** * Precise Flow *)
 (** We use the precise flow relation to reason about the relations between
-    the precise type of a variable [G ⊢! x: T] and the type that the variable
+    the precise type of a variable [G ⋆ Sigma ⊢! x: T] and the type that the variable
     is bound to in the context [G(x)=T'].#<br>#
     If [G(x) = T], the [precise_flow] relation describes all the types [U] that [x] can
     derive through precise typing ([⊢!], see [ty_trm_p]).
-    If [precise_flow x G T U], then [G(x) = T] and [G ⊢! x: U].   #<br>#
+    If [precise_flow x G T U], then [G(x) = T] and [G ⋆ Sigma ⊢! x: U].   #<br>#
     For example, if [G(x) = mu(x: {a: T} /\ {B: S..U})], then we can derive the following
     precise flows for [x]:                                                 #<br>#
     [precise_flow x G mu(x: {a: T} /\ {B: S..U}) mu(x: {a: T} /\ {B: S..U}]  #<br>#
@@ -390,7 +393,7 @@ Proof.
   apply* pf_psel_false.
 Qed.
 
-(** If [G(x) = mu(T)], and [G ⊢! x: ... /\ D /\ ...], then [T^x = ... /\ D /\ ...]. *)
+(** If [G(x) = mu(T)], and [G ⋆ Sigma ⊢! x: ... /\ D /\ ...], then [T^x = ... /\ D /\ ...]. *)
 Lemma pf_record_sub : forall x G T T' D,
     inert G ->
     precise_flow x G (typ_bnd T) T' ->
@@ -404,7 +407,7 @@ Proof.
   - apply* IHPf.
 Qed.
 
-(** If [G(x) = mu(S)] and [G ⊢! x: D], where [D] is a field or type declaration,
+(** If [G(x) = mu(S)] and [G ⋆ Sigma ⊢! x: D], where [D] is a field or type declaration,
     then [S^x = ... /\ D /\ ...]. *)
 Lemma precise_flow_record_has: forall S G x D,
     inert G ->
@@ -416,8 +419,8 @@ Qed.
 
 (** If
     - [G(x) = mu(T)]
-    - [G ⊢! x: {A: T1..T1}]
-    - [G ⊢! x: {A: T2..T2}]
+    - [G ⋆ Sigma ⊢! x: {A: T1..T1}]
+    - [G ⋆ Sigma ⊢! x: {A: T2..T2}]
     then [T1 = T2]. *)
 Lemma pf_record_unique_tight_bounds_rec : forall G x T A T1 T2,
     inert G ->
@@ -433,8 +436,8 @@ Proof.
 Qed.
 
 (** If
-    - [G ⊢! x: {A: T1..T1}]
-    - [G ⊢! x: {A: T2..T2}]
+    - [G ⋆ Sigma ⊢! x: {A: T1..T1}]
+    - [G ⋆ Sigma ⊢! x: {A: T2..T2}]
     then [T1 = T2]. *)(** *)
 Lemma pf_inert_unique_tight_bounds : forall G x T T1 T2 A,
     inert G ->
@@ -492,7 +495,7 @@ Qed.
 
 Hint Resolve inert_ok.
 
-(** The following two lemmas express that if [G ⊢! x: {A: S..U}] then [S = U]. *)
+(** The following two lemmas express that if [G ⋆ Sigma ⊢! x: {A: S..U}] then [S = U]. *)
 Lemma pf_dec_typ_inv : forall G x T A S U,
     inert G ->
     precise_flow x G T (typ_rcd (dec_typ A S U)) ->

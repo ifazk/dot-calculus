@@ -79,7 +79,6 @@ Definition subst_sigma (z: var) (u: var) (G: stoty) : stoty :=
 (** Substitution on the values of an evaluation context: [e[y/x]]. *)
 Definition subst_env x y e := map (subst_val x y) e.
 
-
 (** * Opening Lemmas *)
 
 Ltac avar_solve :=
@@ -128,126 +127,6 @@ Proof.
   apply typ_mutind; intros; invert_open; simpl in *;
     f_equal; eauto using open_fresh_avar_injective.
 Qed.
-
-(** * Local Closure
-
-  Our definition of [trm] accepts terms that contain de Bruijn indices that are unbound.
-  A symbol [X] is considered locally closed, denoted [lc X], if all de Bruijn indices
-  in [X] are bound.
-   We will require a term to be locally closed in the final safety theorem. *)
-
-(** Only named variables are locally closed. *)
-Inductive lc_at_var (k : nat) : avar -> Prop :=
-| lc_at_f : forall x, lc_at_var k (avar_f x)
-| lc_at_b : forall i, i < k -> lc_at_var k (avar_b i).
-Hint Constructors lc_at_var.
-
-
-(** Locally closed types and declarations. *)
-Inductive lc_at_typ (k : nat) : typ -> Prop :=
-| lc_at_typ_top : lc_at_typ k typ_top
-| lc_at_typ_bot : lc_at_typ k typ_bot
-| lc_at_typ_rcd : forall D,
-    lc_at_dec k D ->
-    lc_at_typ k (typ_rcd D)
-| lc_at_typ_and : forall T1 T2,
-    lc_at_typ k T1 ->
-    lc_at_typ k T2 ->
-    lc_at_typ k (typ_and T1 T2)
-| lc_at_typ_sel : forall x L,
-    lc_at_var k x ->
-    lc_at_typ k (typ_sel x L)
-| lc_at_typ_bnd : forall T,
-    lc_at_typ (S k) T ->
-    lc_at_typ k (typ_bnd T)
-| lc_at_typ_all : forall T1 T2,
-    lc_at_typ (S k) T2 ->
-    lc_at_typ k T1 ->
-    lc_at_typ k (typ_all T1 T2)
-with lc_at_dec (k : nat) : dec -> Prop :=
-| lc_at_dec_typ : forall L T U,
-    lc_at_typ k T ->
-    lc_at_typ k U ->
-    lc_at_dec k (dec_typ L T U)
-| lc_at_dec_trm : forall a T,
-    lc_at_typ k T ->
-    lc_at_dec k (dec_trm a T).
-Hint Constructors lc_at_typ lc_at_dec.
-
-
-(** Locally closed terms, values, and definitions. *)
-Inductive lc_at_trm (k : nat) : trm -> Prop :=
-| lc_at_trm_var : forall a,
-    lc_at_var k a ->
-    lc_at_trm k (trm_var a)
-| lc_at_trm_val : forall v,
-    lc_at_val k v ->
-    lc_at_trm k (trm_val v)
-| lc_at_trm_sel : forall x a,
-    lc_at_var k x ->
-    lc_at_trm k (trm_sel x a)
-| lc_at_trm_app : forall f a,
-    lc_at_var k f ->
-    lc_at_var k a ->
-    lc_at_trm k (trm_app f a)
-| lc_at_trm_let : forall t1 t2,
-    lc_at_trm k t1 ->
-    lc_at_trm (S k) t2 ->
-    lc_at_trm k (trm_let t1 t2)
-with lc_at_val (k : nat) : val -> Prop :=
-| lc_at_val_new : forall T ds,
-    lc_at_typ (S k) T ->
-    lc_at_defs (S k) ds ->
-    lc_at_val k (val_new T ds)
-| lc_at_val_lam : forall T t,
-    lc_at_typ k T ->
-    lc_at_trm (S k) t ->
-    lc_at_val k (val_lambda T t)
-with lc_at_def (k : nat) : def -> Prop :=
-| lc_at_def_typ : forall L T,
-    lc_at_typ k T ->
-    lc_at_def k (def_typ L T)
-| lc_at_def_trm : forall a t,
-    lc_at_trm k t ->
-    lc_at_def k (def_trm a t)
-with lc_at_defs (k : nat) : defs -> Prop :=
-| lc_at_defs_nil : lc_at_defs k defs_nil
-| lc_at_defs_cons : forall ds d,
-    lc_at_defs k ds ->
-    lc_at_def k d ->
-    lc_at_defs k (defs_cons ds d).
-Hint Constructors lc_at_trm lc_at_val lc_at_def lc_at_defs.
-
-
-Notation "'lc_var' x" := (lc_at_var 0 x) (at level 0).
-Notation "'lc_typ' T" := (lc_at_typ 0 T) (at level 0).
-Notation "'lc_dec' D" := (lc_at_dec 0 D) (at level 0).
-
-Notation "'lc_trm' t" := (lc_at_trm 0 t) (at level 0).
-Notation "'lc_val' v" := (lc_at_val 0 v) (at level 0).
-Notation "'lc_def' d" := (lc_at_def 0 d) (at level 0).
-Notation "'lc_defs' ds" := (lc_at_defs 0 ds) (at level 0).
-
-
-Scheme lc_at_trm_mut  := Induction for lc_at_trm Sort Prop
-with   lc_at_val_mut  := Induction for lc_at_val Sort Prop
-with   lc_at_def_mut  := Induction for lc_at_def Sort Prop
-with   lc_at_defs_mut := Induction for lc_at_defs Sort Prop.
-Combined Scheme lc_at_mutind from lc_at_trm_mut, lc_at_val_mut, lc_at_def_mut, lc_at_defs_mut.
-
-Scheme lc_at_typ_mut := Induction for lc_at_typ Sort Prop
-with   lc_at_dec_mut := Induction for lc_at_dec Sort Prop.
-Combined Scheme lc_at_typ_mutind from lc_at_typ_mut, lc_at_dec_mut.
-
-
-(** Locally closed evaluation contexts *)
-Inductive lc_ec : ec -> Prop :=
-| lc_ec_empty : lc_ec empty
-| lc_ec_cons : forall x v e,
-    lc_ec e ->
-    lc_val v ->
-    lc_ec (e & x ~ v).
-Hint Constructors lc_ec.
 
 (** * Free Variables Lemmas *)
 
