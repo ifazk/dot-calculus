@@ -122,32 +122,6 @@ Proof.
   - auto.
 Qed.
 
-Lemma wt_store_binds: forall G Sigma sigma l,
-    wt_store G Sigma sigma ->
-    l \indom sigma ->
-    exists T, binds l T Sigma.
-Proof.
-  introv Hws. induction Hws.
-  - intros. exfalso.
-    apply (in_dom_empty H).
-  - intros.
-    pose proof (indom_update_inv H1).
-    destruct_all; auto.
-    subst. exists T; auto.
-  - intros.
-    pose proof (indom_update_inv H1).
-    destruct_all; subst.
-    + exists T; auto.
-    + pose proof (IHHws H2) as [?T ?].
-      exists T0.
-      apply binds_push_neq; auto.
-      unfold not. intros.
-      subst.
-      eauto using binds_fresh_inv.
-  - auto.
-Qed.
-
-
 (** [e: G]              #<br>#
     [G(x) = T]          #<br>#
     [―――――――――――――]     #<br>#
@@ -488,14 +462,6 @@ Proof.
     exists x0. split; auto.
     lets OkG: (wt_store_to_ok_G Hwt).
     apply weaken_ty_trm; auto.
-Qed.
-
-Lemma ref_binds_typ: forall G Sigma l T,
-  G @@ Sigma ⊢! trm_val (val_loc l) : typ_ref T ->
-  binds l T Sigma.
-Proof.
-  introv Hty.
-  inversion Hty; assumption.
 Qed.
 
 Lemma invertible_val_to_precise_ref: forall G Sigma v T,
