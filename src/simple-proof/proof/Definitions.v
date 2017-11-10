@@ -135,14 +135,19 @@ Definition defs_hasnt(ds: defs)(l: label) := get_def l ds = None.
 (** Typing environment ([G]) *)
 Definition ctx := env typ.
 
-(** An evaluation context, represented as the sequence of variable-to-value
-     let bindings, [(let x = v in)*], that is represented as a value environment
-     which maps variables to values: *)
+(** A stack, represented as the sequence of variable-to-value
+    let bindings, [(let x = v in)*], that is represented as a value environment
+    which maps variables to values.
+    The operational semantics will be defined in terms of pairs [(s, t)] where
+    [s] is a stack and [t] is a term.
+    For example, the term [let x1 = v1 in let x2 = v2 in t] is represented as
+    [({(x1 = v1), (x2 = v2)}, t)].
+    *)
 Definition sta := env val.
 Definition ec := sta.
 
 (** Store typing ([Sigma]) *)
-Definition sigma := env typ.
+Definition stoty := env typ.
 
 (** Store ("sto") *)
 Definition store := LibMap.map addr var.
@@ -348,8 +353,8 @@ with fv_defs(ds: defs) : vars :=
 
 (** Free variables in the range (types) of a context *)
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
-Definition fv_sigma_types(G: sigma): vars := (fv_in_values (fun T => fv_typ T) G).
-Definition fv_ec_vals(e: ec): vars := (fv_in_values (fun v => fv_val v) e).
+Definition fv_stoty_types(G: stoty): vars := (fv_in_values (fun T => fv_typ T) G).
+Definition fv_sta_vals(s: sta): vars := (fv_in_values (fun v => fv_val v) s).
 
 (** * Typing Rules *)
 
@@ -359,7 +364,7 @@ Reserved Notation "G '⋆' S '/-' d : D" (at level 40, d at level 59).
 Reserved Notation "G '⋆' S '/-' ds :: D" (at level 40, ds at level 59).
 
 (** ** Term typing [G ⊢ t: T] *)
-Inductive ty_trm : ctx -> sigma -> trm -> typ -> Prop :=
+Inductive ty_trm : ctx -> stoty -> trm -> typ -> Prop :=
 
 (** [G(x) = T]  #<br>#
     [――――――――]  #<br>#
@@ -464,7 +469,7 @@ Inductive ty_trm : ctx -> sigma -> trm -> typ -> Prop :=
 where "G '⋆' Sigma '⊢' t ':' T" := (ty_trm G Sigma t T)
 
 (** ** Single-definition typing [G ⊢ d: D] *)
-with ty_def : ctx -> sigma -> def -> dec -> Prop :=
+with ty_def : ctx -> stoty -> def -> dec -> Prop :=
 (** [G ⊢ {A = T}: {A: T..T}]   *)
 | ty_def_typ : forall G Sigma A T,
     G ⋆ Sigma /- def_typ A T : dec_typ A T T
@@ -478,7 +483,7 @@ with ty_def : ctx -> sigma -> def -> dec -> Prop :=
 where "G '⋆' Sigma '/-' d ':' D" := (ty_def G Sigma d D)
 
 (** ** Multiple-definition typing [G ⊢ ds :: T] *)
-with ty_defs : ctx -> sigma -> defs -> typ -> Prop :=
+with ty_defs : ctx -> stoty -> defs -> typ -> Prop :=
 (** [G ⊢ d: D]              #<br>#
     [―――――――――――――――――――――] #<br>#
     [G ⊢ d ++ defs_nil : D] *)
@@ -499,7 +504,7 @@ with ty_defs : ctx -> sigma -> defs -> typ -> Prop :=
 where "G '⋆' Sigma '/-' ds '::' T" := (ty_defs G Sigma ds T)
 
 (** ** Subtyping [G ⊢ T <: U] *)
-with subtyp : ctx -> sigma -> typ -> typ -> Prop :=
+with subtyp : ctx -> stoty -> typ -> typ -> Prop :=
 
 (** [G ⊢ T <: top] *)
 | subtyp_top: forall G Sigma T,
@@ -586,18 +591,21 @@ with subtyp : ctx -> sigma -> typ -> typ -> Prop :=
     G ⋆ Sigma ⊢ (typ_ref T) <: (typ_ref U)
 where "G '⋆' Sigma '⊢' T '<:' U" := (subtyp G Sigma T U).
 
-(** * Well-typed Evaluation Contexts *)
+(** * Well-typed stacks asd stores *)
 
-(** Given a typing [G ⊢ e[t]: T], [well_typed] establishes a correspondence
-    between [G] and the evaluation context [e].
-
-    We say that [e] is well-typed with respect to [G] if
+(** The operational semantics is defined in terms of pairs [(s, sigma, t)], where
+    [s] is a stack, [sigma] is a store, and [t] is a term.
+    Given a typing [G ⋆ Sigma ⊢ (s, sigma, t): T], [well_typed] establishes a correspondence
+    between [G] and the stack [s].
+stack
+    We say that [s] is well-typed with respect to [G] and [Sigma] if
     - [G = {(xi mapsto Ti) | i = 1, ..., n}]
-    - [e = {(xi mapsto vi) | i = 1, ..., n}]
-    - [G ⊢ vi: Ti].
+    - [s = {(xi mapsto vi) | i = 1, ..., n}]
+    - [G ⋆ Sigma  ⊢ vi: Ti].
 
-    We say that [e] is well-typed with respect to [G], denoted as [e: G]. *)
-Inductive well_typed: ctx -> sigma -> ec -> Prop :=
+    We say that [e] is well-typed with respect to [G], denoted as [s: G]. *)
+
+Inductive well_typed: ctx -> stoty -> ec -> Prop :=
 | well_typed_empty: well_typed empty empty empty
 | well_typed_push: forall G Sigma e x T v,
     well_typed G Sigma e ->
@@ -610,8 +618,15 @@ Inductive well_typed: ctx -> sigma -> ec -> Prop :=
     l # Sigma ->
     well_typed G (Sigma & l ~ T) e.
 
-(** * Well-typed Stores *)
-Inductive wt_store: ctx -> sigma -> store -> Prop :=
+
+(** We say that [sigma] is well-typed with respect to [G] and [Sigma] if
+    - [Sigma = {(li mapsto Ti) | i = 1, ..., n}]
+    - [s = {(xi mapsto vi) | i = 1, ..., n}]
+    - [G ⋆ Sigma  ⊢ vi: Ti].
+
+    We say that [e] is well-typed with respect to [G], denoted as [s: G]. *)
+
+Inductive wt_store: ctx -> stoty -> store -> Prop :=
 | wt_store_empty: wt_store empty empty emptyM
 | wt_store_update: forall G Sigma sto l x T,
     wt_store G Sigma sto ->
@@ -668,14 +683,14 @@ Ltac gather_vars :=
   let A := gather_vars_with (fun x : vars      => x         ) in
   let B := gather_vars_with (fun x : var       => \{ x }    ) in
   let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_ctx_types x)) in
-  let D := gather_vars_with (fun x : ec        => dom x \u fv_ec_vals x) in
+  let D := gather_vars_with (fun x : sta       => dom x \u fv_sta_vals x) in
   let E := gather_vars_with (fun x : avar      => fv_avar  x) in
   let F := gather_vars_with (fun x : trm       => fv_trm   x) in
   let G := gather_vars_with (fun x : val       => fv_val   x) in
   let H := gather_vars_with (fun x : def       => fv_def   x) in
   let I := gather_vars_with (fun x : defs      => fv_defs  x) in
   let J := gather_vars_with (fun x : typ       => fv_typ   x) in
-  let K := gather_vars_with (fun x : sigma     => (dom x) \u (fv_sigma_types x)) in
+  let K := gather_vars_with (fun x : stoty     => (dom x) \u (fv_stoty_types x)) in
   constr:(A \u B \u C \u D \u E \u F \u G \u H \u I \u J \u K).
 
 Ltac pick_fresh x :=

@@ -32,7 +32,7 @@ defines only recursion elimination). *)
 
 Reserved Notation "G ⋆ Sigma '⊢##' x ':' T" (at level 40, x at level 59).
 
-Inductive ty_var_inv : ctx -> sigma -> var -> typ -> Prop :=
+Inductive ty_var_inv : ctx -> stoty -> var -> typ -> Prop :=
 
 (** [G ⋆ Sigma ⊢! x: T]  #<br>#
     [―――――――――――] #<br>#
@@ -117,7 +117,7 @@ where "G ⋆ Sigma '⊢##' x ':' T" := (ty_var_inv G Sigma x T).
 
 Reserved Notation "G ⋆ Sigma '⊢##v' v ':' T" (at level 40, v at level 59).
 
-Inductive ty_val_inv : ctx -> sigma -> val -> typ -> Prop :=
+Inductive ty_val_inv : ctx -> stoty -> val -> typ -> Prop :=
 
 (** [G ⋆ Sigma ⊢! v: T]    #<br>#
     [―――――――――――――] #<br>#

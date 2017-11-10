@@ -32,7 +32,7 @@ Require Import RecordAndInertTypes.
 
 Reserved Notation "G '⋆' S '⊢!' t ':' T" (at level 40, t at level 59).
 
-Inductive ty_trm_p : ctx -> sigma -> trm -> typ -> Prop :=
+Inductive ty_trm_p : ctx -> stoty -> trm -> typ -> Prop :=
 
 (** [G(x) = T]      #<br>#
     [―――――――――――――] #<br>#

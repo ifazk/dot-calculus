@@ -16,7 +16,7 @@ Require Import Coq.Program.Equality.
     [G1 ⋆ Sigma ⊢ G1(x) <: G2(x)]. *)
 Reserved Notation "G1 '⋆' S ⪯ G2" (at level 40).
 
-Inductive subenv: ctx -> sigma -> ctx -> Prop :=
+Inductive subenv: ctx -> stoty -> ctx -> Prop :=
 | subenv_empty : forall Sigma, empty ⋆ Sigma ⪯ empty
 | subenv_grow: forall G G' Sigma x T T',
     G ⋆ Sigma ⪯ G' ->

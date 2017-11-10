@@ -73,7 +73,7 @@ with subst_defs (z: var) (u: var) (ds: defs) : defs :=
 Definition subst_ctx (z: var) (u: var) (G: ctx) : ctx :=
   map (subst_typ z u) G.
 
-Definition subst_sigma (z: var) (u: var) (G: sigma) : sigma :=
+Definition subst_sigma (z: var) (u: var) (G: stoty) : stoty :=
   map (subst_typ z u) G.
 
 (** Substitution on the values of an evaluation context: [e[y/x]]. *)
@@ -260,12 +260,12 @@ Proof.
   rewrite union_comm. reflexivity.
 Qed.
 
-Lemma fv_sigma_types_push_eq : forall Sigma x T,
-    fv_sigma_types (Sigma & x ~ T) = fv_sigma_types Sigma \u fv_typ T.
+Lemma fv_stoty_types_push_eq : forall Sigma x T,
+    fv_stoty_types (Sigma & x ~ T) = fv_stoty_types Sigma \u fv_typ T.
 Proof.
   intros.
   rewrite concat_def, single_def.
-  unfold fv_sigma_types, fv_in_values; rewrite values_def.
+  unfold fv_stoty_types, fv_in_values; rewrite values_def.
   rewrite union_comm. reflexivity.
 Qed.
 
@@ -332,21 +332,21 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma invert_fv_sigma_types_push: forall x z T Sigma,
-  x \notin fv_sigma_types (Sigma & z ~ T) -> x \notin fv_typ T /\ x \notin (fv_sigma_types Sigma).
+Lemma invert_fv_stoty_types_push: forall x z T Sigma,
+  x \notin fv_stoty_types (Sigma & z ~ T) -> x \notin fv_typ T /\ x \notin (fv_stoty_types Sigma).
 Proof.
-  introv H. rewrite fv_sigma_types_push_eq in H.
+  introv H. rewrite fv_stoty_types_push_eq in H.
   apply~ notin_union.
 Qed.
 
 Lemma subst_fresh_sigma: forall x y Sigma,
-  x \notin fv_sigma_types Sigma -> subst_sigma x y Sigma = Sigma.
+  x \notin fv_stoty_types Sigma -> subst_sigma x y Sigma = Sigma.
 Proof.
   intros x y.
-  apply (env_ind (fun Sigma => x \notin fv_sigma_types Sigma -> subst_sigma x y Sigma = Sigma)).
+  apply (env_ind (fun Sigma => x \notin fv_stoty_types Sigma -> subst_sigma x y Sigma = Sigma)).
   + intro N. unfold subst_sigma. apply map_empty.
   + intros Sigma z T IH N.
-    apply invert_fv_sigma_types_push in N. destruct N as [N1 N2].
+    apply invert_fv_stoty_types_push in N. destruct N as [N1 N2].
     unfold subst_sigma in *. rewrite map_push.
     rewrite (IH N2).
     rewrite ((proj1 (subst_fresh_typ_dec _ _)) _ N1).

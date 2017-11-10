@@ -75,7 +75,7 @@ Lemma subst_rules: forall y U,
     ok (G1 & x ~ U & G2) ->
     x \notin fv_ctx_types G1 ->
     Sigma = Sigma1 & Sigma2 ->
-    x \notin fv_sigma_types Sigma1 ->
+    x \notin fv_stoty_types Sigma1 ->
     G1 & (subst_ctx x y G2) ⋆ (Sigma1 & subst_sigma x y Sigma2) ⊢ trm_var (avar_f y) : subst_typ x y U ->
     G1 & (subst_ctx x y G2) ⋆ (Sigma1 & subst_sigma x y Sigma2) ⊢ subst_trm x y t : subst_typ x y T) /\
   (forall G Sigma d D, G ⋆ Sigma /- d : D -> forall G1 G2 Sigma1 Sigma2 x,
@@ -83,7 +83,7 @@ Lemma subst_rules: forall y U,
     ok (G1 & x ~ U & G2) ->
     x \notin fv_ctx_types G1 ->
     Sigma = Sigma1 & Sigma2 ->
-    x \notin fv_sigma_types Sigma1 ->
+    x \notin fv_stoty_types Sigma1 ->
     G1 & (subst_ctx x y G2) ⋆ (Sigma1 & subst_sigma x y Sigma2) ⊢ trm_var (avar_f y) : subst_typ x y U ->
     G1 & (subst_ctx x y G2) ⋆ (Sigma1 & subst_sigma x y Sigma2) /- subst_def x y d : subst_dec x y D) /\
   (forall G Sigma ds T, G ⋆ Sigma /- ds :: T -> forall G1 G2 Sigma1 Sigma2 x,
@@ -91,7 +91,7 @@ Lemma subst_rules: forall y U,
     ok (G1 & x ~ U & G2) ->
     x \notin fv_ctx_types G1 ->
     Sigma = Sigma1 & Sigma2 ->
-    x \notin fv_sigma_types Sigma1 ->
+    x \notin fv_stoty_types Sigma1 ->
     G1 & (subst_ctx x y G2) ⋆ (Sigma1 & subst_sigma x y Sigma2) ⊢ trm_var (avar_f y) : subst_typ x y U ->
     G1 & (subst_ctx x y G2) ⋆ (Sigma1 & subst_sigma x y Sigma2) /- subst_defs x y ds :: subst_typ x y T) /\
   (forall G Sigma T V, G ⋆ Sigma ⊢ T <: V -> forall G1 G2 Sigma1 Sigma2 x,
@@ -99,7 +99,7 @@ Lemma subst_rules: forall y U,
     ok (G1 & x ~ U & G2) ->
     x \notin fv_ctx_types G1 ->
     Sigma = Sigma1 & Sigma2 ->
-    x \notin fv_sigma_types Sigma1 ->
+    x \notin fv_stoty_types Sigma1 ->
     G1 & (subst_ctx x y G2) ⋆ (Sigma1 & subst_sigma x y Sigma2) ⊢ trm_var (avar_f y) : subst_typ x y U ->
     G1 & (subst_ctx x y G2) ⋆ (Sigma1 & subst_sigma x y Sigma2) ⊢ subst_typ x y T <: subst_typ x y V).
 Proof.
@@ -132,7 +132,7 @@ Lemma subst_ty_trm: forall y U G Sigma x t T,
     G & x ~ U ⋆ Sigma ⊢ t : T ->
     ok (G & x ~ U) ->
     x \notin fv_ctx_types G ->
-    x \notin fv_sigma_types Sigma ->
+    x \notin fv_stoty_types Sigma ->
     G ⋆ Sigma ⊢ trm_var (avar_f y) : subst_typ x y U ->
     G ⋆ Sigma ⊢ subst_trm x y t : subst_typ x y T.
 Proof.
@@ -146,7 +146,7 @@ Lemma subst_ty_defs: forall y U G Sigma x ds T,
     G & x ~ U ⋆ Sigma /- ds :: T ->
     ok (G & x ~ U) ->
     x \notin fv_ctx_types G ->
-    x \notin fv_sigma_types Sigma ->
+    x \notin fv_stoty_types Sigma ->
     G ⋆ Sigma ⊢ trm_var (avar_f y) : subst_typ x y U ->
     G ⋆ Sigma /- subst_defs x y ds :: subst_typ x y T.
 Proof.
@@ -167,7 +167,7 @@ Qed.
 Lemma renaming_def: forall G Sigma z T ds x,
     ok G ->
     z # G ->
-    z \notin (fv_ctx_types G \u fv_sigma_types Sigma \u fv_defs ds \u fv_typ T) ->
+    z \notin (fv_ctx_types G \u fv_stoty_types Sigma \u fv_defs ds \u fv_typ T) ->
     G & z ~ open_typ z T ⋆ Sigma /- open_defs z ds :: open_typ z T ->
     G ⋆ Sigma ⊢ trm_var (avar_f x) : open_typ x T ->
     G ⋆ Sigma /- open_defs x ds :: open_typ x T.
@@ -185,7 +185,7 @@ Qed.
 Lemma renaming_typ: forall G Sigma z T U t x,
     ok G ->
     z # G ->
-    z \notin (fv_ctx_types G \u fv_sigma_types Sigma \u fv_typ U \u fv_typ T \u fv_trm t) ->
+    z \notin (fv_ctx_types G \u fv_stoty_types Sigma \u fv_typ U \u fv_typ T \u fv_trm t) ->
     G & z ~ U ⋆ Sigma ⊢ open_trm z t : open_typ z T ->
     G ⋆ Sigma ⊢ trm_var (avar_f x) : U ->
     G ⋆ Sigma ⊢ open_trm x t : open_typ x T.

@@ -26,7 +26,7 @@ Reserved Notation "G '⋆' Sigma '⊢#' T '<:' U" (at level 40, T at level 59).
     - whenever a typing judgement in a premise extends the environment (for example, [ty_all_intro_t]),
       it is typed under general typing [⊢] and not tight typing [⊢#]. *)
 
-Inductive ty_trm_t : ctx -> sigma -> trm -> typ -> Prop :=
+Inductive ty_trm_t : ctx -> stoty -> trm -> typ -> Prop :=
 
 (** [G(x) = T]   #<br>#
     [――――――――――] #<br>#
@@ -131,7 +131,7 @@ Inductive ty_trm_t : ctx -> sigma -> trm -> typ -> Prop :=
 where "G '⋆' Sigma '⊢#' t ':' T" := (ty_trm_t G Sigma t T)
 
 (** *** Tight subtyping [G ⋆ Sigma ⊢# T <: U] *)
-with subtyp_t : ctx -> sigma -> typ -> typ -> Prop :=
+with subtyp_t : ctx -> stoty -> typ -> typ -> Prop :=
 
 (** [G ⋆ Sigma ⊢# T <: top] *)
 | subtyp_top_t: forall G Sigma T,
