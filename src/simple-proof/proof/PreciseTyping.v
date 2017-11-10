@@ -63,7 +63,7 @@ Hint Constructors ty_val_p.
     the precise type of a variable [G ⊢! x: T] and the type that the variable
     is bound to in the context [G(x)=T'].#<br>#
     If [G(x) = T], the [precise_flow] relation describes all the types [U] that [x] can
-    derive through precise typing ([⊢!], see [ty_trm_p]).
+    derive through precise typing ([⊢!] (see paper)).
     If [precise_flow x G T U], denoted as [G ⊢ x: T ⪼ U],
     then [G(x) = T] and [G ⊢! x: U].   #<br>#
     For example, if [G(x) = mu(x: {a: T} /\ {B: S..U})], then we can derive the following
@@ -105,9 +105,12 @@ Inductive precise_flow : var -> ctx -> typ -> typ -> Prop :=
   | pf_and2 : forall x G T U1 U2,
       G ⊢! x: T ⪼ typ_and U1 U2 ->
       G ⊢! x: T ⪼ U2
+
 where "G '⊢!' x ':' T '⪼' U" := (precise_flow x G T U).
 
 Hint Constructors precise_flow.
+
+(** ** Precise Flow Lemmas *)
 
 (** If [G ⊢! x: T ⪼ U] then [G(x) = T]. *)
 Lemma pf_binds: forall G x T U,
