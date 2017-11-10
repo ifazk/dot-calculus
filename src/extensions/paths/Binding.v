@@ -803,7 +803,7 @@ Qed.
        then [T ▼ a == U].  *)
 
 Reserved Notation "T '▼' bs '==' U" (at level 5, U at level 50).
-
+(*
 Inductive field_sel_typ : typ -> var -> fields -> typ -> Prop :=
 
 (** [T ▼ [] == T] *)
@@ -818,7 +818,7 @@ Inductive field_sel_typ : typ -> var -> fields -> typ -> Prop :=
     record_has U (dec_trm b V) ->
     T ▼ (b::bs) == V
 
-where "T '▼' bs '==' U" := (field_sel_typ T bs U).
+where "T '▼' bs '==' U" := (field_sel_typ T bs U). *)
 
 Lemma lookup_push_eq_inv_var :
     forall s x v v',

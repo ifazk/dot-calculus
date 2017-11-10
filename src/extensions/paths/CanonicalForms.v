@@ -36,6 +36,15 @@ Proof.
   intros. induction H; auto.
 Qed.
 
+Lemma val_typing: forall G v T,
+  G ⊢ trm_val v : T ->
+  exists T', G ⊢!v v : T' /\
+        G ⊢ T' <: T.
+Proof.
+  intros G v T H. dependent induction H; eauto.
+  destruct (IHty_trm _ eq_refl). destruct_all. eauto.
+Qed.
+
 (** [s: G]                #<br>#
     [G ∋ p: T]            #<br>#
     [―――――――――――――――]     #<br>#
@@ -43,7 +52,7 @@ Qed.
     [G |- v: T]          *)
 Lemma corresponding_types: forall G s p T T',
     well_typed G s ->
-    precise_flow p G T T' ->
+    G ⊢! p: T ⪼ T' ->
     (exists v, s ∋ (p, v) /\
           G ⊢ trm_val v : T).
 Proof.
@@ -52,20 +61,23 @@ Proof.
   - destruct p as [y bs].
     assert (exists z, y = avar_f z) as Heq by admit.
     destruct Heq as [z Heq]. subst.
-    assert (p_sel (avar_f z) nil = pvar z) as Heq by auto.
     destruct (classicT (x = z)).
-    * subst. destruct bs.
-    + inversions Heq. assert (T0 = T) as Heq by admit. subst.
+    * subst. gen G T T'. induction bs; intros.
+      + lets Hb: (pf_binds BiG). apply binds_push_eq_inv in Hb. subst.
         exists v. split. constructor. auto.
         apply* weaken_ty_trm.
-      + admit.
+      + clear IHHwf. inversions BiG.
+        destruct p. inversions H2.
+        eexists. (* left off: trying to specialize IHbs, for which I need to get an extended store "z ~ v0" (v0 is the value we're looking for in the proof goal).
+todo: instead of specializing, try to figure out general proof strategy (e.g. what happens if we manage to specialize?) *)
+        specialize (IHbs _ Hwf H H1 _ _ H3).
+
+
+        apply val_typing in H1. destruct H1 as [V [Hv Hs]].
+        assert (G & z ~ V ⊢! p_sel (avar_f z) (a :: bs) : T ⪼ T') as Hp by admit.
     * apply lookup_ctx_push_neq_inv_var in BiG. specialize (IHHwf BiG) as [v' [Hl Ht]].
       exists v'. repeat split. apply* lookup_push_neq. apply* weaken_ty_trm. auto.
 Qed.
-
-Lemma precise_val_correspondence: forall ,
-    G ⊢! trm_val v: T ->
-    precise_flow p G T T' ->
 
 
 

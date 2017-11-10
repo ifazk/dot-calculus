@@ -10,7 +10,7 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Definitions Binding RecordAndInertTypes.
+Require Import Definitions Binding RecordAndInertTypes Subenvironments Narrowing.
 
 (* todo finish doc *)
 (** ** Precise typing *)
@@ -44,10 +44,14 @@ Inductive ty_val_p : ctx -> val -> typ -> Prop :=
       G & x ~ T ⊢ open_trm x t : open_typ x U) ->
     G ⊢!v val_lambda T t : typ_all T U
 
-| ty_new_intro_p : forall G P ds T L,
-    (forall z, z \notin L ->
-      z; nil; P; G & (z ~ open_typ z T) ⊢ open_defs z ds :: open_typ z T) ->
-    G ⊢!v val_new T ds : typ_bnd T
+(** [x; []; P; G, x: T^x ⊢ ds^x: T^x]       #<br>#
+    [x fresh]                               #<br>#
+    [―――――――――――――――――――――――――――――――]       #<br>#
+    [G ⊢! ν(T)ds: μ(T)]                     *)
+| ty_new_intro_p
+     : forall (L : fset var) (G : env typ) (T : typ) (ds : defs) (P : paths),
+       (forall x : var, x \notin L -> x; nil; P; G & x ~ open_typ x T ⊢ open_defs x ds :: open_typ x T) ->
+       G ⊢!v val_new T ds : typ_bnd T
 
 where "G '⊢!v' v ':' T" := (ty_val_p G v T).
 
@@ -112,6 +116,10 @@ Inductive precise_flow : path -> ctx -> typ -> typ -> Prop :=
 where "G '⊢!' p ':' T '⪼' U" := (precise_flow p G T U).
 
 Hint Constructors precise_flow.
+
+Ltac fresh_constructor_p :=
+  apply_fresh ty_new_intro_p as z ||
+  apply_fresh ty_all_intro_p as z; auto.
 
 (** ** Precise Flow Lemmas *)
 
@@ -515,3 +523,38 @@ Lemma precise_to_general_v: forall G v T,
 Proof.
   intros. induction H; intros; subst; eauto.
 Qed.
+
+(** todo: by mutual induction *)
+(** todo: remove other "to ok" lemmas if they have typing *)
+Lemma typing_implies_ok: forall G t T,
+    G ⊢ t: T ->
+    ok G.
+Proof.
+  introv Ht. induction Ht; eauto.
+  pick_fresh z. assert (z \notin L) as Hz by auto. specialize (H0 z Hz). apply* ok_push_inv_ok.
+  Admitted.
+
+Lemma narrow_precise_v : forall G G' v T,
+    G ⊢!v v: T ->
+    G' ⪯ G ->
+    G' ⊢!v v: T.
+Proof.
+  introv Hv Hs. inversions Hv; fresh_constructor_p;
+  assert (z \notin L) as Hz by auto; specialize (H z Hz);
+  (apply* narrow_typing || apply* narrow_defs); destruct (subenv_implies_ok Hs);
+  apply* subenv_extend; apply ok_push.
+Qed.
+(*
+Lemma narrow_precise : forall G G' x T U,
+    G ⊢! x: T ⪼ U->
+    G' ⪯ G ->
+    exists T', G' ⊢! x: T' ⪼ U.
+Proof.
+  introv Hx Hs. inversions Hx.
+  - admit.
+
+  assert (z \notin L) as Hz by auto; specialize (H z Hz);
+  (apply* narrow_typing || apply* narrow_defs); destruct (subenv_implies_ok Hs);
+  apply* subenv_extend; apply ok_push.
+Qed.
+*)
