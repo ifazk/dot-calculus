@@ -19,8 +19,8 @@ Require Import PreciseTypes.
 Require Import TightTypes.
 
 (** The invertible-typing relation describes the possible types that a variable or value
-can be typed with in an inert context. For example, if [G] is inert, [G @@ S ⊢! x: {a: T}],
-and [G @@ S ⊢ T <: T'], then [G ⊢## x: {a: T'}].
+can be typed with in an inert context. For example, if [G] is inert, [G @@ Sigma ⊢! x: {a: T}],
+and [G @@ Sigma ⊢ T <: T'], then [G ⊢## x: {a: T'}].
 
 The purpose of invertible typing is to be easily invertible into a precise typing relation.
 To achieve that, invertible typing avoids typing cycles that could result from, for example,
@@ -28,163 +28,163 @@ repeated applications of recursion introduction and elimination.
 For this case, invertible typing defines only recursion introduction (whereas precise typing
 defines only recursion elimination). *)
 
-(** * Invertible typing of variables [G @@ S ⊢## x: T] *)
+(** * Invertible typing of variables [G @@ Sigma ⊢## x: T] *)
 
-Reserved Notation "G @@ S '⊢##' x ':' T" (at level 40, x at level 59).
+Reserved Notation "G @@ Sigma '⊢##' x ':' T" (at level 40, x at level 59).
 
 Inductive ty_var_inv : ctx -> sigma -> var -> typ -> Prop :=
 
-(** [G @@ S ⊢! x: T]  #<br>#
+(** [G @@ Sigma ⊢! x: T]  #<br>#
     [―――――――――――] #<br>#
-    [G @@ S ⊢## x: T]     *)
-| ty_precise_inv : forall G S x T,
-  G @@ S ⊢! trm_var (avar_f x) : T ->
-  G @@ S ⊢## x : T
+    [G @@ Sigma ⊢## x: T]     *)
+| ty_precise_inv : forall G Sigma x T,
+  G @@ Sigma ⊢! trm_var (avar_f x) : T ->
+  G @@ Sigma ⊢## x : T
 
-(** [G @@ S ⊢## x: {a: T}] #<br>#
-    [G @@ S ⊢# T <: U]     #<br>#
+(** [G @@ Sigma ⊢## x: {a: T}] #<br>#
+    [G @@ Sigma ⊢# T <: U]     #<br>#
     [――――――――――――――――] #<br>#
-    [G @@ S ⊢## x: {a: U}]     *)
-| ty_dec_trm_inv : forall G S x a T U,
-  G @@ S ⊢## x : typ_rcd (dec_trm a T) ->
-  G @@ S ⊢# T <: U ->
-  G @@ S ⊢## x : typ_rcd (dec_trm a U)
+    [G @@ Sigma ⊢## x: {a: U}]     *)
+| ty_dec_trm_inv : forall G Sigma x a T U,
+  G @@ Sigma ⊢## x : typ_rcd (dec_trm a T) ->
+  G @@ Sigma ⊢# T <: U ->
+  G @@ Sigma ⊢## x : typ_rcd (dec_trm a U)
 
-(** [G @@ S ⊢## x: {A: T..U}]   #<br>#
-    [G @@ S ⊢# T' <: T]         #<br>#
-    [G @@ S ⊢# U <: U']         #<br>#
+(** [G @@ Sigma ⊢## x: {A: T..U}]   #<br>#
+    [G @@ Sigma ⊢# T' <: T]         #<br>#
+    [G @@ Sigma ⊢# U <: U']         #<br>#
     [―――――――――――――――――――――] #<br>#
-    [G @@ S ⊢## x: {A: T'..U'}]     *)
-| ty_dec_typ_inv : forall G S x A T T' U' U,
-  G @@ S ⊢## x : typ_rcd (dec_typ A T U) ->
-  G @@ S ⊢# T' <: T ->
-  G @@ S ⊢# U <: U' ->
-  G @@ S ⊢## x : typ_rcd (dec_typ A T' U')
+    [G @@ Sigma ⊢## x: {A: T'..U'}]     *)
+| ty_dec_typ_inv : forall G Sigma x A T T' U' U,
+  G @@ Sigma ⊢## x : typ_rcd (dec_typ A T U) ->
+  G @@ Sigma ⊢# T' <: T ->
+  G @@ Sigma ⊢# U <: U' ->
+  G @@ Sigma ⊢## x : typ_rcd (dec_typ A T' U')
 
-(** [G @@ S ⊢## x: T^x]   #<br>#
+(** [G @@ Sigma ⊢## x: T^x]   #<br>#
     [―――――――――――――――] #<br>#
-    [G @@ S ⊢## x: mu(T)] *)
-| ty_bnd_inv : forall G S x T,
-  G @@ S ⊢## x : open_typ x T ->
-  G @@ S ⊢## x : typ_bnd T
+    [G @@ Sigma ⊢## x: mu(T)] *)
+| ty_bnd_inv : forall G Sigma x T,
+  G @@ Sigma ⊢## x : open_typ x T ->
+  G @@ Sigma ⊢## x : typ_bnd T
 
-(** [G @@ S ⊢## x: forall(S)T]          #<br>#
-    [G @@ S ⊢# S' <: S]            #<br>#
-    [G, y: S' @@ S ⊢ T^y <: T'^y]   #<br>#
+(** [G @@ Sigma ⊢## x: forall(S)T]          #<br>#
+    [G @@ Sigma ⊢# S' <: S]            #<br>#
+    [G, y: S' @@ Sigma ⊢ T^y <: T'^y]   #<br>#
     [y fresh]                  #<br>#
     [――――――――――――――――――――――]   #<br>#
-    [G @@ S ⊢## x: forall(S')T']            *)
-| ty_all_inv : forall L G S x S1 T S2 T',
-  G @@ S ⊢## x : typ_all S1 T ->
-  G @@ S ⊢# S2 <: S1 ->
+    [G @@ Sigma ⊢## x: forall(S')T']            *)
+| ty_all_inv : forall L G Sigma x S1 T S2 T',
+  G @@ Sigma ⊢## x : typ_all S1 T ->
+  G @@ Sigma ⊢# S2 <: S1 ->
   (forall y, y \notin L ->
-   G & y ~ S2 @@ S ⊢ open_typ y T <: open_typ y T') ->
-  G @@ S ⊢## x : typ_all S2 T'
+   G & y ~ S2 @@ Sigma ⊢ open_typ y T <: open_typ y T') ->
+  G @@ Sigma ⊢## x : typ_all S2 T'
 
-(** [G @@ S ⊢## x : T]     #<br>#
-    [G @@ S ⊢## x : U]     #<br>#
+(** [G @@ Sigma ⊢## x : T]     #<br>#
+    [G @@ Sigma ⊢## x : U]     #<br>#
     [――――――――――――――――] #<br>#
-    [G @@ S ⊢## x : T /\ U]      *)
-| ty_and_inv : forall G S x S1 S2,
-  G @@ S ⊢## x : S1 ->
-  G @@ S ⊢## x : S2 ->
-  G @@ S ⊢## x : typ_and S1 S2
+    [G @@ Sigma ⊢## x : T /\ U]      *)
+| ty_and_inv : forall G Sigma x S1 S2,
+  G @@ Sigma ⊢## x : S1 ->
+  G @@ Sigma ⊢## x : S2 ->
+  G @@ Sigma ⊢## x : typ_and S1 S2
 
-(** [G @@ S ⊢## x: S]        #<br>#
-    [G @@ S ⊢! y: {A: S..S}] #<br>#
+(** [G @@ Sigma ⊢## x: S]        #<br>#
+    [G @@ Sigma ⊢! y: {A: S..S}] #<br>#
     [――――――――――――――――――] #<br>#
-    [G @@ S ⊢## x: y.A           *)
-| ty_sel_inv : forall G S x y A T,
-  G @@ S ⊢## x : T ->
-  G @@ S ⊢! trm_var y : typ_rcd (dec_typ A T T) ->
-  G @@ S ⊢## x : typ_sel y A
+    [G @@ Sigma ⊢## x: y.A           *)
+| ty_sel_inv : forall G Sigma x y A T,
+  G @@ Sigma ⊢## x : T ->
+  G @@ Sigma ⊢! trm_var y : typ_rcd (dec_typ A T T) ->
+  G @@ Sigma ⊢## x : typ_sel y A
 
-| ty_loc_inv : forall G S x T U,
-  G @@ S ⊢## x : typ_ref T ->
-  G @@ S ⊢# T <: U ->
-  G @@ S ⊢# U <: T ->
-  G @@ S ⊢## x : typ_ref U
+| ty_loc_inv : forall G Sigma x T U,
+  G @@ Sigma ⊢## x : typ_ref T ->
+  G @@ Sigma ⊢# T <: U ->
+  G @@ Sigma ⊢# U <: T ->
+  G @@ Sigma ⊢## x : typ_ref U
 
-(** [G @@ S ⊢## x: T]   #<br>#
+(** [G @@ Sigma ⊢## x: T]   #<br>#
     [―――――――――――――] #<br>#
-    [G @@ S ⊢## x: top]     *)
-| ty_top_inv : forall G S x T,
-  G @@ S ⊢## x : T ->
-  G @@ S ⊢## x : typ_top
-where "G @@ S '⊢##' x ':' T" := (ty_var_inv G S x T).
+    [G @@ Sigma ⊢## x: top]     *)
+| ty_top_inv : forall G Sigma x T,
+  G @@ Sigma ⊢## x : T ->
+  G @@ Sigma ⊢## x : typ_top
+where "G @@ Sigma '⊢##' x ':' T" := (ty_var_inv G Sigma x T).
 
-(** *** Invertible typing of values [G @@ S ⊢##v v: T] *)
+(** *** Invertible typing of values [G @@ Sigma ⊢##v v: T] *)
 
-Reserved Notation "G @@ S '⊢##v' v ':' T" (at level 40, v at level 59).
+Reserved Notation "G @@ Sigma '⊢##v' v ':' T" (at level 40, v at level 59).
 
 Inductive ty_val_inv : ctx -> sigma -> val -> typ -> Prop :=
 
-(** [G @@ S ⊢! v: T]    #<br>#
+(** [G @@ Sigma ⊢! v: T]    #<br>#
     [―――――――――――――] #<br>#
-    [G @@ S ⊢##v v: T] *)
-| ty_precise_inv_v : forall G S v T,
-  G @@ S ⊢! trm_val v : T ->
-  G @@ S ⊢##v v : T
+    [G @@ Sigma ⊢##v v: T] *)
+| ty_precise_inv_v : forall G Sigma v T,
+  G @@ Sigma ⊢! trm_val v : T ->
+  G @@ Sigma ⊢##v v : T
 
-(** [G @@ S ⊢##v v: forall(S)T]          #<br>#
-    [G @@ S ⊢# S' <: S]             #<br>#
-    [G, y: S' @@ S ⊢ T^y <: T'^y]    #<br>#
+(** [G @@ Sigma ⊢##v v: forall(S)T]          #<br>#
+    [G @@ Sigma ⊢# S' <: S]             #<br>#
+    [G, y: S' @@ Sigma ⊢ T^y <: T'^y]    #<br>#
     [y fresh]                   #<br>#
     [――――――――――――――――――――――]    #<br>#
-    [G @@ S ⊢##v v: forall(S')T']            *)
-| ty_all_inv_v : forall L G S v S1 T S2 T',
-  G @@ S ⊢##v v : typ_all S1 T ->
-  G @@ S ⊢# S2 <: S1 ->
+    [G @@ Sigma ⊢##v v: forall(S')T']            *)
+| ty_all_inv_v : forall L G Sigma v S1 T S2 T',
+  G @@ Sigma ⊢##v v : typ_all S1 T ->
+  G @@ Sigma ⊢# S2 <: S1 ->
   (forall y, y \notin L ->
-   G & y ~ S2 @@ S ⊢ open_typ y T <: open_typ y T') ->
-  G @@ S ⊢##v v : typ_all S2 T'
+   G & y ~ S2 @@ Sigma ⊢ open_typ y T <: open_typ y T') ->
+  G @@ Sigma ⊢##v v : typ_all S2 T'
 
-(** [G @@ S ⊢##v v: S]       #<br>#
-    [G @@ S ⊢! y: {A: S..S}] #<br>#
+(** [G @@ Sigma ⊢##v v: S]       #<br>#
+    [G @@ Sigma ⊢! y: {A: S..S}] #<br>#
     [――――――――――――――――――] #<br>#
-    [G @@ S ⊢##v v: y.A]         *)
-| ty_sel_inv_v : forall G S v y A T,
-  G @@ S ⊢##v v : T ->
-  G @@ S ⊢! trm_var y : typ_rcd (dec_typ A T T) ->
-  G @@ S ⊢##v v : typ_sel y A
+    [G @@ Sigma ⊢##v v: y.A]         *)
+| ty_sel_inv_v : forall G Sigma v y A T,
+  G @@ Sigma ⊢##v v : T ->
+  G @@ Sigma ⊢! trm_var y : typ_rcd (dec_typ A T T) ->
+  G @@ Sigma ⊢##v v : typ_sel y A
 
-(** [G @@ S ⊢##v v : T]        #<br>#
-    [G @@ S ⊢##v v : U]        #<br>#
+(** [G @@ Sigma ⊢##v v : T]        #<br>#
+    [G @@ Sigma ⊢##v v : U]        #<br>#
     [―――――――――――――]        #<br>#
-    [G @@ S ⊢##v v : T /\ U]        *)
-| ty_and_inv_v : forall G S v T U,
-  G @@ S ⊢##v v : T ->
-  G @@ S ⊢##v v : U ->
-  G @@ S ⊢##v v : typ_and T U
+    [G @@ Sigma ⊢##v v : T /\ U]        *)
+| ty_and_inv_v : forall G Sigma v T U,
+  G @@ Sigma ⊢##v v : T ->
+  G @@ Sigma ⊢##v v : U ->
+  G @@ Sigma ⊢##v v : typ_and T U
 
-| ty_loc_inv_v : forall G S v T U,
-  G @@ S ⊢##v v : typ_ref T ->
-  G @@ S ⊢# T <: U ->
-  G @@ S ⊢# U <: T ->
-  G @@ S ⊢##v v : typ_ref U
+| ty_loc_inv_v : forall G Sigma v T U,
+  G @@ Sigma ⊢##v v : typ_ref T ->
+  G @@ Sigma ⊢# T <: U ->
+  G @@ Sigma ⊢# U <: T ->
+  G @@ Sigma ⊢##v v : typ_ref U
 
-(** [G @@ S ⊢##v v: T]   #<br>#
+(** [G @@ Sigma ⊢##v v: T]   #<br>#
     [――――――――――――――] #<br>#
-    [G @@ S ⊢##v v: top]     *)
-| ty_top_inv_v : forall G S v T,
-  G @@ S ⊢##v v : T ->
-  G @@ S ⊢##v v : typ_top
-where "G @@ S '⊢##v' v ':' T" := (ty_val_inv G S v T).
+    [G @@ Sigma ⊢##v v: top]     *)
+| ty_top_inv_v : forall G Sigma v T,
+  G @@ Sigma ⊢##v v : T ->
+  G @@ Sigma ⊢##v v : typ_top
+where "G @@ Sigma '⊢##v' v ':' T" := (ty_val_inv G Sigma v T).
 
 Hint Constructors ty_var_inv ty_val_inv.
 
 (** ** Invertible to Precise Typing [|-## to |-!] *)
 
 (** Invertible-to-precise typing for field declarations: #<br>#
-    [G @@ S ⊢## x: {a: T}]            #<br>#
+    [G @@ Sigma ⊢## x: {a: T}]            #<br>#
     [――――――――――――――――――――――]      #<br>#
-    [exists T', G @@ S ⊢! x: {a: T'}]      #<br>#
-    [G @@ S ⊢# T' <: T]. *)
-Lemma invertible_to_precise_trm_dec: forall G S x a T,
-  G @@ S ⊢## x : typ_rcd (dec_trm a T) ->
+    [exists T', G @@ Sigma ⊢! x: {a: T'}]      #<br>#
+    [G @@ Sigma ⊢# T' <: T]. *)
+Lemma invertible_to_precise_trm_dec: forall G Sigma x a T,
+  G @@ Sigma ⊢## x : typ_rcd (dec_trm a T) ->
   exists T',
-    G @@ S ⊢! trm_var (avar_f x) : typ_rcd (dec_trm a T') /\
-    G @@ S ⊢# T' <: T.
+    G @@ Sigma ⊢! trm_var (avar_f x) : typ_rcd (dec_trm a T') /\
+    G @@ Sigma ⊢# T' <: T.
 Proof.
   introv Hinv.
   dependent induction Hinv.
@@ -196,20 +196,20 @@ Qed.
 
 (** Invertible-to-precise typing for function types: #<br>#
     [ok G]                        #<br>#
-    [G @@ S ⊢## x: forall(S)T]             #<br>#
+    [G @@ Sigma ⊢## x: forall(S)T]             #<br>#
     [――――――――――――――――――――――――――]  #<br>#
-    [exists S', T'. G @@ S ⊢! x: forall(S')T']  #<br>#
-    [G @@ S ⊢# S <: S']               #<br>#
-    [G @@ S ⊢# T'^y <: T^y], where [y] is fresh. *)
-Lemma invertible_to_precise_typ_all: forall G S x T U,
+    [exists S', T'. G @@ Sigma ⊢! x: forall(S')T']  #<br>#
+    [G @@ Sigma ⊢# S <: S']               #<br>#
+    [G @@ Sigma ⊢# T'^y <: T^y], where [y] is fresh. *)
+Lemma invertible_to_precise_typ_all: forall G Sigma x T U,
   ok G ->
-  G @@ S ⊢## x : typ_all T U ->
+  G @@ Sigma ⊢## x : typ_all T U ->
   exists T' U' L,
-    G @@ S ⊢! trm_var (avar_f x) : typ_all T' U' /\
-    G @@ S ⊢# T <: T' /\
+    G @@ Sigma ⊢! trm_var (avar_f x) : typ_all T' U' /\
+    G @@ Sigma ⊢# T <: T' /\
     (forall y,
         y \notin L ->
-            G & y ~ T @@ S ⊢ open_typ y U' <: open_typ y U).
+            G & y ~ T @@ Sigma ⊢ open_typ y U' <: open_typ y U).
 Proof.
   introv HG Hinv.
   dependent induction Hinv.
@@ -218,25 +218,25 @@ Proof.
     destruct IHHinv as [T' [U' [L' [Hpt [HSsub HTsub]]]]].
     exists T' U' (dom G \u L \u L').
     split; auto.
-    assert (Hsub2 : G @@ S ⊢# typ_all S1 T0 <: typ_all T U).
+    assert (Hsub2 : G @@ Sigma ⊢# typ_all S1 T0 <: typ_all T U).
     { apply subtyp_all_t with (L:=L); assumption. }
     split.
     + eapply subtyp_trans_t; eauto.
     + intros y Fr.
       assert (Hok: ok (G & y ~ T)) by auto using ok_push.
       apply tight_to_general in H; auto.
-      assert (Hnarrow: G & y ~ T @@ S ⊢ open_typ y U' <: open_typ y T0).
+      assert (Hnarrow: G & y ~ T @@ Sigma ⊢ open_typ y U' <: open_typ y T0).
       { eapply narrow_subtyping; auto using subenv_last. }
       eauto.
 Qed.
 
-Lemma invertible_to_precise_typ_ref: forall G S x T,
+Lemma invertible_to_precise_typ_ref: forall G Sigma x T,
   ok G ->
-  G @@ S ⊢## x : typ_ref T ->
+  G @@ Sigma ⊢## x : typ_ref T ->
   exists T',
-    G @@ S ⊢! trm_var (avar_f x) : typ_ref T' /\
-    G @@ S ⊢# T <: T' /\
-    G @@ S ⊢# T' <: T.
+    G @@ Sigma ⊢! trm_var (avar_f x) : typ_ref T' /\
+    G @@ Sigma ⊢# T <: T' /\
+    G @@ Sigma ⊢# T' <: T.
 Proof.
   introv HG Hinv.
   dependent induction Hinv.
@@ -248,11 +248,11 @@ Qed.
 (** ** Invertible Subtyping Closure *)
 
 (** Invertible typing is closed under tight subtyping. *)
-Lemma invertible_typing_closure_tight: forall G S x T U,
+Lemma invertible_typing_closure_tight: forall G Sigma x T U,
   inert G ->
-  G @@ S ⊢## x : T ->
-  G @@ S ⊢# T <: U ->
-  G @@ S ⊢## x : U.
+  G @@ Sigma ⊢## x : T ->
+  G @@ Sigma ⊢# T <: U ->
+  G @@ Sigma ⊢## x : U.
 Proof.
   intros G S x T U Hgd HT Hsub.
   dependent induction Hsub; eauto.
@@ -270,14 +270,14 @@ Qed.
        This lemma corresponds to Theorem 3.6 in the paper.
 
        [inert G]            #<br>#
-       [G @@ S ⊢# x: U]         #<br>#
+       [G @@ Sigma ⊢# x: U]         #<br>#
        [―――――――――――――――]    #<br>#
-       [G @@ S ⊢## x: U] *)
+       [G @@ Sigma ⊢## x: U] *)
 Lemma tight_to_invertible :
-  forall G S U x,
+  forall G Sigma U x,
     inert G ->
-    G @@ S ⊢# trm_var (avar_f x) : U ->
-    G @@ S ⊢## x : U.
+    G @@ Sigma ⊢# trm_var (avar_f x) : U ->
+    G @@ Sigma ⊢## x : U.
 Proof.
   introv Hgd Hty.
   dependent induction Hty.
@@ -296,11 +296,11 @@ Qed.
 (** ** Invertible Subtyping Closure *)
 
 (** Invertible value typing is closed under tight subtyping. *)
-Lemma invertible_typing_closure_tight_v: forall G S v T U,
+Lemma invertible_typing_closure_tight_v: forall G Sigma v T U,
   inert G ->
-  G @@ S ⊢##v v : T ->
-  G @@ S ⊢# T <: U ->
-  G @@ S ⊢##v v : U.
+  G @@ Sigma ⊢##v v : T ->
+  G @@ Sigma ⊢# T <: U ->
+  G @@ Sigma ⊢##v v : U.
 Proof.
   introv Hgd HT Hsub.
   dependent induction Hsub; eauto; inversions HT; auto; try solve [inversion* H].
@@ -311,13 +311,13 @@ Qed.
 (** ** Tight-to-Invertible Lemma for Values [|-# to |-##]
 
        [inert G]            #<br>#
-       [G @@ S ⊢# v: T]         #<br>#
+       [G @@ Sigma ⊢# v: T]         #<br>#
        [――――――――――――――――]   #<br>#
-       [G @@ S ⊢##v v: T] *)
-Lemma tight_to_invertible_v : forall G S v T,
+       [G @@ Sigma ⊢##v v: T] *)
+Lemma tight_to_invertible_v : forall G Sigma v T,
     inert G ->
-    G @@ S ⊢# trm_val v : T ->
-    G @@ S ⊢##v v : T.
+    G @@ Sigma ⊢# trm_val v : T ->
+    G @@ Sigma ⊢##v v : T.
 Proof.
   introv Hgd Hty.
   dependent induction Hty; eauto.

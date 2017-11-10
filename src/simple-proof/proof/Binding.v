@@ -685,8 +685,8 @@ Proof.
   rewrite union_comm. reflexivity.
 Qed.
 
-Lemma fv_sigma_types_push_eq : forall S x T,
-    fv_sigma_types (S & x ~ T) = fv_sigma_types S \u fv_typ T.
+Lemma fv_sigma_types_push_eq : forall Sigma x T,
+    fv_sigma_types (Sigma & x ~ T) = fv_sigma_types Sigma \u fv_typ T.
 Proof.
   intros.
   rewrite concat_def, single_def.
@@ -828,20 +828,20 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma invert_fv_sigma_types_push: forall x z T S,
-  x \notin fv_sigma_types (S & z ~ T) -> x \notin fv_typ T /\ x \notin (fv_sigma_types S).
+Lemma invert_fv_sigma_types_push: forall x z T Sigma,
+  x \notin fv_sigma_types (Sigma & z ~ T) -> x \notin fv_typ T /\ x \notin (fv_sigma_types Sigma).
 Proof.
   introv H. rewrite fv_sigma_types_push_eq in H.
   apply~ notin_union.
 Qed.
 
-Lemma subst_fresh_sigma: forall x y S,
-  x \notin fv_sigma_types S -> subst_sigma x y S = S.
+Lemma subst_fresh_sigma: forall x y Sigma,
+  x \notin fv_sigma_types Sigma -> subst_sigma x y Sigma = Sigma.
 Proof.
   intros x y.
-  apply (env_ind (fun S => x \notin fv_sigma_types S -> subst_sigma x y S = S)).
+  apply (env_ind (fun Sigma => x \notin fv_sigma_types Sigma -> subst_sigma x y Sigma = Sigma)).
   + intro N. unfold subst_sigma. apply map_empty.
-  + intros S z T IH N.
+  + intros Sigma z T IH N.
     apply invert_fv_sigma_types_push in N. destruct N as [N1 N2].
     unfold subst_sigma in *. rewrite map_push.
     rewrite (IH N2).

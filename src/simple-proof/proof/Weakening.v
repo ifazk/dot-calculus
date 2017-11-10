@@ -40,22 +40,22 @@ Require Import Definitions.
 
     The proof is by mutual induction on term typing, definition typing, and subtyping. *)
 Lemma weaken_rules:
-  (forall G S t T, G @@ S ⊢ t : T -> forall G1 G2 G3,
+  (forall G Sigma t T, G @@ Sigma ⊢ t : T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 @@ S ⊢ t : T) /\
-  (forall G S d D, G @@ S/- d : D -> forall G1 G2 G3,
+    G1 & G2 & G3 @@ Sigma ⊢ t : T) /\
+  (forall G Sigma d D, G @@ Sigma /- d : D -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 @@ S /- d : D) /\
-  (forall G S ds T, G @@ S/- ds :: T -> forall G1 G2 G3,
+    G1 & G2 & G3 @@ Sigma /- d : D) /\
+  (forall G Sigma ds T, G @@ Sigma /- ds :: T -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 @@ S /- ds :: T) /\
-  (forall G S T U, G @@ S ⊢ T <: U -> forall G1 G2 G3,
+    G1 & G2 & G3 @@ Sigma /- ds :: T) /\
+  (forall G Sigma T U, G @@ Sigma ⊢ T <: U -> forall G1 G2 G3,
     G = G1 & G3 ->
     ok (G1 & G2 & G3) ->
-    G1 & G2 & G3 @@ S ⊢ T <: U).
+    G1 & G2 & G3 @@ Sigma ⊢ T <: U).
 Proof.
   apply rules_mutind; intros; subst;
   eauto 4 using binds_weaken;
@@ -72,22 +72,22 @@ Proof.
 Qed.
 
 Lemma weaken_rules_sigma:
-  (forall G S t T, G @@ S ⊢ t : T -> forall S1 S2 S3,
-    S = S1 & S3 ->
-    ok (S1 & S2 & S3) ->
-    G @@ (S1 & S2 & S3) ⊢ t : T) /\
-  (forall G S d D, G @@ S /- d : D -> forall S1 S2 S3,
-    S = S1 & S3 ->
-    ok (S1 & S2 & S3) ->
-    G @@ (S1 & S2 & S3) /- d : D) /\
-  (forall G S ds T, G @@ S /- ds :: T -> forall S1 S2 S3,
-    S = S1 & S3 ->
-    ok (S1 & S2 & S3) ->
-    G @@ (S1 & S2 & S3) /- ds :: T) /\
-  (forall G S T U, G @@ S ⊢ T <: U -> forall S1 S2 S3,
-    S = S1 & S3 ->
-    ok (S1 & S2 & S3) ->
-    G @@ (S1 & S2 & S3) ⊢ T <: U).
+  (forall G Sigma t T, G @@ Sigma ⊢ t : T -> forall Sigma1 Sigma2 Sigma3,
+    Sigma = Sigma1 & Sigma3 ->
+    ok (Sigma1 & Sigma2 & Sigma3) ->
+    G @@ (Sigma1 & Sigma2 & Sigma3) ⊢ t : T) /\
+  (forall G Sigma d D, G @@ Sigma /- d : D -> forall Sigma1 Sigma2 Sigma3,
+    Sigma = Sigma1 & Sigma3 ->
+    ok (Sigma1 & Sigma2 & Sigma3) ->
+    G @@ (Sigma1 & Sigma2 & Sigma3) /- d : D) /\
+  (forall G Sigma ds T, G @@ Sigma /- ds :: T -> forall Sigma1 Sigma2 Sigma3,
+    Sigma = Sigma1 & Sigma3 ->
+    ok (Sigma1 & Sigma2 & Sigma3) ->
+    G @@ (Sigma1 & Sigma2 & Sigma3) /- ds :: T) /\
+  (forall G Sigma T U, G @@ Sigma ⊢ T <: U -> forall Sigma1 Sigma2 Sigma3,
+    Sigma = Sigma1 & Sigma3 ->
+    ok (Sigma1 & Sigma2 & Sigma3) ->
+    G @@ (Sigma1 & Sigma2 & Sigma3) ⊢ T <: U).
 Proof.
   apply rules_mutind; try solve [eauto].
   intros. subst.
@@ -113,35 +113,35 @@ Ltac weaken_specialize_sigma :=
   end.
 
 (** Weakening lemma specialized to term typing. *)
-Lemma weaken_ty_trm: forall G1 G2 S t T,
-    G1 @@ S ⊢ t : T ->
+Lemma weaken_ty_trm: forall G1 G2 Sigma t T,
+    G1 @@ Sigma ⊢ t : T ->
     ok (G1 & G2) ->
-    G1 & G2 @@ S ⊢ t : T.
+    G1 & G2 @@ Sigma ⊢ t : T.
 Proof.
   weaken_specialize.
 Qed.
 
-Lemma weaken_ty_trm_sigma: forall G S1 S2 t T,
-  G @@ S1 ⊢ t : T ->
-  ok (S1 & S2) ->
-  G @@ (S1 & S2) ⊢ t : T.
+Lemma weaken_ty_trm_sigma: forall G Sigma1 Sigma2 t T,
+  G @@ Sigma1 ⊢ t : T ->
+  ok (Sigma1 & Sigma2) ->
+  G @@ (Sigma1 & Sigma2) ⊢ t : T.
 Proof.
   weaken_specialize_sigma.
 Qed.
 
 (** Weakening lemma specialized to subtyping. *)
-Lemma weaken_subtyp: forall G1 G2 S T U,
-  G1 @@ S ⊢ T <: U ->
+Lemma weaken_subtyp: forall G1 G2 Sigma T U,
+  G1 @@ Sigma ⊢ T <: U ->
   ok (G1 & G2) ->
-  G1 & G2 @@ S ⊢ T <: U.
+  G1 & G2 @@ Sigma ⊢ T <: U.
 Proof.
   weaken_specialize.
 Qed.
 
-Lemma weaken_subtyp_sigma: forall G S1 S2 T U,
-  G @@ S1 ⊢ T <: U ->
-  ok (S1 & S2) ->
-  G @@ (S1 & S2) ⊢ T <: U.
+Lemma weaken_subtyp_sigma: forall G Sigma1 Sigma2 T U,
+  G @@ Sigma1 ⊢ T <: U ->
+  ok (Sigma1 & Sigma2) ->
+  G @@ (Sigma1 & Sigma2) ⊢ T <: U.
 Proof.
   weaken_specialize_sigma.
 Qed.

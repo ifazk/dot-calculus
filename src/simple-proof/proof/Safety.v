@@ -8,11 +8,11 @@ Require Import Binding CanonicalForms Definitions TightTypes GeneralToTight Inve
 (** For the purposes of our evaluation semantics, a term is a
  The typing of a term with a stack *)
 Inductive sta_trm_typ : sta * store * trm -> typ -> Prop :=
-| sta_trm_typ_c : forall G S s sigma t T,
+| sta_trm_typ_c : forall G Sigma s sigma t T,
     inert G ->
-    well_typed G S s ->
-    wt_store G S sigma ->
-    G @@ S ⊢ t : T ->
+    well_typed G Sigma s ->
+    wt_store G Sigma sigma ->
+    G @@ Sigma ⊢ t : T ->
     sta_trm_typ (s, sigma, t) T.
 
 Hint Constructors sta_trm_typ.
@@ -103,7 +103,7 @@ Proof.
     invert_red. binds_eq.
     exists (@empty typ) (@empty typ). rewrite? concat_empty_r. repeat split; auto.
     match goal with
-    | [Hd: defs_has _ (def_trm _ ?t') |- G @@ S ⊢ t': T] =>
+    | [Hd: defs_has _ (def_trm _ ?t') |- G @@ Sigma ⊢ t': T] =>
       rewrite* <- (defs_has_inv Has Hd)
     end.
   - Case "ty_let".
@@ -133,7 +133,7 @@ Proof.
     | [Hs: _ @@ _ ⊢ _ <: _,
        Hg: _ & ?G' @@ _ & ?Sigma' ⊢ _: _ |- _] =>
       apply weaken_subtyp with (G2:=G') in Hs;
-      apply weaken_subtyp_sigma with (S2:=Sigma') in Hs;
+      apply weaken_subtyp_sigma with (Sigma2:=Sigma') in Hs;
       eauto
     end.
   - Case "ty_ref_intro".
@@ -172,7 +172,7 @@ Theorem preservation : forall s s' sigma sigma' t t' T,
 Proof.
   introv Ht Hr. destruct Ht as [* Hi Hwf Hws Ht].
   lets Hp: (preservation_helper Hwf Hws Hi Hr Ht). destruct Hp as [G' [Sigma' [Hi' [Hwf' [Hws' Ht']]]]].
-  apply sta_trm_typ_c with (G:=G & G') (S:=S & Sigma'); auto. apply* inert_concat.
+  apply sta_trm_typ_c with (G:=G & G') (Sigma:=Sigma & Sigma'); auto. apply* inert_concat.
 Qed.
 
 (** * Progress *)
@@ -219,7 +219,6 @@ Proof.
     pick_fresh l.
     exists s (sigma[l:=x]) (trm_val (val_loc l)).
     apply* red_ref_var.
-    assert (l # S) as HS by auto.
     eauto using wt_store_notindom.
   - Case "ty_ref_elim".
     pose proof (canonical_forms_ref Hi Hwt Hws HT) as [?l [?y ?]]. destruct_all. right*.
