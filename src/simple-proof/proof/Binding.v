@@ -499,7 +499,7 @@ Qed.
 
 (** If a variable has a type, then it is a named variable. *)
 Lemma var_typing_implies_avar_f: forall G Sigma a T,
-    G @@ Sigma ⊢ trm_var a : T ->
+    G ⋆ Sigma ⊢ trm_var a : T ->
     exists x, a = avar_f x.
 Proof.
   introv H; dependent induction H; eauto.

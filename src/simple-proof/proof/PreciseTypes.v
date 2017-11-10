@@ -30,7 +30,7 @@ Require Import RecordAndInertTypes.
       [G ⊢! x: {a: T}]                    #<br>#
       [G ⊢! x: {B: S..U}].                *)
 
-Reserved Notation "G '@@' S '⊢!' t ':' T" (at level 40, t at level 59).
+Reserved Notation "G '⋆' S '⊢!' t ':' T" (at level 40, t at level 59).
 
 Inductive ty_trm_p : ctx -> sigma -> trm -> typ -> Prop :=
 
@@ -39,11 +39,11 @@ Inductive ty_trm_p : ctx -> sigma -> trm -> typ -> Prop :=
     [G ⊢! x: T] *)
 | ty_var_p : forall G Sigma x T,
     binds x T G ->
-    G @@ Sigma ⊢! trm_var (avar_f x) : T
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : T
 
 | ty_loc : forall G Sigma l T,
     binds l T Sigma ->
-    G @@ Sigma ⊢! trm_val (val_loc l) : (typ_ref T)
+    G ⋆ Sigma ⊢! trm_val (val_loc l) : (typ_ref T)
 
 (** [G, x: T ⊢ t^x: U^x]       #<br>#
     [x fresh]                  #<br>#
@@ -51,8 +51,8 @@ Inductive ty_trm_p : ctx -> sigma -> trm -> typ -> Prop :=
     [G ⊢! lambda(T)t: forall(T) U]     *)
 | ty_all_intro_p : forall L G Sigma T t U,
     (forall x, x \notin L ->
-      G & x ~ T @@ Sigma ⊢ open_trm x t : open_typ x U) ->
-    G @@ Sigma ⊢! trm_val (val_lambda T t) : typ_all T U
+      G & x ~ T ⋆ Sigma ⊢ open_trm x t : open_typ x U) ->
+    G ⋆ Sigma ⊢! trm_val (val_lambda T t) : typ_all T U
 
 (** [G, x: T^x ⊢ ds^x :: T^x]   #<br>#
     [x fresh]                   #<br>#
@@ -60,30 +60,30 @@ Inductive ty_trm_p : ctx -> sigma -> trm -> typ -> Prop :=
     [G ⊢! nu(T)ds :: mu(T)]        *)
 | ty_new_intro_p : forall L G Sigma T ds,
     (forall x, x \notin L ->
-      G & (x ~ open_typ x T) @@ Sigma /- open_defs x ds :: open_typ x T) ->
-    G @@ Sigma ⊢! trm_val (val_new T ds) : typ_bnd T
+      G & (x ~ open_typ x T) ⋆ Sigma /- open_defs x ds :: open_typ x T) ->
+    G ⋆ Sigma ⊢! trm_val (val_new T ds) : typ_bnd T
 
 (** [G ⊢! x: mu(T)] #<br>#
     [――――――――――――――] #<br>#
     [G ⊢! x: T^x]       *)
 | ty_rec_elim_p : forall G Sigma x T,
-    G @@ Sigma ⊢! trm_var (avar_f x) : typ_bnd T ->
-    G @@ Sigma ⊢! trm_var (avar_f x) : open_typ x T
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : typ_bnd T ->
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : open_typ x T
 
 (** [G ⊢! x: T /\ U] #<br>#
     [――――――――――――――] #<br>#
     [G ⊢! x: T]     *)
 | ty_and1_p : forall G Sigma x T U,
-    G @@ Sigma ⊢! trm_var (avar_f x) : typ_and T U ->
-    G @@ Sigma ⊢! trm_var (avar_f x) : T
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : typ_and T U ->
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : T
 
 (** [G ⊢! x: T /\ U] #<br>#
     [――――――――――――――] #<br>#
     [G ⊢! x: U]     *)
 | ty_and2_p : forall G Sigma x T U,
-    G @@ Sigma ⊢! trm_var (avar_f x) : typ_and T U ->
-    G @@ Sigma ⊢! trm_var (avar_f x) : U
-where "G '@@' Sigma '⊢!' t ':' T" := (ty_trm_p G Sigma t T).
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : typ_and T U ->
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : U
+where "G '⋆' Sigma '⊢!' t ':' T" := (ty_trm_p G Sigma t T).
 
 Hint Constructors ty_trm_p.
 
@@ -127,7 +127,7 @@ Qed.
 
 (** Introduces [precise_flow], given a variable's precise type. *)
 Lemma precise_flow_lemma : forall U G Sigma x,
-    G @@ Sigma ⊢! trm_var (avar_f x) : U ->
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : U ->
     exists T, precise_flow x G T U.
 Proof.
   introv H. dependent induction H; try (destruct* (IHty_trm _ eq_refl));
@@ -155,7 +155,7 @@ Qed.
 
 (** The precise type of a value is inert. *)
 Lemma precise_inert_typ : forall G Sigma v T,
-    G @@ Sigma ⊢! trm_val v : T ->
+    G ⋆ Sigma ⊢! trm_val v : T ->
     inert_typ T.
 Proof.
   introv Ht. inversions Ht; constructor; rename T0 into T.
@@ -312,7 +312,7 @@ Qed.
 (** See [pf_inert_lambda_U]. *)
 Lemma inert_precise_all_inv : forall x G Sigma T U,
     inert G ->
-    G @@ Sigma ⊢! trm_var (avar_f x) : typ_all T U ->
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : typ_all T U ->
     binds x (typ_all T U) G.
 Proof.
   introv Hgd Htyp.
@@ -337,7 +337,7 @@ Qed.
 
 Lemma inert_precise_ref_inv : forall x G Sigma T,
     inert G ->
-    G @@ Sigma ⊢! trm_var (avar_f x) : typ_ref T ->
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : typ_ref T ->
     binds x (typ_ref T) G.
 Proof.
   introv Hgd Htyp.
@@ -361,7 +361,7 @@ Qed.
 (** See [pf_bot_false]. *)
 Lemma precise_bot_false : forall G Sigma x,
     inert G ->
-    G @@ Sigma ⊢! trm_var (avar_f x) : typ_bot ->
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : typ_bot ->
     False.
 Proof.
   introv Hi Hp. destruct (precise_flow_lemma Hp) as [T Pf].
@@ -383,7 +383,7 @@ Qed.
 (** See [pf_psel_false]. *)
 Lemma precise_psel_false : forall G Sigma x y A,
     inert G ->
-    G @@ Sigma ⊢! trm_var (avar_f x) : typ_sel y A ->
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : typ_sel y A ->
     False.
 Proof.
   introv Hi Hp. destruct (precise_flow_lemma Hp) as [T Pf].
@@ -466,8 +466,8 @@ Qed.
 (** See [pf_inert_unique_tight_bound]. *)
 Lemma inert_unique_tight_bounds : forall G Sigma x T1 T2 A,
     inert G ->
-    G @@ Sigma ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A T1 T1) ->
-    G @@ Sigma ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A T2 T2) ->
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A T1 T1) ->
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A T2 T2) ->
     T1 = T2.
 Proof.
   introv Hi H1 H2.
@@ -506,7 +506,7 @@ Qed.
 (** See [pf_dec_typ_inv]. *)
 Lemma precise_dec_typ_inv : forall G Sigma x A T U,
     inert G ->
-    G @@ Sigma ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A T U) ->
+    G ⋆ Sigma ⊢! trm_var (avar_f x) : typ_rcd (dec_typ A T U) ->
     T = U.
 Proof.
   introv Hi Hpt. destruct (precise_flow_lemma Hpt) as [V Pf].
@@ -515,8 +515,8 @@ Qed.
 
 (** Precise typing implies general typing. *)
 Lemma precise_to_general: forall G Sigma t T,
-    G @@ Sigma ⊢! t : T ->
-    G @@ Sigma ⊢ t : T.
+    G ⋆ Sigma ⊢! t : T ->
+    G ⋆ Sigma ⊢ t : T.
 Proof.
   intros. induction H; intros; subst; eauto.
 Qed.

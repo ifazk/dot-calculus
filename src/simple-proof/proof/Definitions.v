@@ -353,10 +353,10 @@ Definition fv_ec_vals(e: ec): vars := (fv_in_values (fun v => fv_val v) e).
 
 (** * Typing Rules *)
 
-Reserved Notation "G '@@' S '⊢' t ':' T" (at level 40, t at level 59).
-Reserved Notation "G '@@' S '⊢' T '<:' U" (at level 40, T at level 59).
-Reserved Notation "G '@@' S '/-' d : D" (at level 40, d at level 59).
-Reserved Notation "G '@@' S '/-' ds :: D" (at level 40, ds at level 59).
+Reserved Notation "G '⋆' S '⊢' t ':' T" (at level 40, t at level 59).
+Reserved Notation "G '⋆' S '⊢' T '<:' U" (at level 40, T at level 59).
+Reserved Notation "G '⋆' S '/-' d : D" (at level 40, d at level 59).
+Reserved Notation "G '⋆' S '/-' ds :: D" (at level 40, ds at level 59).
 
 (** ** Term typing [G ⊢ t: T] *)
 Inductive ty_trm : ctx -> sigma -> trm -> typ -> Prop :=
@@ -366,11 +366,11 @@ Inductive ty_trm : ctx -> sigma -> trm -> typ -> Prop :=
     [G ⊢ x: T]  *)
 | ty_var : forall G Sigma x T,
     binds x T G ->
-    G @@ Sigma ⊢ trm_var (avar_f x) : T
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : T
 
 | ty_loc : forall G Sigma l T,
     binds l T Sigma ->
-    G @@ Sigma ⊢ trm_val (val_loc l) : (typ_ref T)
+    G ⋆ Sigma ⊢ trm_val (val_loc l) : (typ_ref T)
 
 (** [G, x: T ⊢ t^x: U^x]     #<br>#
     [x fresh]                #<br>#
@@ -378,17 +378,17 @@ Inductive ty_trm : ctx -> sigma -> trm -> typ -> Prop :=
     [G ⊢ lambda(T)t: forall(T)U]      *)
 | ty_all_intro : forall L G Sigma t T U,
     (forall x, x \notin L ->
-      G & x ~ T @@ Sigma ⊢ open_trm x t : open_typ x U) ->
-    G @@ Sigma ⊢ trm_val (val_lambda T t) : typ_all T U
+      G & x ~ T ⋆ Sigma ⊢ open_trm x t : open_typ x U) ->
+    G ⋆ Sigma ⊢ trm_val (val_lambda T t) : typ_all T U
 
 (** [G ⊢ x: forall(S)T] #<br>#
     [G ⊢ z: S]     #<br>#
     [――――――――――――] #<br>#
     [G ⊢ x z: T^z]     *)
 | ty_all_elim : forall G Sigma x z T U,
-    G @@ Sigma ⊢ trm_var (avar_f x) : typ_all T U ->
-    G @@ Sigma ⊢ trm_var (avar_f z) : T ->
-    G @@ Sigma ⊢ trm_app (avar_f x) (avar_f z) : open_typ z U
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_all T U ->
+    G ⋆ Sigma ⊢ trm_var (avar_f z) : T ->
+    G ⋆ Sigma ⊢ trm_app (avar_f x) (avar_f z) : open_typ z U
 
 (** [G, x: T^x ⊢ ds^x :: T^x]  #<br>#
     [x fresh]                  #<br>#
@@ -396,15 +396,15 @@ Inductive ty_trm : ctx -> sigma -> trm -> typ -> Prop :=
     [G ⊢ nu(T)ds :: mu(T)]          *)
 | ty_new_intro : forall L G Sigma T ds,
     (forall x, x \notin L ->
-      G & (x ~ open_typ x T) @@ Sigma /- open_defs x ds :: open_typ x T) ->
-    G @@ Sigma ⊢ trm_val (val_new T ds) : typ_bnd T
+      G & (x ~ open_typ x T) ⋆ Sigma /- open_defs x ds :: open_typ x T) ->
+    G ⋆ Sigma ⊢ trm_val (val_new T ds) : typ_bnd T
 
 (** [G ⊢ x: {a: T}] #<br>#
     [―――――――――――――] #<br>#
     [G ⊢ x.a: T]        *)
 | ty_new_elim : forall G Sigma x a T,
-    G @@ Sigma ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
-    G @@ Sigma ⊢ trm_sel (avar_f x) a : T
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
+    G ⋆ Sigma ⊢ trm_sel (avar_f x) a : T
 
 (** [G ⊢ t: T]          #<br>#
     [G, x: T ⊢ u^x: U]  #<br>#
@@ -412,70 +412,70 @@ Inductive ty_trm : ctx -> sigma -> trm -> typ -> Prop :=
     [―――――――――――――――――] #<br>#
     [G ⊢ let t in u: U]     *)
 | ty_let : forall L G Sigma t u T U,
-    G @@ Sigma ⊢ t : T ->
+    G ⋆ Sigma ⊢ t : T ->
     (forall x, x \notin L ->
-      G & x ~ T @@ Sigma ⊢ open_trm x u : U) ->
-    G @@ Sigma ⊢ trm_let t u : U
+      G & x ~ T ⋆ Sigma ⊢ open_trm x u : U) ->
+    G ⋆ Sigma ⊢ trm_let t u : U
 
 (** [G ⊢ x: T^x]   #<br>#
     [――――――――――――] #<br>#
     [G ⊢ x: mu(T)]     *)
 | ty_rec_intro : forall G Sigma x T,
-    G @@ Sigma ⊢ trm_var (avar_f x) : open_typ x T ->
-    G @@ Sigma ⊢ trm_var (avar_f x) : typ_bnd T
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : open_typ x T ->
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_bnd T
 
 (** [G ⊢ x: mu(T)] #<br>#
     [――――――――――――] #<br>#
     [G ⊢ x: T^x]   *)
 | ty_rec_elim : forall G Sigma x T,
-    G @@ Sigma ⊢ trm_var (avar_f x) : typ_bnd T ->
-    G @@ Sigma ⊢ trm_var (avar_f x) : open_typ x T
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_bnd T ->
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : open_typ x T
 
 (** [G ⊢ x: T]     #<br>#
     [G ⊢ x: U]     #<br>#
     [――――――――――――] #<br>#
     [G ⊢ x: T /\ U]     *)
 | ty_and_intro : forall G Sigma x T U,
-    G @@ Sigma ⊢ trm_var (avar_f x) : T ->
-    G @@ Sigma ⊢ trm_var (avar_f x) : U ->
-    G @@ Sigma ⊢ trm_var (avar_f x) : typ_and T U
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : T ->
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : U ->
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_and T U
 
 (** [G ⊢ t: T]   #<br>#
     [G ⊢ T <: U] #<br>#
     [――――――――――] #<br>#
     [G ⊢ t: U]   *)
 | ty_sub : forall G Sigma t T U,
-    G @@ Sigma ⊢ t : T ->
-    G @@ Sigma ⊢ T <: U ->
-    G @@ Sigma ⊢ t : U
+    G ⋆ Sigma ⊢ t : T ->
+    G ⋆ Sigma ⊢ T <: U ->
+    G ⋆ Sigma ⊢ t : U
 
 | ty_ref_intro : forall G Sigma x T,
-    G @@ Sigma ⊢ trm_var (avar_f x) : T ->
-    G @@ Sigma ⊢ (trm_ref (avar_f x) T) : typ_ref T
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : T ->
+    G ⋆ Sigma ⊢ (trm_ref (avar_f x) T) : typ_ref T
 
 | ty_ref_elim : forall G Sigma x T,
-    G @@ Sigma ⊢ trm_var (avar_f x) : typ_ref T ->
-    G @@ Sigma ⊢ trm_deref (avar_f x) : T
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_ref T ->
+    G ⋆ Sigma ⊢ trm_deref (avar_f x) : T
 
 | ty_asgn : forall G Sigma x y T,
-    G @@ Sigma ⊢ trm_var (avar_f x) : typ_ref T ->
-    G @@ Sigma ⊢ trm_var (avar_f y) : T ->
-    G @@ Sigma ⊢ trm_asg (avar_f x) (avar_f y) : T
-where "G '@@' Sigma '⊢' t ':' T" := (ty_trm G Sigma t T)
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_ref T ->
+    G ⋆ Sigma ⊢ trm_var (avar_f y) : T ->
+    G ⋆ Sigma ⊢ trm_asg (avar_f x) (avar_f y) : T
+where "G '⋆' Sigma '⊢' t ':' T" := (ty_trm G Sigma t T)
 
 (** ** Single-definition typing [G ⊢ d: D] *)
 with ty_def : ctx -> sigma -> def -> dec -> Prop :=
 (** [G ⊢ {A = T}: {A: T..T}]   *)
 | ty_def_typ : forall G Sigma A T,
-    G @@ Sigma /- def_typ A T : dec_typ A T T
+    G ⋆ Sigma /- def_typ A T : dec_typ A T T
 
 (** [G ⊢ t: T]            #<br>#
     [―――――――――――――――――――] #<br>#
     [G ⊢ {a = t}: {a: T}] *)
 | ty_def_trm : forall G Sigma a t T,
-    G @@ Sigma ⊢ t : T ->
-    G @@ Sigma /- def_trm a t : dec_trm a T
-where "G '@@' Sigma '/-' d ':' D" := (ty_def G Sigma d D)
+    G ⋆ Sigma ⊢ t : T ->
+    G ⋆ Sigma /- def_trm a t : dec_trm a T
+where "G '⋆' Sigma '/-' d ':' D" := (ty_def G Sigma d D)
 
 (** ** Multiple-definition typing [G ⊢ ds :: T] *)
 with ty_defs : ctx -> sigma -> defs -> typ -> Prop :=
@@ -483,8 +483,8 @@ with ty_defs : ctx -> sigma -> defs -> typ -> Prop :=
     [―――――――――――――――――――――] #<br>#
     [G ⊢ d ++ defs_nil : D] *)
 | ty_defs_one : forall G Sigma d D,
-    G @@ Sigma /- d : D ->
-    G @@ Sigma /- defs_cons defs_nil d :: typ_rcd D
+    G ⋆ Sigma /- d : D ->
+    G ⋆ Sigma /- defs_cons defs_nil d :: typ_rcd D
 
 (** [G ⊢ ds :: T]         #<br>#
     [G ⊢ d: D]            #<br>#
@@ -492,82 +492,82 @@ with ty_defs : ctx -> sigma -> defs -> typ -> Prop :=
     [―――――――――――――――――――] #<br>#
     [G ⊢ ds ++ d : T /\ D] *)
 | ty_defs_cons : forall G Sigma ds d T D,
-    G @@ Sigma /- ds :: T ->
-    G @@ Sigma /- d : D ->
+    G ⋆ Sigma /- ds :: T ->
+    G ⋆ Sigma /- d : D ->
     defs_hasnt ds (label_of_def d) ->
-    G @@ Sigma /- defs_cons ds d :: typ_and T (typ_rcd D)
-where "G '@@' Sigma '/-' ds '::' T" := (ty_defs G Sigma ds T)
+    G ⋆ Sigma /- defs_cons ds d :: typ_and T (typ_rcd D)
+where "G '⋆' Sigma '/-' ds '::' T" := (ty_defs G Sigma ds T)
 
 (** ** Subtyping [G ⊢ T <: U] *)
 with subtyp : ctx -> sigma -> typ -> typ -> Prop :=
 
 (** [G ⊢ T <: top] *)
 | subtyp_top: forall G Sigma T,
-    G @@ Sigma ⊢ T <: typ_top
+    G ⋆ Sigma ⊢ T <: typ_top
 
 (** [G ⊢ bot <: T] *)
 | subtyp_bot: forall G Sigma T,
-    G @@ Sigma ⊢ typ_bot <: T
+    G ⋆ Sigma ⊢ typ_bot <: T
 
 (** [G ⊢ T <: T] *)
 | subtyp_refl: forall G Sigma T,
-    G @@ Sigma ⊢ T <: T
+    G ⋆ Sigma ⊢ T <: T
 
 (** [G ⊢ S <: T]     #<br>#
     [G ⊢ T <: U]     #<br>#
     [――――――――――]     #<br>#
     [G ⊢ S <: U]         *)
 | subtyp_trans: forall G Sigma T U V,
-    G @@ Sigma ⊢ T <: U ->
-    G @@ Sigma ⊢ U <: V ->
-    G @@ Sigma ⊢ T <: V
+    G ⋆ Sigma ⊢ T <: U ->
+    G ⋆ Sigma ⊢ U <: V ->
+    G ⋆ Sigma ⊢ T <: V
 
 (** [G ⊢ T /\ U <: T] *)
 | subtyp_and11: forall G Sigma T U,
-    G @@ Sigma ⊢ typ_and T U <: T
+    G ⋆ Sigma ⊢ typ_and T U <: T
 
 (** [G ⊢ T /\ U <: U] *)
 | subtyp_and12: forall G Sigma T U,
-    G @@ Sigma ⊢ typ_and T U <: U
+    G ⋆ Sigma ⊢ typ_and T U <: U
 
 (** [G ⊢ S <: T]       #<br>#
     [G ⊢ S <: U]       #<br>#
     [――――――――――――――]   #<br>#
     [G ⊢ S <: T /\ U]          *)
 | subtyp_and2: forall G Sigma T U V,
-    G @@ Sigma ⊢ T <: U ->
-    G @@ Sigma ⊢ T <: V ->
-    G @@ Sigma ⊢ T <: typ_and U V
+    G ⋆ Sigma ⊢ T <: U ->
+    G ⋆ Sigma ⊢ T <: V ->
+    G ⋆ Sigma ⊢ T <: typ_and U V
 
 (** [G ⊢ T <: U]           #<br>#
     [――――――――――――――――――――] #<br>#
     [G ⊢ {a: T} <: {a: U}] *)
 | subtyp_fld: forall G Sigma a T U,
-    G @@ Sigma ⊢ T <: U ->
-    G @@ Sigma ⊢ typ_rcd (dec_trm a T) <: typ_rcd (dec_trm a U)
+    G ⋆ Sigma ⊢ T <: U ->
+    G ⋆ Sigma ⊢ typ_rcd (dec_trm a T) <: typ_rcd (dec_trm a U)
 
 (** [G ⊢ S2 <: S1]                   #<br>#
     [G ⊢ T1 <: T2]                   #<br>#
     [――――――――――――――――――――――――――――――] #<br>#
     [G ⊢ {A: S1..T1} <: {A: S2..T2}]     *)
 | subtyp_typ: forall G Sigma A T1 U1 T2 U2,
-    G @@ Sigma ⊢ T2 <: T1 ->
-    G @@ Sigma ⊢ U1 <: U2 ->
-    G @@ Sigma ⊢ typ_rcd (dec_typ A T1 U1) <: typ_rcd (dec_typ A T2 U2)
+    G ⋆ Sigma ⊢ T2 <: T1 ->
+    G ⋆ Sigma ⊢ U1 <: U2 ->
+    G ⋆ Sigma ⊢ typ_rcd (dec_typ A T1 U1) <: typ_rcd (dec_typ A T2 U2)
 
 (** [G ⊢ x: {A: S..T}] #<br>#
     [――――――――――――――――] #<br>#
     [G ⊢ S <: x.A]     *)
 | subtyp_sel2: forall G Sigma x A T U,
-    G @@ Sigma ⊢ trm_var (avar_f x) : typ_rcd (dec_typ A T U) ->
-    G @@ Sigma ⊢ T <: typ_sel (avar_f x) A
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_rcd (dec_typ A T U) ->
+    G ⋆ Sigma ⊢ T <: typ_sel (avar_f x) A
 
 (** [G ⊢ x: {A: S..T}] #<br>#
     [――――――――――――――――] #<br>#
     [G ⊢ x.A <: T]     *)
 | subtyp_sel1: forall G Sigma x A T U,
-    G @@ Sigma ⊢ trm_var (avar_f x) : typ_rcd (dec_typ A T U) ->
-    G @@ Sigma ⊢ typ_sel (avar_f x) A <: U
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_rcd (dec_typ A T U) ->
+    G ⋆ Sigma ⊢ typ_sel (avar_f x) A <: U
 
 (** [G ⊢ S2 <: S1]                #<br>#
     [G, x: S2 ⊢ T1^x <: T2^x]     #<br>#
@@ -575,16 +575,16 @@ with subtyp : ctx -> sigma -> typ -> typ -> Prop :=
     [―――――――――――――――――――――――]     #<br>#
     [G ⊢ forall(S1)T1 <: forall(S2)T2]      *)
 | subtyp_all: forall L G Sigma T1 U1 T2 U2,
-    G @@ Sigma ⊢ T2 <: T1 ->
+    G ⋆ Sigma ⊢ T2 <: T1 ->
     (forall x, x \notin L ->
-       G & x ~ T2 @@ Sigma ⊢ open_typ x U1 <: open_typ x U2) ->
-    G @@ Sigma ⊢ typ_all T1 U1 <: typ_all T2 U2
+       G & x ~ T2 ⋆ Sigma ⊢ open_typ x U1 <: open_typ x U2) ->
+    G ⋆ Sigma ⊢ typ_all T1 U1 <: typ_all T2 U2
 
 | subtyp_ref: forall G Sigma T U,
-    G @@ Sigma ⊢ T <: U ->
-    G @@ Sigma ⊢ U <: T ->
-    G @@ Sigma ⊢ (typ_ref T) <: (typ_ref U)
-where "G '@@' Sigma '⊢' T '<:' U" := (subtyp G Sigma T U).
+    G ⋆ Sigma ⊢ T <: U ->
+    G ⋆ Sigma ⊢ U <: T ->
+    G ⋆ Sigma ⊢ (typ_ref T) <: (typ_ref U)
+where "G '⋆' Sigma '⊢' T '<:' U" := (subtyp G Sigma T U).
 
 (** * Well-typed Evaluation Contexts *)
 
@@ -603,7 +603,7 @@ Inductive well_typed: ctx -> sigma -> ec -> Prop :=
     well_typed G Sigma e ->
     x # G ->
     x # e ->
-    G @@ Sigma ⊢ trm_val v : T ->
+    G ⋆ Sigma ⊢ trm_val v : T ->
     well_typed (G & x ~ T) Sigma (e & x ~ v)
 | well_typed_store_push: forall G Sigma l T e,
     well_typed G Sigma e ->
@@ -616,12 +616,12 @@ Inductive wt_store: ctx -> sigma -> store -> Prop :=
 | wt_store_update: forall G Sigma sto l x T,
     wt_store G Sigma sto ->
     binds l T Sigma ->
-    G @@ Sigma ⊢ (trm_var (avar_f x)) : T ->
+    G ⋆ Sigma ⊢ (trm_var (avar_f x)) : T ->
     wt_store G Sigma sto[l := x]
 | wt_store_new: forall G Sigma sto l x T,
     wt_store G Sigma sto ->
     l # Sigma ->
-    G @@ Sigma ⊢ (trm_var (avar_f x)) : T ->
+    G ⋆ Sigma ⊢ (trm_var (avar_f x)) : T ->
     wt_store G (Sigma & l ~ T) sto[l := x]
 | wt_stack_push: forall G Sigma x T sto,
     wt_store G Sigma sto ->

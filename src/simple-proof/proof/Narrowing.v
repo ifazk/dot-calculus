@@ -52,23 +52,23 @@ Require Import Coq.Program.Equality.
 Note: for simplicity, the definition typing judgements and [ok] conditions
       are omitted from the paper formulation. *)
 Lemma narrow_rules:
-  (forall G Sigma t T, G @@ Sigma ⊢ t : T -> forall G',
-    G' @@ Sigma ⪯ G ->
-    G' @@ Sigma ⊢ t : T)
-/\ (forall G Sigma d D, G @@ Sigma /- d : D -> forall G',
-    G' @@ Sigma ⪯ G ->
-    G' @@ Sigma /- d : D)
-/\ (forall G Sigma ds T, G @@ Sigma /- ds :: T -> forall G',
-    G' @@ Sigma ⪯ G ->
-    G' @@ Sigma /- ds :: T)
-/\ (forall G Sigma U V, G @@ Sigma ⊢ U <: V -> forall G',
-    G' @@ Sigma ⪯ G ->
-    G' @@ Sigma ⊢ U <: V).
+  (forall G Sigma t T, G ⋆ Sigma ⊢ t : T -> forall G',
+    G' ⋆ Sigma ⪯ G ->
+    G' ⋆ Sigma ⊢ t : T)
+/\ (forall G Sigma d D, G ⋆ Sigma /- d : D -> forall G',
+    G' ⋆ Sigma ⪯ G ->
+    G' ⋆ Sigma /- d : D)
+/\ (forall G Sigma ds T, G ⋆ Sigma /- ds :: T -> forall G',
+    G' ⋆ Sigma ⪯ G ->
+    G' ⋆ Sigma /- ds :: T)
+/\ (forall G Sigma U V, G ⋆ Sigma ⊢ U <: V -> forall G',
+    G' ⋆ Sigma ⪯ G ->
+    G' ⋆ Sigma ⊢ U <: V).
 Proof.
   apply rules_mutind; intros; eauto 4;
     try solve [
           match goal with
-          | [ H : _ @@ _ ⪯ _ |- _ ] => destruct (subenv_implies_ok H)
+          | [ H : _ ⋆ _ ⪯ _ |- _ ] => destruct (subenv_implies_ok H)
           end;
           fresh_constructor].
 
@@ -85,18 +85,18 @@ Qed.
 
 (** The narrowing lemma, formulated only for term typing. *)
 Lemma narrow_typing: forall G G' Sigma t T,
-  G @@ Sigma ⊢ t : T ->
-  G' @@ Sigma ⪯ G ->
-  G' @@ Sigma ⊢ t : T.
+  G ⋆ Sigma ⊢ t : T ->
+  G' ⋆ Sigma ⪯ G ->
+  G' ⋆ Sigma ⊢ t : T.
 Proof.
   intros. apply* narrow_rules.
 Qed.
 
 (** The narrowing lemma, formulated only for subtyping. *)
 Lemma narrow_subtyping: forall G G' Sigma T U,
-  G @@ Sigma ⊢ T <: U ->
-  G' @@ Sigma ⪯ G ->
-  G' @@ Sigma ⊢ T <: U.
+  G ⋆ Sigma ⊢ T <: U ->
+  G' ⋆ Sigma ⪯ G ->
+  G' ⋆ Sigma ⊢ T <: U.
 Proof.
   intros. apply* narrow_rules.
 Qed.

@@ -65,7 +65,7 @@ Hint Constructors record_typ record_has.
     [―――――――――――――――――――――――――――――――――――]  #<br>#
     [l \notin ls] *)
 Lemma hasnt_notin : forall G S ds ls l U,
-    G @@ S /- ds :: U ->
+    G ⋆ S /- ds :: U ->
     record_typ U ls ->
     defs_hasnt ds l ->
     l \notin ls.
@@ -73,7 +73,7 @@ Proof.
 
   Ltac inversion_def_typ :=
     match goal with
-    | [ H: _ @@ _ /- _ : _ |- _ ] => inversions H
+    | [ H: _ ⋆ _ /- _ : _ |- _ ] => inversions H
     end.
 
   introv Hds Hrec Hhasnt.
@@ -125,7 +125,7 @@ Qed.
 
 (** The type of definitions is a record type. *)
 Lemma ty_defs_record_type : forall G S ds T,
-    G @@ S /- ds :: T ->
+    G ⋆ S /- ds :: T ->
     record_type T.
 Proof.
 
@@ -134,9 +134,9 @@ Proof.
     repeat match goal with
         | [ H: record_type _ |- _ ] =>
           destruct H
-        | [ Hd: _ @@ _ /- _ : dec_typ _ _ _ |- _ ] =>
+        | [ Hd: _ ⋆ _ /- _ : dec_typ _ _ _ |- _ ] =>
           inversions Hd
-        | [ Hd: _ @@ _ /- _ : dec_trm _ _ |- _ ] =>
+        | [ Hd: _ ⋆ _ /- _ : dec_trm _ _ |- _ ] =>
           inversions Hd
     end;
     match goal with

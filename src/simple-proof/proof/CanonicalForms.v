@@ -27,7 +27,7 @@ Require Import Weakening.
 (** If a variable can be typed in an environment,
     then it is bound in that environment. *)
 Lemma typing_implies_bound: forall G Sigma x T,
-  G @@ Sigma ⊢ trm_var (avar_f x) : T ->
+  G ⋆ Sigma ⊢ trm_var (avar_f x) : T ->
   exists S, binds x S G.
 Proof.
   introv Ht. dependent induction Ht; eauto.
@@ -126,12 +126,12 @@ Qed.
     [G(x) = T]          #<br>#
     [―――――――――――――]     #<br>#
     [exists v, e(x) = v]     #<br>#
-    [G @@ Sigma ⊢ v: T]          *)
+    [G ⋆ Sigma ⊢ v: T]          *)
 Lemma corresponding_types: forall G Sigma e x T,
     well_typed G Sigma e ->
     binds x T G ->
     (exists v, binds x v e /\
-          G @@ Sigma ⊢ trm_val v : T).
+          G ⋆ Sigma ⊢ trm_val v : T).
 Proof.
   introv Hwt BiG. induction Hwt.
   - false* binds_empty_inv.
@@ -148,20 +148,20 @@ Proof.
     apply* ok_push.
 Qed.
 
-(** [G @@ Sigma ⊢##v v: forall(S)T]                 #<br>#
+(** [G ⋆ Sigma ⊢##v v: forall(S)T]                 #<br>#
     [inert G]                          #<br>#
     [――――――――――――――――――――――――――――――――] #<br>#
-    [exists S', T', G @@ Sigma ⊢! v: forall(S')T']      #<br>#
-    [G @@ Sigma ⊢ S <: S']                      #<br>#
-    [forall fresh y, G, y: S @@ Sigma ⊢ T'^y <: T^y] *)
+    [exists S', T', G ⋆ Sigma ⊢! v: forall(S')T']      #<br>#
+    [G ⋆ Sigma ⊢ S <: S']                      #<br>#
+    [forall fresh y, G, y: S ⋆ Sigma ⊢ T'^y <: T^y] *)
 Lemma invertible_val_to_precise_lambda: forall G Sigma v T U,
-    G @@ Sigma ⊢##v v : typ_all T U ->
+    G ⋆ Sigma ⊢##v v : typ_all T U ->
     inert G ->
     exists L T' U',
-      G @@ Sigma ⊢! trm_val v : typ_all T' U' /\
-      G @@ Sigma ⊢ T <: T' /\
+      G ⋆ Sigma ⊢! trm_val v : typ_all T' U' /\
+      G ⋆ Sigma ⊢ T <: T' /\
       (forall y, y \notin L ->
-                 G & y ~ T @@ Sigma ⊢ open_typ y U' <: open_typ y U).
+                 G & y ~ T ⋆ Sigma ⊢ open_typ y U' <: open_typ y U).
 Proof.
   introv Ht Hg. dependent induction Ht.
   - exists (dom G) T U. split*.
@@ -180,19 +180,19 @@ Qed.
 (** This lemma corresponds to Lemma 3.7 ([forall] to [G(x)]) in the paper.
 
     [inert G]            #<br>#
-    [G @@ Sigma ⊢ x: forall(T)U]       #<br>#
+    [G ⋆ Sigma ⊢ x: forall(T)U]       #<br>#
     [――――――――――――――-]    #<br>#
     [exists T', U',]          #<br>#
     [G(x) = forall(T')U']     #<br>#
-    [G @@ Sigma ⊢ T <: T']        #<br>#
-    [forall fresh y, G, y: T @@ Sigma ⊢ U'^y <: U^y] *)
+    [G ⋆ Sigma ⊢ T <: T']        #<br>#
+    [forall fresh y, G, y: T ⋆ Sigma ⊢ U'^y <: U^y] *)
 Lemma var_typ_all_to_binds: forall G Sigma x T U,
     inert G ->
-    G @@ Sigma ⊢ trm_var (avar_f x) : typ_all T U ->
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_all T U ->
     (exists L T' U',
         binds x (typ_all T' U') G /\
-        G @@ Sigma ⊢ T <: T' /\
-        (forall y, y \notin L -> G & y ~ T @@ Sigma ⊢ (open_typ y U') <: (open_typ y U))).
+        G ⋆ Sigma ⊢ T <: T' /\
+        (forall y, y \notin L -> G & y ~ T ⋆ Sigma ⊢ (open_typ y U') <: (open_typ y U))).
 Proof.
   introv Hin Ht.
   lets Htt: (general_to_tight_typing Hin Ht).
@@ -207,19 +207,19 @@ Qed.
 (** This lemma corresponds to Lemma 3.8 ([forall] to [lambda]) in the paper.
 
     [inert G]                       #<br>#
-    [G @@ Sigma ⊢ v: forall(T)U]                  #<br>#
+    [G ⋆ Sigma ⊢ v: forall(T)U]                  #<br>#
     [――――――――――――]                  #<br>#
     [exists T', t,]                       #<br>#
     [v = lambda(T')t]              #<br>#
-    [G @@ Sigma ⊢ T <: T']                   #<br>#
-    [forall fresh y, G, y: T @@ Sigma ⊢ t^y: U^y] *)
+    [G ⋆ Sigma ⊢ T <: T']                   #<br>#
+    [forall fresh y, G, y: T ⋆ Sigma ⊢ t^y: U^y] *)
 Lemma val_typ_all_to_lambda: forall G Sigma v T U,
     inert G ->
-    G @@ Sigma ⊢ trm_val v : typ_all T U ->
+    G ⋆ Sigma ⊢ trm_val v : typ_all T U ->
     (exists L T' t,
         v = val_lambda T' t /\
-        G @@ Sigma ⊢ T <: T' /\
-        (forall y, y \notin L -> G & y ~ T @@ Sigma ⊢ (open_trm y t) : open_typ y U)).
+        G ⋆ Sigma ⊢ T <: T' /\
+        (forall y, y \notin L -> G & y ~ T ⋆ Sigma ⊢ (open_trm y t) : open_typ y U)).
 Proof.
   introv Hin Ht.
   lets Htt: (general_to_tight_typing Hin Ht).
@@ -237,17 +237,17 @@ Qed.
 
     [inert G]            #<br>#
     [e: G]               #<br>#
-    [G @@ Sigma ⊢ x: forall(T)U]       #<br>#
+    [G ⋆ Sigma ⊢ x: forall(T)U]       #<br>#
     [――――――――――――――――――] #<br>#
     [e(x) = lambda(T')t] #<br>#
-    [G @@ Sigma ⊢ T <: T']        #<br>#
-    [G, x: T @@ Sigma ⊢ t: U]          *)
+    [G ⋆ Sigma ⊢ T <: T']        #<br>#
+    [G, x: T ⋆ Sigma ⊢ t: U]          *)
 Lemma canonical_forms_fun: forall G Sigma e x T U,
   inert G ->
   well_typed G Sigma e ->
-  G @@ Sigma ⊢ trm_var (avar_f x) : typ_all T U ->
-  (exists L T' t, binds x (val_lambda T' t) e /\ G @@ Sigma ⊢ T <: T' /\
-  (forall y, y \notin L -> G & y ~ T @@ Sigma ⊢ open_trm y t : open_typ y U)).
+  G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_all T U ->
+  (exists L T' t, binds x (val_lambda T' t) e /\ G ⋆ Sigma ⊢ T <: T' /\
+  (forall y, y \notin L -> G & y ~ T ⋆ Sigma ⊢ open_trm y t : open_typ y U)).
 Proof.
   introv Hin Hwt Hty.
   destruct (var_typ_all_to_binds Hin Hty) as [L [S' [T' [BiG [Hs1 Hs2]]]]].
@@ -284,14 +284,14 @@ Proof.
     + apply IHds; eauto.
 Qed.
 
-(** [G @@ Sigma ⊢ ds :: ... /\ D /\ ...]       #<br>#
+(** [G ⋆ Sigma ⊢ ds :: ... /\ D /\ ...]       #<br>#
     [―――――――――――――――――――――――]       #<br>#
     [exists d, ds = ... /\ d /\ ...]       #<br>#
-    [G @@ Sigma ⊢ d: D]                      *)
+    [G ⋆ Sigma ⊢ d: D]                      *)
 Lemma record_has_ty_defs: forall G Sigma T ds D,
-  G @@ Sigma /- ds :: T ->
+  G ⋆ Sigma /- ds :: T ->
   record_has T D ->
-  exists d, defs_has ds d /\ G @@ Sigma /- d : D.
+  exists d, defs_has ds d /\ G ⋆ Sigma /- d : D.
 Proof.
   introv Hdefs Hhas. induction Hdefs.
   - inversion Hhas; subst. exists d. split.
@@ -311,18 +311,18 @@ Qed.
 (** This lemma corresponds to Lemma 3.9 ([mu] to [G(x)]) in the paper.
 
     [inert G]                    #<br>#
-    [G @@ Sigma ⊢ x: {a: T}]              #<br>#
+    [G ⋆ Sigma ⊢ x: {a: T}]              #<br>#
     [―――――――――――――――――――――――]    #<br>#
     [exists S, T', G(x) = mu(S)]       #<br>#
     [S^x = ... /\ {a: T'} /\ ...]  #<br>#
-    [G @@ Sigma ⊢ T' <: T]                *)
+    [G ⋆ Sigma ⊢ T' <: T]                *)
 Lemma var_typ_rcd_to_binds: forall G Sigma x a T,
     inert G ->
-    G @@ Sigma ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
     (exists S' T',
         binds x (typ_bnd S') G /\
         record_has (open_typ x S') (dec_trm a T') /\
-        G @@ Sigma ⊢ T' <: T).
+        G ⋆ Sigma ⊢ T' <: T).
 Proof.
   introv Hin Ht.
   destruct (typing_implies_bound Ht) as [S' BiG].
@@ -338,22 +338,22 @@ Qed.
 (** This lemma corresponds to Lemma 3.10 ([mu] to [nu]) in the paper.
 
     [inert G]                  #<br>#
-    [G @@ Sigma ⊢ v: mu(T)]             #<br>#
-    [G @@ Sigma ⊢ x: T^x]               #<br>#
+    [G ⋆ Sigma ⊢ v: mu(T)]             #<br>#
+    [G ⋆ Sigma ⊢ x: T^x]               #<br>#
     [T = ... /\ {a: U} /\ ...  ] #<br>#
     [――――――――――――――――――――――――] #<br>#
     [exists t, ds, v = nu(T)ds     ] #<br>#
     [ds^x = ... /\ {a = t} /\ ...] #<br>#
-    [G @@ Sigma ⊢ t: U] *)
+    [G ⋆ Sigma ⊢ t: U] *)
 Lemma val_mu_to_new: forall G Sigma v T U a x,
     inert G ->
-    G @@ Sigma ⊢ trm_val v: typ_bnd T ->
-    G @@ Sigma ⊢ trm_var (avar_f x) : open_typ x T ->
+    G ⋆ Sigma ⊢ trm_val v: typ_bnd T ->
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : open_typ x T ->
     record_has (open_typ x T) (dec_trm a U) ->
     exists t ds,
       v = val_new T ds /\
       defs_has (open_defs x ds) (def_trm a t) /\
-      G @@ Sigma ⊢ t: U.
+      G ⋆ Sigma ⊢ t: U.
 Proof.
   introv Hi Ht Hx Hr.
   lets Htt: (general_to_tight_typing Hi Ht).
@@ -361,7 +361,7 @@ Proof.
   inversions Hinv. inversions H.
   pick_fresh z. assert (z \notin L) as Hz by auto.
   specialize (H4 z Hz).
-  assert (G @@ Sigma /- open_defs x ds :: open_typ x T) as Hds by apply* renaming_def.
+  assert (G ⋆ Sigma /- open_defs x ds :: open_typ x T) as Hds by apply* renaming_def.
   destruct (record_has_ty_defs Hds Hr) as [d [Hh Hd]]. inversions Hd.
   exists t ds. split*.
 Qed.
@@ -370,17 +370,17 @@ Qed.
 
     [inert G]                    #<br>#
     [e: G]                       #<br>#
-    [G @@ Sigma ⊢ x: {a:T}]          #<br>#
+    [G ⋆ Sigma ⊢ x: {a:T}]          #<br>#
     [――――――――――――――――――――――――――] #<br>#
     [exists S, ds, t,]                #<br>#
     [e(x) = nu(S)ds]             #<br>#
     [ds^x = ... /\ {a = t} /\ ...] #<br>#
-    [G @@ Sigma ⊢ t: T] *)
+    [G ⋆ Sigma ⊢ t: T] *)
 Lemma canonical_forms_obj: forall G Sigma e x a T,
   inert G ->
   well_typed G Sigma e ->
-  G @@ Sigma ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
-  (exists S' ds t, binds x (val_new S' ds) e /\ defs_has (open_defs x ds) (def_trm a t) /\ G @@ Sigma ⊢ t : T).
+  G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
+  (exists S' ds t, binds x (val_new S' ds) e /\ defs_has (open_defs x ds) (def_trm a t) /\ G ⋆ Sigma ⊢ t : T).
 Proof.
   introv Hi Hwt Hty.
   destruct (var_typ_rcd_to_binds Hi Hty) as [S' [T' [Bi [Hr Hs]]]].
@@ -393,18 +393,18 @@ Qed.
 (** * Canonical Forms for References
 
     [inert G]            #<br>#
-    [e: G @@ S]          #<br>#
-    [G @@ Sigma ⊢ x: {a:T}]  #<br>#
+    [e: G ⋆ S]          #<br>#
+    [G ⋆ Sigma ⊢ x: {a:T}]  #<br>#
     [――――――――――――――――――] #<br>#
     [exists S, ds, t,] #<br>#
     [e(x) = nu(S)ds] #<br>#
     [ds^x = ... /\ {a = t} /\ ...] #<br>#
-    [G @@ Sigma ⊢ t: T] *)
+    [G ⋆ Sigma ⊢ t: T] *)
 
 (*
 Lemma var_typ_ref_to_binds: forall G Sigma x T,
     inert G ->
-    G @@ Sigma ⊢ trm_var (avar_f x) : typ_ref T ->
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_ref T ->
         binds x (typ_ref T) G.
 Proof.
   introv Hin Ht.
@@ -416,11 +416,11 @@ Proof.
 
 Lemma var_typ_ref_to_binds: forall G Sigma x T,
     inert G ->
-    G @@ Sigma ⊢ trm_var (avar_f x) : typ_ref T ->
+    G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_ref T ->
     (exists T',
         binds x (typ_ref T') G /\
-        G @@ Sigma ⊢ T <: T' /\
-        G @@ Sigma ⊢ T' <: T).
+        G ⋆ Sigma ⊢ T <: T' /\
+        G ⋆ Sigma ⊢ T' <: T).
 Proof.
   introv Hin Ht.
   lets Htt: (general_to_tight_typing Hin Ht).
@@ -434,7 +434,7 @@ Qed.
 Lemma sigma_binds_to_store_binds_typing: forall sto G Sigma l T,
   wt_store G Sigma sto ->
   binds l T Sigma ->
-  exists x, bindsM l x sto /\ G @@ Sigma ⊢ (trm_var (avar_f x)) : T.
+  exists x, bindsM l x sto /\ G ⋆ Sigma ⊢ (trm_var (avar_f x)) : T.
 Proof.
   introv Hwt. gen l T.
   induction Hwt; introv Bi.
@@ -466,11 +466,11 @@ Qed.
 
 Lemma invertible_val_to_precise_ref: forall G Sigma v T,
     inert G ->
-    G @@ Sigma ⊢##v v : typ_ref T ->
+    G ⋆ Sigma ⊢##v v : typ_ref T ->
     exists T',
-      G @@ Sigma ⊢! trm_val v : typ_ref T' /\
-      G @@ Sigma ⊢# T <: T' /\
-      G @@ Sigma ⊢# T' <: T.
+      G ⋆ Sigma ⊢! trm_val v : typ_ref T' /\
+      G ⋆ Sigma ⊢# T <: T' /\
+      G ⋆ Sigma ⊢# T' <: T.
 Proof.
   introv Hin Ht. dependent induction Ht.
   - exists T; auto.
@@ -480,11 +480,11 @@ Qed.
 
 Lemma val_typ_ref_to_loc: forall G Sigma v T,
     inert G ->
-    G @@ Sigma ⊢ trm_val v : typ_ref T ->
+    G ⋆ Sigma ⊢ trm_val v : typ_ref T ->
     exists l T',
       v = val_loc l /\
       binds l T' Sigma /\
-      G @@ Sigma ⊢# T <: T' /\ G @@ Sigma ⊢# T' <: T.
+      G ⋆ Sigma ⊢# T <: T' /\ G ⋆ Sigma ⊢# T' <: T.
 Proof.
   introv Hin Ht.
   lets Htt: (general_to_tight_typing Hin Ht).
@@ -498,11 +498,11 @@ Lemma canonical_forms_ref: forall G Sigma e s x T,
   inert G ->
   well_typed G Sigma e ->
   wt_store G Sigma s ->
-  G @@ Sigma ⊢ trm_var (avar_f x) : typ_ref T ->
+  G ⋆ Sigma ⊢ trm_var (avar_f x) : typ_ref T ->
   (exists l y, binds x (val_loc l) e /\
-          (G @@ Sigma ⊢ (trm_val (val_loc l)) : (typ_ref T)) /\
+          (G ⋆ Sigma ⊢ (trm_val (val_loc l)) : (typ_ref T)) /\
           bindsM l y s /\
-          (G @@ Sigma ⊢ (trm_var (avar_f y)) : T)).
+          (G ⋆ Sigma ⊢ (trm_var (avar_f y)) : T)).
 Proof.
   introv Hi Hwt Hws Hty.
   destruct (var_typ_ref_to_binds Hi Hty) as [T' [Bi [Hr Hs]]].

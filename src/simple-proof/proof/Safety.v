@@ -12,7 +12,7 @@ Inductive sta_trm_typ : sta * store * trm -> typ -> Prop :=
     inert G ->
     well_typed G Sigma s ->
     wt_store G Sigma sigma ->
-    G @@ Sigma ⊢ t : T ->
+    G ⋆ Sigma ⊢ t : T ->
     sta_trm_typ (s, sigma, t) T.
 
 Hint Constructors sta_trm_typ.
@@ -25,9 +25,9 @@ Notation "'⊢' t ':' T" := (sta_trm_typ t T) (at level 40, t at level 59).
     that is a subtype of [T].
     This lemma corresponds to Lemma 3.15 in the paper. *)
 Lemma val_typing: forall G Sigma v T,
-  G @@ Sigma ⊢ trm_val v : T ->
-  exists T', G @@ Sigma ⊢! trm_val v : T' /\
-        G @@ Sigma ⊢ T' <: T.
+  G ⋆ Sigma ⊢ trm_val v : T ->
+  exists T', G ⋆ Sigma ⊢! trm_val v : T' /\
+        G ⋆ Sigma ⊢ T' <: T.
 Proof.
   intros G Sigma v T H. dependent induction H; eauto.
   destruct (IHty_trm _ eq_refl). destruct_all. eauto.
@@ -60,7 +60,7 @@ Ltac solve_IH :=
     specialize (IH Wf Ws In t' Hr); destruct_all
   end;
   match goal with
-  | [Hi: _ & ?G' @@ _ & ?Sigma' ⊢ _ : _ |- _] =>
+  | [Hi: _ & ?G' ⋆ _ & ?Sigma' ⊢ _ : _ |- _] =>
     exists G' Sigma'; repeat split; auto
   end.
 
@@ -80,17 +80,17 @@ Lemma preservation_helper: forall G Sigma s sigma t s' sigma' t' T,
     wt_store G Sigma sigma ->
     inert G ->
     (s, sigma, t) |-> (s', sigma', t') ->
-    G @@ Sigma ⊢ t : T ->
+    G ⋆ Sigma ⊢ t : T ->
     exists G' Sigma', inert G' /\
           well_typed (G & G') (Sigma & Sigma') s' /\
           wt_store (G & G') (Sigma & Sigma') sigma' /\
-          G & G' @@ Sigma & Sigma' ⊢ t' : T.
+          G & G' ⋆ Sigma & Sigma' ⊢ t' : T.
 Proof.
   introv Hwf Hws Hin Hred Ht. gen t'.
   dependent induction Ht; intros; try solve [invert_red].
   - Case "ty_all_elim".
     match goal with
-    | [Hx: _ @@ _ ⊢ trm_var (avar_f _) : typ_all _ _ |- _] =>
+    | [Hx: _ ⋆ _ ⊢ trm_var (avar_f _) : typ_all _ _ |- _] =>
         pose proof (canonical_forms_fun Hin Hwf Hx) as [L [T' [t [Bis [Hsub Hty]]]]];
           inversions Hred;
           binds_eq
@@ -103,7 +103,7 @@ Proof.
     invert_red. binds_eq.
     exists (@empty typ) (@empty typ). rewrite? concat_empty_r. repeat split; auto.
     match goal with
-    | [Hd: defs_has _ (def_trm _ ?t') |- G @@ Sigma ⊢ t': T] =>
+    | [Hd: defs_has _ (def_trm _ ?t') |- G ⋆ Sigma ⊢ t': T] =>
       rewrite* <- (defs_has_inv Has Hd)
     end.
   - Case "ty_let".
@@ -130,8 +130,8 @@ Proof.
   - Case "ty_sub".
     solve_IH.
     match goal with
-    | [Hs: _ @@ _ ⊢ _ <: _,
-       Hg: _ & ?G' @@ _ & ?Sigma' ⊢ _: _ |- _] =>
+    | [Hs: _ ⋆ _ ⊢ _ <: _,
+       Hg: _ & ?G' ⋆ _ & ?Sigma' ⊢ _: _ |- _] =>
       apply weaken_subtyp with (G2:=G') in Hs;
       apply weaken_subtyp_sigma with (Sigma2:=Sigma') in Hs;
       eauto

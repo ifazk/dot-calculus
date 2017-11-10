@@ -11,27 +11,27 @@ Require Import Definitions.
 Require Import Coq.Program.Equality.
 
 (** * Subenvironments [G1 ⪯ G2] *)
-(** [G1 @@ S] is a subenvironment of [G2 @@ S], denoted [G1 @@ Sigma ⪯ G2],
+(** [G1 ⋆ S] is a subenvironment of [G2 ⋆ S], denoted [G1 ⋆ Sigma ⪯ G2],
     if [dom(G1) = dom(G2)] and for each [x],
-    [G1 @@ Sigma ⊢ G1(x) <: G2(x)]. *)
-Reserved Notation "G1 '@@' S ⪯ G2" (at level 40).
+    [G1 ⋆ Sigma ⊢ G1(x) <: G2(x)]. *)
+Reserved Notation "G1 '⋆' S ⪯ G2" (at level 40).
 
 Inductive subenv: ctx -> sigma -> ctx -> Prop :=
-| subenv_empty : forall Sigma, empty @@ Sigma ⪯ empty
+| subenv_empty : forall Sigma, empty ⋆ Sigma ⪯ empty
 | subenv_grow: forall G G' Sigma x T T',
-    G @@ Sigma ⪯ G' ->
+    G ⋆ Sigma ⪯ G' ->
     ok (G & x ~ T) ->
     ok (G' & x ~ T') ->
-    G @@ Sigma ⊢ T <: T' ->
-    G & x ~ T @@ Sigma ⪯ G' & x ~ T'
-where "G1 '@@' Sigma ⪯ G2" := (subenv G1 Sigma G2).
+    G ⋆ Sigma ⊢ T <: T' ->
+    G & x ~ T ⋆ Sigma ⪯ G' & x ~ T'
+where "G1 '⋆' Sigma ⪯ G2" := (subenv G1 Sigma G2).
 
 Hint Constructors subenv.
 
 (** If [ok G], then [G ⪯ G].
     Note: [ok(G)] means that [G]'s domain consists of distinct variables.
     [ok] is defined in [TLC.LibEnv.v] *)
-Lemma subenv_refl : forall G Sigma, ok G -> G @@ Sigma ⪯ G.
+Lemma subenv_refl : forall G Sigma, ok G -> G ⋆ Sigma ⪯ G.
 Proof.
   introv H. induction H; auto.
 Qed.
@@ -42,9 +42,9 @@ Hint Resolve subenv_refl.
     [―――――――――――――――――――――――――――――]  #<br>#
     [G', x: T subG G, x: T]  #<br># *)
 Lemma subenv_push : forall G1 G2 Sigma x T,
-    G1 @@ Sigma ⪯ G2 ->
+    G1 ⋆ Sigma ⪯ G2 ->
     ok (G1 & x ~ T) -> ok (G2 & x ~ T) ->
-    (G1 & x ~ T) @@ Sigma ⪯ (G2 & x ~ T).
+    (G1 & x ~ T) ⋆ Sigma ⪯ (G2 & x ~ T).
 Proof.
   intros. induction H; intros; auto.
 Qed.
@@ -56,9 +56,9 @@ Hint Resolve subenv_push.
     [――――――――――――――――――――――――――――――――――]  #<br>#
     [G', x: T subG G, x: T] *)
 Lemma subenv_last: forall G Sigma x T U,
-  G @@ Sigma ⊢ T <: U ->
+  G ⋆ Sigma ⊢ T <: U ->
   ok (G & x ~ T) ->
-  (G & x ~ T) @@ Sigma ⪯ (G & x ~ U).
+  (G & x ~ T) ⋆ Sigma ⪯ (G & x ~ U).
 Proof.
   intros.
   inversion H0;
@@ -73,7 +73,7 @@ Hint Resolve subenv_last.
 
 
 Lemma subenv_implies_ok : forall G1 Sigma G2,
-    G1 @@ Sigma ⪯ G2 -> ok G1 /\ ok G2.
+    G1 ⋆ Sigma ⪯ G2 -> ok G1 /\ ok G2.
 Proof.
   intros. inversion H; split; auto.
 Qed.
