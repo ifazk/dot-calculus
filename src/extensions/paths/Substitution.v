@@ -204,27 +204,31 @@ Proof.
     unfold subst_ctx in *; try rewrite map_empty in *; try rewrite concat_empty_r in *; auto.
 Qed.
 
-(*
 (** * Renaming  *)
 
 (** Renaming the name of the opening variable for definition typing.  #<br>#
 
-    [ok G]                   #<br>#
-    [z] fresh                #<br>#
-    [G, z: T^z ⊢ ds^z : T^z] #<br>#
-    [――――――――――――――――――――――] #<br>#
-    [G ⊢ ds^x : T^x]         *)
-Lemma renaming_def: forall G z T ds x,
+    [ok G]                              #<br>#
+    [y] fresh                           #<br>#
+    [y; []; P; G, y: T^y ⊢ ds^y : T^y]  #<br>#
+    [G ⊢ x.bs: T^x.bs]                  #<br>#
+    [―――――――――――――――――――――――――――――――――] #<br>#
+    [x; bs; P; G ⊢ ds^x.bs : T^x.bs]    *)
+Lemma renaming_def: forall G y T ds x bs P p,
     ok G ->
-    z # G ->
-    z \notin (fv_ctx_types G \u fv_defs ds \u fv_typ T) ->
-    G & z ~ open_typ z T /- open_defs z ds :: open_typ z T ->
-    G ⊢ trm_var (avar_f x) : open_typ x T ->
-    G /- open_defs x ds :: open_typ x T.
+    y # G ->
+    y \notin (fv_ctx_types G \u fv_defs ds \u fv_typ T) ->
+    y; nil; P; G & y ~ open_typ y T ⊢ open_defs y ds :: open_typ y T ->
+    p = p_sel (avar_f x) bs ->
+    G ⊢ trm_path p : open_typ_p p T ->
+    x; bs; P; G ⊢ open_defs_p p ds :: open_typ_p p T.
 Proof.
-  introv Hok Hnz Hnz' Hz Hx. rewrite subst_intro_typ with (x:=z). rewrite subst_intro_defs with (x:=z).
-  eapply subst_ty_defs; auto. eapply Hz. rewrite <- subst_intro_typ. all: auto.
-Qed. *)
+  introv Hok Hny Hny' Heq Hy Hp. lets Hn: (typed_paths_named Hp).
+  rewrite subst_intro_typ with (x:=y). rewrite subst_intro_defs with (x:=y).
+  assert (x = subst_var y x y) as Hx by (unfold subst_var; case_if*). rewrite Hx.
+  eapply subst_ty_defs. eapply Heq. all: auto. apply Hy.
+  rewrite* <- subst_intro_typ. case_if*.
+Qed.
 
 (** Renaming the name of the opening variable for term typing. #<br>#
     [ok G]                   #<br>#

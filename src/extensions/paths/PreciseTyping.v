@@ -134,6 +134,25 @@ Proof.
   inversions Hbs.
 Qed.
 
+Lemma pf_precise_U: forall G p T U,
+    G ⊢! p: T ⪼ U ->
+    G ⊢! p: T ⪼ T.
+Proof.
+  introv Hp. induction Hp; eauto.
+Qed.
+
+Lemma pf_strengthen: forall G y V x bs T U,
+    G & y ~ V ⊢! p_sel (avar_f x) bs : T ⪼ U ->
+    x <> y ->
+    G ⊢! p_sel (avar_f x) bs : T ⪼ U.
+Proof.
+  introv Ht Hneq. dependent induction Ht; eauto.
+  - apply (binds_push_neq_inv H0) in Hneq. constructor*.
+  - destruct p. inversions x.
+    specialize (IHHt _ _ _ _ _ eq_refl JMeq_refl Hneq).
+    lets Hf: (pf_fld IHHt). eauto.
+Qed.
+
 (** If [G(x) = forall(S)T], then [x]'s precise type can be only [forall(S)T]. *)
 Lemma precise_flow_all_inv : forall p G S T U,
     G ⊢! p: typ_all S T ⪼ U ->
