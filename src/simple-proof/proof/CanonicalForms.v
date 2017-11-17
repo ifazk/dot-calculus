@@ -14,6 +14,33 @@ Require Import LibLN.
 Require Import Definitions GeneralToTight InvertibleTyping Narrowing PreciseTyping RecordAndInertTypes
             Subenvironments Substitution TightTyping Weakening.
 
+Inductive ty_store : ctx -> sta -> var -> val -> Prop :=
+| bound_fun : forall G s x T t,
+    binds x (val_lambda T t) s ->
+    ty_store G s x (val_lambda T t)
+| bound_obj : forall G s x T ds,
+    binds x (val_new T ds) s ->
+    G /- open_defs x ds :: open_typ x T ->
+    ty_store G s x (val_new T ds)
+.
+
+Definition well_typed_l: ctx -> sta -> Prop :=
+  fun G s =>
+    (ok G) /\
+    (ok s) /\
+    (dom G = dom s) /\
+    (forall x v, binds x v s ->
+            ty_store G s x v).
+
+(* Definition well_typed_l: ctx -> sta -> Prop := *)
+(*   fun G s => *)
+(*     (ok G) /\ *)
+(*     (ok s) /\ *)
+(*     (dom G = dom s) /\ *)
+(*     (forall x v T, binds x v s -> *)
+(*               binds x T G -> *)
+(*               G ⊢ (trm_val v) : T). *)
+
 (** * Simple Implications of Typing *)
 
 (** If a variable can be typed in an environment,
@@ -29,9 +56,10 @@ Qed.
 
 (** If [s: G], the variables in the domain of [s] are distinct. *)
 Lemma well_typed_to_ok_G: forall s G,
-    well_typed G s -> ok G.
+    well_typed_l G s -> ok G.
 Proof.
-  intros. induction H; jauto.
+  intros.
+  unfold well_typed_l in *; destruct_all; auto.
 Qed.
 Hint Resolve well_typed_to_ok_G.
 
@@ -40,11 +68,28 @@ Hint Resolve well_typed_to_ok_G.
     [――――――――――] #<br>#
     [x ∉ dom(s)] *)
 Lemma well_typed_notin_dom: forall G s x,
-    well_typed G s ->
+    well_typed_l G s ->
     x # s ->
     x # G.
 Proof.
-  intros. induction H; auto.
+  intros.
+  unfold well_typed_l in *; destruct_all.
+  intros ?H.
+  apply H0.
+  rewrite <- H2; auto.
+Qed.
+
+Hint Resolve binds_empty_inv.
+
+Lemma binds_dom: forall A (E : env A) x v,
+    binds x v E ->
+    x \in dom E.
+Proof.
+  induction E using env_ind; intros.
+  - false*.
+  - pose proof (binds_push_inv H) as [[? ?] | [? ?]]; subst.
+    + simpl_dom; rewrite in_union. left; apply in_singleton_self.
+    + simpl_dom; rewrite in_union. right; eauto.
 Qed.
 
 (** [s: G]              #<br>#
@@ -53,21 +98,16 @@ Qed.
     [exists v, s(x) = v]     #<br>#
     [G ⊢ v: T]          *)
 Lemma corresponding_types: forall G s x T,
-    well_typed G s ->
+    well_typed_l G s ->
     binds x T G ->
     (exists v, binds x v s /\
           G ⊢ trm_val v : T).
 Proof.
-  introv Hwt BiG. induction Hwt.
-  - false* binds_empty_inv.
-  - destruct (classicT (x = x0)).
-    + subst. apply binds_push_eq_inv in BiG. subst.
-      exists v. repeat split~. apply~ weaken_ty_trm.
-      apply* ok_push.
-    + apply binds_push_neq_inv in BiG; auto.
-      specialize (IHHwt BiG) as [v' [Bis Ht]].
-      exists v'. repeat split~. apply~ weaken_ty_trm.
-      apply* ok_push.
+  intros. unfold well_typed_l in *; destruct_all.
+  pose proof (binds_dom H0).
+  rewrite H2 in H4.
+  pose proof (get_some H4) as [?v ?].
+  exists v; split; eauto.
 Qed.
 
 (** [G ⊢##v v: forall(S)T]                 #<br>#
@@ -166,7 +206,7 @@ Qed.
     [G, x: T ⊢ t: U]          *)
 Lemma canonical_forms_fun: forall G s x T U,
   inert G ->
-  well_typed G s ->
+  well_typed_l G s ->
   G ⊢ trm_var (avar_f x) : typ_all T U ->
   (exists L T' t, binds x (val_lambda T' t) s /\ G ⊢ T <: T' /\
   (forall y, y \notin L -> G & y ~ T ⊢ open_trm y t : open_typ y U)).
@@ -256,6 +296,32 @@ Proof.
   exists U' T'. split. assumption. split. assumption. apply* tight_to_general.
 Qed.
 
+Fixpoint defs_update (ds: defs) (a: trm_label) (t: trm) : defs :=
+  match ds with
+  | defs_nil => defs_nil
+  | defs_cons ds' (def_typ A T)  =>
+    defs_cons (defs_update ds' a t) (def_typ A T)
+  | defs_cons ds' (def_trm a' t')  =>
+    If a = a' then defs_cons ds' (def_trm a t') else defs_cons (defs_update ds' a t) (def_trm a' t')
+end.
+
+Lemma defs_update_safe : forall G ds ds' a t t' T U,
+    inert G ->
+    G ⊢ᵥ (val_new T ds) : typ_bnd T ->
+    defs_has (open_defs x ds) (def_trm a t) ->
+    record_has (open_typ x T) (dec_trm a U) ->
+    (open_defs x ds') = defs_update (open_defs x ds) a t' ->
+    G ⊢ᵥ (val_new T (defs_update ds a t')) : typ_bnd T.
+
+Lemma defs_update_safe : forall G ds ds' a t t' T U,
+    inert G ->
+    G ⊢ᵥ (val_new T ds) : typ_bnd T ->
+    G ⊢ t' : U ->
+    defs_has (open_defs x ds) (def_trm a t) ->
+    record_has (open_typ x T) (dec_trm a U) ->
+    (open_defs x ds') = defs_update (open_defs x ds) a t' ->
+    G ⊢ᵥ (val_new T (defs_update ds a t')) : typ_bnd T.
+
 (** This lemma corresponds to Lemma 3.10 ([mu] to [nu]) in the paper.
 
     [inert G]                  #<br>#
@@ -299,7 +365,7 @@ Qed.
     [G ⊢ t: T] *)
 Lemma canonical_forms_obj: forall G s x a T,
   inert G ->
-  well_typed G s ->
+  well_typed_l G s ->
   G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
   (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ G ⊢ t : T).
 Proof.

@@ -261,8 +261,10 @@ Definition fv_sta_vals(s: sta): vars := (fv_in_values (fun v => fv_val v) s).
 
 Reserved Notation "G '⊢' t ':' T" (at level 40, t at level 59).
 Reserved Notation "G '⊢' T '<:' U" (at level 40, T at level 59).
-Reserved Notation "G '/-' d : D" (at level 40, d at level 59).
-Reserved Notation "G '/-' ds :: D" (at level 40, ds at level 59).
+Reserved Notation "G '/-' d ':' D" (at level 40, d at level 59).
+Reserved Notation "G '/-' ds '::' D" (at level 40, ds at level 59).
+Reserved Notation "G '⊢ₓ' x ':' T" (at level 40, x at level 59).
+Reserved Notation "G '⊢ᵥ' v : T" (at level 40, v at level 59).
 
 (** ** Term typing [G ⊢ t: T] *)
 Inductive ty_trm : ctx -> trm -> typ -> Prop :=
@@ -272,7 +274,7 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     [G ⊢ x: T]  *)
 | ty_var : forall G x T,
     binds x T G ->
-    G ⊢ trm_var (avar_f x) : T
+    G ⊢ₓ x : T
 
 (** [G, x: T ⊢ t^x: U^x]     #<br>#
     [x fresh]                #<br>#
@@ -288,8 +290,8 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     [――――――――――――] #<br>#
     [G ⊢ x z: T^z]     *)
 | ty_all_elim : forall G x z S T,
-    G ⊢ trm_var (avar_f x) : typ_all S T ->
-    G ⊢ trm_var (avar_f z) : S ->
+    G ⊢ₓ x : typ_all S T ->
+    G ⊢ₓ z : S ->
     G ⊢ trm_app (avar_f x) (avar_f z) : open_typ z T
 
 (** [G, x: T^x ⊢ ds^x :: T^x]  #<br>#
@@ -305,7 +307,7 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     [―――――――――――――] #<br>#
     [G ⊢ x.a: T]        *)
 | ty_new_elim : forall G x a T,
-    G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
+    G ⊢ₓ x : typ_rcd (dec_trm a T) ->
     G ⊢ trm_sel (avar_f x) a : T
 
 (** [G ⊢ t: T]          #<br>#
@@ -323,24 +325,24 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     [――――――――――――] #<br>#
     [G ⊢ x: mu(T)]     *)
 | ty_rec_intro : forall G x T,
-    G ⊢ trm_var (avar_f x) : open_typ x T ->
-    G ⊢ trm_var (avar_f x) : typ_bnd T
+    G ⊢ₓ x : open_typ x T ->
+    G ⊢ₓ x : typ_bnd T
 
 (** [G ⊢ x: mu(T)] #<br>#
     [――――――――――――] #<br>#
     [G ⊢ x: T^x]   *)
 | ty_rec_elim : forall G x T,
-    G ⊢ trm_var (avar_f x) : typ_bnd T ->
-    G ⊢ trm_var (avar_f x) : open_typ x T
+    G ⊢ₓ x : typ_bnd T ->
+    G ⊢ₓ x : open_typ x T
 
 (** [G ⊢ x: T]     #<br>#
     [G ⊢ x: U]     #<br>#
     [――――――――――――] #<br>#
     [G ⊢ x: T /\ U]     *)
 | ty_and_intro : forall G x T U,
-    G ⊢ trm_var (avar_f x) : T ->
-    G ⊢ trm_var (avar_f x) : U ->
-    G ⊢ trm_var (avar_f x) : typ_and T U
+    G ⊢ₓ x : T ->
+    G ⊢ₓ x : U ->
+    G ⊢ₓ x : typ_and T U
 
 (** [G ⊢ t: T]   #<br>#
     [G ⊢ T <: U] #<br>#
@@ -351,6 +353,8 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     G ⊢ T <: U ->
     G ⊢ t : U
 where "G '⊢' t ':' T" := (ty_trm G t T)
+and "G ⊢ₓ x : T" := (ty_trm G (trm_var (avar_f x)) T)
+and "G ⊢ᵥ v : T" := (ty_trm G (trm_val v) T)
 
 (** ** Single-definition typing [G ⊢ d: D] *)
 with ty_def : ctx -> def -> dec -> Prop :=
@@ -448,14 +452,14 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     [――――――――――――――――] #<br>#
     [G ⊢ S <: x.A]     *)
 | subtyp_sel2: forall G x A S T,
-    G ⊢ trm_var (avar_f x) : typ_rcd (dec_typ A S T) ->
+    G ⊢ₓ x : typ_rcd (dec_typ A S T) ->
     G ⊢ S <: typ_sel (avar_f x) A
 
 (** [G ⊢ x: {A: S..T}] #<br>#
     [――――――――――――――――] #<br>#
     [G ⊢ x.A <: T]     *)
 | subtyp_sel1: forall G x A S T,
-    G ⊢ trm_var (avar_f x) : typ_rcd (dec_typ A S T) ->
+    G ⊢ₓ x : typ_rcd (dec_typ A S T) ->
     G ⊢ typ_sel (avar_f x) A <: T
 
 (** [G ⊢ S2 <: S1]                #<br>#
