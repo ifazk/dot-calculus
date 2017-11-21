@@ -232,7 +232,7 @@ Proof.
   - inversion HT; auto. apply pf_and2 in H. apply* ty_precise_inv.
   - inversions HT.
     + false* pf_psel_false.
-    + lets Hu: (x_bound_unique Hi H H5). subst.
+    + lets Hu: (x_bound_unique H H5). subst.
       pose proof (pf_inert_unique_tight_bounds Hi H H5) as Hu. subst. assumption.
 Qed.
 
@@ -276,7 +276,7 @@ Proof.
   introv Hi HT Hsub.
   dependent induction Hsub; eauto; inversions HT; auto; try solve [inversion* H].
   - inversions H0.
-  - lets Hu: (x_bound_unique Hi H H5). subst.
+  - lets Hu: (x_bound_unique H H5). subst.
     lets Hb: (pf_inert_unique_tight_bounds Hi H H5). subst*.
 Qed.
 
