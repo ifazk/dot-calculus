@@ -153,11 +153,11 @@ Lemma binds_inert : forall G x T,
     inert G ->
     inert_typ T.
 Proof.
-  introv Bi Hinert. induction Hinert.
+  introv Bi HiG. induction HiG.
   - false * binds_empty_inv.
   - destruct (binds_push_inv Bi).
     + destruct H1. subst. assumption.
-    + destruct H1. apply (IHHinert H2).
+    + destruct H1. apply (IHHiG H2).
 Qed.
 
 (** See [binds_inert]. *)
@@ -173,7 +173,7 @@ Qed.
 (** See [inert_typ_bnd_record] *)
 Lemma pf_rcd_T : forall G x T U,
     inert G ->
-    precise_flow x G (typ_bnd T) U ->
+    G ⊢! x: (typ_bnd T) ⪼ U ->
     record_type T.
 Proof.
   introv Hi Pf. apply (pf_inert_T Hi) in Pf; inversions Pf; assumption.
@@ -225,7 +225,7 @@ Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf).
   destruct HT.
-  - apply precise_flow_all_inv in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. congruence.
   - exists* T.
 Qed.
 
@@ -255,7 +255,7 @@ Proof.
   introv Hi Pf.
   lets Hiu: (pf_inert_T Hi Pf).
   destruct Hiu.
-  - apply precise_flow_all_inv in Pf. inversion* Pf.
+  - apply precise_flow_all_inv in Pf. congruence.
   - destruct (pf_bnd_same_or_rcd Hi Pf) as [H1 | H1]; inversions H1.
     inversion H0.
 Qed.
@@ -279,7 +279,7 @@ Lemma pf_bot_false : forall G x T,
 Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf). destruct HT.
-  - apply precise_flow_all_inv in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. congruence.
   - destruct (pf_bnd_same_or_rcd Hi Pf); inversion H0. inversion H1.
 Qed.
 
@@ -292,7 +292,7 @@ Lemma pf_psel_false : forall G T x y A,
 Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf). destruct HT.
-  - apply precise_flow_all_inv in Pf. inversion Pf.
+  - apply precise_flow_all_inv in Pf. congruence.
   - destruct (pf_bnd_same_or_rcd Hi Pf); inversion H0. inversion H1.
 Qed.
 
