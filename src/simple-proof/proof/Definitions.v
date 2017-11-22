@@ -470,8 +470,31 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     G ⊢ typ_all S1 T1 <: typ_all S2 T2
 where "G '⊢' T '<:' U" := (subtyp G T U).
 
+(** * Well-typed stacks *)
+
+(** The operational semantics is defined in terms of pairs [(s, t)], where
+    [s] is a stack and [t] is a term.
+    Given a typing [G ⊢ (s, t): T], [well_typed] establishes a correspondence
+    between [G] and the stack [s].
+
+    We say that [s] is well-typed with respect to [G] if
+    - [G = {(xi mapsto Ti) | i = 1, ..., n}]
+    - [s = {(xi mapsto vi) | i = 1, ..., n}]
+    - [G ⊢ vi: Ti].
+
+    We say that [e] is well-typed with respect to [G], denoted as [s: G]. *)
+
+Definition well_typed (G : ctx) (s : sta) : Prop :=
+  ok G /\
+  ok s /\
+  (dom G = dom s) /\
+  (forall x T v, binds x T G ->
+            binds x v s ->
+            G ⊢ trm_val v : T).
+
 (** * Infrastructure *)
 
+Hint Unfold well_typed.
 Hint Constructors
      ty_trm ty_def ty_defs subtyp.
 
