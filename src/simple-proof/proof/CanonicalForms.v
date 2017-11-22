@@ -28,16 +28,15 @@ Require Import Definitions GeneralToTight InvertibleTyping Narrowing PreciseTypi
 
     We say that [e] is well-typed with respect to [G], denoted as [s: G]. *)
 
-Inductive well_typed: ctx -> sta -> Prop :=
-| well_typed_empty: well_typed empty empty
-| well_typed_push: forall G s x T v,
-    well_typed G s ->
-    x # G ->
-    x # s ->
-    G ⊢ trm_val v : T ->
-    well_typed (G & x ~ T) (s & x ~ v).
+Definition well_typed (G : ctx) (s : sta) : Prop :=
+  ok G /\
+  ok s /\
+  (dom G = dom s) /\
+  (forall x T v, binds x T G ->
+            binds x v s ->
+            G ⊢ trm_val v : T).
 
-Hint Constructors well_typed.
+Hint Unfold well_typed.
 
 (** * Simple Implications of Typing *)
 
@@ -56,9 +55,16 @@ Qed.
 Lemma well_typed_to_ok_G: forall s G,
     well_typed G s -> ok G.
 Proof.
-  intros. induction H; jauto.
+  intros. destruct H as [? [? ?]]. auto.
 Qed.
 Hint Resolve well_typed_to_ok_G.
+
+Lemma well_typed_to_ok_s: forall s G,
+    well_typed G s -> ok s.
+Proof.
+  intros. destruct H as [? [? ?]]. auto.
+Qed.
+Hint Resolve well_typed_to_ok_s.
 
 (** [s: G]       #<br>#
     [x ∉ dom(G)] #<br>#
@@ -69,8 +75,42 @@ Lemma well_typed_notin_dom: forall G s x,
     x # s ->
     x # G.
 Proof.
-  intros. induction H; auto.
+  introv Hwt. destruct Hwt as [? [? [?Hdom ?]]].
+  unfold notin. rewrite Hdom.
+  auto.
 Qed.
+
+Lemma well_typed_empty:
+    well_typed empty empty.
+Proof.
+  repeat split; auto.
+  - simpl_dom; auto.
+  - introv B. exfalso; apply* binds_empty_inv.
+Qed.
+Hint Resolve well_typed_empty.
+
+Lemma well_typed_push: forall G s x T v,
+    well_typed G s ->
+    x # G ->
+    x # s ->
+    G ⊢ trm_val v : T ->
+    well_typed (G & x ~ T) (s & x ~ v).
+Proof.
+  intros. unfold well_typed in *.
+  destruct_all.
+  repeat split; auto.
+  - simpl_dom. rewrite H4. auto.
+  - introv BxG. gen v0.
+    destruct (classicT (x = x0)) as [?Heq | ?Hneq].
+    + subst x0. apply binds_push_eq_inv in BxG.
+      subst T0. introv Bxv. apply binds_push_eq_inv in Bxv.
+      subst v0. apply weaken_ty_trm; auto.
+    + intros.
+      assert (binds x0 T0 G) by eauto using binds_push_neq_inv.
+      assert (binds x0 v0 s) by eauto using binds_push_neq_inv.
+      apply weaken_ty_trm; eauto.
+Qed.
+Hint Resolve well_typed_push.
 
 (** [s: G]              #<br>#
     [G(x) = T]          #<br>#
@@ -83,16 +123,13 @@ Lemma corresponding_types: forall G s x T,
     (exists v, binds x v s /\
           G ⊢ trm_val v : T).
 Proof.
-  introv Hwt BiG. induction Hwt.
-  - false* binds_empty_inv.
-  - destruct (classicT (x = x0)).
-    + subst. apply binds_push_eq_inv in BiG. subst.
-      exists v. repeat split~. apply~ weaken_ty_trm.
-      apply* ok_push.
-    + apply binds_push_neq_inv in BiG; auto.
-      specialize (IHHwt BiG) as [v' [Bis Ht]].
-      exists v'. repeat split~. apply~ weaken_ty_trm.
-      apply* ok_push.
+  introv Hwt BiG. destruct Hwt as [?HokG [?HokS [?HdomEq ?]]].
+  pose proof (get_some_inv BiG) as HinDom.
+  symmetry in HdomEq.
+  pose proof (get_some (Logic.eq_ind_r _ HinDom HdomEq)) as [?v Bis].
+  exists v. split.
+  - apply Bis.
+  - eauto.
 Qed.
 
 (** [G ⊢##v v: forall(S)T]                 #<br>#
