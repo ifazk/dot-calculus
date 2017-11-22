@@ -45,6 +45,50 @@ Proof.
   destruct (IHty_trm _ eq_refl). destruct_all. eauto.
 Qed.
 
+Lemma record_has_trm_dec : forall G p T U T' U' a,
+    G ⊢ trm_path p: T ->
+    G ⊢ T <: U ->
+    record_type T ->
+    record_type U ->
+    record_has T (dec_trm a T') ->
+    (record_has U (dec_trm a U') /\ G ⊢ T' <: U').
+Proof.
+  introv Hp Hs HrT HrU Ha. Admitted.
+
+Lemma record_has_ty_dec : forall G p T U T' A,
+    G ⊢ trm_path p: T ->
+    G ⊢ T <: U ->
+    record_type T ->
+    record_type U ->
+    record_has T (dec_typ A T' T') ->
+    record_has U (dec_typ A T' T').
+Proof.
+  introv Hp Hs HrT HrU HA. Admitted.
+
+Lemma val_typing_sub: forall G v T U p,
+    inert G ->
+    G ⊢ trm_val v: typ_bnd T ->
+    G ⊢ open_typ_p p T <: open_typ_p p U ->
+    G ⊢ trm_path p: open_typ_p p T ->
+    record_type T ->
+    record_type U ->
+    G ⊢ trm_val v: typ_bnd U.
+Proof.
+  introv Hi Hv Hs Hp HT HU.
+  apply (general_to_tight_typing Hi) in Hv.
+  apply (tight_to_invertible_v Hi) in Hv.
+  inversions Hv. inversions H. pick_fresh x. assert (x \notin L) as Hx by auto.
+  specialize (H3 x Hx). assert (HT' := HT). assert (HU' := HU).
+  destruct HT as [lsT HT]. destruct HU as [lsU HU].
+  induction HT; subst.
+  - destruct D. inversions H. apply open_record_type_p with (p:=p) in HT'.
+    apply open_record_type_p with (p:=p) in HU'.
+    assert (record_has (open_typ_p p (typ_rcd {t >: t1 <: t1})) (open_dec_p p {t >: t1 <: t1})) as Hrh. {
+      unfold open_typ_p, open_dec_p. simpl. auto.
+    }
+   lets Hr: (record_has_ty_dec Hp Hs HT' HU' Hrh).
+Admitted.
+
 (** [d1 isin ds]             #<br>#
     [label(d2) \notin ds]     #<br>#
     [―――――――――――――――――――――]  #<br>#
@@ -87,6 +131,25 @@ Proof.
       * unfold defs_has. simpl. rewrite If_l; reflexivity.
       * inversions* H4.
 Qed.
+(*
+Lemma corresponding_types_helper: forall G x T s v P1 P2 cs ds U U' y,
+    well_typed G s ->
+    G  ⊢! p_sel (avar_f x) cs: U' ⪼ U' ->
+    x; cs; P; G ⊢ ds :: U
+
+    exists v, s ∋ (p_sel (avar_f y) cs, v).
+Proof.
+  introv Wt Hp. dependent induction Wt. false* empty_push_inv.
+  Admitted.
+
+Lemma corresponding_types_helper: forall G x T s v P1 P2 cs ds U U' y,
+    well_typed (G & x ~ T) (s & x ~ v) ->
+    G & x ~ T ⊢! p_sel (avar_f y) cs: U' ⪼ U' ->
+    (x <> y) \/ (x = y /\ x; cs; (P1 ++ P2); (G & x ~ T) ⊢ ds :: U /\ In cs P1) ->
+    exists v, s ∋ (p_sel (avar_f y) cs, v).
+Proof.
+  introv Wt Hp. dependent induction Wt. false* empty_push_inv.
+  Admitted.*)
 
 (** [s: G]                #<br>#
     [G ⊢! p: T]           #<br>#
@@ -130,7 +193,7 @@ Proof.
         assert (x0; bs; P; G & x0 ~ T ⊢
                                   open_defs_p (p_sel (avar_f x0) bs) ds :: open_typ_p (p_sel (avar_f x0) bs) T')
           as Hds. {
-          apply* renaming_def. rewrite fv_ctx_types_push_eq. auto.
+          apply* renaming_def_strengthen. rewrite fv_ctx_types_push_eq. auto.
           rewrite open_var_typ_eq. rewrite open_var_defs_eq. auto.
           apply pf_precise_U in Hp. apply precise_to_general in Hp. apply* ty_rec_elim.
         }
@@ -142,20 +205,42 @@ Proof.
         ++ SCase "ty_def_path".
            rename x0 into x. rename y0 into z.
            destruct (classicT (x = z)).
-           SSCase "x = z".
-             subst. specialize (H14 eq_refl). admit.
-           SSCase "x <> y".
-             lets Hig: (inert_prefix Hi).
-             lets Hok: (inert_ok Hi).
-             apply general_to_tight_typing in H5; auto.
-             apply tight_to_invertible in H5; auto.
-             inversions H6.
-             destruct (invertible_to_precise_typ_all Hok H5) as [S'' [T'' [U [L' [Hq [Hs Hs']]]]]].
-(*             specialize (IHHwt Hig _ _ _ Hq). *)
+           +++ SSCase "x = z".
+               subst. specialize (H14 eq_refl). clear Heq.
+               inversions H14.
+               induction P1. admit.
+               dependent induction Hds.
+               ++++ destruct ds; inversions x1. destruct ds; inversions H11. destruct T'; inversions x.
+                    inversions H7.
+                    admit.
+               ++++ destruct ds; inversions x1. destruct T'; inversions x. destruct T'2; inversions H13.
 
-           admit. admit.
+
+           +++ SSCase "x <> z".
+               lets Hig: (inert_prefix Hi).
+               lets Hok: (inert_ok Hi).
+               apply general_to_tight_typing in H5; auto.
+               apply tight_to_invertible in H5; auto. clear Heq H14.
+               inversions H6.
+               ++++ SSSCase "U is a function type".
+                    destruct (invertible_to_precise_typ_all Hok H5) as [S'' [T'' [U [L' [Hq [Hs Hs']]]]]].
+                    apply pf_strengthen in Hq; auto.
+                    destruct (IHHwt Hig _ _ _ Hq) as [v' [Hqp Hv']].
+                    exists v'. split. apply* lookup_path. apply* lookup_push_neq.
+                    apply pf_inert_lambda_U in Hq; auto. subst. apply ty_sub with (T:=typ_all S'' T'').
+                    apply* weaken_ty_trm. apply_fresh subtyp_all as z. apply* tight_to_general.
+                    apply* Hs'.
+               ++++ SSSCase "U is a recursive type".
+                    destruct (invertible_to_precise_typ_bnd H5 H3) as [U [Hq Hs]].
+                    apply pf_strengthen in Hq; auto.
+                    destruct (IHHwt Hig _ _ _ Hq) as [v' [Hqp Hv']].
+                    exists v'. split. apply* lookup_path. apply* lookup_push_neq.
+                    apply weaken_ty_trm with (G2 := x ~ T) in Hv'; auto.
+                    lets Hpr: (pf_rcd_T Hig Hq). apply precise_to_general in Hq.
+                    apply ty_rec_elim in Hq. apply weaken_ty_trm with (G2 := x ~ T) in Hq.
+                    apply* val_typing_sub. apply* inert_ok.
       * apply pf_strengthen in Hp; auto.
-        assert (inert G) as Hi' by admit.
+        assert (inert G) as Hi' by apply* inert_prefix.
         specialize (IHHwt Hi' _ _ _ Hp) as [v' [Hl Ht]].
         exists v'. repeat split. apply* lookup_push_neq. apply* weaken_ty_trm.
 Qed.
@@ -207,7 +292,7 @@ Proof.
   lets Htt: (general_to_tight_typing Hin Ht).
   lets Hinv: (tight_to_invertible Hin Htt).
   destruct (invertible_to_precise_typ_all (inert_ok Hin) Hinv) as [T' [U' [V [L [Htp [Hs1 Hs2]]]]]].
-  exists L T' U'. repeat split.
+  exists L V T' U'. repeat split.
   - admit. (*apply~ inert_precise_all_inv.*)
   - apply~ tight_to_general.
   - assumption.
@@ -260,7 +345,7 @@ Lemma canonical_forms_fun: forall G s p T U,
                     (forall y, y \notin L -> G & y ~ T ⊢ open_trm y t : open_typ y U)).
 Proof.
   introv Hin Hwt Hty.
-  destruct (var_typ_all_to_binds Hin Hty) as [L [S [T' [Hp [Hs1 Hs2]]]]].
+  destruct (var_typ_all_to_binds Hin Hty) as [L [V [S [T' [Hp [Hs1 Hs2]]]]]].
   destruct (corresponding_types Hin Hwt Hp) as [v [Bis Ht]].
   destruct (val_typ_all_to_lambda Hin Ht) as [L' [S' [t [Heq [Hs1' Hs2']]]]].
   subst.
@@ -286,8 +371,8 @@ Qed.
 Lemma var_typ_rcd_to_binds: forall G p a T,
     inert G ->
     G ⊢ trm_path p : typ_rcd (dec_trm a T) ->
-    (exists S T',
-        G ∋ p : typ_bnd S /\
+    (exists S T' V,
+        G ⊢! p : typ_bnd S ⪼ V /\
         record_has (open_typ_p p S) (dec_trm a T') /\
         G ⊢ T' <: T).
 Proof.
@@ -365,8 +450,8 @@ Lemma canonical_forms_obj: forall G s p a T,
                    G ⊢ t : T).
 Proof.
   introv Hi Hwt Hty.
-  destruct (var_typ_rcd_to_binds Hi Hty) as [S [T' [Bi [Hr Hs]]]].
-  destruct (corresponding_types Hwt Bi) as [v [Bis Ht]]. Admitted. (*
+  destruct (var_typ_rcd_to_binds Hi Hty) as [S [T' [V [Bi [Hr Hs]]]]].
+  destruct (corresponding_types Hi Hwt Bi) as [v [Bis Ht]]. Admitted. (*
   apply ty_var in Bi. apply ty_rec_elim in Bi. rewrite <- open_var_typ_eq in Bi.
   destruct (val_mu_to_new Hi Ht Bi Hr) as [t [ds [Heq [Hdefs Ht']]]].
   subst. exists S ds t. repeat split~. eapply ty_sub; eauto.

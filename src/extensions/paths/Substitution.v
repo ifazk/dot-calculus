@@ -214,7 +214,7 @@ Qed.
     [G ⊢ x.bs: T^x.bs]                  #<br>#
     [―――――――――――――――――――――――――――――――――] #<br>#
     [x; bs; P; G ⊢ ds^x.bs : T^x.bs]    *)
-Lemma renaming_def: forall G y T ds x bs P p,
+Lemma renaming_def_strengthen: forall G y T ds x bs P p,
     ok G ->
     y # G ->
     y \notin (fv_ctx_types G \u fv_defs ds \u fv_typ T) ->
@@ -229,6 +229,21 @@ Proof.
   eapply subst_ty_defs. eapply Heq. all: auto. apply Hy.
   rewrite* <- subst_intro_typ. case_if*.
 Qed.
+
+Lemma renaming_def_weaken: forall x bs P G ds U y T,
+
+  ok (G & x ~ T) ->
+  y # G ->
+  x; bs; P; G & x ~ T ⊢ open_defs_p (p_sel (avar_f x) bs) ds :: open_typ_p (p_sel (avar_f x) bs) U ->
+  y; nil; P; G & x ~ T & y ~ open_typ y U ⊢ open_defs y ds :: open_typ y U.
+Proof.
+  introv Hok Hn Hx. apply weaken_ty_defs with (G2:=y ~ open_typ y U) in Hx.
+  apply (proj43 weaken_rules) with (G:=G&y~open_typ y U).
+  rewrite open_var_typ_eq. rewrite open_var_defs_eq.
+  rewrite subst_intro_typ with (x:=x). rewrite subst_intro_defs with (x:=x).
+  assert (y = subst_var x y y) as Heq. admit.
+  rewrite Heq at 1.
+  eapply subst_ty_defs. Admitted.
 
 (** Renaming the name of the opening variable for term typing. #<br>#
     [ok G]                   #<br>#

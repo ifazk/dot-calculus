@@ -706,80 +706,13 @@ where "s '↓' p '==' ds" := (lookup_open s p ds).
 
 Reserved Notation "t1 '|->' t2" (at level 40, t2 at level 39).
 
-(** ** Path lookup in typing contexts *)
-
-Reserved Notation "G '∋' p ':' T" (at level 60, p at level 50).
-Reserved Notation "G '↓↓' p '==' ds" (at level 60).
-
-(** Looking up a path in a typing context. *)
-
-Inductive lookup_ctx : ctx -> path -> typ -> Prop :=
-
-(** [G(x) = T   ]    #<br>#
-    [―――――――――――]    #<br>#
-    [G ∋ (x : T)]    *)
-| lookup_ctx_var : forall G x T,
-    binds x T G ->
-    G ∋ pvar x : T
-
-(** [G ↓↓ p = ...{a: T}...  ]    #<br>#
-    [―――――――――――――――――――――――]    #<br>#
-    [G ∋ (p.a, T)]               *)
-| lookup_ctx_path : forall G p a T,
-    G ↓↓ p == T ->
-    record_has T (dec_trm a T) ->
-    G ∋ p•a : T
-
-where "G '∋' p ':' T" := (lookup_ctx G p T )
-
-(** Opening of definitions:
-    If [s ∋ (p, ν(x: T)ds)], then [lookup_open] gives us [ds] opened with [p]. *)
-
-with lookup_ctx_open : ctx -> path -> typ -> Prop :=
-
-(** [G ∋ (p: μ(T))         ]    #<br>#
-    [――――――――――――――――――――――]    #<br>#
-    [G ↓↓ p = T^p          ]    *)
-| lookup_ctx_defs : forall G p T ,
-    G ∋ p : typ_bnd T ->
-    G ↓↓ p == open_typ_p p T
-
-where "G '↓↓' p '==' T" := (lookup_ctx_open G p T).
-
-Hint Constructors lookup lookup_open lookup_ctx lookup_ctx_open.
+Hint Constructors lookup lookup_open.
 
 Scheme lookup_mut := Induction for lookup Sort Prop
   with lookup_open_mut := Induction for lookup_open Sort Prop.
 Combined Scheme lookup_mutind from lookup_mut, lookup_open_mut.
 
-Scheme lookup_ctx_mut := Induction for lookup_ctx Sort Prop
-  with lookup_ctx_open_mut := Induction for lookup_ctx_open Sort Prop.
-Combined Scheme lookup_ctx_mutind from lookup_ctx_mut, lookup_ctx_open_mut.
-
 (** ** Lemmas about Environment Lookup *)
-
-Lemma lookup_ctx_func :
-  (forall G p T1,
-    G ∋ p : T1 -> forall T2,
-    G ∋ p : T2 ->
-    T1 = T2) /\
-  (forall G p T1,
-    G ↓↓ p == T1 -> forall T2,
-    G ↓↓ p == T2 ->
-    T1 = T2).
-Proof.
-  apply lookup_ctx_mutind; intros.
-  - Case "lookup_ctx_var".
-    inversions H. eapply binds_func; eauto. destruct p. inversion H0.
-  - Case "lookup_ctx_path".
-    inversions H0; unfolds sel_fields.
-    * destruct p. inversion H1.
-    * destruct p0, p. inversions H1. apply* H.
-  - Case "lookup_ctx_defs".
-    lets Hl: (lookup_ctx_defs l). inversions H0.
-    apply H in H1. inversion* H1.
-Qed.
-
 
 Ltac lookup_solve :=
    match goal with
@@ -864,45 +797,14 @@ Proof.
   intros. eapply (proj21 lookup_empty_mut); eauto.
 Qed.
 
-Lemma lookup_ctx_empty_mut :
-  (forall G p T,
-      G ∋ p: T ->
-      G = empty ->
-      False) /\
-  (forall G p T,
-      G ↓↓ p == T ->
-      G = empty ->
-      False).
-Proof.
-  apply lookup_ctx_mutind; auto. intros. subst. false* binds_empty_inv.
-Qed.
-
-Lemma lookup_ctx_empty : forall p T,
-    empty ∋ p: T -> False.
-Proof.
-  intros. eapply (proj21 lookup_ctx_empty_mut); eauto.
-Qed.
-
-Lemma lookup_implies_named_mut :
-    (forall G p T,
-        G ∋ p : T ->
-        named_path p) /\
-    (forall G p T,
-        G ↓↓ p == T ->
-        named_path p).
-Proof.
-  apply lookup_ctx_mutind; intros; unfolds named_path, pvar;
-    try (destruct_all; subst; unfold sel_fields); repeat eexists.
-Qed.
-
 (** ** "Field selection" on types
 
        For example, if [T] is a recursive type with a field declaration [{a: U}],
        then [T ▼ a == U].  *)
 
 Reserved Notation "T '▼' bs '==' U" (at level 5, U at level 50).
-
-Inductive field_sel_typ : typ -> fields -> typ -> Prop :=
+(*
+Inductive field_sel_typ : typ -> var -> fields -> typ -> Prop :=
 
 (** [T ▼ [] == T] *)
 | fields_empty : forall T,
@@ -916,17 +818,7 @@ Inductive field_sel_typ : typ -> fields -> typ -> Prop :=
     record_has U (dec_trm b V) ->
     T ▼ (b::bs) == V
 
-where "T '▼' bs '==' U" := (field_sel_typ T bs U).
-
-Lemma lookup_ctx_push_eq_inv_var :
-    forall G x T U,
-    G & x ~ T ∋ pvar x : U ->
-    T = U.
-Proof.
-  introv Hx. inversions Hx.
-  - apply binds_push_eq_inv in H1. subst*.
-  - destruct (last_field _ _ H) as [bs Hbs]. inversion Hbs.
-Qed.
+where "T '▼' bs '==' U" := (field_sel_typ T bs U). *)
 
 Lemma lookup_push_eq_inv_var :
     forall s x v v',
@@ -938,17 +830,6 @@ Proof.
     apply binds_push_eq_inv in H1. subst*.
 Qed.
 
-(* todo: mutual induction *)
-Lemma lookup_ctx_push_neq_inv_var : forall G x y bs T U,
-    G & x ~ T ∋ p_sel (avar_f y) bs : U ->
-    y <> x ->
-    G ∋ p_sel (avar_f y) bs : U.
-Proof.
-  introv Hx Hneq. inversions Hx.
-  - lets Hb: (binds_push_neq_inv H3 Hneq). constructor*.
-  - destruct (last_field _ _ H) as [bs' Hbs]. subst.
-    constructor*. Admitted.
-
 Lemma lookup_push_neq : forall s x bs v y v',
     s ∋ (p_sel (avar_f x) bs, v) ->
     x <> y ->
@@ -956,47 +837,3 @@ Lemma lookup_push_neq : forall s x bs v y v',
 Proof.
   introv Hp Hn. dependent induction Hp.
   Admitted.
-
-(*
-Lemma lookup_ctx_push_eq_inv_mut :
-  (forall G' p U,
-      G' ∋ p: U -> forall G x T b bs p',
-      G' = G & x ~ T ->
-      p' = p_sel (avar_f x) bs ->
-      p = p'•b ->
-      T ▼ (b::bs) == open_typ_p p U) /\
-  (forall G' p U,
-      G' ↓↓ p == U -> forall G x T b bs p',
-      G' = G & x ~ T ->
-      p' = p_sel (avar_f x) bs ->
-      p = p'•b ->
-      T ▼ (b::bs) == open_typ_p p U).
-Proof.
-  apply lookup_ctx_mutind; intros; subst.
-  - Case "lookup_ctx_var".
-    inversion H1.
-  - Case "lookup_ctx_path".
-    apply invert_path_sel in H2. destruct H2 as [Heq1 Heq2]. subst.
-    inversions l.
-    apply fields_sel.
-    specialize (H _ _ _ b bs _ eq_refl eq_refl).
-
-  - Case "lookup_ctx_defs".
-
-
-Lemma lookup_ctx_push_eq_inv : forall G x b bs p T U,
-    p = p_sel (avar_f x) bs ->
-    G & x ~ T ∋ p•b : U ->
-    T ▼ (b::bs) == open_typ_p p U.
-Proof.
-  introv Heq Hg. subst. dependent induction Hg.
-  - apply binds_push_eq_inv in H. subst.
-
-Lemma lookup_push_eq_inv : forall G x T U,
-    G & x ~ T ∋ p_sel (avar_f x) bs : U ->
-    T = U.
-Proof.
-  Admitted.
-
-Lemma lookup_push_neq_inv.
-*)
