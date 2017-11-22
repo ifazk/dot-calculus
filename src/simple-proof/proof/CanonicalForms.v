@@ -99,11 +99,10 @@ Proof.
   intros. unfold well_typed in *.
   destruct_all.
   repeat split; auto.
-  - simpl_dom. rewrite H4. auto.
-  - introv BxG. gen v0.
-    destruct (classicT (x = x0)) as [?Heq | ?Hneq].
-    + subst x0. apply binds_push_eq_inv in BxG.
-      subst T0. introv Bxv. apply binds_push_eq_inv in Bxv.
+  - simpl_dom. fequal. auto.
+  - intros x0 T0 v0 BxG. gen v0.
+    destruct (binds_push_inv BxG) as [[?Heqx ?HeqT] | [?Hneq ?HB]].
+    + subst x0 T0. introv Bxv. apply binds_push_eq_inv in Bxv.
       subst v0. apply weaken_ty_trm; auto.
     + intros.
       assert (binds x0 T0 G) by eauto using binds_push_neq_inv.
