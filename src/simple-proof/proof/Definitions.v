@@ -586,8 +586,9 @@ Ltac destruct_all :=
   end.
 
 Ltac repeat_split_right :=
-  repeat match goal with
+  match goal with
   | |- ?A /\ ?B => split; repeat_split_right
-         end.
+  | _ => idtac
+  end.
 
 Ltac omega := Coq.omega.Omega.omega.
