@@ -14,6 +14,28 @@ Require Import LibLN.
 Require Import Definitions GeneralToTight InvertibleTyping Narrowing PreciseTyping RecordAndInertTypes
             Subenvironments Substitution TightTyping Weakening.
 
+(** * Well-typed stacks *)
+
+(** The operational semantics is defined in terms of pairs [(s, t)], where
+    [s] is a stack and [t] is a term.
+    Given a typing [G ⊢ (s, t): T], [well_typed] establishes a correspondence
+    between [G] and the stack [s].
+
+    We say that [s] is well-typed with respect to [G] if
+    - [G = {(xi mapsto Ti) | i = 1, ..., n}]
+    - [s = {(xi mapsto vi) | i = 1, ..., n}]
+    - [G ⊢ vi: Ti].
+
+    We say that [e] is well-typed with respect to [G], denoted as [s: G]. *)
+
+Definition well_typed (G : ctx) (s : sta) : Prop :=
+  ok G /\
+  ok s /\
+  (dom G = dom s) /\
+  (forall x T v, binds x T G ->
+            binds x v s ->
+            G ⊢ trm_val v : T).
+
 Hint Unfold well_typed.
 
 (** * Simple Implications of Typing *)
@@ -178,13 +200,13 @@ Lemma val_typ_all_to_lambda: forall G v T U,
     inert G ->
     G ⊢ trm_val v : typ_all T U ->
     (exists L T' t,
-        v = val_lambda T' t /\
+        v = val_fun T' t /\
         G ⊢ T <: T' /\
         (forall y, y \notin L -> G & y ~ T ⊢ (open_trm y t) : open_typ y U)).
 Proof.
   introv Hin Ht.
   lets Htt: (general_to_tight_typing Hin Ht).
-  lets Hinv: (tight_to_invertible_v Hin Htt).
+  lets Hinv: (tight_to_invertible_v _ Hin Htt).
   destruct (invertible_val_to_precise_lambda Hinv Hin) as [L [T' [U' [Htp [Hs1 Hs2]]]]].
   inversions Htp.
   exists (L0 \u L \u (dom G)) T' t. repeat split~.
@@ -207,13 +229,13 @@ Lemma canonical_forms_fun: forall G s x T U,
   inert G ->
   well_typed G s ->
   G ⊢ trm_var (avar_f x) : typ_all T U ->
-  (exists L T' t, binds x (val_lambda T' t) s /\ G ⊢ T <: T' /\
+  (exists L T' t, binds x (val_fun T' t) s /\ G ⊢ T <: T' /\
   (forall y, y \notin L -> G & y ~ T ⊢ open_trm y t : open_typ y U)).
 Proof.
   introv Hin Hwt Hty.
   destruct (var_typ_all_to_binds Hin Hty) as [L [S [T' [BiG [Hs1 Hs2]]]]].
   destruct (corresponding_types Hwt BiG) as [v [Bis Ht]].
-  destruct (val_typ_all_to_lambda Hin Ht) as [L' [S' [t [Heq [Hs1' Hs2']]]]].
+  destruct (val_typ_all_to_lambda _ Hin Ht) as [L' [S' [t [Heq [Hs1' Hs2']]]]].
   subst.
   exists (L \u L' \u (dom G)) S' t. repeat split~.
   - eapply subtyp_trans; eauto.
@@ -311,13 +333,13 @@ Lemma val_mu_to_new: forall G v T U a x,
     G ⊢ trm_var (avar_f x) : open_typ x T ->
     record_has (open_typ x T) (dec_trm a U) ->
     exists t ds,
-      v = val_new T ds /\
+      v = val_obj T ds /\
       defs_has (open_defs x ds) (def_trm a t) /\
       G ⊢ t: U.
 Proof.
   introv Hi Ht Hx Hr.
   lets Htt: (general_to_tight_typing Hi Ht).
-  lets Hinv: (tight_to_invertible_v Hi Htt).
+  lets Hinv: (tight_to_invertible_v _ Hi Htt).
   inversions Hinv. inversions H.
   pick_fresh z. assert (z \notin L) as Hz by auto.
   specialize (H3 z Hz).
@@ -340,12 +362,12 @@ Lemma canonical_forms_obj: forall G s x a T,
   inert G ->
   well_typed G s ->
   G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
-  (exists S ds t, binds x (val_new S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ G ⊢ t : T).
+  (exists S ds t, binds x (val_obj S ds) s /\ defs_has (open_defs x ds) (def_trm a t) /\ G ⊢ t : T).
 Proof.
   introv Hi Hwt Hty.
   destruct (var_typ_rcd_to_binds Hi Hty) as [S [T' [Bi [Hr Hs]]]].
   destruct (corresponding_types Hwt Bi) as [v [Bis Ht]].
   apply ty_var in Bi. apply ty_rec_elim in Bi.
-  destruct (val_mu_to_new Hi Ht Bi Hr) as [t [ds [Heq [Hdefs Ht']]]].
+  destruct (val_mu_to_new _ Hi Ht Bi Hr) as [t [ds [Heq [Hdefs Ht']]]].
   subst. exists S ds t. repeat split~. eapply ty_sub; eauto.
 Qed.

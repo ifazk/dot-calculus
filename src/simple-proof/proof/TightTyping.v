@@ -40,7 +40,7 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
 | ty_all_intro_t : forall L G T t U,
     (forall x, x \notin L ->
       G & x ~ T ⊢ open_trm x t : open_typ x U) ->
-    G ⊢# trm_val (val_lambda T t) : typ_all T U
+    G ⊢# trm_lambda T t : typ_all T U
 
 (** [G ⊢# x: forall(S)T] #<br>#
     [G ⊢# z: S]     #<br>#
@@ -58,7 +58,7 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
 | ty_new_intro_t : forall L G T ds,
     (forall x, x \notin L ->
       G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
-    G ⊢# trm_val (val_new T ds) : typ_bnd T
+    G ⊢# trm_new T ds : typ_bnd T
 
 (** [G ⊢# x: {a: T}] #<br>#
     [―――――――――――――――] #<br>#

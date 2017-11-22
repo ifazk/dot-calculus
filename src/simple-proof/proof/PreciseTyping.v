@@ -42,7 +42,7 @@ Inductive ty_val_p : ctx -> val -> typ -> Prop :=
 | ty_all_intro_p : forall L G T t U,
     (forall x, x \notin L ->
       G & x ~ T ⊢ open_trm x t : open_typ x U) ->
-    G ⊢!v val_lambda T t : typ_all T U
+    G ⊢!v val_fun T t : typ_all T U
 
 (** [G, x: T^x ⊢ ds^x :: T^x]   #<br>#
     [x fresh]                   #<br>#
@@ -51,7 +51,7 @@ Inductive ty_val_p : ctx -> val -> typ -> Prop :=
 | ty_new_intro_p : forall L G T ds,
     (forall x, x \notin L ->
       G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
-    G ⊢!v val_new T ds : typ_bnd T
+    G ⊢!v val_obj T ds : typ_bnd T
 
 where "G '⊢!v' v ':' T" := (ty_val_p G v T).
 
@@ -398,5 +398,5 @@ Lemma precise_to_general_v: forall G v T,
     G ⊢!v v : T ->
     G ⊢ trm_val v: T.
 Proof.
-  intros. induction H; intros; subst; eauto.
+  intros. induction H; simpl; eauto.
 Qed.

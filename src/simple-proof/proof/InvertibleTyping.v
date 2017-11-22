@@ -291,8 +291,8 @@ Lemma tight_to_invertible_v : forall G v T,
     G ⊢# trm_val v : T ->
     G ⊢##v v : T.
 Proof.
-  introv Hgd Hty.
-  dependent induction Hty; eauto.
-  specialize (IHHty v Hgd eq_refl).
+  introv Hi Hty.
+  destruct v; dependent induction Hty; eauto;
+  specialize (IHHty _ _ Hi eq_refl);
   apply* invertible_typing_closure_tight_v.
 Qed.

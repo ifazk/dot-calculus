@@ -43,15 +43,11 @@ with subst_dec (z: var) (u: var) (D: dec) { struct D } : dec :=
 Fixpoint subst_trm (z: var) (u: var) (t: trm) : trm :=
   match t with
   | trm_var x        => trm_var (subst_avar z u x)
-  | trm_val v        => trm_val (subst_val z u v)
+  | trm_new T ds     => trm_new (subst_typ z u T) (subst_defs z u ds)
+  | trm_lambda T t   => trm_lambda (subst_typ z u T) (subst_trm z u t)
   | trm_sel x1 L     => trm_sel (subst_avar z u x1) L
   | trm_app x1 x2    => trm_app (subst_avar z u x1) (subst_avar z u x2)
   | trm_let t1 t2    => trm_let (subst_trm z u t1) (subst_trm z u t2)
-  end
-with subst_val (z: var) (u: var) (v: val) : val :=
-  match v with
-  | val_new T ds     => val_new (subst_typ z u T) (subst_defs z u ds)
-  | val_lambda T t   => val_lambda (subst_typ z u T) (subst_trm z u t)
   end
 with subst_def (z: var) (u: var) (d: def) : def :=
   match d with
@@ -62,6 +58,12 @@ with subst_defs (z: var) (u: var) (ds: defs) : defs :=
   match ds with
   | defs_nil => defs_nil
   | defs_cons rest d => defs_cons (subst_defs z u rest) (subst_def z u d)
+  end.
+
+Definition subst_val (z: var) (u: var) (v: val) : val :=
+  match v with
+  | val_obj T ds     => val_obj (subst_typ z u T) (subst_defs z u ds)
+  | val_fun T t   => val_fun (subst_typ z u T) (subst_trm z u t)
   end.
 
 (** Substitution on the types of a typing environment: [G[u/z]]. *)
@@ -145,14 +147,20 @@ Qed.
 Definition subst_fresh_typ(x y: var) := proj1 (subst_fresh_typ_dec x y).
 
 (** - in terms, values, and definitions *)
-Lemma subst_fresh_trm_val_def_defs: forall x y,
+Lemma subst_fresh_trm_def_defs: forall x y,
   (forall t : trm , x \notin fv_trm  t  -> subst_trm  x y t  = t ) /\
-  (forall v : val , x \notin fv_val  v  -> subst_val  x y v  = v ) /\
   (forall d : def , x \notin fv_def  d  -> subst_def  x y d  = d ) /\
   (forall ds: defs, x \notin fv_defs ds -> subst_defs x y ds = ds).
 Proof.
   intros x y. apply trm_mutind; intros; simpls; f_equal*;
     (apply* subst_fresh_avar || apply* subst_fresh_typ_dec).
+Qed.
+
+Lemma sub_fresh_val: forall x y,
+  (forall v : val , x \notin fv_val  v  -> subst_val  x y v  = v ).
+Proof.
+  intros.
+  induction v; simpls; f_equal; (apply* subst_fresh_typ_dec || apply* subst_fresh_trm_def_defs).
 Qed.
 
 (** [fv(G, x: T) = fv(G) \u fv(T)] *)
@@ -234,13 +242,10 @@ Proof.
 Qed.
 
 (** - terms, values, definitions, and list of definitions *)
-Lemma subst_open_commut_trm_val_def_defs: forall x y u,
+Lemma subst_open_commut_trm_def_defs: forall x y u,
   (forall t : trm, forall n: Datatypes.nat,
      subst_trm x y (open_rec_trm n u t)
      = open_rec_trm n (subst_fvar x y u) (subst_trm x y t)) /\
-  (forall v : val, forall n: Datatypes.nat,
-     subst_val x y (open_rec_val n u v)
-     = open_rec_val n (subst_fvar x y u) (subst_val x y v)) /\
   (forall d : def , forall n: Datatypes.nat,
      subst_def x y (open_rec_def n u d)
      = open_rec_def n (subst_fvar x y u) (subst_def x y d)) /\
@@ -252,12 +257,21 @@ Proof.
     (apply subst_open_commut_avar || apply subst_open_commut_typ_dec).
 Qed.
 
+Lemma subst_open_commut_val: forall x y u,
+  (forall v : val, forall n: Datatypes.nat,
+     subst_val x y (open_rec_val n u v)
+     = open_rec_val n (subst_fvar x y u) (subst_val x y v)).
+Proof.
+  intros. induction v; simpl; f_equal~;
+    (apply subst_open_commut_typ_dec || apply subst_open_commut_trm_def_defs).
+Qed.
+
 (** - terms only *)
 Lemma subst_open_commut_trm: forall x y u t,
     subst_trm x y (open_trm u t)
     = open_trm (subst_fvar x y u) (subst_trm x y t).
 Proof.
-  intros. apply subst_open_commut_trm_val_def_defs.
+  intros. apply subst_open_commut_trm_def_defs.
 Qed.
 
 (** - definitions only *)
@@ -265,7 +279,7 @@ Lemma subst_open_commut_defs: forall x y u ds,
     subst_defs x y (open_defs u ds)
     = open_defs (subst_fvar x y u) (subst_defs x y ds).
 Proof.
-  intros. apply subst_open_commut_trm_val_def_defs.
+  intros. apply subst_open_commut_trm_def_defs.
 Qed.
 
 (** The following lemmas state that opening a symbol with a variable [y]
@@ -279,7 +293,7 @@ Lemma subst_intro_trm: forall x u t, x \notin (fv_trm t) ->
   open_trm u t = subst_trm x u (open_trm x t).
 Proof.
   introv Fr. unfold open_trm. rewrite subst_open_commut_trm.
-  destruct (@subst_fresh_trm_val_def_defs x u) as [Q _]. rewrite~ (Q t).
+  destruct (@subst_fresh_trm_def_defs x u) as [Q _]. rewrite~ (Q t).
   unfold subst_fvar. case_var~.
 Qed.
 
@@ -288,7 +302,7 @@ Lemma subst_intro_defs: forall x u ds, x \notin (fv_defs ds) ->
   open_defs u ds = subst_defs x u (open_defs x ds).
 Proof.
   introv Fr. unfold open_trm. rewrite subst_open_commut_defs.
-  destruct (@subst_fresh_trm_val_def_defs x u) as [_ [_ [_ Q]]]. rewrite~ (Q ds).
+  destruct (@subst_fresh_trm_def_defs x u) as [_ [_ Q]]. rewrite~ (Q ds).
   unfold subst_fvar. case_var~.
 Qed.
 

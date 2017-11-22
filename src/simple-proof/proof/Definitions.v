@@ -75,20 +75,11 @@ with dec : Set :=
     the let-term representation; we will denote let terms as [let t in u]. *)
 Inductive trm : Set :=
   | trm_var  : avar -> trm
-  | trm_val  : val -> trm
+  | trm_new     :  typ -> defs -> trm
+  | trm_lambda  :  typ -> trm -> trm
   | trm_sel  : avar -> trm_label -> trm
   | trm_app  : avar -> avar -> trm
   | trm_let  : trm -> trm -> trm
-(**
-  - [val_new T ds] represents the object [nu(x: T)ds]; the variable [x] is bound in [T]
-    and [ds] and is omitted from the representation;
-    we will denote new object definitions as [nu(T)ds];
-  - [val_lambda T t] represents a function [lambda(x: T)t]; again, [x] is bound in [t]
-    and is omitted;
-    we will denote lambda terms as [lambda(T)t. *)
-with val : Set :=
-  | val_new  : typ -> defs -> val
-  | val_lambda : typ -> trm -> val
 (**
   - [def_typ A T] represents a type-member definition [{A = T}];
   - [def_trm a t] represents a field definition [{a = t}]; *)
@@ -102,6 +93,24 @@ with def : Set :=
 with defs : Set :=
   | defs_nil : defs
   | defs_cons : defs -> def -> defs.
+
+(**
+  - [val_new T ds] represents the object [nu(x: T)ds]; the variable [x] is bound in [T]
+    and [ds] and is omitted from the representation;
+    we will denote new object definitions as [nu(T)ds];
+  - [val_lambda T t] represents a function [lambda(x: T)t]; again, [x] is bound in [t]
+    and is omitted;
+    we will denote lambda terms as [lambda(T)t. *)
+Inductive val : Set :=
+  | val_obj : typ -> defs -> val
+  | val_fun : typ -> trm -> val.
+
+Definition trm_val (v : val) : trm :=
+  match v with
+  | val_obj T ds => trm_new T ds
+  | val_fun T e  => trm_lambda T e
+  end.
+Hint Unfold trm_val.
 
 (** Helper functions to retrieve labels of declarations and definitions *)
 
@@ -171,15 +180,11 @@ with open_rec_dec (k: nat) (u: var) (D: dec): dec :=
 Fixpoint open_rec_trm (k: nat) (u: var) (t: trm): trm :=
   match t with
   | trm_var a      => trm_var (open_rec_avar k u a)
-  | trm_val v      => trm_val (open_rec_val k u v)
+  | trm_new T ds   => trm_new (open_rec_typ (S k) u T) (open_rec_defs (S k) u ds)
+  | trm_lambda T t => trm_lambda (open_rec_typ k u T) (open_rec_trm (S k) u t)
   | trm_sel v m    => trm_sel (open_rec_avar k u v) m
   | trm_app f a    => trm_app (open_rec_avar k u f) (open_rec_avar k u a)
   | trm_let t1 t2  => trm_let (open_rec_trm k u t1) (open_rec_trm (S k) u t2)
-  end
-with open_rec_val (k: nat) (u: var) (v: val): val :=
-  match v with
-  | val_new T ds   => val_new (open_rec_typ (S k) u T) (open_rec_defs (S k) u ds)
-  | val_lambda T e => val_lambda (open_rec_typ k u T) (open_rec_trm (S k) u e)
   end
 with open_rec_def (k: nat) (u: var) (d: def): def :=
   match d with
@@ -190,6 +195,12 @@ with open_rec_defs (k: nat) (u: var) (ds: defs): defs :=
   match ds with
   | defs_nil       => defs_nil
   | defs_cons tl d => defs_cons (open_rec_defs k u tl) (open_rec_def k u d)
+  end.
+
+Definition open_rec_val (k: nat) (u: var) (v: val): val :=
+  match v with
+  | val_obj T ds => val_obj (open_rec_typ (S k) u T) (open_rec_defs (S k) u ds)
+  | val_fun T e  => val_fun (open_rec_typ k u T) (open_rec_trm (S k) u e)
   end.
 
 Definition open_avar u a := open_rec_avar  0 u a.
@@ -232,15 +243,11 @@ with fv_dec (D: dec) : vars :=
 Fixpoint fv_trm (t: trm) : vars :=
   match t with
   | trm_var a       => (fv_avar a)
-  | trm_val v        => (fv_val v)
+  | trm_new T ds    => (fv_typ T) \u (fv_defs ds)
+  | trm_lambda T e  => (fv_typ T) \u (fv_trm e)
   | trm_sel x m      => (fv_avar x)
   | trm_app f a      => (fv_avar f) \u (fv_avar a)
   | trm_let t1 t2    => (fv_trm t1) \u (fv_trm t2)
-  end
-with fv_val (v: val) : vars :=
-  match v with
-  | val_new T ds    => (fv_typ T) \u (fv_defs ds)
-  | val_lambda T e  => (fv_typ T) \u (fv_trm e)
   end
 with fv_def (d: def) : vars :=
   match d with
@@ -251,6 +258,12 @@ with fv_defs(ds: defs) : vars :=
   match ds with
   | defs_nil         => \{}
   | defs_cons tl d   => (fv_defs tl) \u (fv_def d)
+  end.
+
+Definition fv_val (v: val) : vars :=
+  match v with
+  | val_obj T ds    => (fv_typ T) \u (fv_defs ds)
+  | val_fun T e  => (fv_typ T) \u (fv_trm e)
   end.
 
 (** Free variables in the range (types) of a context *)
@@ -281,7 +294,7 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
 | ty_all_intro : forall L G T t U,
     (forall x, x \notin L ->
       G & x ~ T ⊢ open_trm x t : open_typ x U) ->
-    G ⊢ trm_val (val_lambda T t) : typ_all T U
+    G ⊢ trm_lambda T t : typ_all T U
 
 (** [G ⊢ x: forall(S)T] #<br>#
     [G ⊢ z: S]     #<br>#
@@ -299,7 +312,7 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
 | ty_new_intro : forall L G T ds,
     (forall x, x \notin L ->
       G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
-    G ⊢ trm_val (val_new T ds) : typ_bnd T
+    G ⊢ trm_new T ds : typ_bnd T
 
 (** [G ⊢ x: {a: T}] #<br>#
     [―――――――――――――] #<br>#
@@ -470,31 +483,8 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     G ⊢ typ_all S1 T1 <: typ_all S2 T2
 where "G '⊢' T '<:' U" := (subtyp G T U).
 
-(** * Well-typed stacks *)
-
-(** The operational semantics is defined in terms of pairs [(s, t)], where
-    [s] is a stack and [t] is a term.
-    Given a typing [G ⊢ (s, t): T], [well_typed] establishes a correspondence
-    between [G] and the stack [s].
-
-    We say that [s] is well-typed with respect to [G] if
-    - [G = {(xi mapsto Ti) | i = 1, ..., n}]
-    - [s = {(xi mapsto vi) | i = 1, ..., n}]
-    - [G ⊢ vi: Ti].
-
-    We say that [e] is well-typed with respect to [G], denoted as [s: G]. *)
-
-Definition well_typed (G : ctx) (s : sta) : Prop :=
-  ok G /\
-  ok s /\
-  (dom G = dom s) /\
-  (forall x T v, binds x T G ->
-            binds x v s ->
-            G ⊢ trm_val v : T).
-
 (** * Infrastructure *)
 
-Hint Unfold well_typed.
 Hint Constructors
      ty_trm ty_def ty_defs subtyp.
 
@@ -505,10 +495,9 @@ with   dec_mut := Induction for dec Sort Prop.
 Combined Scheme typ_mutind from typ_mut, dec_mut.
 
 Scheme trm_mut  := Induction for trm  Sort Prop
-with   val_mut  := Induction for val Sort Prop
 with   def_mut  := Induction for def  Sort Prop
 with   defs_mut := Induction for defs Sort Prop.
-Combined Scheme trm_mutind from trm_mut, val_mut, def_mut, defs_mut.
+Combined Scheme trm_mutind from trm_mut, def_mut, defs_mut.
 
 Scheme ts_ty_trm_mut := Induction for ty_trm Sort Prop
 with   ts_subtyp     := Induction for subtyp Sort Prop.

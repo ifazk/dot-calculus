@@ -27,8 +27,8 @@ Lemma val_typing: forall G v T,
   exists T', G ⊢!v v : T' /\
         G ⊢ T' <: T.
 Proof.
-  intros G v T H. dependent induction H; eauto.
-  destruct (IHty_trm _ eq_refl). destruct_all. eauto.
+  intros G v T H. destruct v; simpl; dependent induction H; eauto;
+  destruct (IHty_trm _ _ eq_refl); destruct_all; eauto.
 Qed.
 
 (** Helper tactics for proving Preservation *)
@@ -43,6 +43,13 @@ Ltac binds_eq :=
 Ltac invert_red :=
   match goal with
   | [Hr: (_, _) |-> (_, _) |- _] => inversions Hr
+  end.
+
+Ltac trm_val_contra :=
+  match goal with
+  | [ H : trm_val ?v = _ |- _ ] =>
+      try solve [induction v; simpl in *; congruence]
+  | _ => idtac
   end.
 
 Ltac solve_IH :=
@@ -61,7 +68,7 @@ Ltac solve_IH :=
   end.
 
 Ltac solve_let :=
-  invert_red; solve_IH; fresh_constructor; eauto; apply* weaken_rules.
+  invert_red; trm_val_contra; solve_IH; fresh_constructor; eauto; apply* weaken_rules.
 
 (** [s: G]                  #<br>#
     [inert [G]              #<br>#
@@ -103,16 +110,30 @@ Proof.
   - Case "ty_let".
     destruct t; try solve [solve_let].
     + SCase "[t = (let x = a in u)] where a is a variable".
-      repeat invert_red.
+      repeat invert_red; trm_val_contra.
       exists (@empty typ). rewrite concat_empty_r. repeat_split_right; auto.
       apply* renaming_fresh.
-    + SCase "[t = (let x = v in u)] where v is a value".
+    + SCase "[t = (let x = v in u)] where v is a object".
       repeat invert_red.
       match goal with
         | [Hn: ?x # ?s |- _] =>
           pose proof (well_typed_notin_dom Hwf Hn) as Hng
       end.
-      pose proof (val_typing Ht) as [V [Hv Hs]].
+      rewrite <- H3 in Ht.
+      pose proof (val_typing _ Ht) as [V [Hv Hs]].
+      exists (x ~ V). repeat_split_right.
+      ** rewrite <- concat_empty_l. constructor~. apply (precise_inert_typ Hv).
+      ** apply~ well_typed_push. apply (precise_to_general_v Hv).
+      ** eapply renaming_fresh with (L:=L \u dom G \u \{x}). apply* ok_push.
+         intros. apply* weaken_rules. apply ty_sub with (T:=V); auto. apply* weaken_subtyp.
+    + SCase "[t = (let x = v in u)] where v is a function".
+      repeat invert_red.
+      match goal with
+        | [Hn: ?x # ?s |- _] =>
+          pose proof (well_typed_notin_dom Hwf Hn) as Hng
+      end.
+      rewrite <- H3 in Ht.
+      pose proof (val_typing _ Ht) as [V [Hv Hs]].
       exists (x ~ V). repeat_split_right.
       ** rewrite <- concat_empty_l. constructor~. apply (precise_inert_typ Hv).
       ** apply~ well_typed_push. apply (precise_to_general_v Hv).
@@ -172,12 +193,19 @@ Theorem progress: forall s t T,
 Proof.
   introv Ht. inversion Ht as [G s' t' T' Hi Hwt HT]. subst.
   induction HT; eauto.
+  - Case "trm_lambda".
+    left. assert (trm_lambda T t = trm_val (val_fun T t)) by auto.
+    rewrite H1; auto.
   - Case "ty_all_elim".
     pose proof (canonical_forms_fun Hi Hwt HT1). destruct_all. right*.
+  - Case "trm_new".
+    left. assert (trm_new T ds = trm_val (val_obj T ds)) by auto.
+    rewrite H0; auto.
   - Case "ty_new_elim".
     pose proof (canonical_forms_obj Hi Hwt HT). destruct_all. right*.
   - Case "ty_let".
-    right. destruct t; try solve [solve_let_prog].
+    right. destruct t; try solve [solve_let_prog; trm_val_contra].
     + pose proof (var_typing_implies_avar_f HT) as [x A]. subst*.
-    + pick_fresh x. exists (s & x ~ v) (open_trm x u). auto.
+    + solve_let_prog; pick_fresh x. exists (s & x ~ v) (open_trm x u). auto.
+    + solve_let_prog; pick_fresh x. exists (s & x ~ v) (open_trm x u). auto.
 Qed.
