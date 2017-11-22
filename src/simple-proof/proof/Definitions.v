@@ -470,33 +470,9 @@ with subtyp : ctx -> typ -> typ -> Prop :=
     G ⊢ typ_all S1 T1 <: typ_all S2 T2
 where "G '⊢' T '<:' U" := (subtyp G T U).
 
-(** * Well-typed stacks *)
-
-(** The operational semantics is defined in terms of pairs [(s, t)], where
-    [s] is a stack and [t] is a term.
-    Given a typing [G ⊢ (s, t): T], [well_typed] establishes a correspondence
-    between [G] and the stack [s].
-
-    We say that [s] is well-typed with respect to [G] if
-    - [G = {(xi mapsto Ti) | i = 1, ..., n}]
-    - [s = {(xi mapsto vi) | i = 1, ..., n}]
-    - [G ⊢ vi: Ti].
-
-    We say that [e] is well-typed with respect to [G], denoted as [s: G]. *)
-
-Inductive well_typed: ctx -> sta -> Prop :=
-| well_typed_empty: well_typed empty empty
-| well_typed_push: forall G s x T v,
-    well_typed G s ->
-    x # G ->
-    x # s ->
-    G ⊢ trm_val v : T ->
-    well_typed (G & x ~ T) (s & x ~ v).
-
 (** * Infrastructure *)
 
 Hint Constructors
-     well_typed
      ty_trm ty_def ty_defs subtyp.
 
 (** ** Mutual Induction Principles *)
