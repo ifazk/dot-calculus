@@ -14,8 +14,6 @@ Require Import LibLN.
 Require Import Definitions GeneralToTight InvertibleTyping Narrowing PreciseTyping RecordAndInertTypes
             Subenvironments Substitution TightTyping Weakening.
 
-Hint Unfold well_typed.
-
 (** * Simple Implications of Typing *)
 
 (** If a variable can be typed in an environment,
