@@ -25,9 +25,9 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
     (s, trm_app (avar_f f) (avar_f a)) |-> (s, open_trm a t)
 
 (** [(s, let x = v in t) |-> ((s, x = v), t^x)] *)
-| red_let_val : forall v t s x,
+| red_let_val : forall v s x,
     x # s ->
-    (s, trm_let (trm_val v) t) |-> (s & x ~ v, open_trm x t)
+    (s, (trm_val v)) |-> (s & x ~ v, trm_var (avar_f x))
 
 (** [(s, let y = x in t) |-> (s, t^x)] *)
 | red_let_var : forall t s x,
@@ -45,7 +45,6 @@ where "t1 '|->' t2" := (red t1 t2).
 (** ** Normal forms *)
 (** Variables and values are considered to be in normal form. *)
 Inductive norm_form: trm -> Prop :=
-| nf_var: forall x, norm_form (trm_var x)
-| nf_val: forall v, norm_form (trm_val v).
+| nf_loc: forall x, norm_form (trm_var x).
 
 Hint Constructors red norm_form.
