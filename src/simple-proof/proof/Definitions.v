@@ -78,6 +78,8 @@ Inductive trm : Set :=
   | trm_new     :  typ -> defs -> trm
   | trm_lambda  :  typ -> trm -> trm
   | trm_sel  : avar -> trm_label -> trm
+  | trm_force  : avar -> trm_label -> trm
+  | trm_force_assgn  : avar -> trm_label -> trm -> trm
   | trm_app  : avar -> avar -> trm
   | trm_let  : trm -> trm -> trm
 (**
@@ -183,6 +185,8 @@ Fixpoint open_rec_trm (k: nat) (u: var) (t: trm): trm :=
   | trm_new T ds   => trm_new (open_rec_typ (S k) u T) (open_rec_defs (S k) u ds)
   | trm_lambda T t => trm_lambda (open_rec_typ k u T) (open_rec_trm (S k) u t)
   | trm_sel v m    => trm_sel (open_rec_avar k u v) m
+  | trm_force v m    => trm_force (open_rec_avar k u v) m
+  | trm_force_assgn v m t  => trm_force_assgn (open_rec_avar k u v) m (open_rec_trm k u t)
   | trm_app f a    => trm_app (open_rec_avar k u f) (open_rec_avar k u a)
   | trm_let t1 t2  => trm_let (open_rec_trm k u t1) (open_rec_trm (S k) u t2)
   end
@@ -246,6 +250,8 @@ Fixpoint fv_trm (t: trm) : vars :=
   | trm_new T ds    => (fv_typ T) \u (fv_defs ds)
   | trm_lambda T e  => (fv_typ T) \u (fv_trm e)
   | trm_sel x m      => (fv_avar x)
+  | trm_force x m      => (fv_avar x)
+  | trm_force_assgn x m t    => (fv_avar x) \u (fv_trm t)
   | trm_app f a      => (fv_avar f) \u (fv_avar a)
   | trm_let t1 t2    => (fv_trm t1) \u (fv_trm t2)
   end

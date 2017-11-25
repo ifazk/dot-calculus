@@ -46,6 +46,8 @@ Fixpoint subst_trm (z: var) (u: var) (t: trm) : trm :=
   | trm_new T ds     => trm_new (subst_typ z u T) (subst_defs z u ds)
   | trm_lambda T t   => trm_lambda (subst_typ z u T) (subst_trm z u t)
   | trm_sel x1 L     => trm_sel (subst_avar z u x1) L
+  | trm_force x1 L     => trm_force (subst_avar z u x1) L
+  | trm_force_assgn x1 L t   => trm_force_assgn (subst_avar z u x1) L (subst_trm z u t)
   | trm_app x1 x2    => trm_app (subst_avar z u x1) (subst_avar z u x2)
   | trm_let t1 t2    => trm_let (subst_trm z u t1) (subst_trm z u t2)
   end

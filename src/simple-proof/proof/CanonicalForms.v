@@ -14,6 +14,72 @@ Require Import LibLN.
 Require Import Definitions GeneralToTight InvertibleTyping Narrowing PreciseTyping RecordAndInertTypes
             Subenvironments Substitution TightTyping Weakening.
 
+(** ** Auxilary Typing *)
+Inductive ty_trm_aux : ctx -> trm -> typ -> Prop :=
+| ty_aux_gen : forall G t T,
+    G ⊢ t : T ->
+    ty_trm_aux G t T
+
+| ty_aux_force : forall G x a T,
+    G ⊢ trm_sel (avar_f x) a : T ->
+    ty_trm_aux G (trm_force (avar_f x) a) T
+
+| ty_aux_force_assgn : forall G x a t S T,
+    binds x (typ_bnd S) G ->
+    record_has (open_typ x S) (dec_trm a T) ->
+    ty_trm_aux G t T ->
+    ty_trm_aux G (trm_force_assgn (avar_f x) a t) T
+
+| ty_aux_let : forall L G t u T U,
+    ty_trm_aux G t T ->
+    (forall x, x \notin L ->
+      G & x ~ T ⊢ open_trm x u : U) ->
+    ty_trm_aux G (trm_let t u) U
+
+| ty_aux_sub : forall G t T U,
+    ty_trm_aux G t T ->
+    G ⊢ T <: U ->
+    ty_trm_aux G t U
+.
+
+Hint Constructors ty_trm_aux.
+
+Lemma aux_to_gen_or_force : forall G t T,
+    ty_trm_aux G t T ->
+    (G ⊢ t : T) \/
+    (exists x a, t = trm_force (avar_f x) a) \/
+    (exists x a t', t = trm_force_assgn (avar_f x) a t') \/
+    (exists t' u, t = trm_let t' u) \/
+    (exists T', ty_trm_aux G t T' /\ G ⊢ T' <: T).
+Proof.
+  introv H; inversion H; subst.
+  - auto.
+  - eauto.
+  - right. right. left. repeat eexists.
+  - right. right. right. left. repeat eexists.
+  - right. right. right. right. eexists; split*.
+Qed.
+
+Lemma weaken_ty_aux: forall G1 G2 t T,
+    ty_trm_aux G1 t T ->
+    ok (G1 & G2) ->
+    ty_trm_aux (G1 & G2) t T.
+Proof.
+  introv Ht Hok.
+  dependent induction Ht.
+  - apply ty_aux_gen.
+    apply* weaken_ty_trm.
+  - apply ty_aux_force.
+    apply* weaken_ty_trm.
+  - eapply ty_aux_force_assgn; eauto.
+    apply binds_concat_left_ok; eauto.
+  - pose proof (IHHt Hok).
+    eapply (@ty_aux_let (L \u dom G \u dom G2)); eauto.
+    intros. eapply weaken_rules; eauto.
+  - apply~ ty_aux_sub.
+    eauto using weaken_subtyp.
+Qed.
+
 (** * Well-typed stacks *)
 
 (** The operational semantics is defined in terms of pairs [(s, t)], where
@@ -126,9 +192,7 @@ Proof.
   pose proof (get_some_inv BiG) as HinDom.
   symmetry in HdomEq.
   pose proof (get_some (Logic.eq_ind_r _ HinDom HdomEq)) as [?v Bis].
-  exists v. split.
-  - apply Bis.
-  - eauto.
+  exists v. split*.
 Qed.
 
 (** [G ⊢##v v: forall(S)T]                 #<br>#
