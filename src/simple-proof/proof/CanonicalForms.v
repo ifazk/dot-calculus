@@ -25,6 +25,49 @@ Proof.
   introv Ht. dependent induction Ht; eauto.
 Qed.
 
+(** [d1 isin ds]             #<br>#
+    [label(d2) \notin ds]     #<br>#
+    [―――――――――――――――――――――]  #<br>#
+    [label(d1) <> label(d2)]  *)
+Lemma defs_has_hasnt_neq: forall ds d1 d2,
+  defs_has ds d1 ->
+  defs_hasnt ds (label_of_def d2) ->
+  label_of_def d1 <> label_of_def d2.
+Proof.
+  introv Hhas Hhasnt.
+  unfold defs_has in Hhas.
+  unfold defs_hasnt in Hhasnt.
+  induction ds.
+  - simpl in Hhas. inversion Hhas.
+  - simpl in Hhasnt. simpl in Hhas. case_if; case_if.
+    + inversions Hhas. assumption.
+    + apply IHds; eauto.
+Qed.
+
+(** [G ⊢ ds :: ... /\ D /\ ...]       #<br>#
+    [―――――――――――――――――――――――]       #<br>#
+    [exists d, ds = ... /\ d /\ ...]       #<br>#
+    [G ⊢ d: D]                      *)
+Lemma record_has_ty_defs: forall G T ds D,
+  G /- ds :: T ->
+  record_has T D ->
+  exists d, defs_has ds d /\ G /- d : D.
+Proof.
+  introv Hdefs Hhas. induction Hdefs.
+  - inversion Hhas; subst. exists d. split.
+    + unfold defs_has. simpl. rewrite If_l; reflexivity.
+    + assumption.
+  - inversion Hhas; subst.
+    + destruct (IHHdefs H4) as [d' [H1 H2]].
+      exists d'. split.
+      * unfold defs_has. simpl. rewrite If_r. apply H1.
+        apply not_eq_sym. eapply defs_has_hasnt_neq; eauto.
+      * assumption.
+    + exists d. split.
+      * unfold defs_has. simpl. rewrite If_l; reflexivity.
+      * inversions* H4.
+Qed.
+
 (** * Well-typedness *)
 
 (** If [s: G], the variables in the domain of [s] are distinct. *)
@@ -107,35 +150,7 @@ Proof.
   - eauto.
 Qed.
 
-(** [G ⊢##v v: forall(S)T]                 #<br>#
-    [inert G]                          #<br>#
-    [――――――――――――――――――――――――――――――――] #<br>#
-    [exists S', T', G ⊢! v: forall(S')T']      #<br>#
-    [G ⊢ S <: S']                      #<br>#
-    [forall fresh y, G, y: S ⊢ T'^y <: T^y] *)
-Lemma invertible_val_to_precise_lambda: forall G v S T,
-    G ⊢##v v : typ_all S T ->
-    inert G ->
-    exists L S' T',
-      G ⊢!v v : typ_all S' T' /\
-      G ⊢ S <: S' /\
-      (forall y, y \notin L ->
-                 G & y ~ S ⊢ open_typ y T' <: open_typ y T).
-Proof.
-  introv Ht Hg. dependent induction Ht.
-  - exists (dom G) S T. split*.
-  - destruct (IHHt S0 T0 eq_refl Hg) as [L' [S1 [T1 [Hp [Hss Hst]]]]].
-    exists (L \u L' \u dom G) S1 T1. split. assumption. split. apply subtyp_trans with (T:=S0).
-    apply* tight_to_general. assumption. intros.
-    assert (ok (G & y ~ S)) as Hok. {
-      apply* ok_push.
-    }
-    apply subtyp_trans with (T:=open_typ y T0).
-    eapply narrow_subtyping. apply* Hst. apply subenv_last. apply* tight_to_general.
-    assumption.
-    apply* H0.
-Qed.
-
+(** * Functions in Inert Contexts *)
 (** This lemma corresponds to Lemma 3.7 ([forall] to [G(x)]) in the paper.
 
     [inert G]            #<br>#
@@ -183,7 +198,7 @@ Proof.
   introv Hin Ht.
   lets Htt: (general_to_tight_typing Hin Ht).
   lets Hinv: (tight_to_invertible_v Hin Htt).
-  destruct (invertible_val_to_precise_lambda Hinv Hin) as [L [T' [U' [Htp [Hs1 Hs2]]]]].
+  destruct (invertible_val_to_precise_lambda Hin Hinv) as [L [T' [U' [Htp [Hs1 Hs2]]]]].
   inversions Htp.
   exists (L0 \u L \u (dom G)) T' t. repeat split~.
   intros. assert (HL: y \notin L) by auto. assert (HL0: y \notin L0) by auto.
@@ -224,49 +239,7 @@ Proof.
     + eapply ty_sub; eauto.
 Qed.
 
-(** [d1 isin ds]             #<br>#
-    [label(d2) \notin ds]     #<br>#
-    [―――――――――――――――――――――]  #<br>#
-    [label(d1) <> label(d2)]  *)
-Lemma defs_has_hasnt_neq: forall ds d1 d2,
-  defs_has ds d1 ->
-  defs_hasnt ds (label_of_def d2) ->
-  label_of_def d1 <> label_of_def d2.
-Proof.
-  introv Hhas Hhasnt.
-  unfold defs_has in Hhas.
-  unfold defs_hasnt in Hhasnt.
-  induction ds.
-  - simpl in Hhas. inversion Hhas.
-  - simpl in Hhasnt. simpl in Hhas. case_if; case_if.
-    + inversions Hhas. assumption.
-    + apply IHds; eauto.
-Qed.
-
-(** [G ⊢ ds :: ... /\ D /\ ...]       #<br>#
-    [―――――――――――――――――――――――]       #<br>#
-    [exists d, ds = ... /\ d /\ ...]       #<br>#
-    [G ⊢ d: D]                      *)
-Lemma record_has_ty_defs: forall G T ds D,
-  G /- ds :: T ->
-  record_has T D ->
-  exists d, defs_has ds d /\ G /- d : D.
-Proof.
-  introv Hdefs Hhas. induction Hdefs.
-  - inversion Hhas; subst. exists d. split.
-    + unfold defs_has. simpl. rewrite If_l; reflexivity.
-    + assumption.
-  - inversion Hhas; subst.
-    + destruct (IHHdefs H4) as [d' [H1 H2]].
-      exists d'. split.
-      * unfold defs_has. simpl. rewrite If_r. apply H1.
-        apply not_eq_sym. eapply defs_has_hasnt_neq; eauto.
-      * assumption.
-    + exists d. split.
-      * unfold defs_has. simpl. rewrite If_l; reflexivity.
-      * inversions* H4.
-Qed.
-
+(** * Objects in Inert Contexts *)
 (** This lemma corresponds to Lemma 3.9 ([mu] to [G(x)]) in the paper.
 
     [inert G]                    #<br>#
