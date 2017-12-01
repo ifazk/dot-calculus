@@ -655,54 +655,66 @@ Qed.
 
 (** ** Path lookup in stacks *)
 
-Reserved Notation "s '∋' t" (at level 60, t at level 50).
-Reserved Notation "s '↓' p '==' ds" (at level 60).
+Reserved Notation "P '⊢' s '∋' t" (at level 40, s at level 59, t at level 50).
+Reserved Notation "P '⊢' s '↓' p '==' ds" (at level 40, s at level 59).
 
 
 (** Looking up a path in a stack (generalization of variable binding). *)
 
-Inductive lookup : sta -> path * val -> Prop :=
+Inductive lookup : fields -> sta -> path * val -> Prop :=
 
 (** [s(x) = v  ]    #<br>#
     [――――――――――]    #<br>#
     [s ∋ (x, v)]    *)
-| lookup_var : forall s x v,
+| lookup_var : forall s x v P,
     binds x v s ->
-    s ∋ (pvar x, v)
+    P ⊢ s ∋ (pvar x, v)
 
 (** [s ↓ p = ...{a = v}...  ]    #<br>#
     [―――――――――――――――――――――――]    #<br>#
     [s ∋ (p.a, v)]               *)
-| lookup_val : forall s p ds a v,
-    s ↓ p == ds ->
+| lookup_val : forall s p ds a v P,
+    P ⊢ s ↓ p == ds ->
     defs_has ds (def_trm a (trm_val v)) ->
-    s ∋ (p•a, v)
+    P ⊢ s ∋ (p•a, v)
 
-(** [s ↓ p = ...{a = q}...  ]    #<br>#
-    [s ∋ (q, v)             ]    #<br>#
-    [―――――――――――――――――――――――]    #<br>#
-    [s ∋ (p.a, v)]               *)
-| lookup_path : forall s ds a p q v,
-    s ↓ p == ds ->
-    defs_has ds (def_trm a (trm_path q)) ->
-    s ∋ (q, v) ->
-    s ∋ (p•a, v)
+(** [P1 ⊢ s ↓ x.bs = ...{a = y.cs}...  ]    #<br>#
+    [P2 ⊢ s ∋ (y.cs, v)                ]    #<br>#
+    [―――――――――――――――――――――――――――――――――]    #<br>#
+    [P1 ⊢ s ∋ (x.bs.a, v)]                  *)
+| lookup_path_neq : forall s ds a x bs y cs v P1 P2,
+    P1 ⊢ s ↓ p_sel x bs == ds ->
+    defs_has ds (def_trm a (trm_path (p_sel y cs))) ->
+    x <> y ->
+    P2 ⊢ s ∋ (p_sel y cs, v) ->
+    P1 ⊢ s ∋ (p_sel x (a :: bs), v)
 
-where "s '∋' t" := (lookup s t)
+(** [P ⊢ s ↓ x.bs = ...{a = x.cs}...  ]    #<br>#
+    [P ⊢ s ∋ (x.cs, v)                ]    #<br>#
+    [P ⊢ x.cs < x.bs.a]
+    [―――――――――――――――――――――――――――――――――]    #<br>#
+    [P ⊢ s ∋ (x.bs.a, v)]                  *)
+| lookup_path_eq : forall s ds a x bs cs v P,
+    P ⊢ s ↓ p_sel x bs == ds ->
+    defs_has ds (def_trm a (trm_path (p_sel x cs))) ->
+    P ⊢ s ∋ (p_sel x cs, v) ->
+    P ⊢ s ∋ (p_sel x (a :: bs), v)
+
+where "P '⊢' s '∋' t" := (lookup P s t)
 
 (** Opening of definitions:
     If [s ∋ (p, ν(x: T)ds)], then [lookup_open] gives us [ds] opened with [p]. *)
 
-with lookup_open : sta -> path -> defs -> Prop :=
+with lookup_open : fields -> sta -> path -> defs -> Prop :=
 
 (** [s ∋ (p, ν(T)ds)        ]    #<br>#
     [―――――――――――――――――――――――]    #<br>#
     [s ↓ p = ds^p           ]    *)
-| lookup_defs : forall s p T ds,
-    s ∋ (p, val_new T ds) ->
-    s ↓ p == open_defs_p p ds
+| lookup_defs : forall s p T ds P,
+    P ⊢ s ∋ (p, val_new T ds) ->
+    P ⊢ s ↓ p == open_defs_p p ds
 
-where "s '↓' p '==' ds" := (lookup_open s p ds).
+where "P '⊢' s '↓' p '==' ds" := (lookup_open P s p ds).
 
 Reserved Notation "t1 '|->' t2" (at level 40, t2 at level 39).
 
@@ -712,6 +724,7 @@ Scheme lookup_mut := Induction for lookup Sort Prop
   with lookup_open_mut := Induction for lookup_open Sort Prop.
 Combined Scheme lookup_mutind from lookup_mut, lookup_open_mut.
 
+
 (** ** Lemmas about Environment Lookup *)
 
 Ltac lookup_solve :=
@@ -720,12 +733,12 @@ Ltac lookup_solve :=
      inversions H; destruct p
    end;
    match goal with
-   | [H: _ ∋ (_, _) |- _] =>
+   | [H: _ ⊢ _ ∋ (_, _) |- _] =>
      inversions H; subst
    end;
-   match goal with
+   try match goal with
    | [p: path,
-         Hl: _ ↓ ?p == _ |- _] =>
+         Hl: _ ⊢ _ ↓ ?p == _ |- _] =>
      destruct p; unfolds sel_fields
    end;
    repeat match goal with
@@ -733,16 +746,16 @@ Ltac lookup_solve :=
            inversion* Heq
          | [Heq: p_sel _ _ = p_sel _ _ |- _] =>
            inversions Heq
-         | [IH: forall _ _ _, _ -> _ ∋ _ -> _,
-           Hl: _ ∋ (_, ?v2) |- _ = ?v2] =>
+         | [IH: forall _ _ _, _ -> _ ⊢ _ ∋ _ -> _,
+           Hl: _ ⊢ _ ∋ (_, ?v2) |- _ = ?v2] =>
            apply IH in Hl; subst
-         | [IH: forall _, _ ↓ _ == _ -> _,
-            Hl: _ ↓ _ == _
+         | [IH: forall _, _ ⊢ _ ↓ _ == _ -> _,
+            Hl: _ ⊢ _ ↓ _ == _
             |- _] =>
            apply IH in Hl; subst
-         | [IH: forall _, _ ↓ _ == _ -> _,
-              Hl1: _ ↓ _ == _,
-              Hl2: _ ↓ _ == _
+         | [IH: forall _, _ ⊢ _ ↓ _ == _ -> _,
+              Hl1: _ ⊢ _ ↓ _ == _,
+              Hl2: _ ⊢ _ ↓ _ == _
             |- _] =>
            apply IH in Hl1; apply IH in Hl2; subst
          | [Hd1: defs_has _ _,
@@ -751,48 +764,50 @@ Ltac lookup_solve :=
          end.
 
 Lemma lookup_func_mut :
-  (forall s t,
-    s ∋ t -> forall p v1 v2,
+  (forall P s t,
+    P ⊢ s ∋ t -> forall p v1 v2,
     t = (p, v1) ->
-    s ∋ (p, v2) ->
+    P ⊢ s ∋ (p, v2) ->
     v1 = v2) /\
-  (forall s p ds1,
-    s ↓ p == ds1 -> forall ds2,
-    s ↓ p == ds2 ->
+  (forall P s p ds1,
+    P ⊢ s ↓ p == ds1 -> forall ds2,
+    P ⊢ s ↓ p == ds2 ->
     ds1 = ds2).
 Proof.
   apply lookup_mutind; intros; try solve [lookup_solve].
   - Case "lookup_var".
     inversions H. inversions H0; unfolds sel_fields. eapply binds_func; eauto.
-    destruct p. inversions H. destruct p. inversions H.
+    destruct p. inversions H.
+  - admit.
+  - admit.
   - Case "lookup_defs".
     lets Hl: (lookup_defs l). inversions H0. specialize (H _ _ _ eq_refl H1).
     inversion* H.
 Qed.
 
-Lemma lookup_func : forall s p v1 v2,
-    s ∋ (p, v1) ->
-    s ∋ (p, v2) ->
+Lemma lookup_func : forall s p v1 v2 P,
+    P ⊢ s ∋ (p, v1) ->
+    P ⊢ s ∋ (p, v2) ->
     v1 = v2.
 Proof.
-  intros. lets Hl: (proj21 lookup_func_mut). specialize (Hl _ _ H _ _ _ eq_refl H0). apply Hl.
+  intros. lets Hl: (proj21 lookup_func_mut). specialize (Hl _ _ _ H _ _ _ eq_refl H0). apply Hl.
 Qed.
 
 Lemma lookup_empty_mut :
-  (forall s t,
-      s ∋ t ->
+  (forall P s t,
+      P ⊢ s ∋ t ->
       s = empty ->
       False) /\
-  (forall s p ds,
-      s ↓ p == ds ->
+  (forall P s p ds,
+      P ⊢ s ↓ p == ds ->
       s = empty ->
       False).
 Proof.
   apply lookup_mutind; auto. intros. subst. false* binds_empty_inv.
 Qed.
 
-Lemma lookup_empty : forall t,
-    empty ∋ t -> False.
+Lemma lookup_empty : forall t P,
+    P ⊢ empty ∋ t -> False.
 Proof.
   intros. eapply (proj21 lookup_empty_mut); eauto.
 Qed.
@@ -802,38 +817,20 @@ Qed.
        For example, if [T] is a recursive type with a field declaration [{a: U}],
        then [T ▼ a == U].  *)
 
-Reserved Notation "T '▼' bs '==' U" (at level 5, U at level 50).
-(*
-Inductive field_sel_typ : typ -> var -> fields -> typ -> Prop :=
-
-(** [T ▼ [] == T] *)
-| fields_empty : forall T,
-    T ▼ nil == T
-
-(** [T ▼ b1.b2...bn == μ(x: ...{b: V}...)] #<br>#
-    [――――――――――――――――――――――――――――――――――――] #<br>#
-    [T ▼ b1.b2...bn.b == V]                *)
-| fields_sel : forall T b bs V U,
-    T ▼ bs == typ_bnd U ->
-    record_has U (dec_trm b V) ->
-    T ▼ (b::bs) == V
-
-where "T '▼' bs '==' U" := (field_sel_typ T bs U). *)
-
 Lemma lookup_push_eq_inv_var :
-    forall s x v v',
-    s & x ~ v ∋ (pvar x, v') ->
+    forall s x v v' P,
+    P ⊢ s & x ~ v ∋ (pvar x, v') ->
     v = v'.
 Proof.
   introv Hx. inversions Hx;
     try (destruct (last_field _ _ H) as [bs Hbs]; inversion Hbs);
-    apply binds_push_eq_inv in H1. subst*.
+    apply binds_push_eq_inv in H2. subst*.
 Qed.
 
-Lemma lookup_push_neq : forall s x bs v y v',
-    s ∋ (p_sel (avar_f x) bs, v) ->
+Lemma lookup_push_neq : forall s x bs v y v' P,
+    P ⊢ s ∋ (p_sel (avar_f x) bs, v) ->
     x <> y ->
-    s & y ~ v' ∋ (p_sel (avar_f x) bs, v).
+    P ⊢ s & y ~ v' ∋ (p_sel (avar_f x) bs, v).
 Proof.
   introv Hp Hn. dependent induction Hp.
   Admitted.
