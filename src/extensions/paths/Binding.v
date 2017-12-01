@@ -727,70 +727,50 @@ Combined Scheme lookup_mutind from lookup_mut, lookup_open_mut.
 
 (** ** Lemmas about Environment Lookup *)
 
-Ltac lookup_solve :=
-   match goal with
-   | [H: (?p • _, _) = (_, _) |- _] =>
-     inversions H; destruct p
-   end;
-   match goal with
-   | [H: _ ⊢ _ ∋ (_, _) |- _] =>
-     inversions H; subst
-   end;
-   try match goal with
-   | [p: path,
-         Hl: _ ⊢ _ ↓ ?p == _ |- _] =>
-     destruct p; unfolds sel_fields
-   end;
-   repeat match goal with
-         | [Heq: trm_path _ = trm_path _ |- _] =>
-           inversion* Heq
-         | [Heq: p_sel _ _ = p_sel _ _ |- _] =>
-           inversions Heq
-         | [IH: forall _ _ _, _ -> _ ⊢ _ ∋ _ -> _,
-           Hl: _ ⊢ _ ∋ (_, ?v2) |- _ = ?v2] =>
-           apply IH in Hl; subst
-         | [IH: forall _, _ ⊢ _ ↓ _ == _ -> _,
-            Hl: _ ⊢ _ ↓ _ == _
-            |- _] =>
-           apply IH in Hl; subst
-         | [IH: forall _, _ ⊢ _ ↓ _ == _ -> _,
-              Hl1: _ ⊢ _ ↓ _ == _,
-              Hl2: _ ⊢ _ ↓ _ == _
-            |- _] =>
-           apply IH in Hl1; apply IH in Hl2; subst
-         | [Hd1: defs_has _ _,
-            Hd2: defs_has _ _ |- _] =>
-           apply (defs_has_inv Hd1) in Hd2; try congruence
-         end.
-
 Lemma lookup_func_mut :
   (forall P s t,
-    P ⊢ s ∋ t -> forall p v1 v2,
+    P ⊢ s ∋ t -> forall p v1 v2 P',
     t = (p, v1) ->
-    P ⊢ s ∋ (p, v2) ->
+    P' ⊢ s ∋ (p, v2) ->
     v1 = v2) /\
   (forall P s p ds1,
-    P ⊢ s ↓ p == ds1 -> forall ds2,
-    P ⊢ s ↓ p == ds2 ->
+    P ⊢ s ↓ p == ds1 -> forall ds2 P',
+    P' ⊢ s ↓ p == ds2 ->
     ds1 = ds2).
 Proof.
-  apply lookup_mutind; intros; try solve [lookup_solve].
+  apply lookup_mutind; intros.
   - Case "lookup_var".
     inversions H. inversions H0; unfolds sel_fields. eapply binds_func; eauto.
     destruct p. inversions H.
-  - admit.
-  - admit.
+  - Case "lookup_val".
+    inversions H0. inversions H1; unfolds sel_fields, pvar; destruct p.
+    * inversion H0.
+    * destruct p0. inversions H0. specialize (H _ _ H5). subst. lets Hd: (defs_has_inv H6 d). inversion* Hd.
+    * inversions H0. specialize (H _ _ H3). subst. lets Hd: (defs_has_inv H4 d). inversion Hd.
+    * inversions H0. specialize (H _ _ H3). subst. lets Hd: (defs_has_inv H6 d). inversion Hd.
+  - Case "lookup_path_neq".
+    inversions H1. inversions H2; unfolds sel_fields, pvar.
+    * destruct p. inversions H1. specialize (H _ _ H6). subst. lets Hd: (defs_has_inv H7 d). inversion Hd.
+    * specialize (H _ _ H8). subst. lets Hd: (defs_has_inv H9 d). inversions Hd.
+      apply* H0.
+    * specialize (H _ _ H7). subst. lets Hd: (defs_has_inv H9 d). false* Hd.
+  - Case "lookup_path_eq".
+    inversions H1. inversions H2; unfolds sel_fields, pvar.
+    * destruct p. inversions H1. specialize (H _ _ H6). subst. lets Hd: (defs_has_inv H7 d). inversion Hd.
+    * specialize (H _ _ H8). subst. lets Hd: (defs_has_inv H9 d). inversions Hd.
+      apply* H0.
+    * specialize (H _ _ H7). subst. lets Hd: (defs_has_inv H9 d). inversions Hd. apply* H0.
   - Case "lookup_defs".
-    lets Hl: (lookup_defs l). inversions H0. specialize (H _ _ _ eq_refl H1).
+    lets Hl: (lookup_defs l). inversions H0. specialize (H _ _ _ _ eq_refl H1).
     inversion* H.
 Qed.
 
-Lemma lookup_func : forall s p v1 v2 P,
-    P ⊢ s ∋ (p, v1) ->
-    P ⊢ s ∋ (p, v2) ->
+Lemma lookup_func : forall s p v1 v2 P1 P2,
+    P1 ⊢ s ∋ (p, v1) ->
+    P2 ⊢ s ∋ (p, v2) ->
     v1 = v2.
 Proof.
-  intros. lets Hl: (proj21 lookup_func_mut). specialize (Hl _ _ _ H _ _ _ eq_refl H0). apply Hl.
+  intros. lets Hl: (proj21 lookup_func_mut). specialize (Hl _ _ _ H _ _ _ _ eq_refl H0). apply Hl.
 Qed.
 
 Lemma lookup_empty_mut :

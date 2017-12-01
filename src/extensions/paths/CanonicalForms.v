@@ -140,7 +140,6 @@ Proof.
   introv Hwt Hs.
 Admitted.
 
-
 (** [G ~ s]                           #<br>#
     [P ⊢ s ∋ (p, ν(U)...{a = q}...)]  #<br>#
     [――――――――――――――――――――――――――――――] #<br>#
@@ -234,7 +233,8 @@ Proof.
     * subst. rename x1 into bs. gen v0 v. dependent induction Hp; introv Hv Hs.
       + Case "pf_bind".
         apply binds_push_eq_inv in H1. subst.
-        assert (v = v0) as Heq by admit. subst. apply* weaken_ty_trm.
+        assert (p_sel (avar_f x0) nil = pvar x0) as Heq by auto. rewrite Heq in Hs.
+        apply lookup_push_eq_inv_var in Hs. subst. apply* weaken_ty_trm.
       + Case "pf_fld".
         unfolds sel_fields. destruct p. inversions x. Admitted. (*
         specialize (IHHwt _ _ _ _
@@ -515,17 +515,16 @@ Lemma canonical_forms_obj: forall G s p a T,
   inert G ->
   well_typed G s ->
   G ⊢ trm_path p: typ_rcd (dec_trm a T) ->
-               (exists S ds t,
-                   s ∋ (p, val_new S ds) /\
+               (exists P S ds t,
+                   P ⊢ s ∋ (p, val_new S ds) /\
                    defs_has (open_defs_p p ds) (def_trm a t) /\
                    G ⊢ t : T).
 Proof.
   introv Hi Hwt Hty.
   destruct (var_typ_rcd_to_binds Hi Hty) as [S [T' [V [Bi [Hr Hs]]]]].
-  destruct (corresponding_types Hi Hwt Bi) as [v [Bis Ht]]. Admitted. (*
-  apply ty_var in Bi. apply ty_rec_elim in Bi. rewrite <- open_var_typ_eq in Bi.
-  destruct (val_mu_to_new Hi Ht Bi Hr) as [t [ds [Heq [Hdefs Ht']]]].
-  subst. exists S ds t. repeat split~. eapply ty_sub; eauto.
-  apply* inert_ok.
+  destruct (corresponding_types Hi Hwt Bi) as [v [P [Bis Ht]]].
+  lets Bieq: (pf_precise_U Bi).
+  lets Bi': (precise_to_general Bieq). apply ty_rec_elim in Bi'.
+  destruct (val_mu_to_new Hi Ht Bi' Hr) as [t [ds [Heq [Hdefs Ht']]]].
+  subst. exists P S ds t. repeat split~. eapply ty_sub; eauto.
 Qed.
-*)
