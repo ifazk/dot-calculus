@@ -287,3 +287,21 @@ Proof.
   apply ((proj44 explicit_tbdb_free_super) _ _ _ H0 H) in H1.
   inversion H1.
 Qed.
+
+Lemma tight_tbdb_free_super: forall G T1 T2,
+    inert G ->
+    G ⊢# T1 <: T2 ->
+    typ_bnd_dec_bot_free G T1 ->
+    typ_bnd_dec_bot_free G T2.
+Proof.
+  introv Hi Ht; induction Ht;
+    try solve[ intros;
+    match goal with
+    | [ H : typ_bnd_dec_bot_free _ _ |- _ ] =>
+      inversions H; eauto
+    end]; eauto.
+  intros. inversions H0; auto.
+  pose proof (x_bound_unique H H4); subst U0.
+  pose proof (pf_inert_unique_tight_bounds Hi H H4); subst T0.
+  auto.
+Qed.
