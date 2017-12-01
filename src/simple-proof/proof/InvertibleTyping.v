@@ -215,6 +215,35 @@ Proof.
       eauto.
 Qed.
 
+(** [G ⊢##v v: forall(S)T]                 #<br>#
+    [inert G]                          #<br>#
+    [――――――――――――――――――――――――――――――――] #<br>#
+    [exists S', T', G ⊢! v: forall(S')T']      #<br>#
+    [G ⊢ S <: S']                      #<br>#
+    [forall fresh y, G, y: S ⊢ T'^y <: T^y] *)
+Lemma invertible_val_to_precise_lambda: forall G v S T,
+    inert G ->
+    G ⊢##v v : typ_all S T ->
+    exists L S' T',
+      G ⊢!v v : typ_all S' T' /\
+      G ⊢ S <: S' /\
+      (forall y, y \notin L ->
+                 G & y ~ S ⊢ open_typ y T' <: open_typ y T).
+Proof.
+  introv Hi Ht. dependent induction Ht.
+  - exists (dom G) S T. split*.
+  - destruct (IHHt S0 T0 Hi eq_refl) as [L' [S1 [T1 [Hp [Hss Hst]]]]].
+    exists (L \u L' \u dom G) S1 T1. split. assumption. split. apply subtyp_trans with (T:=S0).
+    apply* tight_to_general. assumption. intros.
+    assert (ok (G & y ~ S)) as Hok. {
+      apply* ok_push.
+    }
+    apply subtyp_trans with (T:=open_typ y T0).
+    eapply narrow_subtyping. apply* Hst. apply subenv_last. apply* tight_to_general.
+    assumption.
+    apply* H0.
+Qed.
+
 (** ** Invertible Subtyping Closure *)
 
 (** Invertible typing is closed under tight subtyping. *)
@@ -232,7 +261,7 @@ Proof.
   - inversion HT; auto. apply pf_and2 in H. apply* ty_precise_inv.
   - inversions HT.
     + false* pf_psel_false.
-    + lets Hu: (x_bound_unique Hi H H5). subst.
+    + lets Hu: (x_bound_unique H H5). subst.
       pose proof (pf_inert_unique_tight_bounds Hi H H5) as Hu. subst. assumption.
 Qed.
 
@@ -274,9 +303,9 @@ Lemma invertible_typing_closure_tight_v: forall G v T U,
   G ⊢##v v : U.
 Proof.
   introv Hi HT Hsub.
-  dependent induction Hsub; eauto; inversions HT; auto; try solve [inversion* H].
+  dependent induction Hsub; eauto; inversions HT; try solve [assumption | inversion* H].
   - inversions H0.
-  - lets Hu: (x_bound_unique Hi H H5). subst.
+  - lets Hu: (x_bound_unique H H5). subst.
     lets Hb: (pf_inert_unique_tight_bounds Hi H H5). subst*.
 Qed.
 
