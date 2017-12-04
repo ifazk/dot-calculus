@@ -814,3 +814,10 @@ Lemma lookup_push_neq : forall s x bs v y v' P,
 Proof.
   introv Hp Hn. dependent induction Hp.
   Admitted.
+
+Lemma lookup_strengthen: forall P s y v x bs w,
+    P ⊢ s & y ~ v ∋ (p_sel (avar_f x) bs, w) ->
+    y <> x ->
+    P ⊢ s ∋ (p_sel (avar_f x) bs, w).
+Proof.
+Admitted.
