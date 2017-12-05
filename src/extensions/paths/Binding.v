@@ -651,9 +651,7 @@ Qed.
 
 (** * Environment Lookup *)
 
-(** * Path Lookup *)
-
-(** ** Path lookup in stacks *)
+(** * Path lookup *)
 
 Reserved Notation "P '⊢' s '∋' t" (at level 40, s at level 59, t at level 50).
 Reserved Notation "P '⊢' s '↓' p '==' ds" (at level 40, s at level 59).
@@ -661,14 +659,14 @@ Reserved Notation "P '⊢' s '↓' p '==' ds" (at level 40, s at level 59).
 
 (** Looking up a path in a stack (generalization of variable binding). *)
 
-Inductive lookup : fields -> sta -> path * val -> Prop :=
+Inductive lookup : paths -> sta -> path * trm -> Prop :=
 
 (** [s(x) = v  ]    #<br>#
     [――――――――――]    #<br>#
     [s ∋ (x, v)]    *)
 | lookup_var : forall s x v P,
     binds x v s ->
-    P ⊢ s ∋ (pvar x, v)
+    P ⊢ s ∋ (pvar x, trm_val v)
 
 (** [s ↓ p = ...{a = v}...  ]    #<br>#
     [―――――――――――――――――――――――]    #<br>#
@@ -676,47 +674,52 @@ Inductive lookup : fields -> sta -> path * val -> Prop :=
 | lookup_val : forall s p ds a v P,
     P ⊢ s ↓ p == ds ->
     defs_has ds (def_trm a (trm_val v)) ->
-    P ⊢ s ∋ (p•a, v)
+    P ⊢ s ∋ (p•a, trm_val v)
 
-(** [P1 ⊢ s ↓ x.bs = ...{a = y.cs}...  ]    #<br>#
-    [P2 ⊢ s ∋ (y.cs, v)                ]    #<br>#
+(** [P1 ⊢ s ∋ (p, q)]    #<br>#
+    [P2 ⊢ s ∋ (q, v)]    #<br>#
+    [―――――――――――――――]    #<br>#
+    [P1 ⊢ s ∋ (p, v)]        *)
+| lookup_path_val : forall P1 P2 s p q v,
+    P1 ⊢ s ∋ (p, trm_path q) ->
+    P2 ⊢ s ∋ (q, trm_val v) ->
+    P1 ⊢ s ∋ (p, trm_val v)
+
+(** [P1 ⊢ s ↓ x.bs = ...{a = y.cs}... ]    #<br>#
+    [x <> y]                                #<br>#
     [―――――――――――――――――――――――――――――――――]    #<br>#
-    [P1 ⊢ s ∋ (x.bs.a, v)]                  *)
-| lookup_path_neq : forall s ds a x bs y cs v P1 P2,
+    [P1 ⊢ s ∋ (x.bs.a, y.cs)]                  *)
+| lookup_path_neq : forall P1 s x bs ds a cs y,
     P1 ⊢ s ↓ p_sel x bs == ds ->
     defs_has ds (def_trm a (trm_path (p_sel y cs))) ->
     x <> y ->
-    P2 ⊢ s ∋ (p_sel y cs, v) ->
-    P1 ⊢ s ∋ (p_sel x (a :: bs), v)
+    P1 ⊢ s ∋ (p_sel x (a :: bs), trm_path (p_sel y cs))
 
-(** [P ⊢ s ↓ x.bs = ...{a = x.cs}...  ]    #<br>#
-    [P ⊢ s ∋ (x.cs, v)                ]    #<br>#
-    [P ⊢ x.cs < x.bs.a]
+(** [P ⊢ s ↓ x.bs = ...{a = x.cs}...  ]
+    [P ⊢ x.cs < x.bs.a]                    #<br>#
     [―――――――――――――――――――――――――――――――――]    #<br>#
-    [P ⊢ s ∋ (x.bs.a, v)]                  *)
-| lookup_path_eq : forall s ds a x bs cs v P,
+    [P ⊢ s ∋ (x.bs.a, x.cs)]               *)
+| lookup_path_eq : forall s ds a x bs cs P,
     P ⊢ s ↓ p_sel x bs == ds ->
     defs_has ds (def_trm a (trm_path (p_sel x cs))) ->
-    P ⊢ s ∋ (p_sel x cs, v) ->
-    P ⊢ s ∋ (p_sel x (a :: bs), v)
+    path_precedes P cs (a :: bs) ->
+    P ⊢ s ∋ (p_sel x (a :: bs), trm_path (p_sel x cs))
 
 where "P '⊢' s '∋' t" := (lookup P s t)
 
 (** Opening of definitions:
-    If [s ∋ (p, ν(x: T)ds)], then [lookup_open] gives us [ds] opened with [p]. *)
+    If [P ⊢ s ∋ (p, ν(x: T)ds)], then [lookup_open] gives us [ds] opened with [p]. *)
 
-with lookup_open : fields -> sta -> path -> defs -> Prop :=
+with lookup_open : paths -> sta -> path -> defs -> Prop :=
 
 (** [s ∋ (p, ν(T)ds)        ]    #<br>#
     [―――――――――――――――――――――――]    #<br>#
     [s ↓ p = ds^p           ]    *)
 | lookup_defs : forall s p T ds P,
-    P ⊢ s ∋ (p, val_new T ds) ->
+    P ⊢ s ∋ (p, trm_val (val_new T ds)) ->
     P ⊢ s ↓ p == open_defs_p p ds
 
 where "P '⊢' s '↓' p '==' ds" := (lookup_open P s p ds).
-
-Reserved Notation "t1 '|->' t2" (at level 40, t2 at level 39).
 
 Hint Constructors lookup lookup_open.
 
@@ -724,15 +727,15 @@ Scheme lookup_mut := Induction for lookup Sort Prop
   with lookup_open_mut := Induction for lookup_open Sort Prop.
 Combined Scheme lookup_mutind from lookup_mut, lookup_open_mut.
 
-
 (** ** Lemmas about Environment Lookup *)
 
+(*
 Lemma lookup_func_mut :
   (forall P s t,
-    P ⊢ s ∋ t -> forall p v1 v2 P',
-    t = (p, v1) ->
-    P' ⊢ s ∋ (p, v2) ->
-    v1 = v2) /\
+    P ⊢ s ∋ t -> forall p t1 t2 P',
+    t = (p, trm_val t1) ->
+    P' ⊢ s ∋ (p, trm_val t2) ->
+    t1 = t2) /\
   (forall P s p ds1,
     P ⊢ s ↓ p == ds1 -> forall ds2 P',
     P' ⊢ s ↓ p == ds2 ->
@@ -740,8 +743,11 @@ Lemma lookup_func_mut :
 Proof.
   apply lookup_mutind; intros.
   - Case "lookup_var".
-    inversions H. inversions H0; unfolds sel_fields. eapply binds_func; eauto.
-    destruct p. inversions H.
+    inversions H. dependent induction H0; unfolds sel_fields.
+    lets Hb: (binds_func b H). subst*.
+    destruct p. inversions H. inversions x.
+    specialize (IHlookup2 _ b t2).
+    admit.
   - Case "lookup_val".
     inversions H0. inversions H1; unfolds sel_fields, pvar; destruct p.
     * inversion H0.
@@ -772,6 +778,7 @@ Lemma lookup_func : forall s p v1 v2 P1 P2,
 Proof.
   intros. lets Hl: (proj21 lookup_func_mut). specialize (Hl _ _ _ H _ _ _ _ eq_refl H0). apply Hl.
 Qed.
+*)
 
 Lemma lookup_empty_mut :
   (forall P s t,
@@ -799,12 +806,13 @@ Qed.
 
 Lemma lookup_push_eq_inv_var :
     forall s x v v' P,
-    P ⊢ s & x ~ v ∋ (pvar x, v') ->
+    P ⊢ s & x ~ v ∋ (pvar x, trm_val v') ->
     v = v'.
 Proof.
   introv Hx. inversions Hx;
-    try (destruct (last_field _ _ H) as [bs Hbs]; inversion Hbs);
-    apply binds_push_eq_inv in H2. subst*.
+    try (destruct (last_field _ _ H) as [bs Hbs]; inversion Hbs).
+  apply binds_push_eq_inv in H2. subst*.
+
 Qed.
 
 Lemma lookup_push_neq : forall s x bs v y v' P,

@@ -292,7 +292,7 @@ Proof.
               [Г, x0: T ⊢ v0: U] *)
            admit.
         ++ SCase "lookup_path_neq".
-           inversions H7.
+           inversions H7. admit.
         ++ SCase "lookup_path_eq". admit.
       + Case "pf_open".
         eauto.
