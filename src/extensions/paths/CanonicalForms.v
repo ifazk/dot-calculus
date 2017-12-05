@@ -267,12 +267,32 @@ Proof.
       + Case "pf_fld".
         unfolds sel_fields. destruct p. inversions x.
         specialize (IHHp f x0 H0 T G Hi Hwt H IHHwt eq_refl JMeq_refl).
-        apply pf_fld in Hp. unfolds sel_fields. simpls. clear IHHwt.
+        unfolds sel_fields. simpls.
         inversions Hs.
         ++ SCase "lookup_val".
            unfolds sel_fields. destruct p as [x bs]. simpls. inversions H1.
-           inversions H5. specialize (IHHp _ _ Hv H1). admit.
-        ++ SCase "lookup_path_neq". admit.
+           inversions H5. specialize (IHHp _ _ Hv H1).
+           (* from
+              [Г, x0: T ⊢ ν(T1)ds0: T0]
+              [T0 inert]
+              get
+              [T0 = μ(T1)] *)
+           (* from
+              [Г, x0: T ⊢ ν(T1)ds0: μ(T1)]
+              get
+              [Г, x0: T, y: T1 ⊢ ds0^y: T1^y] *)
+           (* from that and
+              [Г, x0: T ⊢ x0.f: T1]
+              get through substitution of [y] by [x0.f] that
+              [Г, x0: T ⊢ ds0^x0.f : T1^x0.f] *)
+           (* from that and
+              [ds0^x0.f = ...{a = v0}...]
+              [T0 = ...{a: U}...]
+              get
+              [Г, x0: T ⊢ v0: U] *)
+           admit.
+        ++ SCase "lookup_path_neq".
+           inversions H7.
         ++ SCase "lookup_path_eq". admit.
       + Case "pf_open".
         eauto.
