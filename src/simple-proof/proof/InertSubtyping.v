@@ -89,7 +89,7 @@ Proof.
     inversions H1; apply_fresh all_sup_all as z.
     + eauto.
     + assert (G & z ~ S2 ⊢ open_typ z T <: open_typ z T1)
-        by (eapply narrow_subtyping; eauto using subenv_grow).
+        by (eapply narrow_subtyping; eauto using subenv_push).
       eauto.
 Qed.
 
