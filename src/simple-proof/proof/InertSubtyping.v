@@ -11,6 +11,9 @@ Require Import LibLN.
 Require Import Definitions RecordAndInertTypes PreciseTyping TightTyping InvertibleTyping
         GeneralToTight Subenvironments Weakening Narrowing Substitution.
 
+Local Hint Resolve x_bound_unique.
+Local Hint Resolve pf_inert_unique_tight_bounds.
+
 Inductive bnd_sup : ctx -> typ -> typ -> Prop :=
 | bnd_sup_top : forall G T,
     bnd_sup G T typ_top
@@ -24,6 +27,7 @@ Inductive bnd_sup : ctx -> typ -> typ -> Prop :=
     bnd_sup G T (typ_sel (avar_f x) A)
 | bnd_sup_rec : forall G T,
     bnd_sup G (typ_bnd T) (typ_bnd T).
+Local Hint Constructors bnd_sup.
 
 Lemma tight_bnd_sup: forall G S T U,
     inert G ->
@@ -36,11 +40,10 @@ Proof.
     match goal with
     | [ H : bnd_sup _ _ _ |- _ ] =>
       try solve [inversions H; auto]
-    end;
-    eauto using bnd_sup.
+    end; eauto.
   inversions H0; auto.
-  replace U0 with U in * by eauto using x_bound_unique.
-  replace S0 with T in * by eauto using pf_inert_unique_tight_bounds.
+  replace U0 with U in * by eauto.
+  replace S0 with T in * by eauto.
   auto.
 Qed.
 
@@ -60,13 +63,14 @@ Inductive all_sup : ctx -> typ -> typ -> Prop :=
     (forall x, x \notin L ->
        G & x ~ S2 ⊢ open_typ x T1 <: open_typ x T2) ->
     all_sup G (typ_all S1 T1) (typ_all S2 T2).
+Local Hint Constructors all_sup.
 
 Lemma all_sup_refl: forall G S T,
     all_sup G (typ_all S T) (typ_all S T).
 Proof.
   intros. apply_fresh all_sup_all as z; auto.
 Qed.
-
+Local Hint Resolve all_sup_refl.
 
 Lemma tight_all_sup: forall G S T U1 U2,
     inert G ->
@@ -75,17 +79,16 @@ Lemma tight_all_sup: forall G S T U1 U2,
     all_sup G (typ_all S T) U2.
 Proof.
   introv Hi H.
-  dependent induction H; intros;
+  dependent induction H; intros; auto;
     match goal with
+    | |- all_sup _ _ (typ_sel (avar_f _) _) =>
+      eauto
     | [ H : all_sup _ _ _ |- _ ] =>
       try solve [inversions H; auto]
-    end;
-    eauto using all_sup_top, all_sup_and, all_sup_sel.
+    end.
   - inversions H0; auto.
-    replace U0 with U in *
-      by eauto using x_bound_unique.
-    replace S0 with T0 in *
-      by eauto using pf_inert_unique_tight_bounds.
+    replace U0 with U in * by eauto.
+    replace S0 with T0 in * by eauto.
     auto.
   - pose proof ((proj2 tight_to_general) _ _ _ H);
     inversions H1; apply_fresh all_sup_all as z.
@@ -102,10 +105,10 @@ Proof.
   introv Hi; split; introv H.
   - apply (proj2 (general_to_tight Hi)) in H; auto.
     assert (Contra: bnd_sup G (typ_bnd T) (typ_all S U))
-      by eauto using tight_bnd_sup, bnd_sup.
+      by eauto using tight_bnd_sup.
     inversion Contra.
   - apply (proj2 (general_to_tight Hi)) in H; auto.
     assert (Contra: all_sup G (typ_all S U) (typ_bnd T))
-      by eauto using all_sup_refl, tight_all_sup.
+      by eauto using tight_all_sup.
     inversions Contra.
 Qed.
