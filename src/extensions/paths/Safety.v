@@ -23,8 +23,8 @@ Notation "'⊢' t ':' T" := (sta_trm_typ t T) (at level 40, t at level 59).
 
 Ltac lookup_eq :=
   match goal with
-  | [Hl1: ?P ⊢ ?s ∋ ?t1,
-     Hl2: ?P' ⊢ ?s ∋ ?t2 |- _] =>
+  | [Hl1: ?s ∋ ?t1 // ?ps1,
+     Hl2: ?s ∋ ?t2 // ?ps2 |- _] =>
      apply (lookup_func Hl1) in Hl2; inversions Hl2
   end.
 

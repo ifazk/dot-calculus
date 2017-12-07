@@ -266,10 +266,7 @@ Proof.
            unfolds sel_fields. destruct p. inversions H1.
            destruct (pf_inert_rcd_U Hi Hp) as [V Heq]. subst.
            lets Hrh: (precise_flow_record_has Hi Hp). simpls.
-           inversions H3.
-
-
-
+           inversions H3. admit.
       + Case "pf_open".
         eauto.
       + Case "pf_and1".
@@ -285,7 +282,7 @@ Lemma corresponding_types: forall G s p T T',
     inert G ->
     well_typed G s ->
     G ⊢! p: T ⪼ T' ->
-    (exists v P, P ⊢ s ∋ (p, v) /\
+    (exists v ps, s ∋ (p, v) // ps /\
             G ⊢ trm_val v : T).
 Proof.
   introv Hi Hwt Hp.
@@ -387,7 +384,7 @@ Lemma canonical_forms_fun: forall G s p T U,
   inert G ->
   well_typed G s ->
   G ⊢ trm_path p : typ_all T U ->
-                   (exists L T' t P, P ⊢ s ∋ (p, val_lambda T' t) /\
+                   (exists L T' t ps, s ∋ (p, val_lambda T' t) // ps /\
                     G ⊢ T <: T' /\
                     (forall y, y \notin L -> G & y ~ T ⊢ open_trm y t : open_typ y U)).
 Proof.
@@ -491,8 +488,8 @@ Lemma canonical_forms_obj: forall G s p a T,
   inert G ->
   well_typed G s ->
   G ⊢ trm_path p: typ_rcd (dec_trm a T) ->
-               (exists P S ds t,
-                   P ⊢ s ∋ (p, val_new S ds) /\
+               (exists ps S ds t,
+                   s ∋ (p, val_new S ds) // ps /\
                    defs_has (open_defs_p p ds) (def_trm a t) /\
                    G ⊢ t : T).
 Proof.
