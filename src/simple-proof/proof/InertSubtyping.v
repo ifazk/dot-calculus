@@ -82,15 +82,16 @@ Proof.
     end;
     eauto using all_sup_top, all_sup_and, all_sup_sel.
   - inversions H0; auto.
-    replace U0 with U in * by eauto using x_bound_unique.
-    replace S0 with T0 in * by eauto using pf_inert_unique_tight_bounds.
+    replace U0 with U in *
+      by eauto using x_bound_unique.
+    replace S0 with T0 in *
+      by eauto using pf_inert_unique_tight_bounds.
     auto.
   - pose proof ((proj2 tight_to_general) _ _ _ H);
     inversions H1; apply_fresh all_sup_all as z.
     + eauto.
     + assert (G & z ~ S2 ⊢ open_typ z T <: open_typ z T1)
-        by (eapply narrow_subtyping; eauto using subenv_push).
-      eauto.
+        by apply* narrow_subtyping; eauto.
 Qed.
 
 Lemma inert_subtyping: forall G,
@@ -100,10 +101,11 @@ Lemma inert_subtyping: forall G,
 Proof.
   introv Hi; split; introv H.
   - apply (proj2 (general_to_tight Hi)) in H; auto.
-    assert (Contra: bnd_sup G (typ_bnd T) (typ_all S U)) by (eapply tight_bnd_sup; eauto using bnd_sup).
+    assert (Contra: bnd_sup G (typ_bnd T) (typ_all S U))
+      by eauto using tight_bnd_sup, bnd_sup.
     inversion Contra.
-  - assert (all_sup G (typ_all S U) (typ_all S U)) by (apply_fresh all_sup_all as z; eauto).
-    apply (proj2 (general_to_tight Hi)) in H; auto.
-    assert (Contra: all_sup G (typ_all S U) (typ_bnd T)) by eauto using tight_all_sup.
+  - apply (proj2 (general_to_tight Hi)) in H; auto.
+    assert (Contra: all_sup G (typ_all S U) (typ_bnd T))
+      by eauto using all_sup_refl, tight_all_sup.
     inversions Contra.
 Qed.
