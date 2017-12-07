@@ -649,77 +649,67 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma proj_rewrite : forall x bs a,
+    (p_sel x (a :: bs)) = (p_sel x bs) • a.
+Proof.
+  auto. Qed.
+
+Hint Rewrite proj_rewrite.
+
 (** * Environment Lookup *)
 
 (** * Path lookup *)
 
-Reserved Notation "P '⊢' s '∋' t" (at level 40, s at level 59, t at level 50).
-Reserved Notation "P '⊢' s '↓' p '==' ds" (at level 40, s at level 59).
+Reserved Notation "s '∋' t '//' ps" (at level 40).
+Reserved Notation "s '↓' p '==' ds '//' ps" (at level 40).
 
 
 (** Looking up a path in a stack (generalization of variable binding). *)
 
-Inductive lookup : paths -> sta -> path * trm -> Prop :=
+Inductive lookup : sta -> path * val -> list path -> Prop :=
 
-(** [s(x) = v  ]    #<br>#
-    [――――――――――]    #<br>#
-    [s ∋ (x, v)]    *)
-| lookup_var : forall s x v P,
+(** [s(x) = v         ]    #<br>#
+    [―――――――――――――――――]    #<br>#
+    [s ∋ (x, v) // [] ]        *)
+| lookup_var : forall s x v ps,
     binds x v s ->
-    P ⊢ s ∋ (pvar x, trm_val v)
+    s ∋ (pvar x, v) // ps
 
-(** [s ↓ p = ...{a = v}...  ]    #<br>#
-    [―――――――――――――――――――――――]    #<br>#
-    [s ∋ (p.a, v)]               *)
-| lookup_val : forall s p ds a v P,
-    P ⊢ s ↓ p == ds ->
+(** [s ↓ p = ...{a = v}... // ps ]    #<br>#
+    [――――――――――――――――――――――――――――]    #<br>#
+    [s ∋ (p.a, v) // ps          ]        *)
+| lookup_val : forall s p ds a v ps,
+    s ↓ p == ds // ps ->
     defs_has ds (def_trm a (trm_val v)) ->
-    P ⊢ s ∋ (p•a, trm_val v)
+    s ∋ (p•a, v) // ps
 
-(** [P1 ⊢ s ∋ (p, q)]    #<br>#
-    [P2 ⊢ s ∋ (q, v)]    #<br>#
-    [―――――――――――――――]    #<br>#
-    [P1 ⊢ s ∋ (p, v)]        *)
-| lookup_path_val : forall P1 P2 s p q v,
-    P1 ⊢ s ∋ (p, trm_path q) ->
-    P2 ⊢ s ∋ (q, trm_val v) ->
-    P1 ⊢ s ∋ (p, trm_val v)
+(** [s ↓ p = ...{a = q}... // ps         ]    #<br>#
+    [q ∉ ps                              ]    #<br>#
+    [s ∋ (q, v) // p•a::ps               ]    #<br>#
+    [――――――――――――――――――――――――――――――――――――]    #<br>#
+    [s ∋ (p.a, v) // ps                  ]        *)
+| lookup_path : forall s p ds ps a q v,
+    s ↓ p == ds // ps ->
+    defs_has ds (def_trm a (trm_path q)) ->
+    ~ (In q ps) ->
+    s ∋ (q, v) // (p•a :: ps) ->
+    s ∋ (p•a, v) // ps
 
-(** [P1 ⊢ s ↓ x.bs = ...{a = y.cs}... ]    #<br>#
-    [x <> y]                                #<br>#
-    [―――――――――――――――――――――――――――――――――]    #<br>#
-    [P1 ⊢ s ∋ (x.bs.a, y.cs)]                  *)
-| lookup_path_neq : forall P1 s x bs ds a cs y,
-    P1 ⊢ s ↓ p_sel x bs == ds ->
-    defs_has ds (def_trm a (trm_path (p_sel y cs))) ->
-    x <> y ->
-    P1 ⊢ s ∋ (p_sel x (a :: bs), trm_path (p_sel y cs))
-
-(** [P ⊢ s ↓ x.bs = ...{a = x.cs}...  ]
-    [P ⊢ x.cs < x.bs.a]                    #<br>#
-    [―――――――――――――――――――――――――――――――――]    #<br>#
-    [P ⊢ s ∋ (x.bs.a, x.cs)]               *)
-| lookup_path_eq : forall s ds a x bs cs P,
-    P ⊢ s ↓ p_sel x bs == ds ->
-    defs_has ds (def_trm a (trm_path (p_sel x cs))) ->
-    path_precedes P cs (a :: bs) ->
-    P ⊢ s ∋ (p_sel x (a :: bs), trm_path (p_sel x cs))
-
-where "P '⊢' s '∋' t" := (lookup P s t)
+where "s '∋' t '//' ps" := (lookup s t ps)
 
 (** Opening of definitions:
-    If [P ⊢ s ∋ (p, ν(x: T)ds)], then [lookup_open] gives us [ds] opened with [p]. *)
+    If [s ∋ (p, ν(x: T)ds)], then [lookup_open] gives us [ds] opened with [p]. *)
 
-with lookup_open : paths -> sta -> path -> defs -> Prop :=
+with lookup_open : sta -> path -> defs -> list path -> Prop :=
 
-(** [s ∋ (p, ν(T)ds)        ]    #<br>#
-    [―――――――――――――――――――――――]    #<br>#
-    [s ↓ p = ds^p           ]    *)
-| lookup_defs : forall s p T ds P,
-    P ⊢ s ∋ (p, trm_val (val_new T ds)) ->
-    P ⊢ s ↓ p == open_defs_p p ds
+(** [s ∋ (p, ν(T)ds) // ps       ]    #<br>#
+    [――――――――――――――――――――――――――――]    #<br>#
+    [s ↓ p = ds^p // ps          ]        *)
+| lookup_defs : forall s p T ds ps,
+    s ∋ (p, val_new T ds) // ps ->
+    s ↓ p == open_defs_p p ds // ps
 
-where "P '⊢' s '↓' p '==' ds" := (lookup_open P s p ds).
+where "s '↓' p '==' ds '//' ps" := (lookup_open s p ds ps).
 
 Hint Constructors lookup lookup_open.
 
@@ -729,103 +719,177 @@ Combined Scheme lookup_mutind from lookup_mut, lookup_open_mut.
 
 (** ** Lemmas about Environment Lookup *)
 
-(*
 Lemma lookup_func_mut :
-  (forall P s t,
-    P ⊢ s ∋ t -> forall p t1 t2 P',
-    t = (p, trm_val t1) ->
-    P' ⊢ s ∋ (p, trm_val t2) ->
-    t1 = t2) /\
-  (forall P s p ds1,
-    P ⊢ s ↓ p == ds1 -> forall ds2 P',
-    P' ⊢ s ↓ p == ds2 ->
+  (forall s t ps1,
+    s ∋ t // ps1 -> forall p v1 v2 ps2,
+    t = (p, v1) ->
+    s ∋ (p, v2) // ps2 ->
+    v1 = v2) /\
+  (forall s p ds1 ps1,
+    s ↓ p == ds1 // ps1 -> forall ds2 ps2,
+    s ↓ p == ds2 // ps2 ->
     ds1 = ds2).
 Proof.
   apply lookup_mutind; intros.
   - Case "lookup_var".
-    inversions H. dependent induction H0; unfolds sel_fields.
+    inversions H. dependent induction H0; unfolds sel_fields; try (destruct p; inversions x).
     lets Hb: (binds_func b H). subst*.
-    destruct p. inversions H. inversions x.
-    specialize (IHlookup2 _ b t2).
-    admit.
   - Case "lookup_val".
     inversions H0. inversions H1; unfolds sel_fields, pvar; destruct p.
     * inversion H0.
-    * destruct p0. inversions H0. specialize (H _ _ H5). subst. lets Hd: (defs_has_inv H6 d). inversion* Hd.
-    * inversions H0. specialize (H _ _ H3). subst. lets Hd: (defs_has_inv H4 d). inversion Hd.
-    * inversions H0. specialize (H _ _ H3). subst. lets Hd: (defs_has_inv H6 d). inversion Hd.
-  - Case "lookup_path_neq".
+    * destruct p0. inversions H0. specialize (H _ _ H4). subst. lets Hd: (defs_has_inv H6 d). inversion* Hd.
+    * inversions H0. destruct p0. inversions H2.
+      specialize (H _ _ H3). subst. lets Hd: (defs_has_inv H4 d). inversion Hd.
+  - Case "lookup_path".
     inversions H1. inversions H2; unfolds sel_fields, pvar.
-    * destruct p. inversions H1. specialize (H _ _ H6). subst. lets Hd: (defs_has_inv H7 d). inversion Hd.
-    * specialize (H _ _ H8). subst. lets Hd: (defs_has_inv H9 d). inversions Hd.
-      apply* H0.
-    * specialize (H _ _ H7). subst. lets Hd: (defs_has_inv H9 d). false* Hd.
-  - Case "lookup_path_eq".
-    inversions H1. inversions H2; unfolds sel_fields, pvar.
-    * destruct p. inversions H1. specialize (H _ _ H6). subst. lets Hd: (defs_has_inv H7 d). inversion Hd.
-    * specialize (H _ _ H8). subst. lets Hd: (defs_has_inv H9 d). inversions Hd.
-      apply* H0.
-    * specialize (H _ _ H7). subst. lets Hd: (defs_has_inv H9 d). inversions Hd. apply* H0.
+    * destruct p. inversion H1.
+    * destruct p0, p. inversions H1. specialize (H _ _ H5). subst. lets Hd: (defs_has_inv H7 d). inversion Hd.
+    * destruct p0, p. inversions H1.  specialize (H _ _ H4). subst. lets Hd: (defs_has_inv H5 d). inversions Hd.
+      simpls. inversions l. inversions H4. apply* H0.
   - Case "lookup_defs".
     lets Hl: (lookup_defs l). inversions H0. specialize (H _ _ _ _ eq_refl H1).
     inversion* H.
 Qed.
 
-Lemma lookup_func : forall s p v1 v2 P1 P2,
-    P1 ⊢ s ∋ (p, v1) ->
-    P2 ⊢ s ∋ (p, v2) ->
+Lemma lookup_func : forall s p v1 v2 ps1 ps2,
+    s ∋ (p, v1) // ps1 ->
+    s ∋ (p, v2) // ps2 ->
     v1 = v2.
 Proof.
   intros. lets Hl: (proj21 lookup_func_mut). specialize (Hl _ _ _ H _ _ _ _ eq_refl H0). apply Hl.
 Qed.
-*)
 
 Lemma lookup_empty_mut :
-  (forall P s t,
-      P ⊢ s ∋ t ->
+  (forall s t ps,
+      s ∋ t // ps ->
       s = empty ->
       False) /\
-  (forall P s p ds,
-      P ⊢ s ↓ p == ds ->
+  (forall s p ds ps,
+      s ↓ p == ds // ps ->
       s = empty ->
       False).
 Proof.
   apply lookup_mutind; auto. intros. subst. false* binds_empty_inv.
 Qed.
 
-Lemma lookup_empty : forall t P,
-    P ⊢ empty ∋ t -> False.
+Lemma lookup_empty : forall t ps,
+    empty ∋ t // ps -> False.
 Proof.
   intros. eapply (proj21 lookup_empty_mut); eauto.
 Qed.
 
-(** ** "Field selection" on types
-
-       For example, if [T] is a recursive type with a field declaration [{a: U}],
-       then [T ▼ a == U].  *)
-
 Lemma lookup_push_eq_inv_var :
-    forall s x v v' P,
-    P ⊢ s & x ~ v ∋ (pvar x, trm_val v') ->
+    forall s x v v' ps,
+    s & x ~ v ∋ (pvar x, v') // ps ->
     v = v'.
 Proof.
   introv Hx. inversions Hx;
     try (destruct (last_field _ _ H) as [bs Hbs]; inversion Hbs).
-  apply binds_push_eq_inv in H2. subst*.
-
+  apply binds_push_eq_inv in H3. subst*.
 Qed.
 
-Lemma lookup_push_neq : forall s x bs v y v' P,
-    P ⊢ s ∋ (p_sel (avar_f x) bs, v) ->
+Lemma lookup_push_neq : forall s x bs v y v' ps,
+    s ∋ (p_sel (avar_f x) bs, v) // ps ->
     x <> y ->
-    P ⊢ s & y ~ v' ∋ (p_sel (avar_f x) bs, v).
+    s & y ~ v' ∋ (p_sel (avar_f x) bs, v) // ps.
 Proof.
   introv Hp Hn. dependent induction Hp.
   Admitted.
 
-Lemma lookup_strengthen: forall P s y v x bs w,
-    P ⊢ s & y ~ v ∋ (p_sel (avar_f x) bs, w) ->
+Lemma lookup_strengthen: forall s y v x bs w ps,
+    s & y ~ v ∋ (p_sel (avar_f x) bs, w) // ps ->
     y <> x ->
-    P ⊢ s ∋ (p_sel (avar_f x) bs, w).
+    s ∋ (p_sel (avar_f x) bs, w) // ps.
 Proof.
 Admitted.
+
+Lemma named_path_lookup:
+    (forall s t ps,
+        s ∋ t // ps -> forall p v,
+        t = (p, v) ->
+        exists x bs, p = p_sel (avar_f x) bs) /\
+    (forall s p ds ps,
+        s ↓ p == ds // ps ->
+        exists x bs, p = p_sel (avar_f x) bs).
+Proof.
+  apply lookup_mutind; intros.
+  - inversions H. repeat eexists.
+  - destruct_all. inversions H0. repeat eexists.
+  - inversions H1. destruct_all. subst. repeat eexists.
+  - eauto.
+Qed.
+
+Lemma named_path_lookup_l: forall s p ps v,
+    s ∋ (p, v) // ps ->
+    exists x bs, p = p_sel (avar_f x) bs.
+Proof.
+  intros. apply* (proj21 named_path_lookup).
+Qed.
+
+(** * Testing lookup definition *)
+
+Variables a b c d: trm_label.
+Variables x y z: var.
+Hypothesis (Hab: a <> b).
+Hypothesis (Hxy: y <> x).
+
+(* λ(z: ⊤)0.c *)
+Definition lambda := val_lambda typ_top (trm_path (p_sel (avar_b 0) (c :: nil))).
+
+(* ν(z: {d: ⊤}) {d = z.d} *)
+Definition zObj :=
+  val_new (typ_rcd (dec_trm d typ_top))
+          (defs_cons defs_nil
+                     (def_trm d (trm_path (p_sel (avar_b 0) (d :: nil))))).
+
+(* ν(y: {c: ⊤})
+        {c = λ(z: ⊤)y.c} *)
+Definition yObj :=
+  val_new (typ_rcd (dec_trm c typ_top))
+          (defs_cons defs_nil
+                     (def_trm c (trm_val lambda))).
+
+(* ν(x: {a: ⊤}    ∧ {b: ⊤})
+        {a = x.b} ∧ {b = y.c} *)
+Definition xObj :=
+  val_new (typ_and
+             (typ_rcd (dec_trm a typ_top))
+             (typ_rcd (dec_trm b typ_top)))
+          (defs_cons (defs_cons defs_nil
+             (def_trm b (trm_path (p_sel (avar_f y) (c :: nil)))))
+             (def_trm a (trm_path (p_sel (avar_b 0) (b :: nil))))).
+
+(* {y = yObj, x = xObj} *)
+Definition s := (y ~ yObj & x ~ xObj).
+
+(* ∃ ps, s ∋ (x.a, λ(x: ⊤)y.c) *)
+Lemma test_lookup_x:
+  s ∋ ((pvar x) • a, open_val y lambda) // nil.
+Proof.
+  simpl. rewrite proj_rewrite.
+  apply* lookup_path; unfold s.
+  - econstructor. apply* lookup_var. apply binds_push_eq.
+  - unfold defs_has. simpl. repeat case_if. eauto.
+  - rewrite proj_rewrite. apply* lookup_path.
+    * econstructor. apply* lookup_var. apply binds_push_eq.
+    * unfold defs_has. simpl. repeat case_if*. inversions C. false* Hab.
+    * intro. inversion H. inversions H0. apply Hxy. subst*. inversion H0.
+    * assert (p_sel (avar_f y) (c :: nil) = (pvar y) • c) as Heq by auto. rewrite Heq.
+      apply* lookup_val.
+      econstructor. apply* lookup_var. apply binds_push_neq. apply binds_single_eq. apply Hxy.
+      unfold defs_has. simpl. repeat case_if. unfold lambda, open_val. simpl. case_if*.
+Qed.
+
+Definition s2 := z ~ zObj.
+
+Lemma test_lookup_z: forall ps v,
+  s2 ∋ (p_sel (avar_f z) (d :: nil), v) // ps -> False.
+Proof.
+  introv H.
+  dependent induction H; assert (s2 ∋ (pvar z, zObj) // nil) as Hb by (apply* lookup_var; apply* binds_single_eq).
+  - unfolds sel_fields. destruct p. inversions x.
+    inversions H. unfolds zObj.
+    lets Hl: (lookup_func Hb H1). inversions Hl. unfolds defs_has. simpls. repeat case_if.
+  - inversions H. unfolds sel_fields. destruct p. inversions x. simpls.
+    lets Hl: (lookup_func H3 Hb). inversions Hl. inversions H0. repeat case_if. inversions H4. eauto.
+Qed.

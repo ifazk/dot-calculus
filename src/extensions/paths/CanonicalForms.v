@@ -132,21 +132,21 @@ Proof.
       * inversions* H4.
 Qed.
 
-Lemma stack_typing : forall P G s v p,
+Lemma stack_typing : forall G s v p ps,
     well_typed G s ->
-    P ⊢ s ∋ (p, v) ->
+    s ∋ (p, v) // ps ->
     exists T, G ⊢ trm_val v: T.
 Proof.
   introv Hwt Hs.
 Admitted.
 
-(** [G ~ s]                           #<br>#
-    [P ⊢ s ∋ (p, ν(U)...{a = q}...)]  #<br>#
-    [――――――――――――――――――――――――――――――] #<br>#
-    [exists P v, P ⊢ s ∋ (p, v)]          *)
-Lemma stack_path_typing : forall P G s U ds a q p r,
+(** [G ~ s]                             #<br>#
+    [s ∋ (p, ν(U)...{a = q}...) // ps]  #<br>#
+    [――――――――――――――――――――――――――――――――]  #<br>#
+    [exists T, Г ⊢ q: T]                         *)
+Lemma stack_path_typing : forall ps G s U ds a q p r,
     well_typed G s ->
-    P ⊢ s ∋ (p, val_new U ds) ->
+    s ∋ (p, val_new U ds) // ps ->
     defs_has (open_defs_p r ds) (def_trm a (trm_path q)) ->
     exists T, G ⊢ trm_path q: T.
 Proof.
@@ -162,50 +162,26 @@ Admitted.
 Lemma typed_path_lookup : forall G s p T,
     well_typed G s ->
     G ⊢ trm_path p: T ->
-    exists P v, P ⊢ s ∋ (p, v).
+    exists v ps, s ∋ (p, v) // ps.
 Proof.
   introv Hwt Hp. Admitted.
 
-Lemma named_path_lookup:
-    (forall P s t,
-        P ⊢ s ∋ t -> forall p v,
-        t = (p, v) ->
-        exists x bs, p = p_sel (avar_f x) bs) /\
-    (forall P s p ds,
-        P ⊢ s ↓ p == ds ->
-        exists x bs, p = p_sel (avar_f x) bs).
-Proof.
-  apply lookup_mutind; intros.
-  - inversions H. repeat eexists.
-  - destruct_all. inversions H0. repeat eexists.
-  - destruct_all. inversions H1. inversions H. eauto.
-  - inversions H1. destruct_all. inversions H. eauto.
-  - eauto.
-Qed.
-
-Lemma named_path_lookup_l: forall P s p v,
-    P ⊢ s ∋ (p, v) ->
-    exists x bs, p = p_sel (avar_f x) bs.
-Proof.
-  intros. apply* (proj21 named_path_lookup).
-Qed.
-
 Lemma path_lookup :
-    (forall P s t,
-        P ⊢ s ∋ t -> forall G p T ds a q r,
+    (forall s t ps,
+        s ∋ t // ps -> forall G p T ds a q r,
         well_typed G s ->
         t = (p, val_new T ds) ->
         defs_has (open_defs_p r ds) (def_trm a (trm_path q)) ->
-        exists v P', P' ⊢ s ∋ (q, v)) /\
-    (forall P s p ds,
-        P ⊢ s ↓ p == ds -> forall G a q,
+        exists v ps', s ∋ (q, v) // ps') /\
+    (forall s p ds ps,
+        s ↓ p == ds // ps -> forall G a q,
         well_typed G s ->
         defs_has ds (def_trm a (trm_path q)) ->
-        exists v P', P' ⊢ s ∋ (q, v)).
+        exists v ps', s ∋ (q, v) // ps').
 Proof.
   apply lookup_mutind; intros; eauto.
   - Case "lookup_var".
-    lets Hl: (lookup_var P b). inversions H0.
+    lets Hl: (lookup_var ps b). inversions H0.
     destruct (stack_path_typing r H Hl H1) as [U Hq].
     destruct (typed_path_lookup H Hq) as [P' [v Hs]].
     eauto.
@@ -215,12 +191,7 @@ Proof.
     destruct (stack_path_typing r H0 Hl H2) as [U Hq].
     destruct (typed_path_lookup H0 Hq) as [P' [v Hs]].
     eauto.
-  - Case "lookup_path_neq".
-    inversions H2. inversions l.
-    specialize (H _ _ _ H1 d). destruct H as [v [P' Hs]].
-    destruct (named_path_lookup_l H2) as [z [ds Heq]]. inversions Heq.
-    apply* H0.
-  - Case "lookup_path_eq".
+  - Case "lookup_path".
     inversions H2. inversions l.
     specialize (H _ _ _ H1 d). destruct H as [v [P' Hs]].
     destruct (named_path_lookup_l H2) as [z [ds Heq]]. inversions Heq.
@@ -231,11 +202,11 @@ Qed.
     [P ⊢ s ∋ (p, ν(T)...{a = q}...]  #<br>#
     [―――――――――――――――――――――――――――――]  #<br>#
     [exists v P', P' ⊢ s ∋ (q, v)]        *)
-Lemma path_lookup_l : forall G P s p T ds a q,
+Lemma path_lookup_l : forall G s p T ds a q ps,
     well_typed G s ->
-    P ⊢ s ∋ (p, val_new T ds) ->
+    s ∋ (p, val_new T ds) // ps ->
     defs_has (open_defs_p p ds) (def_trm a (trm_path q)) ->
-    exists v P', P' ⊢ s ∋ (q, v).
+    exists v ps', s ∋ (q, v) // ps'.
 Proof.
   intros. apply* path_lookup.
 Qed.
@@ -245,10 +216,10 @@ Qed.
     [G ⊢! p: T]      #<br>#
     [――――――――――――――] #<br>#
     [G ⊢ v: T]       *)
-Lemma path_lookup_typing: forall G s P p v T T',
+Lemma path_lookup_typing: forall G s p ps v T T',
     inert G ->
     well_typed G s ->
-    P ⊢ s ∋ (p, v) ->
+    s ∋ (p, v) // ps ->
     G ⊢! p : T ⪼ T' ->
     G ⊢ trm_val v: T.
 Proof.
@@ -271,7 +242,7 @@ Proof.
         inversions Hs.
         ++ SCase "lookup_val".
            unfolds sel_fields. destruct p as [x bs]. simpls. inversions H1.
-           inversions H5. specialize (IHHp _ _ Hv H1).
+           inversions H4. specialize (IHHp _ _ Hv H1).
            (* from
               [Г, x0: T ⊢ ν(T1)ds0: T0]
               [T0 inert]
@@ -291,9 +262,14 @@ Proof.
               get
               [Г, x0: T ⊢ v0: U] *)
            admit.
-        ++ SCase "lookup_path_neq".
-           inversions H7. admit.
-        ++ SCase "lookup_path_eq". admit.
+        ++ SCase "lookup_path".
+           unfolds sel_fields. destruct p. inversions H1.
+           destruct (pf_inert_rcd_U Hi Hp) as [V Heq]. subst.
+           lets Hrh: (precise_flow_record_has Hi Hp). simpls.
+           inversions H3.
+
+
+
       + Case "pf_open".
         eauto.
       + Case "pf_and1".
