@@ -670,10 +670,10 @@ Inductive lookup : sta -> path * val -> list path -> Prop :=
 
 (** [s(x) = v         ]    #<br>#
     [―――――――――――――――――]    #<br>#
-    [s ∋ (x, v) // ps ]        *)
-| lookup_var : forall s x v ps,
+    [s ∋ (x, v) // [] ]        *)
+| lookup_var : forall s x v,
     binds x v s ->
-    s ∋ (pvar x, v) // ps
+    s ∋ (pvar x, v) // nil
 
 (** [s ↓ p = ...{a = v}... // ps ]    #<br>#
     [――――――――――――――――――――――――――――]    #<br>#
@@ -683,17 +683,15 @@ Inductive lookup : sta -> path * val -> list path -> Prop :=
     defs_has ds (def_trm a (trm_val v)) ->
     s ∋ (p•a, v) // ps
 
-(** [s ↓ p = ...{a = q}... // ps         ]    #<br>#
-    [q ∉ ps                              ]    #<br>#
-    [s ∋ (q, v) // p•a::ps               ]    #<br>#
+(** [s ↓ p = ...{a = q}... // ps1        ]    #<br>#
+    [s ∋ (q, v) // ps2                   ]    #<br>#
     [――――――――――――――――――――――――――――――――――――]    #<br>#
-    [s ∋ (p.a, v) // ps                  ]        *)
+    [s ∋ (p.a, v) // q :: ps1 ++ ps2     ]        *)
 | lookup_path : forall s p ds ps a q v,
     s ↓ p == ds // ps ->
     defs_has ds (def_trm a (trm_path q)) ->
-    ~ (In q ps) ->
-    s ∋ (q, v) // (p•a :: ps) ->
-    s ∋ (p•a, v) // ps
+    s ∋ (q, v) // ps ->
+    s ∋ (p•a, v) // (q::ps)
 
 where "s '∋' t '//' ps" := (lookup s t ps)
 
@@ -739,13 +737,13 @@ Proof.
     * inversion H0.
     * destruct p0. inversions H0. specialize (H _ _ H4). subst. lets Hd: (defs_has_inv H6 d). inversion* Hd.
     * inversions H0. destruct p0. inversions H2.
-      specialize (H _ _ H3). subst. lets Hd: (defs_has_inv H4 d). inversion Hd.
+      specialize (H _ _ H3). subst. lets Hd: (defs_has_inv H5 d). inversion Hd.
   - Case "lookup_path".
     inversions H1. inversions H2; unfolds sel_fields, pvar.
     * destruct p. inversion H1.
     * destruct p0, p. inversions H1. specialize (H _ _ H5). subst. lets Hd: (defs_has_inv H7 d). inversion Hd.
-    * destruct p0, p. inversions H1.  specialize (H _ _ H4). subst. lets Hd: (defs_has_inv H5 d). inversions Hd.
-      simpls. inversions l. inversions H4. apply* H0.
+    * destruct p0, p. inversions H1.  specialize (H _ _ H4). subst. lets Hd: (defs_has_inv H6 d). inversions Hd.
+      inversions l. inversions H4. apply* H0.
   - Case "lookup_defs".
     lets Hl: (lookup_defs l). inversions H0. specialize (H _ _ _ _ eq_refl H1).
     inversion* H.
@@ -781,7 +779,7 @@ Qed.
 Lemma lookup_push_eq_inv_var :
     forall s x v v' ps,
     s & x ~ v ∋ (pvar x, v') // ps ->
-    v = v'.
+    v = v' /\ ps = nil.
 Proof.
   introv Hx. inversions Hx;
     try (destruct (last_field _ _ H) as [bs Hbs]; inversion Hbs).
@@ -830,8 +828,8 @@ Qed.
 
 Variables a b c d: trm_label.
 Variables x y z: var.
-Hypothesis (Hab: a <> b).
-Hypothesis (Hxy: y <> x).
+Hypothesis Hab: a <> b.
+Hypothesis Hxy: y <> x.
 
 (* λ(z: ⊤)0.c *)
 Definition lambda := val_lambda typ_top (trm_path (p_sel (avar_b 0) (c :: nil))).
@@ -862,18 +860,19 @@ Definition xObj :=
 (* {y = yObj, x = xObj} *)
 Definition s := (y ~ yObj & x ~ xObj).
 
-(* ∃ ps, s ∋ (x.a, λ(x: ⊤)y.c) *)
+(* s ∋ (x.a, λ(x: ⊤)y.c) // [x.b]*)
 Lemma test_lookup_x:
-  s ∋ ((pvar x) • a, open_val y lambda) // nil.
+  s ∋ ((pvar x) • a, open_val y lambda) // (((pvar x) • b) :: ((pvar y) • c) :: nil).
 Proof.
   simpl. rewrite proj_rewrite.
+  apply lookup_val.
+  - econstructor.
   apply* lookup_path; unfold s.
   - econstructor. apply* lookup_var. apply binds_push_eq.
   - unfold defs_has. simpl. repeat case_if. eauto.
   - rewrite proj_rewrite. apply* lookup_path.
     * econstructor. apply* lookup_var. apply binds_push_eq.
     * unfold defs_has. simpl. repeat case_if*. inversions C. false* Hab.
-    * intro. inversion H. inversions H0. apply Hxy. subst*. inversion H0.
     * assert (p_sel (avar_f y) (c :: nil) = (pvar y) • c) as Heq by auto. rewrite Heq.
       apply* lookup_val.
       econstructor. apply* lookup_var. apply binds_push_neq. apply binds_single_eq. apply Hxy.
@@ -891,5 +890,5 @@ Proof.
     inversions H. unfolds zObj.
     lets Hl: (lookup_func Hb H1). inversions Hl. unfolds defs_has. simpls. repeat case_if.
   - inversions H. unfolds sel_fields. destruct p. inversions x. simpls.
-    lets Hl: (lookup_func H3 Hb). inversions Hl. inversions H0. repeat case_if. inversions H4. eauto.
+    lets Hl: (lookup_func H2 Hb). inversions Hl. inversions H0. repeat case_if. inversions H3. eauto.
 Qed.

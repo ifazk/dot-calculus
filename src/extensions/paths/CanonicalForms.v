@@ -211,6 +211,14 @@ Proof.
   intros. apply* path_lookup.
 Qed.
 
+(** [G ~ s]                #<br>#
+    [P ⊢ s ∋ (p, v) // ps] #<br>#
+    [G ⊢! p: T]            #<br>#
+    [q ∈ ps]               #<br>#
+    [――――――――――――――――――――] #<br>#
+    [G ⊢ q: T]             #<br>#
+    [G ⊢ v: T]                 *)
+
 (** [G ~ s]          #<br>#
     [P ⊢ s ∋ (p, v)] #<br>#
     [G ⊢! p: T]      #<br>#
