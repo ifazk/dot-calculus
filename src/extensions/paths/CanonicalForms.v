@@ -181,7 +181,8 @@ Lemma path_lookup :
 Proof.
   apply lookup_mutind; intros; eauto.
   - Case "lookup_var".
-    lets Hl: (lookup_var ps b). inversions H0.
+    inversions H0.
+    lets Hl: (lookup_var b).
     destruct (stack_path_typing r H Hl H1) as [U Hq].
     destruct (typed_path_lookup H Hq) as [P' [v Hs]].
     eauto.
@@ -211,6 +212,42 @@ Proof.
   intros. apply* path_lookup.
 Qed.
 
+Lemma path_lookup_q: forall s p v q qs,
+        s ∋ (p, v) // (q :: qs) ->
+        s ∋ (q, v) // qs.
+Proof.
+  introv Hs. inversion Hs; eauto.
+Qed.
+
+Lemma path_lookup_typing_v_nil: forall G s p T T' v,
+    well_typed G s ->
+    G ⊢! p: T ⪼ T' ->
+    s ∋ (p, v) // nil ->
+    G ⊢ trm_val v: T.
+Proof.
+  introv Hwt Hp Hs. gen p T T' v. induction Hwt; introv Hp; introv Hs.
+  - false* lookup_empty.
+  - lets Hg: (precise_to_general Hp). apply typed_paths_named in Hg. inversions Hg.
+    destruct_all. inversions H2.
+    destruct (classicT (x = x0)).
+    * subst. rename x1 into bs. clear H3. gen v v0. dependent induction Hp; introv Hv; introv Hs; eauto.
+      ++ lets Hl: (lookup_push_eq_inv_var Hs). destruct_all. subst. apply binds_push_eq_inv in H1. subst.
+         apply* weaken_ty_trm.
+      ++ unfolds sel_fields. destruct p. inversions x.
+         specialize (IHHp f x0 H0 T G). specialize (IHHp Hwt H IHHwt eq_refl JMeq_refl v Hv).
+         inversions Hs. unfolds sel_fields. destruct p. inversions H1. inversions H4.
+
+
+
+Lemma path_lookup_typing_q: forall G s p T T' v q qs,
+    well_typed G s ->
+    G ⊢! p: T ⪼ T' ->
+    s ∋ (p, v) // (q :: qs) ->
+    G ⊢ trm_path q: T.
+
+
+
+
 (** [G ~ s]                #<br>#
     [P ⊢ s ∋ (p, v) // ps] #<br>#
     [G ⊢! p: T]            #<br>#
@@ -218,12 +255,58 @@ Qed.
     [――――――――――――――――――――] #<br>#
     [G ⊢ q: T]             #<br>#
     [G ⊢ v: T]                 *)
+Lemma path_lookup_typing: forall G s p ps v T T' q,
+    inert G ->
+    well_typed G s ->
+    s ∋ (p, v) // ps ->
+    G ⊢! p : T ⪼ T' ->
+    G ⊢ trm_val v: T /\ (In q ps -> G ⊢ trm_path q: T).
+Proof.
+  introv Hi Hwt Hs Hp. gen T' T v p. induction Hwt; introv Hs Hp.
+  - false* lookup_empty.
+  - destruct p as [y bs].
+    (* showing that y is named *)
+    lets Hg: (precise_to_general Hp). apply typed_paths_named in Hg. inversions Hg.
+    destruct_all. inversions H2.
+    destruct (classicT (x = x0)).
+    * subst. rename x1 into bs. gen v0 v q ps. dependent induction Hp; introv Hv; introv IH Hs.
+      + Case "pf_bind".
+        apply binds_push_eq_inv in H1. subst.
+        assert (p_sel (avar_f x0) nil = pvar x0) as Heq by auto. rewrite Heq in Hs.
+        apply lookup_push_eq_inv_var in Hs. destruct_all. subst. split.
+        apply* weaken_ty_trm. intro Hq. inversion Hq.
+      + Case "pf_fld".
+        unfolds sel_fields. destruct p. inversions x.
+        specialize (IHHp _ _ H0 _ _ Hi Hwt H eq_refl JMeq_refl).
+        inversions Hs; unfolds sel_fields; simpls.
+        ++ SCase "lookup_val".
+           unfolds sel_fields. destruct p as [x bs]. simpls. inversions H1.
+           inversions H4. specialize (IHHp _ _ Hv _ _ IH H1).
+           (* from
+              [Г, x0: T ⊢ ν(T1)ds0: T0]
+              [T0 inert]
+              get
+              [T0 = μ(T1)] *)
+           (* from
+              [Г, x0: T ⊢ ν(T1)ds0: μ(T1)]
+              get
+              [Г, x0: T, y: T1 ⊢ ds0^y: T1^y] *)
+           (* from that and
+              [Г, x0: T ⊢ x0.f: T1]
+              get through substitution of [y] by [x0.f] that
+              [Г, x0: T ⊢ ds0^x0.f : T1^x0.f] *)
+           (* from that and
+              [ds0^x0.f = ...{a = v0}...]
+              [T0 = ...{a: U}...]
+              get
+              [Г, x0: T ⊢ v0: U] *)
+           admit.
+        ++ destruct p. inversions H1. inversions H3.
 
-(** [G ~ s]          #<br>#
-    [P ⊢ s ∋ (p, v)] #<br>#
-    [G ⊢! p: T]      #<br>#
-    [――――――――――――――] #<br>#
-    [G ⊢ v: T]       *)
+
+
+
+
 Lemma path_lookup_typing: forall G s p ps v T T',
     inert G ->
     well_typed G s ->

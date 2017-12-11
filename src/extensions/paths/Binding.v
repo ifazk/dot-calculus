@@ -677,21 +677,21 @@ Inductive lookup : sta -> path * val -> list path -> Prop :=
 
 (** [s ↓ p = ...{a = v}... // ps ]    #<br>#
     [――――――――――――――――――――――――――――]    #<br>#
-    [s ∋ (p.a, v) // ps          ]        *)
+    [s ∋ (p.a, v) // []          ]        *)
 | lookup_val : forall s p ds a v ps,
     s ↓ p == ds // ps ->
     defs_has ds (def_trm a (trm_val v)) ->
-    s ∋ (p•a, v) // ps
+    s ∋ (p•a, v) // nil
 
 (** [s ↓ p = ...{a = q}... // ps1        ]    #<br>#
     [s ∋ (q, v) // ps2                   ]    #<br>#
     [――――――――――――――――――――――――――――――――――――]    #<br>#
     [s ∋ (p.a, v) // q :: ps1 ++ ps2     ]        *)
-| lookup_path : forall s p ds ps a q v,
-    s ↓ p == ds // ps ->
+| lookup_path : forall s p ds ps1 ps2 a q v,
+    s ↓ p == ds // ps1 ->
     defs_has ds (def_trm a (trm_path q)) ->
-    s ∋ (q, v) // ps ->
-    s ∋ (p•a, v) // (q::ps)
+    s ∋ (q, v) // ps2 ->
+    s ∋ (p•a, v) // (q::ps2)
 
 where "s '∋' t '//' ps" := (lookup s t ps)
 
@@ -862,11 +862,10 @@ Definition s := (y ~ yObj & x ~ xObj).
 
 (* s ∋ (x.a, λ(x: ⊤)y.c) // [x.b]*)
 Lemma test_lookup_x:
-  s ∋ ((pvar x) • a, open_val y lambda) // (((pvar x) • b) :: ((pvar y) • c) :: nil).
+  exists ps,
+  s ∋ ((pvar x) • a, open_val y lambda) // ps. (*(((pvar x) • b) :: ((pvar y) • c) :: nil).*)
 Proof.
-  simpl. rewrite proj_rewrite.
-  apply lookup_val.
-  - econstructor.
+  simpl. eexists. rewrite proj_rewrite.
   apply* lookup_path; unfold s.
   - econstructor. apply* lookup_var. apply binds_push_eq.
   - unfold defs_has. simpl. repeat case_if. eauto.
