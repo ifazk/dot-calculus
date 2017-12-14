@@ -56,7 +56,7 @@ vo_to_obj = $(addsuffix .o,\
 
 COQLIBS?=\
   -R "../lf" LF\
-  -R "." compiler
+  -R "." compiler 
 COQCHKLIBS?=\
   -R "../lf" LF\
   -R "." compiler
