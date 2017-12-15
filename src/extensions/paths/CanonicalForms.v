@@ -236,25 +236,12 @@ Proof.
   - false* invertible_obj_fun_type.
 Qed.
 
-Reserved Notation "G '⊢!t' t ':' T" (at level 40, t at level 59).
-
-Inductive precise_typing: ctx -> trm -> typ -> Prop :=
-| pt_val : forall G v T,
-    G ⊢!v v : T ->
-    G ⊢!t trm_val v: T
-
-| pt_path: forall G p T T',
-    G ⊢! p : T ⪼ T' ->
-    G ⊢!t trm_path p : T
-
-where "G '⊢!t' t ':' T" := (precise_typing G t T).
-
-Lemma lookup_step_preservation: forall G s p T T' t,
+Lemma lookup_step_preservation_prec: forall G s p T T' t,
     inert G ->
     well_typed G s ->
     s ⟦ trm_path p ⟼ t ⟧ ->
     G ⊢! p : T ⪼ T' ->
-    G ⊢!t t: T.
+    G ⊢ t: T.
 Proof.
   introv Hi Hwt Hs Hp. gen T' T p t. induction Hwt; introv Hp Hs.
   - false* lookup_empty.
@@ -298,6 +285,55 @@ Proof.
      lets Hn: (lookup_strengthen Hs n). apply* weaken_ty_trm.
 Qed.
 
+Lemma lookup_step_preservation: forall G s p q T,
+    inert G ->
+    well_typed G s ->
+    s ⟦ trm_path p ⟼ trm_path q ⟧ ->
+    G ⊢ trm_path p : T ->
+    G ⊢ trm_path q : T.
+Proof.
+  introv Hi Hwt Hs Hp. gen T p q. induction Hwt; introv Hp Hs.
+  - false* lookup_empty.
+  - destruct p as [y bs].
+    (* showing that y is named *)
+    lets Hn: (typed_paths_named Hp). inversions Hn.
+    destruct_all. inversions H2.
+    destruct (classicT (x = x0)).
+    * subst. rename x1 into bs. gen q v. dependent induction Hp; introv Hv Hs.
+      + Case "pf_bind".
+        apply binds_push_eq_inv in H2. subst.
+        assert (p_sel (avar_f x0) nil = pvar x0) as Heq by auto. rewrite Heq in Hs.
+        apply lookup_push_eq_inv_var in Hs. inversion Hs.
+      + Case "pf_fld".
+        unfolds sel_fields. destruct p. inversions x.
+        inversions Hs; unfolds sel_fields; simpls. destruct p. inversions H1.
+        inversions H2. clear IHHp.
+        apply (general_to_tight_typing Hi) in IHHp. apply (tight_to_invertible_v Hi) in IHHp.
+        assert (inert_typ T0) as HT0 by apply* pf_inert_T.
+        lets Heq: (invertible_to_precise_v_obj IHHp HT0). subst. inversions IHHp.
+        inversions H2.
+      (* deal with renaming *)
+        assert (x0; f; P; G & x0 ~ T ⊢
+                                 open_defs_p (p_sel (avar_f x0) f) ds0 :: open_typ_p (p_sel (avar_f x0) f) T1)
+          as Hds by admit.
+        lets Hrh: (precise_flow_record_has Hi Hp).
+        destruct (record_has_ty_defs Hds Hrh) as [d [Hd Ht]].
+        lets Hdt: (defs_has_typing Ht). destruct Hdt as [t' Heq]. subst.
+        lets Heq: (defs_has_inv Hd H4). subst. dependent induction Ht; eauto.
+      (* fresh_constructor; deal with renaming #2 *)
+        admit.
+      + Case "pf_open".
+        eauto.
+      + Case "pf_and1".
+        eauto.
+      + Case "pf_and2".
+        eauto.
+   * apply pf_strengthen in Hp; auto.
+     assert (inert G) as Hi' by apply* inert_prefix.
+     lets Hn: (lookup_strengthen Hs n). apply* weaken_ty_trm.
+Qed.
+
+
 Lemma lookup_val_inv: forall s v t,
     star (lookup_step s) (trm_val v) t ->
     t = trm_val v.
@@ -311,18 +347,26 @@ Proof.
   introv Hp. dependent induction Hp; eauto. false* binds_empty_inv.
 Qed.
 
-Lemma lookup_result_trm: forall G s t1 t2,
+Lemma lookup_preservation: forall G s p q T,
+    inert G ->
     well_typed G s ->
-    s ⟦ t1 ⟼ t2 ⟧ ->
-    (exists v, t2 = trm_val v) \/ (exists p, t2 = trm_path p).
+    star (lookup_step s) (trm_path p) (trm_path q) ->
+    G ⊢ trm_path p : T ->
+    G ⊢ trm_path q: T.
 Proof.
-  introv Hwt Hl. dependent induction Hl; eauto. inversions H.
-  apply star_one in H1. assert (s ∋ (p, val_new T ds0)) as Hl by auto.
-  lets Hs: (stack_typing Hwt Hl). destruct_all.
-  dependent induction H; eauto.
-  pick_fresh z. assert (z \notin L) as Hz by auto. specialize (H _ Hz).
-  gen p t. dependent induction H; introv Hl Hs; introv Hds Hn.
-Admitted.
+  introv Hi Hwt. gen p q T. induction Hwt; introv Hl Hp.
+  - false* typing_empty_false.
+  - gen T0 T. dependent induction Hl; introv Hi Hv Hp. assumption.
+    specialize (IHHl Hwt H H0 IHHwt).
+    assert (well_typed (G & x ~ T) (s & x ~ v)) as Hwt' by apply* well_typed_push.
+    assert (exists p', b = trm_path p') as Hp'. {
+      clear IHHl Hwt H H0 IHHwt Hi Hv Hp Hwt' H1. dependent induction Hl. eauto. inversions H; eauto.
+    }
+    destruct Hp' as [p' Heq]. subst.
+    lets Hlp: (lookup_step_preservation).
+    specialize (IHHl _ _ eq_refl eq_refl).
+
+
 
 Lemma lookup_preservation: forall G s p t T T',
     inert G ->
