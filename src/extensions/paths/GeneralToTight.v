@@ -97,3 +97,19 @@ Lemma general_to_tight_typing: forall G t T,
 Proof.
   intros. apply* general_to_tight.
 Qed.
+
+Ltac proof_recipe :=
+  match goal with
+  | [ Hg: ?G ⊢ _ : _,
+      Hi: inert ?G |- _ ] =>
+    apply (general_to_tight_typing Hi) in Hg;
+    apply (tight_to_invertible Hi) in Hg;
+    lets Hok: (inert_ok Hi);
+    try match goal with
+        | [ Hinv: ?G ⊢## _ : typ_all _ _,
+            Hok: ok ?G |- _ ] =>
+          destruct (invertible_to_precise_typ_all Hok Hinv) as [Spr [Tpr [Upr [Lpr [Hpr [Hspr1 Hspr2]]]]]]
+        | [ Hinv: ?G ⊢## _ : typ_rcd (dec_trm _ _) |- _ ] =>
+          destruct (invertible_to_precise_trm_dec Hinv) as [Tpr [Upr [Hpr Hspr]]]
+        end
+  end.
