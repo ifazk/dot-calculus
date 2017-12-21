@@ -179,13 +179,21 @@ Proof.
     eapply subtyp_trans_t; eassumption.
 Qed.
 
-Lemma invertible_to_precise_typ_bnd: forall G p T ls,
+Lemma invertible_to_precise_typ_bnd: forall G p T,
+    inert G ->
     G ⊢## p: typ_bnd T ->
-    record_typ T ls ->
+    record_type T ->
     exists U,
       G ⊢! p: typ_bnd U ⪼ typ_bnd U /\
       G ⊢ open_typ_p p U <: open_typ_p p T.
-Proof. Admitted.
+Proof.
+  introv Hi Hp Hr. inversions Hp; inversions Hr.
+  - lets Heq: (pf_inert_bnd_U Hi H). subst. eauto.
+  - gen p. induction H; introv Hp; subst.
+    * destruct D.
+      + admit.
+      + Admitted. (*apply invertible_to_precise_trm_dec in Hp. destruct Hp as [T' [U [Hpp Hs]]].*)
+
 
 (** Invertible-to-precise typing for function types: #<br>#
     [ok G]                        #<br>#
