@@ -293,14 +293,6 @@ Lemma path_rec_sub: forall G p q T U,
 Proof.
 Admitted.
 
-Lemma val_rec_sub: forall G v q T U,
-    G ⊢ trm_val v: typ_bnd T ->
-    G ⊢ trm_path q: typ_bnd T ->
-    G ⊢ open_typ_p q T <: open_typ_p q U ->
-    G ⊢ trm_val v: typ_bnd U.
-Proof.
-Admitted.
-
 Lemma lookup_inv_path_t: forall s t u,
     s ⟦ t ⟼ u ⟧ ->
     exists p, t = trm_path p.
@@ -313,22 +305,29 @@ Lemma lookup_inv_path_u: forall s t u,
     (exists p, u = trm_path p) \/ (exists v, u = trm_val v).
 Proof.
   introv Hs. Admitted.
-
-Lemma lookup_step_preservation_gen: forall G s p T t,
-    inert G ->
+(*
+Lemma lookup_subst: forall G s p q T U,
     well_typed G s ->
-    s ⟦ trm_path p ⟼ t ⟧ ->
-    G ⊢ trm_path p: typ_bnd T ->
-    record_type T ->
-    G ⊢ t: typ_bnd T.
+    inert G ->
+    s ⟦ trm_path p ⟼ trm_path q ⟧ ->
+    G ⊢! p : typ_bnd T ⪼ U ->
+    record_type U ->
+    G ⊢# open_typ_p p T <: open_typ_p q T.
 Proof.
-  introv Hi Hwt Hl Hp Hr.
-  proof_recipe. apply (invertible_to_precise_typ_bnd Hi Hp) in Hr.
-  destruct Hr as [U [Hpu Hs]]. apply (lookup_step_preservation_prec Hi Hwt Hl) in Hpu.
-  destruct (lookup_inv_path_u Hl) as [[p' Heq] | [v Heq]]; subst.
-  apply inv_to_tight in Hp. apply tight_to_general in Hp.
-  apply (path_rec_sub _ Hpu Hp Hs).
+  introv Hwt. gen p q T. induction Hwt; introv Hi Hl Hp HU.
+  - false* lookup_empty.
+  - gen q. dependent induction Hp; introv Hl.
+    * inversions HU. inversion H4.
+    * inversions HU. inversion H2.
+    * apply pf_inert_bnd_U in Hp. inversions Hp.
 
+
+
+
+      inversions Hl. inversions H5. unfold sel_fields in H4. destruct p. inversions H4.
+    * destruct (pf_inert_rcd_U Hi Hp) as [V Heq]. subst. inversions HU. inversions H2.
+      specialize (IHHp _ _ _ _ Hwt H H1 IHHwt Hi JMeq_refl eq_refl).
+*)
 
 
 Lemma lookup_val_inv: forall s v t,
@@ -346,6 +345,13 @@ Proof.
   inversions H; eauto.
 Qed.
 
+Lemma lookup_step_path_inv: forall s t u,
+    s ⟦ t ⟼ u ⟧ ->
+    exists q, t = trm_path q.
+Proof.
+  induction 1; eauto.
+Qed.
+
 Lemma typing_empty_false: forall p T,
     empty ⊢ trm_path p: T -> False.
 Proof.
@@ -360,7 +366,7 @@ Lemma lookup_preservation_typ_all : forall G s t u T S,
     G ⊢ u: typ_all S T.
 Proof.
   introv Hi Hwt Hl Hp. dependent induction Hl; auto.
-  destruct (lookup_inv_path H) as [p Heq]. subst.
+  destruct (lookup_step_path_inv H) as [p Heq]. subst.
   proof_recipe.
   lets Hlp: (lookup_step_preservation_prec Hi Hwt H Hpr).
   lets Heq: (pf_inert_lambda_U Hi Hpr). subst.
@@ -395,7 +401,7 @@ Lemma record_has_open_diff: forall p q T a U,
 Proof.
   introv Hr. Admitted.
 
-(*
+
 Lemma lookup_preservation_typ_bnd: forall G s p q T U a,
     inert G ->
     well_typed G s ->
@@ -415,8 +421,8 @@ Proof.
   assert (exists Tpr', Tpr = open_typ_p p Tpr') as Hop. admit.
   destruct Hop as [Tpr' Heq]. subst.
   specialize (IHHl _ _ Hi Hwt eq_refl eq_refl).
-  assert (G ⊢ trm_path q' : typ_rcd (dec_trm a (open_typ_p q' Tpr'))) as Hq'. admit.
-  specialize (IHHl _ _ Hq'). apply ty_sub with (T:=typ_rcd (dec_trm a (open_typ_p q Tpr'))).
+  assert (G ⊢ trm_path q' : typ_rcd (dec_trm a (open_typ_p q' Tpr'))) as Hq'. admit. Admitted.
+(*  specialize (IHHl _ _ Hq'). apply ty_sub with (T:=typ_rcd (dec_trm a (open_typ_p q Tpr'))).
   assumption.
   Admitted.*)
 
@@ -429,7 +435,10 @@ Lemma subtyp_open: forall G p q T S U,
 Proof.
   introv Hi Hp Hq Hs. apply (general_to_tight_typing Hi) in Hp. apply (general_to_tight_typing Hi) in Hq.
   apply (general_to_tight Hi) in Hs; auto.
-  Abort. (*
+  Abort.
+(* attempt 2:
+   try to first reason only about lookups from path p to path q;
+   then, apply one step to get value
 
 Lemma lookup_preservation_typ_bnd: forall G s p q a U,
     inert G ->
@@ -454,11 +463,15 @@ Proof.
   assumption. constructor. apply tight_to_general in Hspr.
   apply subtyp_open with (p:=p) (T:=typ_rcd (dec_trm a Tpr')); auto.
   apply precise_to_general in Hpr. auto.
-Qed.*)
+Qed.
 
-
-(*
-Lemma lookup_preservation_typ_bnd: forall G s t u T a U,
+*)
+(* attempt 1:
+  doesn't work because u could be a value;
+  as a result, we might not be able to type it in the same "permissive way"
+  as the path t
+*)
+(*Lemma lookup_preservation_typ_bnd: forall G s t u T a U,
     inert G ->
     well_typed G s ->
     star (lookup_step s) t u ->
@@ -467,14 +480,12 @@ Lemma lookup_preservation_typ_bnd: forall G s t u T a U,
     G ⊢ u : typ_bnd T.
 Proof.
   introv Hi Hwt Hl Ht Hr. dependent induction Hl; auto.
-  destruct (lookup_inv_path H) as [p Heq]. subst. apply* IHHl. clear IHHl.
+  destruct (lookup_step_path_inv H) as [p Heq]. subst. apply* IHHl. clear IHHl.
   assert (G ⊢ trm_path p: typ_rcd (dec_trm a (open_typ_p p U))) as Hp by admit.
   proof_recipe.
   lets Hlp: (lookup_step_preservation_prec Hi Hwt H Hpr).
-  destruct (pf_inert_rcd_U Hi Hpr) as [S Heq]. subst.
-
- *)
-
+  destruct (pf_inert_rcd_U Hi Hpr) as [S Heq]. subst. Admitted.
+*)
 
 Lemma corresponding_types_obj: forall G s p S a T,
     inert G ->
@@ -488,9 +499,9 @@ Proof.
   apply precise_to_general in Hp'.
   destruct (typed_path_lookup Hwt Hp') as [v Hs]. inversions Hs.
   lets Hr: (precise_flow_record_has Hi Hp).
-  destruct (record_has_open _ _ Hr) as [U Hr'].
+  destruct (record_has_open _ _ Hr) as [U Hr']. Admitted. (*
   lets Ht: (lookup_preservation_typ_bnd Hi Hwt H1 Hp' Hr'). exists v. split*.
-Qed.
+Qed.*)
 
 Lemma corresponding_types_fun: forall G s p S T T',
     inert G ->
@@ -709,11 +720,12 @@ Lemma canonical_forms_obj: forall G s p a T,
 Proof.
   introv Hi Hwt Hty.
   proof_recipe.
+  destruct (pf_inert_rcd_U Hi Hpr) as [V Heq]. subst.
   destruct (corresponding_types_obj Hi Hwt Hpr) as [v [Bis Ht]].
-  destruct (pf_inert_rcd_U Hi Hpr) as [U Heq]. subst.
   lets Hr: (precise_flow_record_has Hi Hpr).
   lets Bieq: (pf_precise_U Hpr).
   lets Bi': (precise_to_general Bieq). apply ty_rec_elim in Bi'.
-  destruct (val_mu_to_new Hi Ht Bi' Hr) as [t [ds [Heq [Hdefs Ht']]]].
-  subst. exists U ds t. repeat split~. eapply ty_sub. eauto. apply* tight_to_general.
+  destruct (val_mu_to_new Hi Ht Bi' Hr) as [t [ds [Heq' [Hdefs Ht']]]].
+  subst. exists V ds t. repeat split~. inversions Bis.
+  eapply ty_sub. eauto. apply* tight_to_general.
 Qed.
