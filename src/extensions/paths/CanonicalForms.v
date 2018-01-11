@@ -46,93 +46,6 @@ Proof.
   destruct (IHty_trm _ eq_refl). destruct_all. eauto.
 Qed.
 
-Lemma record_has_trm_dec : forall G p T U T' U' a,
-    G ⊢ trm_path p: T ->
-    G ⊢ T <: U ->
-    record_type T ->
-    record_type U ->
-    record_has T (dec_trm a T') ->
-    (record_has U (dec_trm a U') /\ G ⊢ T' <: U').
-Proof.
-  introv Hp Hs HrT HrU Ha. Admitted.
-
-Lemma record_has_ty_dec : forall G p T U T' A,
-    G ⊢ trm_path p: T ->
-    G ⊢ T <: U ->
-    record_type T ->
-    record_type U ->
-    record_has T (dec_typ A T' T') ->
-    record_has U (dec_typ A T' T').
-Proof.
-  introv Hp Hs HrT HrU HA. Admitted.
-
-Lemma val_typing_sub: forall G v T U p,
-    inert G ->
-    G ⊢ trm_val v: typ_bnd T ->
-    G ⊢ open_typ_p p T <: open_typ_p p U ->
-    G ⊢ trm_path p: open_typ_p p T ->
-    record_type T ->
-    record_type U ->
-    G ⊢ trm_val v: typ_bnd U.
-Proof.
-  introv Hi Hv Hs Hp HT HU.
-  apply (general_to_tight_typing Hi) in Hv.
-  apply (tight_to_invertible_v Hi) in Hv.
-  inversions Hv. inversions H. pick_fresh x. assert (x \notin L) as Hx by auto.
-  specialize (H3 x Hx). assert (HT' := HT). assert (HU' := HU).
-  destruct HT as [lsT HT]. destruct HU as [lsU HU].
-  induction HT; subst.
-  - destruct D. inversions H. apply open_record_type_p with (p:=p) in HT'.
-    apply open_record_type_p with (p:=p) in HU'.
-    assert (record_has (open_typ_p p (typ_rcd {t >: t1 <: t1})) (open_dec_p p {t >: t1 <: t1})) as Hrh. {
-      unfold open_typ_p, open_dec_p. simpl. auto.
-    }
-   lets Hr: (record_has_ty_dec Hp Hs HT' HU' Hrh).
-Admitted.
-
-(** [d1 isin ds]             #<br>#
-    [label(d2) \notin ds]     #<br>#
-    [―――――――――――――――――――――]  #<br>#
-    [label(d1) <> label(d2)]  *)
-Lemma defs_has_hasnt_neq: forall ds d1 d2,
-  defs_has ds d1 ->
-  defs_hasnt ds (label_of_def d2) ->
-  label_of_def d1 <> label_of_def d2.
-Proof.
-  introv Hhas Hhasnt.
-  unfold defs_has in Hhas.
-  unfold defs_hasnt in Hhasnt.
-  induction ds.
-  - simpl in Hhas. inversion Hhas.
-  - simpl in Hhasnt. simpl in Hhas. case_if; case_if.
-    + inversions Hhas. assumption.
-    + apply IHds; eauto.
-Qed.
-
-(** [G ⊢ ds :: ... /\ D /\ ...]       #<br>#
-    [―――――――――――――――――――――――]       #<br>#
-    [exists d, ds = ... /\ d /\ ...]       #<br>#
-    [G ⊢ d: D]                      *)
-Lemma record_has_ty_defs: forall z bs P G T ds D,
-  z; bs; P; G ⊢ ds :: T ->
-  record_has T D ->
-  exists d, defs_has ds d /\ z; bs; P; G ⊢ d : D.
-Proof.
-  introv Hdefs Hhas. induction Hdefs.
-  - inversion Hhas; subst. exists d. split.
-    + unfold defs_has. simpl. rewrite If_l; reflexivity.
-    + assumption.
-  - inversion Hhas; subst.
-    + destruct (IHHdefs H4) as [d' [H1 H2]].
-      exists d'. split.
-      * unfold defs_has. simpl. rewrite If_r. apply H1.
-        apply not_eq_sym. eapply defs_has_hasnt_neq; eauto.
-      * assumption.
-    + exists d. split.
-      * unfold defs_has. simpl. rewrite If_l; reflexivity.
-      * inversions* H4.
-Qed.
-
 Lemma stack_typing : forall G s v p,
     well_typed G s ->
     s ∋ (p, v) ->
@@ -156,13 +69,6 @@ Proof.
   (* apply [stack_typing] to say that [val_new U ds] is typed in [G], and therefore, [q] can be typed. *)
 Admitted.
 
-Lemma defs_has_typing: forall z bs P G d a T,
-    z; bs; P; G ⊢ d : dec_trm a T ->
-    exists t, d = def_trm a t.
-Proof.
-  introv Hd. dependent induction Hd; eauto.
-Qed.
-
 (** [G ~ s]                 #<br>#
     [G ⊢ p: T]              #<br>#
     [―――――――――――――――――――――] #<br>#
@@ -173,68 +79,6 @@ Lemma typed_path_lookup : forall G s p T,
     exists v, s ∋ (p, v).
 Proof.
   introv Hwt Hp. Admitted.
-(*
-Lemma path_lookup :
-    (forall s t ps,
-        s ∋ t // ps -> forall G p T ds a q r,
-        well_typed G s ->
-        t = (p, val_new T ds) ->
-        defs_has (open_defs_p r ds) (def_trm a (trm_path q)) ->
-        exists v ps', s ∋ (q, v) // ps') /\
-    (forall s p ds ps,
-        s ↓ p == ds // ps -> forall G a q,
-        well_typed G s ->
-        defs_has ds (def_trm a (trm_path q)) ->
-        exists v ps', s ∋ (q, v) // ps').
-Proof.
-  apply lookup_mutind; intros; eauto.
-  - Case "lookup_var".
-    inversions H0.
-    lets Hl: (lookup_var b).
-    destruct (stack_path_typing r H Hl H1) as [U Hq].
-    destruct (typed_path_lookup H Hq) as [P' [v Hs]].
-    eauto.
-  - Case "lookup_val".
-    inversions H1.
-    lets Hl: (lookup_val l d).
-    destruct (stack_path_typing r H0 Hl H2) as [U Hq].
-    destruct (typed_path_lookup H0 Hq) as [P' [v Hs]].
-    eauto.
-  - Case "lookup_path".
-    inversions H2. inversions l.
-    specialize (H _ _ _ H1 d). destruct H as [v [P' Hs]].
-    destruct (named_path_lookup_l H2) as [z [ds Heq]]. inversions Heq.
-    apply* H0.
-Qed.
-
-(** [G ~ s]                          #<br>#
-    [P ⊢ s ∋ (p, ν(T)...{a = q}...]  #<br>#
-    [―――――――――――――――――――――――――――――]  #<br>#
-    [exists v P', P' ⊢ s ∋ (q, v)]        *)
-Lemma path_lookup_l : forall G s p T ds a q ps,
-    well_typed G s ->
-    s ∋ (p, val_new T ds) // ps ->
-    defs_has (open_defs_p p ds) (def_trm a (trm_path q)) ->
-    exists v ps', s ∋ (q, v) // ps'.
-Proof.
-  intros. apply* path_lookup.
-Qed.*)
-
-Lemma invertible_obj_fun_type: forall G T ds U V,
-    G ⊢##v val_new T ds : (typ_all U V) -> False.
-Proof.
-  introv Hv. dependent induction Hv. inversion H. eauto.
-Qed.
-
-Lemma invertible_to_precise_v_obj: forall G T ds U,
-    G ⊢##v val_new T ds : U ->
-    inert_typ U ->
-    U = typ_bnd T.
-Proof.
-  introv Hv Hi. dependent induction Hv; try solve [inversion Hi].
-  - inversion* H.
-  - false* invertible_obj_fun_type.
-Qed.
 
 Lemma lookup_step_preservation_prec: forall G s p T T' t,
     inert G ->
@@ -285,79 +129,6 @@ Proof.
      lets Hn: (lookup_strengthen Hs n). apply* weaken_ty_trm.
 Qed.
 
-Lemma path_rec_sub: forall G p q T U,
-    G ⊢ trm_path p: typ_bnd T ->
-    G ⊢ trm_path q: typ_bnd T ->
-    G ⊢ open_typ_p q T <: open_typ_p q U ->
-    G ⊢ trm_path p: typ_bnd U.
-Proof.
-Admitted.
-
-Lemma lookup_inv_path_t: forall s t u,
-    s ⟦ t ⟼ u ⟧ ->
-    exists p, t = trm_path p.
-Proof.
-  introv Hs. induction Hs; eauto.
-Qed.
-
-Lemma lookup_inv_path_u: forall s t u,
-    s ⟦ t ⟼ u ⟧ ->
-    (exists p, u = trm_path p) \/ (exists v, u = trm_val v).
-Proof.
-  introv Hs. Admitted.
-(*
-Lemma lookup_subst: forall G s p q T U,
-    well_typed G s ->
-    inert G ->
-    s ⟦ trm_path p ⟼ trm_path q ⟧ ->
-    G ⊢! p : typ_bnd T ⪼ U ->
-    record_type U ->
-    G ⊢# open_typ_p p T <: open_typ_p q T.
-Proof.
-  introv Hwt. gen p q T. induction Hwt; introv Hi Hl Hp HU.
-  - false* lookup_empty.
-  - gen q. dependent induction Hp; introv Hl.
-    * inversions HU. inversion H4.
-    * inversions HU. inversion H2.
-    * apply pf_inert_bnd_U in Hp. inversions Hp.
-
-
-
-
-      inversions Hl. inversions H5. unfold sel_fields in H4. destruct p. inversions H4.
-    * destruct (pf_inert_rcd_U Hi Hp) as [V Heq]. subst. inversions HU. inversions H2.
-      specialize (IHHp _ _ _ _ Hwt H H1 IHHwt Hi JMeq_refl eq_refl).
-*)
-
-
-Lemma lookup_val_inv: forall s v t,
-    star (lookup_step s) (trm_val v) t ->
-    t = trm_val v.
-Proof.
-  introv Hs. dependent induction Hs. auto. inversion H.
-Qed.
-
-Lemma lookup_path_inv: forall s t p,
-    star (lookup_step s) t (trm_path p) ->
-    exists q, t = trm_path q.
-Proof.
-  introv Hs. dependent induction Hs; eauto. destruct (IHHs _ eq_refl) as [q Heq]. subst.
-  inversions H; eauto.
-Qed.
-
-Lemma lookup_step_path_inv: forall s t u,
-    s ⟦ t ⟼ u ⟧ ->
-    exists q, t = trm_path q.
-Proof.
-  induction 1; eauto.
-Qed.
-
-Lemma typing_empty_false: forall p T,
-    empty ⊢ trm_path p: T -> False.
-Proof.
-  introv Hp. dependent induction Hp; eauto. false* binds_empty_inv.
-Qed.
-
 Lemma lookup_preservation_typ_all : forall G s t u T S,
     inert G ->
     well_typed G s ->
@@ -366,41 +137,13 @@ Lemma lookup_preservation_typ_all : forall G s t u T S,
     G ⊢ u: typ_all S T.
 Proof.
   introv Hi Hwt Hl Hp. dependent induction Hl; auto.
-  destruct (lookup_step_path_inv H) as [p Heq]. subst.
+  destruct (lookup_inv_path_t H) as [p Heq]. subst.
   proof_recipe.
   lets Hlp: (lookup_step_preservation_prec Hi Hwt H Hpr).
   lets Heq: (pf_inert_lambda_U Hi Hpr). subst.
   apply ty_sub with (U:=typ_all S T) in Hlp. apply* IHHl.
   fresh_constructor. apply* tight_to_general.
 Qed.
-(*
-Lemma path_bnd_record_has_typing: forall ,
-    G ⊢ trm_path p : typ_bnd T ->
-    record_has (open_typ_p q T) (dec_trm a (open_typ_p q T)
- *)
-
-Lemma typing_record_has: forall G t T D,
-    G ⊢ t: T ->
-    record_has T D ->
-    G ⊢ t: typ_rcd D.
-Proof.
-  introv Ht Hr. induction Hr; eauto.
-Qed.
-
-Lemma record_has_open: forall p S a T,
-    record_has (open_typ_p p S) (dec_trm a T) ->
-    exists U, record_has S (dec_trm a U).
-Proof.
-  introv Hr. dependent induction Hr.
-  - destruct S; inversions x. destruct d; inversion* H0.
-  - destruct S; inversions x. Admitted.
-
-Lemma record_has_open_diff: forall p q T a U,
-    record_has (open_typ_p p T) (dec_trm a (open_typ_p p U)) ->
-    record_has (open_typ_p q T) (dec_trm a (open_typ_p q U)).
-Proof.
-  introv Hr. Admitted.
-
 
 Lemma lookup_preservation_typ_bnd: forall G s p q T U a,
     inert G ->
@@ -426,73 +169,16 @@ Proof.
   assumption.
   Admitted.*)
 
-Lemma subtyp_open: forall G p q T S U,
-    inert G ->
-    G ⊢ trm_path p: open_typ_p p T ->
-    G ⊢ trm_path q: open_typ_p q T ->
-    G ⊢ open_typ_p p S <: open_typ_p p U ->
-    G ⊢ open_typ_p q S <: open_typ_p q U.
-Proof.
-  introv Hi Hp Hq Hs. apply (general_to_tight_typing Hi) in Hp. apply (general_to_tight_typing Hi) in Hq.
-  apply (general_to_tight Hi) in Hs; auto.
-  Abort.
-(* attempt 2:
-   try to first reason only about lookups from path p to path q;
-   then, apply one step to get value
-
-Lemma lookup_preservation_typ_bnd: forall G s p q a U,
-    inert G ->
-    well_typed G s ->
-    star (lookup_step s) (trm_path p) (trm_path q) ->
-    G ⊢ trm_path p : typ_rcd (dec_trm a (open_typ_p p U)) ->
-    G ⊢ trm_path q : typ_rcd (dec_trm a (open_typ_p q U)).
-Proof.
-  introv Hi Hwt Hl Hp. gen a U. dependent induction Hl; introv Hp; auto.
-  proof_recipe.
-  lets Hlp: (lookup_step_preservation_prec Hi Hwt H Hpr).
-  destruct (lookup_path_inv Hl) as [p' Heq]. subst.
-  destruct (pf_inert_rcd_U Hi Hpr) as [V Heq]. subst.
-  lets Hh: (precise_flow_record_has Hi Hpr).
-  assert (exists Tpr', Tpr = open_typ_p p Tpr') as Hop. admit.
-  destruct Hop as [Tpr' Heq]. subst.
-  apply ty_rec_elim in Hlp.
-  lets Hr': (record_has_open_diff _ p' _ _ Hh).
-  lets Hrh: (typing_record_has Hlp Hr').
-  specialize (IHHl _ _ Hi Hwt eq_refl eq_refl _ _ Hrh).
-  apply ty_sub with (T:=typ_rcd (dec_trm a (open_typ_p q Tpr'))).
-  assumption. constructor. apply tight_to_general in Hspr.
-  apply subtyp_open with (p:=p) (T:=typ_rcd (dec_trm a Tpr')); auto.
-  apply precise_to_general in Hpr. auto.
-Qed.
-
-*)
-(* attempt 1:
-  doesn't work because u could be a value;
-  as a result, we might not be able to type it in the same "permissive way"
-  as the path t
-*)
-(*Lemma lookup_preservation_typ_bnd: forall G s t u T a U,
-    inert G ->
-    well_typed G s ->
-    star (lookup_step s) t u ->
-    G ⊢ t : typ_bnd T ->
-    record_has T (dec_trm a U) ->
-    G ⊢ u : typ_bnd T.
-Proof.
-  introv Hi Hwt Hl Ht Hr. dependent induction Hl; auto.
-  destruct (lookup_step_path_inv H) as [p Heq]. subst. apply* IHHl. clear IHHl.
-  assert (G ⊢ trm_path p: typ_rcd (dec_trm a (open_typ_p p U))) as Hp by admit.
-  proof_recipe.
-  lets Hlp: (lookup_step_preservation_prec Hi Hwt H Hpr).
-  destruct (pf_inert_rcd_U Hi Hpr) as [S Heq]. subst. Admitted.
-*)
-
 Lemma corresponding_types_obj: forall G s p S a T,
     inert G ->
     well_typed G s ->
     G ⊢! p: typ_bnd S ⪼ typ_rcd (dec_trm a T) ->
-    (exists v, s ∋ (p, v) /\
-            G ⊢ trm_val v : typ_bnd S).
+    (exists q v S' T',
+        star (lookup_step s) (trm_path p) (trm_path q) /\
+        s ⟦ trm_path p ⟼ trm_val v ⟧ /\
+        G ⊢ trm_val v : typ_bnd S' /\
+             record_has S' (dec_trm a T') /\
+             G ⊢ open_typ_p q T' <: T).
 Proof.
   introv Hi Hwt Hp.
   lets Hp': (pf_precise_U Hp).
@@ -665,8 +351,9 @@ Qed.
     [――――――――――――――――――――――――――] #<br>#
     [exists t, ds, v = nu(T)ds      ] #<br>#
     [ds^p = ... /\ {a = t} /\ ...] #<br>#
-    [G ⊢ t: U] *)
-Lemma val_mu_to_new: forall G v T U a p,
+    [G ⊢ t: U]
+*)
+    Lemma val_mu_to_new: forall G v T U a p,
     inert G ->
     G ⊢ trm_val v: typ_bnd T ->
     G ⊢ trm_path p : open_typ_p p T ->
@@ -675,6 +362,29 @@ Lemma val_mu_to_new: forall G v T U a p,
       v = val_new T ds /\
       defs_has (open_defs_p p ds) (def_trm a t) /\
       G ⊢ t: U.
+
+(**
+    Γ ⊢ v: μ(T)
+    Γ ⊢ p: T’^p
+    T = …{a: U}…
+    T’ = …{a: U’}…
+    Γ ⊢ U <: U’
+    ______________ (Lemma 2’)
+    ∃ t, ds.
+    v = ν(T)ds
+    ds^p = …{a = t}…
+    Γ ⊢ t: U’
+ *)
+(*Lemma val_mu_to_new: forall G v T T' U a p,
+    inert G ->
+    G ⊢ trm_val v: typ_bnd T ->
+    G ⊢ trm_path p : open_typ_p p T' ->
+    record_has (open_typ_p p T') (dec_trm a U') ->
+    exists t ds,
+      v = val_new T ds /\
+      defs_has (open_defs_p p ds) (def_trm a t) /\
+      G ⊢ t: U.*)
+
 Proof.
   introv Hi Ht Hx Hr.
   lets Htt: (general_to_tight_typing Hi Ht).
@@ -697,7 +407,23 @@ Proof.
   Admitted. (*
   apply* renaming_def'.
 Qed.
-  *)
+             *)
+
+(*
+p ⟼ q
+Γ ⊢ p: T^p
+_____________ (Lemma 3)
+Γ ⊢ T^p <: T^q
+ *)
+
+Lemma lookup_type_opening: forall G s p q T,
+    well_typed G s ->
+    G ⊢ trm_path p : open_typ_p p T ->
+    star (lookup_step s) (trm_path p) (trm_path q) ->
+    G ⊢ open_typ_p p T <: open_typ_p q T /\ G ⊢ open_typ_p q T <: open_typ_p p T.
+Proof. Admitted.
+
+
 
 (** * Canonical Forms for Objects
 
@@ -721,11 +447,12 @@ Proof.
   introv Hi Hwt Hty.
   proof_recipe.
   destruct (pf_inert_rcd_U Hi Hpr) as [V Heq]. subst.
-  destruct (corresponding_types_obj Hi Hwt Hpr) as [v [Bis Ht]].
-  lets Hr: (precise_flow_record_has Hi Hpr).
+  destruct (corresponding_types_obj Hi Hwt Hpr) as [q [v [S' [T' [Bis [Hl [Hv [Hr Hh]]]]]]]].
+  lets Hrh: (precise_flow_record_has Hi Hpr).
   lets Bieq: (pf_precise_U Hpr).
-  lets Bi': (precise_to_general Bieq). apply ty_rec_elim in Bi'.
-  destruct (val_mu_to_new Hi Ht Bi' Hr) as [t [ds [Heq' [Hdefs Ht']]]].
+  lets Hg: (precise_to_general Bieq). apply ty_rec_elim in Hg.
+  destruct (lookup_type_opening _ Hwt Hg Bis) as [Hs1 Hs].
+  destruct (val_mu_to_new Hi Hv Hg Hr) as [t [ds [Heq' [Hdefs Ht']]]].
   subst. exists V ds t. repeat split~. inversions Bis.
   eapply ty_sub. eauto. apply* tight_to_general.
 Qed.

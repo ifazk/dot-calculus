@@ -655,3 +655,79 @@ Proof.
   auto. Qed.
 
 Hint Rewrite proj_rewrite.
+
+Lemma typing_empty_false: forall p T,
+    empty ⊢ trm_path p: T -> False.
+Proof.
+  introv Hp. dependent induction Hp; eauto. false* binds_empty_inv.
+Qed.
+
+Lemma record_has_trm_dec : forall G p T U T' U' a,
+    G ⊢ trm_path p: T ->
+    G ⊢ T <: U ->
+    record_type T ->
+    record_type U ->
+    record_has T (dec_trm a T') ->
+    (record_has U (dec_trm a U') /\ G ⊢ T' <: U').
+Proof.
+  introv Hp Hs HrT HrU Ha. Admitted.
+
+Lemma record_has_ty_dec : forall G p T U T' A,
+    G ⊢ trm_path p: T ->
+    G ⊢ T <: U ->
+    record_type T ->
+    record_type U ->
+    record_has T (dec_typ A T' T') ->
+    record_has U (dec_typ A T' T').
+Proof.
+  introv Hp Hs HrT HrU HA. Admitted.
+
+(** [d1 isin ds]             #<br>#
+    [label(d2) \notin ds]     #<br>#
+    [―――――――――――――――――――――]  #<br>#
+    [label(d1) <> label(d2)]  *)
+Lemma defs_has_hasnt_neq: forall ds d1 d2,
+  defs_has ds d1 ->
+  defs_hasnt ds (label_of_def d2) ->
+  label_of_def d1 <> label_of_def d2.
+Proof.
+  introv Hhas Hhasnt.
+  unfold defs_has in Hhas.
+  unfold defs_hasnt in Hhasnt.
+  induction ds.
+  - simpl in Hhas. inversion Hhas.
+  - simpl in Hhasnt. simpl in Hhas. case_if; case_if.
+    + inversions Hhas. assumption.
+    + apply IHds; eauto.
+Qed.
+
+(** [G ⊢ ds :: ... /\ D /\ ...]       #<br>#
+    [―――――――――――――――――――――――]       #<br>#
+    [exists d, ds = ... /\ d /\ ...]       #<br>#
+    [G ⊢ d: D]                      *)
+Lemma record_has_ty_defs: forall z bs P G T ds D,
+  z; bs; P; G ⊢ ds :: T ->
+  record_has T D ->
+  exists d, defs_has ds d /\ z; bs; P; G ⊢ d : D.
+Proof.
+  introv Hdefs Hhas. induction Hdefs.
+  - inversion Hhas; subst. exists d. split.
+    + unfold defs_has. simpl. rewrite If_l; reflexivity.
+    + assumption.
+  - inversion Hhas; subst.
+    + destruct (IHHdefs H4) as [d' [H1 H2]].
+      exists d'. split.
+      * unfold defs_has. simpl. rewrite If_r. apply H1.
+        apply not_eq_sym. eapply defs_has_hasnt_neq; eauto.
+      * assumption.
+    + exists d. split.
+      * unfold defs_has. simpl. rewrite If_l; reflexivity.
+      * inversions* H4.
+Qed.
+
+Lemma defs_has_typing: forall z bs P G d a T,
+    z; bs; P; G ⊢ d : dec_trm a T ->
+    exists t, d = def_trm a t.
+Proof.
+  introv Hd. dependent induction Hd; eauto.
+Qed.

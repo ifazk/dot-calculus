@@ -318,3 +318,19 @@ Proof.
   specialize (IHHty v Hgd eq_refl).
   apply* invertible_typing_closure_tight_v.
 Qed.
+
+Lemma invertible_obj_fun_type: forall G T ds U V,
+    G ⊢##v val_new T ds : (typ_all U V) -> False.
+Proof.
+  introv Hv. dependent induction Hv. inversion H. eauto.
+Qed.
+
+Lemma invertible_to_precise_v_obj: forall G T ds U,
+    G ⊢##v val_new T ds : U ->
+    inert_typ U ->
+    U = typ_bnd T.
+Proof.
+  introv Hv Hi. dependent induction Hv; try solve [inversion Hi].
+  - inversion* H.
+  - false* invertible_obj_fun_type.
+Qed.

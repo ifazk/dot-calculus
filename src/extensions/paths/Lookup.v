@@ -248,3 +248,32 @@ Proof.
     lets Hl: (lookup_func H2 Hb). inversions Hl. inversions H0. repeat case_if. inversions H3. eauto.
 Qed.
 *)
+
+Lemma lookup_inv_path_t: forall s t u,
+    s ⟦ t ⟼ u ⟧ ->
+    exists p, t = trm_path p.
+Proof.
+  introv Hs. induction Hs; eauto.
+Qed.
+
+Lemma lookup_inv_path_u: forall s t u,
+    s ⟦ t ⟼ u ⟧ ->
+    (exists p, u = trm_path p) \/ (exists v, u = trm_val v).
+Proof.
+  introv Hs. Admitted.
+
+
+Lemma lookup_val_inv: forall s v t,
+    star (lookup_step s) (trm_val v) t ->
+    t = trm_val v.
+Proof.
+  introv Hs. dependent induction Hs. auto. inversion H.
+Qed.
+
+Lemma lookup_path_inv: forall s t p,
+    star (lookup_step s) t (trm_path p) ->
+    exists q, t = trm_path q.
+Proof.
+  introv Hs. dependent induction Hs; eauto. destruct (IHHs _ eq_refl) as [q Heq]. subst.
+  inversions H; eauto.
+Qed.
