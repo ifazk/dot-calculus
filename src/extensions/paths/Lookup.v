@@ -37,7 +37,7 @@ Inductive lookup_step : sta -> trm -> trm -> Prop :=
     [s[p.a ⟼ t]]              *)
 | lookup_sel : forall s p ds a t,
     s ↓ p == ds ->
-    defs_has ds (def_trm a t) ->
+    defs_has ds { a := t } ->
     s ⟦ trm_path p•a ⟼ t ⟧
 
 where "s '⟦' p '⟼' t '⟧'" := (lookup_step s p t)

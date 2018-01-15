@@ -65,7 +65,7 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     [―――――――――――――]   #<br>#
     [G ⊢# p.a: T]        *)
 | ty_new_elim_t : forall G p a T,
-    G ⊢# trm_path p : typ_rcd (dec_trm a T) ->
+    G ⊢# trm_path p : typ_rcd {a ⦂ T} ->
     G ⊢# trm_path p • a : T
 
 (** [G ⊢# t: T]             #<br>#
@@ -158,7 +158,7 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
     [G ⊢# {a: T} <: {a: U}]     *)
 | subtyp_fld_t: forall G T U a,
     G ⊢# T <: U ->
-    G ⊢# typ_rcd (dec_trm a T) <: typ_rcd (dec_trm a U)
+    G ⊢# typ_rcd {a ⦂ T} <: typ_rcd {a ⦂ U}
 
 (** [G ⊢# S2 <: S1]                   #<br>#
     [G ⊢# T1 <: T2]                   #<br>#
@@ -167,20 +167,20 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
 | subtyp_typ_t: forall G S1 S2 T1 T2 A,
     G ⊢# S2 <: S1 ->
     G ⊢# T1 <: T2 ->
-    G ⊢# typ_rcd (dec_typ A S1 T1) <: typ_rcd (dec_typ A S2 T2)
+    G ⊢# typ_rcd { A >: S1 <: T1 } <: typ_rcd { A >: S2 <: T2 }
 
 (** [G ⊢! p: {A: T..T}] #<br>#
     [――――――――――――――――――] #<br>#
     [G ⊢# T <: p.A]         *)
 | subtyp_sel2_t: forall G p A T U,
-    G ⊢! p : U ⪼ typ_rcd (dec_typ A T T) ->
+    G ⊢! p : U ⪼ typ_rcd { A >: T <: T } ->
     G ⊢# T <: typ_path p A
 
 (** [G ⊢! p: {A: T..T}] #<br>#
     [――――――――――――――――――] #<br>#
     [G ⊢# p.A <: T]         *)
 | subtyp_sel1_t: forall G p A T U,
-    G ⊢! p : U ⪼ typ_rcd (dec_typ A T T) ->
+    G ⊢! p : U ⪼ typ_rcd { A >: T <: T } ->
     G ⊢# typ_path p A <: T
 
 (** [G ⊢# S2 <: S1]                #<br>#

@@ -43,9 +43,9 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
     [――――――――――――――――] #<br>#
     [G ⊢## p: {a: U}]     *)
 | ty_dec_trm_inv : forall G p a T U,
-  G ⊢## p : typ_rcd (dec_trm a T) ->
+  G ⊢## p : typ_rcd {a ⦂ T} ->
   G ⊢# T <: U ->
-  G ⊢## p : typ_rcd (dec_trm a U)
+  G ⊢## p : typ_rcd {a ⦂ U}
 
 (** [G ⊢## p: {A: T1..S1}]   #<br>#
     [G ⊢# T2 <: T1]         #<br>#
@@ -53,10 +53,10 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
     [―――――――――――――――――――――] #<br>#
     [G ⊢## p: {A: T2..S2}]     *)
 | ty_dec_typ_inv : forall G p A T1 T2 S1 S2,
-  G ⊢## p : typ_rcd (dec_typ A T1 S1) ->
+  G ⊢## p : typ_rcd {A >: T1 <: S1} ->
   G ⊢# T2 <: T1 ->
   G ⊢# S1 <: S2 ->
-  G ⊢## p : typ_rcd (dec_typ A T2 S2)
+  G ⊢## p : typ_rcd {A >: T2 <: S2}
 
 (** [G ⊢## p: T^p]   #<br>#
     [―――――――――――――――] #<br>#
@@ -93,7 +93,7 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
     [G ⊢## p: q.A           *)
 | ty_sel_inv : forall G p q A T S,
   G ⊢## p : S ->
-  G ⊢! q : T ⪼ typ_rcd (dec_typ A S S) ->
+  G ⊢! q : T ⪼ typ_rcd {A >: S <: S} ->
   G ⊢## p : typ_path q A
 
 (** [G ⊢## p: T]   #<br>#
@@ -136,7 +136,7 @@ Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
     [G ⊢##v v: q.A]         *)
 | ty_path_inv_v : forall G v T S q A,
   G ⊢##v v : S ->
-  G ⊢! q : T ⪼ typ_rcd (dec_typ A S S) ->
+  G ⊢! q : T ⪼ typ_rcd {A >: S <: S} ->
   G ⊢##v v : typ_path q A
 
 (** [G ⊢##v v : T]        #<br>#
@@ -166,9 +166,9 @@ Hint Constructors ty_path_inv ty_val_inv.
     [exists T', G |-! p: {a: T'}]      #<br>#
     [G |-# T' <: T]. *)
 Lemma invertible_to_precise_trm_dec: forall G p a T,
-  G ⊢## p : typ_rcd (dec_trm a T) ->
+  G ⊢## p : typ_rcd {a ⦂ T} ->
   exists T' U,
-    G ⊢! p : U ⪼ typ_rcd (dec_trm a T') /\
+    G ⊢! p : U ⪼ typ_rcd {a ⦂ T'} /\
     G ⊢# T' <: T.
 Proof.
   introv Hinv.

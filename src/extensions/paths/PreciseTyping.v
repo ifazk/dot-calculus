@@ -89,7 +89,7 @@ Inductive precise_flow : path -> ctx -> typ -> typ -> Prop :=
     [――――――――――――――――――――]   #<br>#
     [G ⊢! p.a: U ⪼ U]        *)
   | pf_fld : forall G p a T U,
-      G ⊢! p: T ⪼ typ_rcd (dec_trm a U) ->
+      G ⊢! p: T ⪼ typ_rcd {a ⦂ U} ->
       G ⊢! p•a : U ⪼ U
 
 (** [G ⊢! p: T ⪼ mu(U)] #<br>#
@@ -393,8 +393,8 @@ Qed.
     then [T1 = T2]. *)
 Lemma pf_record_unique_tight_bounds_rec : forall G p T A T1 T2,
     inert G ->
-    G ⊢! p: typ_bnd T ⪼ typ_rcd (dec_typ A T1 T1) ->
-    G ⊢! p: typ_bnd T ⪼ typ_rcd (dec_typ A T2 T2) ->
+    G ⊢! p: typ_bnd T ⪼ typ_rcd {A >: T1 <: T1} ->
+    G ⊢! p: typ_bnd T ⪼ typ_rcd {A >: T2 <: T2} ->
     T1 = T2.
 Proof.
   introv Hi Pf1 Pf2.
@@ -412,12 +412,12 @@ Qed.
     then [T1 = T2]. *)(** *)
 Lemma pf_inert_unique_tight_bounds : forall G p T T1 T2 A,
     inert G ->
-    G ⊢! p: T ⪼ typ_rcd (dec_typ A T1 T1) ->
-    G ⊢! p: T ⪼ typ_rcd (dec_typ A T2 T2) ->
+    G ⊢! p: T ⪼ typ_rcd {A >: T1 <: T1} ->
+    G ⊢! p: T ⪼ typ_rcd {A >: T2 <: T2} ->
     T1 = T2.
 Proof.
   introv Hi Pf1 Pf2.
-  assert (record_type (typ_rcd (dec_typ A T1 T1))) as Hrt. {
+  assert (record_type (typ_rcd {A >: T1 <: T1})) as Hrt. {
     unfold record_type. eexists. apply* rt_one.
   }
   lets Hr: (pf_inert_rcd_typ_U Hi Pf1 Hrt). destruct Hr as [U Heq]. subst.
@@ -426,8 +426,8 @@ Qed.
 
 Lemma pf_rcd_unique: forall G p T a U1 U2,
     inert G ->
-    G ⊢! p: T ⪼ typ_rcd (dec_trm a U1) ->
-    G ⊢! p: T ⪼ typ_rcd (dec_trm a U2) ->
+    G ⊢! p: T ⪼ typ_rcd {a ⦂ U1} ->
+    G ⊢! p: T ⪼ typ_rcd {a ⦂ U2} ->
     U1 = U2.
 Proof.
   introv Hi Pf1 Pf2.
@@ -507,7 +507,7 @@ Hint Resolve inert_ok.
 (** If [G ⊢! p: {A: S..U}] then [S = U]. *)
 Lemma pf_dec_typ_inv : forall G p T A S U,
     inert G ->
-    G ⊢! p: T ⪼ typ_rcd (dec_typ A S U) ->
+    G ⊢! p: T ⪼ typ_rcd {A >: S <: U} ->
     S = U.
 Proof.
   introv Hi Pf. destruct (pf_inert_rcd_U Hi Pf) as [V H]. subst.

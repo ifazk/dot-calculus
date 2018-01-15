@@ -46,11 +46,12 @@ Fixpoint subst_typ (z: var) (u: path) (T: typ) { struct T } : typ :=
   | typ_path q L    => typ_path (subst_path z u q) L
   | typ_bnd T      => typ_bnd (subst_typ z u T)
   | typ_all T U    => typ_all (subst_typ z u T) (subst_typ z u U)
+  | typ_sngl p     => typ_sngl (subst_path z u p)
   end
 with subst_dec (z: var) (u: path) (D: dec) { struct D } : dec :=
   match D with
-  | dec_typ L T U => dec_typ L (subst_typ z u T) (subst_typ z u U)
-  | dec_trm L U => dec_trm L (subst_typ z u U)
+  | {A >: T <: U} => {A >: subst_typ z u T <: subst_typ z u U}
+  | {a ⦂ U}        => {a ⦂ subst_typ z u U }
   end.
 
 (** Substitution on terms, values, and definitions:
@@ -70,7 +71,7 @@ with subst_val (z: var) (u: path) (v: val) : val :=
 with subst_def (z: var) (u: path) (d: def) : def :=
   match d with
   | def_typ L T => def_typ L (subst_typ z u T)
-  | def_trm L t => def_trm L (subst_trm z u t)
+  | { a := t }  => { a := subst_trm z u t }
   end
 with subst_defs (z: var) (u: path) (ds: defs) : defs :=
   match ds with
@@ -168,6 +169,7 @@ Proof.
   intros. apply typ_mutind; unfold open_typ, open_typ_p; simpl; intros; auto;
             try solve [rewrite* H; rewrite* H0].
   unfold open_rec_avar, open_rec_avar_p. rewrite* open_var_path_eq.
+  f_equal. apply open_var_path_eq.
 Qed.
 
 Lemma open_var_typ_eq: forall x T,
@@ -345,7 +347,7 @@ Lemma subst_fresh_typ_dec: forall x y,
   (forall T : typ  , x \notin fv_typ  T  -> subst_typ  x y T  = T ) /\
   (forall D : dec  , x \notin fv_dec  D  -> subst_dec  x y D  = D ).
 Proof.
-  intros x y. apply typ_mutind; intros; simpls; f_equal*. apply* subst_fresh_path.
+  intros x y. apply typ_mutind; intros; simpls; f_equal*; apply* subst_fresh_path.
 Qed.
 
 Definition subst_fresh_typ x p := proj1 (subst_fresh_typ_dec x p).
@@ -438,7 +440,7 @@ Lemma subst_open_commut_typ_dec: forall x p u,
      subst_dec x p (open_rec_dec n u D)
      = open_rec_dec_p n (subst_var_p x p u) (subst_dec x p D)).
 Proof.
-  intros. apply typ_mutind; intros; simpl; f_equal*. apply* subst_open_commut_path.
+  intros. apply typ_mutind; intros; simpl; f_equal*; apply* subst_open_commut_path.
 Qed.
 
 Lemma subst_open_commut_p: forall x p u y n,
@@ -477,7 +479,7 @@ Lemma subst_open_commut_typ_dec_p: forall x y u,
      subst_dec x y (open_rec_dec_p n u D)
      = open_rec_dec_p n (subst_path x y u) (subst_dec x y D)).
 Proof.
-  intros. apply typ_mutind; intros; simpl; f_equal*.
+  intros. apply typ_mutind; intros; simpl; f_equal*;
   apply* subst_open_commut_path_p.
 Qed.
 
@@ -639,8 +641,8 @@ Qed.
     [―――――――――――――――――――――――――] #<br>#
     [t = t'] *)
 Lemma defs_has_inv: forall ds a t t',
-    defs_has ds (def_trm a t) ->
-    defs_has ds (def_trm a t') ->
+    defs_has ds {a := t} ->
+    defs_has ds {a := t'} ->
     t = t'.
 Proof.
   intros. unfold defs_has in *.
@@ -667,8 +669,8 @@ Lemma record_has_trm_dec : forall G p T U T' U' a,
     G ⊢ T <: U ->
     record_type T ->
     record_type U ->
-    record_has T (dec_trm a T') ->
-    (record_has U (dec_trm a U') /\ G ⊢ T' <: U').
+    record_has T { a ⦂ T' } ->
+    (record_has U { a ⦂ U' } /\ G ⊢ T' <: U').
 Proof.
   introv Hp Hs HrT HrU Ha. Admitted.
 
@@ -677,8 +679,8 @@ Lemma record_has_ty_dec : forall G p T U T' A,
     G ⊢ T <: U ->
     record_type T ->
     record_type U ->
-    record_has T (dec_typ A T' T') ->
-    record_has U (dec_typ A T' T').
+    record_has T { A >: T' <: T' } ->
+    record_has U  { A >: T' <: T' }.
 Proof.
   introv Hp Hs HrT HrU HA. Admitted.
 
@@ -726,8 +728,8 @@ Proof.
 Qed.
 
 Lemma defs_has_typing: forall z bs P G d a T,
-    z; bs; P; G ⊢ d : dec_trm a T ->
-    exists t, d = def_trm a t.
+    z; bs; P; G ⊢ d : { a ⦂ T } ->
+    exists t, d = {a := t}.
 Proof.
   introv Hd. dependent induction Hd; eauto.
 Qed.

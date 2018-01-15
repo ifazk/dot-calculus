@@ -61,7 +61,7 @@ Admitted.
 Lemma stack_path_typing : forall G s U ds a p r t,
     well_typed G s ->
     s ∋ (p, val_new U ds) ->
-    defs_has (open_defs_p r ds) (def_trm a t) ->
+    defs_has (open_defs_p r ds) { a := t } ->
     exists T, G ⊢ t: T.
 Proof.
   introv Hwt Hs Hd.
@@ -132,52 +132,13 @@ Qed.
 
 (** * Lemmas to Prove Canonical Forms for Objects *)
 
-Lemma lookup_path_subtyping: forall G s p q T,
-    inert G ->
-    well_typed G s ->
-    s ⟦ trm_path p ⟼ trm_path q ⟧ ->
-    G ⊢ open_typ_p q T <: open_typ_p p T /\ G ⊢ open_typ_p p T <: open_typ_p q T.
-Proof.
-  introv Hi Hwt. gen p q T. induction Hwt; introv Hl.
-  - false* lookup_empty.
-  - inversions Hl. inversions H3.
-
-Lemma lookup_path_subtyping: forall G s p q T,
-    inert G ->
-    well_typed G s ->
-    s ⟦ trm_path p ⟼ trm_path q ⟧ ->
-    G ⊢ trm_path p: open_typ_p p T ->
-    G ⊢ open_typ_p q T <: open_typ_p p T /\ G ⊢ open_typ_p p T <: open_typ_p q T.
-Proof.
-  introv Hi Hwt Hl Ht.
-  proof_recipe.
-  dependent induction Ht.
-  -
-
-
-
-Lemma lookup_path_subtyping_p: forall G s p q T,
-    well_typed G s ->
-    star (lookup_step s) (trm_path p) (trm_path q) ->
-    G ⊢ open_typ_p q T <: open_typ_p p T.
-Proof.
-  apply* lookup_path_subtyping.
-Qed.
-
-Lemma lookup_path_subtyping_q: forall G s p q T,
-    well_typed G s ->
-    star (lookup_step s) (trm_path p) (trm_path q) ->
-    G ⊢ open_typ_p p T <: open_typ_p q T.
-Proof.
-  apply* lookup_path_subtyping.
-Qed.
 
 Lemma lookup_preservation_typ_bnd: forall G s p q U a,
     inert G ->
     well_typed G s ->
     star (lookup_step s) (trm_path p) (trm_path q) ->
-    G ⊢ trm_path p : typ_rcd (dec_trm a (open_typ_p p U)) ->
-    G ⊢ trm_path q : typ_rcd (dec_trm a (open_typ_p q U)).
+    G ⊢ trm_path p : typ_rcd { a ⦂ open_typ_p p U } ->
+    G ⊢ trm_path q : typ_rcd { a ⦂ open_typ_p q U }.
 Proof.
   introv Hi Hwt Hl Hp. gen a U. dependent induction Hl; introv Hp; auto.
   proof_recipe.
@@ -188,30 +149,30 @@ Proof.
   assert (exists Tpr', Tpr = open_typ_p p Tpr') as Hop. admit.
   destruct Hop as [Tpr' Heq]. subst.
   specialize (IHHl _ _ Hi Hwt eq_refl eq_refl).
-  assert (G ⊢ trm_path q' : typ_rcd (dec_trm a (open_typ_p q' Tpr'))) as Hq'. {
+  assert (G ⊢ trm_path q' : typ_rcd { a ⦂ open_typ_p q' Tpr' }) as Hq'. {
     apply ty_rec_elim in Hlp. apply* typing_record_has. apply* record_has_open_diff.
   }
-  specialize (IHHl _ _ Hq'). apply ty_sub with (T:=typ_rcd (dec_trm a (open_typ_p q Tpr'))).
+  specialize (IHHl _ _ Hq'). apply ty_sub with (T:=typ_rcd { a ⦂ open_typ_p q Tpr' }).
   assumption.
   assert (star (lookup_step s) (trm_path p) (trm_path q)) as Hpq. {
     eapply star_trans. apply star_one. apply H. auto.
   }
-  constructor. apply subtyp_trans with (T:=open_typ_p p Tpr').
+  constructor. apply subtyp_trans with (T:=open_typ_p p Tpr'). Abort. (*
   apply* lookup_path_subtyping_p.
   apply tight_to_general in Hspr. apply subtyp_trans with (T:=open_typ_p p U).
   assumption. apply* lookup_path_subtyping_q.
-Qed.
+Qed.*)
 
 Lemma corresponding_types_obj: forall G s p S a T,
     inert G ->
     well_typed G s ->
-    G ⊢! p: typ_bnd S ⪼ typ_rcd (dec_trm a T) ->
+    G ⊢! p: typ_bnd S ⪼ typ_rcd { a ⦂ T } ->
     (exists q v S' T',
         star (lookup_step s) (trm_path p) (trm_path q) /\
         s ⟦ trm_path q ⟼ trm_val v ⟧ /\
-        G ⊢ trm_path q : typ_rcd (dec_trm a (open_typ_p q T')) /\
+        G ⊢ trm_path q : typ_rcd { a ⦂ open_typ_p q T' } /\
         G ⊢ trm_val v : typ_bnd S' /\
-        record_has (open_typ_p q S') (dec_trm a (open_typ_p q T')) /\
+        record_has (open_typ_p q S') { a ⦂ open_typ_p q T' } /\
         G ⊢ open_typ_p q T' <: T).
 Proof.
   introv Hi Hwt Hp.
@@ -225,6 +186,7 @@ Proof.
   lets Hpg: (precise_to_general Hp).
   assert (exists T', T = open_typ_p p T') as Heq by admit.
   destruct Heq as [T' Heq]. subst.
+  Abort. (*
   lets Ht: (lookup_preservation_typ_bnd _ Hi Hwt Hpq Hpg).
   proof_recipe.
   lets Hlp: (lookup_step_preservation_prec Hi Hwt Hqv Hpr).
@@ -234,7 +196,7 @@ Proof.
   apply* precise_to_general.
   apply* precise_flow_record_has. apply tight_to_general in Hspr.
   apply (subtyp_trans Hspr). apply* lookup_path_subtyping.
-Qed.
+Qed.*)
 
 (** This lemma corresponds to Lemma 3.9 ([mu] to [G(x)]) in the paper.
 
@@ -246,10 +208,10 @@ Qed.
     [G ⊢ T' <: T]                *)
 Lemma var_typ_rcd_to_binds: forall G p a T,
     inert G ->
-    G ⊢ trm_path p : typ_rcd (dec_trm a T) ->
+    G ⊢ trm_path p : typ_rcd { a ⦂ T } ->
     (exists S T' V,
         G ⊢! p : typ_bnd S ⪼ V /\
-        record_has (open_typ_p p S) (dec_trm a T') /\
+        record_has (open_typ_p p S) { a ⦂ T' } /\
         G ⊢ T' <: T).
 Proof.
   introv Hin Ht.
@@ -277,11 +239,11 @@ Qed.
 Lemma val_mu_to_new: forall G v T U a p,
     inert G ->
     G ⊢ trm_val v: typ_bnd T ->
-    G ⊢ trm_path p : typ_rcd (dec_trm a U) ->
-    record_has (open_typ_p p T) (dec_trm a U) ->
+    G ⊢ trm_path p : typ_rcd { a ⦂ U } ->
+    record_has (open_typ_p p T) { a ⦂ U } ->
     exists t ds,
       v = val_new T ds /\
-      defs_has (open_defs_p p ds) (def_trm a t) /\
+      defs_has (open_defs_p p ds) { a := t } /\
       G ⊢ t: U.
 (**
     Γ ⊢ v: μ(T)
@@ -299,10 +261,10 @@ Lemma val_mu_to_new: forall G v T U a p,
     inert G ->
     G ⊢ trm_val v: typ_bnd T ->
     G ⊢ trm_path p : open_typ_p p T' ->
-    record_has (open_typ_p p T') (dec_trm a U') ->
+    record_has (open_typ_p p T') {a ⦂ U'} ->
     exists t ds,
       v = val_new T ds /\
-      defs_has (open_defs_p p ds) (def_trm a t) /\
+      defs_has (open_defs_p p ds) { a := t } /\
       G ⊢ t: U.*)
 
 Proof.
@@ -343,15 +305,15 @@ Qed.
 Lemma canonical_forms_obj: forall G s p a T,
   inert G ->
   well_typed G s ->
-  G ⊢ trm_path p: typ_rcd (dec_trm a T) ->
+  G ⊢ trm_path p: typ_rcd { a ⦂ T } ->
                (exists S ds t,
                    s ∋ (p, val_new S ds) /\
-                   defs_has (open_defs_p p ds) (def_trm a t) /\
+                   defs_has (open_defs_p p ds) { a := t } /\
                    G ⊢ t : T).
 Proof.
   introv Hi Hwt Hty.
   proof_recipe.
-  destruct (pf_inert_rcd_U Hi Hpr) as [V Heq]. subst.
+  destruct (pf_inert_rcd_U Hi Hpr) as [V Heq]. subst. Admitted. (*
   destruct (corresponding_types_obj Hi Hwt Hpr) as
       [q [v [S' [T' [Hpq [Hqv [Hq [Hv [Hr Hs]]]]]]]]].
   lets Hrh: (precise_flow_record_has Hi Hpr).
@@ -363,7 +325,7 @@ Proof.
     destruct Hex as [t' Heq]. subst. admit.
   - apply ty_sub with (T:=Tpr). apply ty_sub with (T:=open_typ_p q T'). assumption. assumption.
     apply* tight_to_general.
-Qed.
+Qed.*)
 
 (** * Lemmas to Prove Canonical Forms for Functions *)
 
