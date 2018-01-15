@@ -344,7 +344,7 @@ Fixpoint fv_trm (t: trm) : vars :=
 with fv_val (v: val) : vars :=
   match v with
   | val_new T ds    => (fv_typ T) \u (fv_defs ds)
-  | val_lambda T e  => (fv_typ T) \u (fv_trm e)
+  | val_lambda T t  => (fv_typ T) \u (fv_trm t)
   end
 with fv_def (d: def) : vars :=
   match d with

@@ -109,7 +109,7 @@ Ltac proof_recipe :=
         | [ Hinv: ?G ⊢## _ : typ_all _ _,
             Hok: ok ?G |- _ ] =>
           destruct (invertible_to_precise_typ_all Hok Hinv) as [Spr [Tpr [Upr [Lpr [Hpr [Hspr1 Hspr2]]]]]]
-        | [ Hinv: ?G ⊢## _ : typ_rcd { _ := _ } |- _ ] =>
+        | [ Hinv: ?G ⊢## _ : typ_rcd { _ ⦂ _ } |- _ ] =>
           destruct (invertible_to_precise_trm_dec Hinv) as [Tpr [Upr [Hpr Hspr]]]
         end
   end.

@@ -136,7 +136,7 @@ Qed.
 Lemma lookup_preservation_typ_bnd: forall G s p q U a,
     inert G ->
     well_typed G s ->
-    star (lookup_step s) (trm_path p) (trm_path q) ->
+    s ⟦ trm_path p ⟼* trm_path q ⟧ ->
     G ⊢ trm_path p : typ_rcd { a ⦂ open_typ_p p U } ->
     G ⊢ trm_path q : typ_rcd { a ⦂ open_typ_p q U }.
 Proof.
@@ -154,7 +154,7 @@ Proof.
   }
   specialize (IHHl _ _ Hq'). apply ty_sub with (T:=typ_rcd { a ⦂ open_typ_p q Tpr' }).
   assumption.
-  assert (star (lookup_step s) (trm_path p) (trm_path q)) as Hpq. {
+  assert (s ⟦ trm_path p ⟼* trm_path q ⟧) as Hpr. {
     eapply star_trans. apply star_one. apply H. auto.
   }
   constructor. apply subtyp_trans with (T:=open_typ_p p Tpr'). Abort. (*
@@ -168,7 +168,7 @@ Lemma corresponding_types_obj: forall G s p S a T,
     well_typed G s ->
     G ⊢! p: typ_bnd S ⪼ typ_rcd { a ⦂ T } ->
     (exists q v S' T',
-        star (lookup_step s) (trm_path p) (trm_path q) /\
+        s ⟦ trm_path p ⟼* trm_path q ⟧ /\
         s ⟦ trm_path q ⟼ trm_val v ⟧ /\
         G ⊢ trm_path q : typ_rcd { a ⦂ open_typ_p q T' } /\
         G ⊢ trm_val v : typ_bnd S' /\
