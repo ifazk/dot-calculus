@@ -288,25 +288,3 @@ Lemma inert_prefix: forall G x T,
 Proof.
   introv Hi. inversions Hi. false* empty_push_inv. lets Heq: (eq_push_inv H); destruct_all; subst*.
 Qed.
-
-Lemma record_has_open: forall p S a T,
-    record_has (open_typ_p p S) {a ⦂ T} ->
-    exists U, record_has S {a ⦂ U}.
-Proof.
-  introv Hr. dependent induction Hr.
-  - destruct S; inversions x. destruct d; inversion* H0.
-  - destruct S; inversions x. Admitted.
-
-Lemma record_has_open_diff: forall p q T a U,
-    record_has (open_typ_p p T) {a ⦂ open_typ_p p U} ->
-    record_has (open_typ_p q T) {a ⦂ open_typ_p q U}.
-Proof.
-  introv Hr. Admitted.
-
-Lemma typing_record_has: forall G t T D,
-    G ⊢ t: T ->
-    record_has T D ->
-    G ⊢ t: typ_rcd D.
-Proof.
-  introv Ht Hr. induction Hr; eauto.
-Qed.

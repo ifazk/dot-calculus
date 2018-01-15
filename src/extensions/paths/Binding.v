@@ -664,26 +664,6 @@ Proof.
   introv Hp. dependent induction Hp; eauto. false* binds_empty_inv.
 Qed.
 
-Lemma record_has_trm_dec : forall G p T U T' U' a,
-    G ⊢ trm_path p: T ->
-    G ⊢ T <: U ->
-    record_type T ->
-    record_type U ->
-    record_has T { a ⦂ T' } ->
-    (record_has U { a ⦂ U' } /\ G ⊢ T' <: U').
-Proof.
-  introv Hp Hs HrT HrU Ha. Admitted.
-
-Lemma record_has_ty_dec : forall G p T U T' A,
-    G ⊢ trm_path p: T ->
-    G ⊢ T <: U ->
-    record_type T ->
-    record_type U ->
-    record_has T { A >: T' <: T' } ->
-    record_has U  { A >: T' <: T' }.
-Proof.
-  introv Hp Hs HrT HrU HA. Admitted.
-
 (** [d1 isin ds]             #<br>#
     [label(d2) \notin ds]     #<br>#
     [―――――――――――――――――――――]  #<br>#

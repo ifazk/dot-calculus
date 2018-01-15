@@ -532,16 +532,6 @@ Proof.
   intros. induction H; intros; subst; eauto.
 Qed.
 
-(** todo: by mutual induction *)
-(** todo: remove other "to ok" lemmas if they have typing *)
-Lemma typing_implies_ok: forall G t T,
-    G ⊢ t: T ->
-    ok G.
-Proof.
-  introv Ht. induction Ht; eauto.
-  pick_fresh z. assert (z \notin L) as Hz by auto. specialize (H0 z Hz). apply* ok_push_inv_ok.
-  Admitted.
-
 Lemma narrow_precise_v : forall G G' v T,
     G ⊢!v v: T ->
     G' ⪯ G ->

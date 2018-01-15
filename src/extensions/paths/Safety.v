@@ -73,7 +73,7 @@ Proof.
   - Case "ty_all_elim".
     match goal with
     | [Hp: _ ⊢ trm_path _ : typ_all _ _ |- _] =>
-        pose proof (canonical_forms_fun Hin Hwt Hp) as [L [T' [t [P [Bis [Hsub Hty]]]]]];
+        pose proof (canonical_forms_fun Hin Hwt Hp) as [L [T' [t [Hl [Hsub Hty]]]]];
         inversions Hred
     end.
     lookup_eq.
