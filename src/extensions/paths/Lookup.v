@@ -277,3 +277,17 @@ Proof.
   introv Hs. dependent induction Hs; eauto. destruct (IHHs _ eq_refl) as [q Heq]. subst.
   inversions H; eauto.
 Qed.
+
+Lemma lookup_last_path: forall s p v,
+    s ∋ (p, v) ->
+    exists q, star (lookup_step s) (trm_path p) (trm_path q) /\
+         s ⟦ trm_path q ⟼ trm_val v ⟧.
+Proof.
+  introv Hl.
+  inversions Hl. dependent induction H1.
+  destruct (lookup_inv_path_u H) as [[q Heq] | [w Heq]]; subst.
+  - specialize (IHstar _ _ eq_refl eq_refl). destruct IHstar as [r [Hs Hl]].
+    exists r. split. eapply star_trans. apply star_one. apply  H. all: auto.
+  - apply lookup_val_inv in H1. inversions H1.
+    exists p. split*. apply star_refl.
+Qed.
