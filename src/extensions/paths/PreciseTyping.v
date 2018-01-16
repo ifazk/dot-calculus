@@ -12,6 +12,8 @@ Require Import LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions Binding RecordAndInertTypes Subenvironments Narrowing.
 
+Definition inert_sngl T := inert_typ T \/ exists p, T = typ_sngl p.
+
 (* todo finish doc *)
 (** ** Precise typing *)
 (** Precise typing is used to reason about the types of paths and values.
@@ -113,6 +115,15 @@ Inductive precise_flow : path -> ctx -> typ -> typ -> Prop :=
       G ⊢! p: T ⪼ typ_and U1 U2 ->
       G ⊢! p: T ⪼ U2
 
+(** [G ⊢! p: q.type ⪼ _  ] #<br>#
+    [G ⊢! q: T ⪼ _       ] #<br>#
+    [―――――――――――――――――――――] #<br>#
+    [G ⊢! p: q.type ⪼ T  ]      *)
+| pf_sngl : forall G p q T T' U,
+    G ⊢! p : typ_sngl q ⪼ U ->
+    G ⊢! q : T ⪼ T' ->
+    G ⊢! p : typ_sngl q ⪼ T
+
 where "G '⊢!' p ':' T '⪼' U" := (precise_flow p G T U).
 
 Hint Constructors precise_flow.
@@ -120,6 +131,42 @@ Hint Constructors precise_flow.
 Ltac fresh_constructor_p :=
   apply_fresh ty_new_intro_p as z ||
   apply_fresh ty_all_intro_p as z; auto.
+
+Lemma precise_to_general_h: forall G p T U,
+    G ⊢! p : T ⪼ U ->
+    G ⊢ trm_path p: T /\ G ⊢ trm_path p: U.
+Proof.
+  intros. induction H; intros; subst; destruct_all; eauto.
+  split; constructor*.
+Qed.
+
+(** Precise typing implies general typing. *)
+(** - for variables *)
+Lemma precise_to_general: forall G p T U,
+    G ⊢! p : T ⪼ U ->
+    G ⊢ trm_path p: U.
+Proof.
+  apply* precise_to_general_h.
+Qed.
+
+(** - for values *)
+Lemma precise_to_general_v: forall G v T,
+    G ⊢!v v : T ->
+    G ⊢ trm_val v: T.
+Proof.
+  intros. induction H; intros; subst; eauto.
+Qed.
+
+Lemma narrow_precise_v : forall G G' v T,
+    G ⊢!v v: T ->
+    G' ⪯ G ->
+    G' ⊢!v v: T.
+Proof.
+  introv Hv Hs. inversions Hv; fresh_constructor_p;
+  assert (z \notin L) as Hz by auto; specialize (H z Hz);
+  (apply* narrow_typing || apply* narrow_defs); destruct (subenv_implies_ok Hs);
+  apply* subenv_extend; apply ok_push.
+Qed.
 
 (** ** Precise Flow Lemmas *)
 
@@ -149,16 +196,18 @@ Proof.
   introv Hp. induction Hp; eauto.
 Qed.
 
-Lemma pf_strengthen: forall G y V x bs T U,
-    G & y ~ V ⊢! p_sel (avar_f x) bs : T ⪼ U ->
-    x <> y ->
-    G ⊢! p_sel (avar_f x) bs : T ⪼ U.
+
+(** The following two lemmas say that the type to which a variable is bound in an inert context is inert. *)
+Lemma binds_inert : forall G x T,
+    binds x T G ->
+    inert G ->
+    inert_typ T.
 Proof.
-  introv Ht Hneq. dependent induction Ht; eauto.
-  - apply (binds_push_neq_inv H0) in Hneq. constructor*.
-  - destruct p. inversions x.
-    specialize (IHHt _ _ _ _ _ eq_refl JMeq_refl Hneq).
-    lets Hf: (pf_fld IHHt). eauto.
+  introv Bi Hinert. induction Hinert.
+  - false * binds_empty_inv.
+  - destruct (binds_push_inv Bi).
+    + destruct H1. subst. assumption.
+    + destruct H1. apply (IHHinert H2).
 Qed.
 
 (** The precise type of a value is inert. *)
@@ -178,39 +227,34 @@ Proof.
   end.
 Qed.
 
-(** The following two lemmas say that the type to which a variable is bound in an inert context is inert. *)
-Lemma binds_inert : forall G x T,
-    binds x T G ->
-    inert G ->
-    inert_typ T.
-Proof.
-  introv Bi Hinert. induction Hinert.
-  - false * binds_empty_inv.
-  - destruct (binds_push_inv Bi).
-    + destruct H1. subst. assumption.
-    + destruct H1. apply (IHHinert H2).
-Qed.
-
 (** See [binds_inert]. *)
 Lemma pf_inert_rcd_TU : forall G p T U,
     inert G ->
     G ⊢! p: T ⪼ U ->
-    inert_typ T /\ (inert_typ U \/ record_type U).
+    inert_sngl T /\ (inert_sngl U \/ record_type U).
 Proof.
-  introv Hi Pf. induction Pf; eauto;
-  try (destruct (IHPf Hi) as [HT [Hd | Hd]]; inversions Hd;
-      split*).
-  apply (binds_inert H0) in Hi. auto.
-  all: try (inversions H;
-            (inversion* H1 || right*; unfolds record_type; eauto)).
-  right. unfold record_type. apply* open_record_type_p.
+  introv Hi Pf. induction Pf; eauto; unfolds inert_sngl.
+  - apply (binds_inert H0) in Hi. split; left*.
+  - destruct (IHPf Hi) as [HT [Hd | Hd]]. destruct_all; inversion H.
+    inversions Hd. inversions H. inversions H1. auto. split. right*. left. right*.
+  - split*. destruct (IHPf Hi) as [HT [Hd | Hd]]. destruct_all; try solve [inversion H].
+    right. inversions H. eexists. apply* open_record_typ_p.
+    subst. right. inversions H. eexists. apply* open_record_typ_p.
+    inversion Hd. inversion H.
+  - split*. destruct (IHPf Hi) as [HT [Hd | Hd]]; destruct_all; try solve [inversion H].
+    right. inversions Hd. inversion* H0.
+    subst. right. inversions Hd. inversion* H.
+  - split*. destruct (IHPf Hi) as [HT [Hd | Hd]]; destruct_all; try solve [inversion H].
+    right. inversions Hd. inversions H0. eauto.
+    subst. right. inversions Hd. inversion* H.
+  - split*.
 Qed.
 
 (** See [binds_inert]. *)
 Lemma pf_inert_T : forall G p T U,
     inert G ->
     G ⊢! p: T ⪼ U ->
-    inert_typ T.
+    inert_sngl T.
 Proof.
   apply* pf_inert_rcd_TU.
 Qed.
@@ -229,7 +273,7 @@ Lemma pf_rcd_T : forall G p T U,
     precise_flow p G (typ_bnd T) U ->
     record_type T.
 Proof.
-  introv Hi Pf. apply pf_inert_T in Pf; inversions Pf; eauto.
+  introv Hi Pf. apply pf_inert_T in Pf; inversions Pf; eauto. inversion* H. destruct_all. inversion H.
 Qed.
 
 (** If [G(x) = mu(x: T)], then [x]'s precise type can be only [mu(x: T)]
@@ -257,13 +301,17 @@ Qed.
 Lemma pf_inert_bnd_U: forall G p T U,
     inert G ->
     G ⊢! p: T ⪼ typ_bnd U ->
-    T = typ_bnd U.
+    T = typ_bnd U \/ exists q, T = typ_sngl q.
 Proof.
   introv Hi Pf.
   lets HT: (pf_inert_T Hi Pf).
   inversions HT; dependent induction Pf; auto;
     try (solve [apply pf_top_top in Pf; inversion Pf]).
   - destruct U0; inversions x.
+    specialize (IHPf _ Hi eq_refl H). destruct_all; subst; inversions H. inversion H1.
+  - inversions H. apply pf_lambda_T in Pf. inversion Pf.
+
+  - destruct U0; inversions x. left.
     apply pf_lambda_T in Pf. inversion* Pf.
   - apply pf_lambda_T in Pf. inversion Pf.
   - apply pf_lambda_T in Pf. inversion Pf.
@@ -515,33 +563,6 @@ Proof.
   inversions* H1.
 Qed.
 
-(** Precise typing implies general typing. *)
-(** - for variables *)
-Lemma precise_to_general: forall G p T U,
-    G ⊢! p : T ⪼ U ->
-    G ⊢ trm_path p: U.
-Proof.
-  intros. induction H; intros; subst; eauto. constructor*.
-Qed.
-
-(** - for values *)
-Lemma precise_to_general_v: forall G v T,
-    G ⊢!v v : T ->
-    G ⊢ trm_val v: T.
-Proof.
-  intros. induction H; intros; subst; eauto.
-Qed.
-
-Lemma narrow_precise_v : forall G G' v T,
-    G ⊢!v v: T ->
-    G' ⪯ G ->
-    G' ⊢!v v: T.
-Proof.
-  introv Hv Hs. inversions Hv; fresh_constructor_p;
-  assert (z \notin L) as Hz by auto; specialize (H z Hz);
-  (apply* narrow_typing || apply* narrow_defs); destruct (subenv_implies_ok Hs);
-  apply* subenv_extend; apply ok_push.
-Qed.
 (*
 Lemma narrow_precise : forall G G' x T U,
     G ⊢! x: T ⪼ U->
@@ -556,3 +577,56 @@ Proof.
   apply* subenv_extend; apply ok_push.
 Qed.
 *)
+
+Lemma sngl_before: forall G G1 G2 x bs T y cs U,
+    inert G ->
+    G = G1 & x ~ T & G2 ->
+    G ⊢! p_sel (avar_f x) bs : typ_sngl (p_sel (avar_f y) cs) ⪼ U  ->
+    exists U, binds y U G1.
+Proof.
+  introv Hi Heq Hp.
+  dependent induction Hp; subst; eauto.
+  - apply (binds_inert H0) in Hi. inversion Hi.
+  - unfolds sel_fields. destruct p. inversions x.
+
+
+Lemma binds_destruct: forall x v (G:ctx),
+    binds x v G ->
+    exists G1 G2, G = G1 & x ~ v & G2.
+Proof.
+  introv Hb. induction G using env_ind. false* binds_empty_inv.
+  destruct (binds_push_inv Hb) as [[H1 H2] | [H1 H2]]; subst.
+  repeat eexists. rewrite* concat_empty_r.
+  specialize (IHG H2). destruct_all. subst. exists x1 (x2 & x0 ~ v0). rewrite* concat_assoc.
+Qed.
+
+Lemma pf_strengthen: forall G y V x bs T U,
+    ok (G & y ~ V) ->
+    G & y ~ V ⊢! p_sel (avar_f x) bs : T ⪼ U ->
+    x <> y ->
+    G ⊢! p_sel (avar_f x) bs : T ⪼ U.
+Proof.
+  introv Hi Ht Hneq. dependent induction Ht; eauto.
+  - apply (binds_push_neq_inv H0) in Hneq. constructor*.
+  - destruct p. inversions x.
+    specialize (IHHt _ _ _ _ _ Hi eq_refl JMeq_refl Hneq).
+    lets Hf: (pf_fld IHHt). eauto.
+  - assert (exists G1 G2 V, G = G1 & x ~ V & G2) as Heq. {
+      apply precise_to_general in Ht1. destruct (typing_implies_bound Ht1) as [V' Hb].
+      apply binds_push_neq_inv in Hb; auto.
+      lets Hbd: (binds_destruct Hb). destruct_all. eauto.
+    }
+    destruct Heq as [G1 [G2 [V' Heq]]]. rewrite Heq in Ht1. rewrite <- concat_assoc in Ht1.
+    assert (named_path q) as Hnq. {
+      apply precise_to_general in Ht2. apply* typed_paths_named.
+    }
+    inversions Hnq. destruct H as [cs Heq]. rewrite Heq in Ht1.
+    destruct (sngl_before Ht1) as [U' Hb].
+    specialize (IHHt1 _ _ _ _ _ Hi eq_refl JMeq_refl Hneq).
+    assert (x0 <> y) as Hn. {
+      destruct (ok_push_inv Hi) as [_ Hy].
+      lets Hbd: (binds_destruct Hb). destruct_all. subst. simpl_dom. auto.
+    }
+    specialize (IHHt2 _ _ _ _ _ Hi Heq JMeq_refl Hn).
+    rewrite <- Heq in *. apply* pf_sngl.
+Qed.

@@ -61,8 +61,8 @@ Lemma open_record:
   (forall T, inert_typ T ->
         forall x k, inert_typ (open_rec_typ k x T)).
 Proof.
-  apply rcd_mutind; intros; try constructor; auto;
-    try solve [erewrite open_dec_preserves_label in e; eauto].
+  apply rcd_mutind; intros; try solve [constructor; auto;
+    try solve [erewrite open_dec_preserves_label in e; eauto]].
   unfold open_typ. simpl. eauto.
 Qed.
 
@@ -74,8 +74,8 @@ Lemma open_record_p:
   (forall T, inert_typ T ->
         forall p k, inert_typ (open_rec_typ_p k p T)).
 Proof.
-  apply rcd_mutind; intros; try constructor; auto;
-    try solve [erewrite open_dec_preserves_label_p in e; eauto].
+  apply rcd_mutind; intros; try solve [constructor; auto;
+    try solve [erewrite open_dec_preserves_label_p in e; eauto]].
   unfold open_typ. simpl. eauto.
 Qed.
 
@@ -195,6 +195,7 @@ Lemma record_open:
 Proof.
   apply rcd_mutind; intros; invert_open; simpls.
   - apply open_fresh_typ_dec_injective in H4; auto. subst. constructor.
+  - destruct t0; inversions H3. eauto.
   - constructor*. rewrite* <- open_dec_preserves_label.
   - invert_open. simpls. constructor*. rewrite* <- open_dec_preserves_label.
 Qed.

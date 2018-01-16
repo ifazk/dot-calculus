@@ -143,10 +143,9 @@ Lemma typed_paths_named: forall G p T,
     named_path p.
 Proof.
   intros. destruct p.
-  dependent induction H; eauto; unfolds named_path, pvar.
-  - repeat eexists.
-  - destruct (last_field _ _ x) as [bs' Hbs]. subst. destruct p.
-    specialize (IHty_trm _ _ eq_refl). destruct_all. inversions x. inversions H0. repeat eexists.
+  dependent induction H; eauto; unfolds named_path, pvar; try solve [repeat eexists].
+  destruct (last_field _ _ x) as [bs' Hbs]. subst. destruct p.
+  specialize (IHty_trm _ _ eq_refl). destruct_all. inversions x. inversions H0. repeat eexists.
 Qed.
 
 (** * Opening Lemmas *)
@@ -667,7 +666,7 @@ Hint Rewrite proj_rewrite.
 Lemma typing_empty_false: forall p T,
     empty ⊢ trm_path p: T -> False.
 Proof.
-  introv Hp. dependent induction Hp; eauto. false* binds_empty_inv.
+  introv Hp. dependent induction Hp; eauto; false* binds_empty_inv.
 Qed.
 
 (** [d1 isin ds]             #<br>#

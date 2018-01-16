@@ -34,6 +34,13 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     ok G ->
     G ⊢# tvar x : T
 
+(** [G(x) = T      ]   #<br>#
+    [――――――――――――――]   #<br>#
+    [G ⊢# x: x.type]  *)
+| ty_sngl_var_t: forall x T G,
+    binds x T G ->
+    G ⊢# tvar x : typ_sngl (pvar x)
+
 (** [G, x: T ⊢ t^x: U^x]       #<br>#
     [x fresh]                  #<br>#
     [――――――――――――――――――――――――] #<br>#
@@ -78,6 +85,15 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     (forall x, x \notin L ->
       G & x ~ T ⊢ open_trm x u : U) ->
     G ⊢# trm_let t u : U
+
+(** [G ⊢# p: q.type]   #<br>#
+    [G ⊢# q: T]        #<br>#
+    [―――――――――――――――] #<br>#
+    [G ⊢# p: T]            *)
+| ty_sngl_t : forall G p q T,
+    G ⊢# trm_path p : typ_sngl q ->
+    G ⊢# trm_path q : T ->
+    G ⊢# trm_path p : T
 
 (** [G ⊢# p: T^p]   #<br>#
     [――――――――――――] #<br>#

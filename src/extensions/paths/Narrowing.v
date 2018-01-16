@@ -68,15 +68,14 @@ Proof.
           | [ H : _ ⪯ _ |- _ ] => destruct (subenv_implies_ok H)
           end;
           fresh_constructor].
-
-  Case "ty_var".
-  induction H; auto;
-  match goal with
-  | [ H : binds _ _ (_ & _) |- _ ] =>
-    apply binds_push_inv in H; destruct_all; subst
-  end;
-  [ eapply ty_sub; [eauto 2 | apply weaken_subtyp; trivial]
-  | apply weaken_ty_trm; auto].
+  - Case "ty_var".
+    induction H; auto. apply binds_push_inv in b; destruct_all; subst.
+    apply ty_sub with (T:=T0); auto. apply* weaken_subtyp.
+    apply* weaken_ty_trm.
+  - Case "ty_sngl_var".
+    induction H; eauto.
+    destruct (binds_push_inv b) as [[Heq b'] | [Hneq b']]; subst. apply* ty_sngl_var.
+    specialize (IHsubenv b'). apply* weaken_ty_trm.
 Qed.
 
 (** The narrowing lemma, formulated only for term typing. *)

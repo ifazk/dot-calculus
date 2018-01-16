@@ -371,6 +371,7 @@ Definition fv_sta_vals(s: sta): vars := (fv_in_values (fun v => fv_val v) s).
 Inductive record_dec : dec -> Prop :=
 | rd_typ : forall A T, record_dec { A >: T <: T }
 | rd_trm : forall a T, inert_typ T -> record_dec { a ⦂ T }
+| rd_trm_sngl : forall a p, record_dec { a ⦂ typ_sngl p }
 
 (** Given a record declaration, a [record_typ] keeps track of the declaration's
     field member labels (i.e. names of fields) and type member labels
@@ -464,6 +465,13 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     ok G ->
     G ⊢ tvar x : T
 
+(** [G(x) = T     ]   #<br>#
+    [―――――――――――――]   #<br>#
+    [G ⊢ x: x.type]  *)
+| ty_sngl_var: forall x T G,
+    binds x T G ->
+    G ⊢ tvar x : typ_sngl (pvar x)
+
 (** [G, z: T ⊢ t^z: U^z]     #<br>#
     [z fresh]                #<br>#
     [――――――――――――――――――――――] #<br>#
@@ -508,6 +516,15 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     (forall x, x \notin L ->
       G & x ~ T ⊢ open_trm x u : U) ->
     G ⊢ trm_let t u : U
+
+(** [G ⊢ p: q.type]   #<br>#
+    [G ⊢ q: T]        #<br>#
+    [―――――――――――――――] #<br>#
+    [G ⊢ p: T]            *)
+| ty_sngl : forall G p q T,
+    G ⊢ trm_path p : typ_sngl q ->
+    G ⊢ trm_path q : T ->
+    G ⊢ trm_path p : T
 
 (** [G ⊢ p: T^p]   #<br>#
     [――――――――――――] #<br>#
@@ -568,7 +585,7 @@ with ty_def : var -> fields -> paths -> ctx -> def -> dec -> Prop :=
 (** if [x == head(q)] then [P ⊢ fields(q) < (b, bs)] #<br>#
     [G ⊢ q: T]                                       #<br>#
     [――――――――――――――――――――――――――――――――――――――――――――――] #<br>#
-    [x; bs; P; G ⊢ {b = q}: {b: T}]                  *)
+    [x; bs; P; G ⊢ {b = q}: {b: q.type}]                 *)
  | ty_def_path : forall x bs P G q y cs b T,
     G ⊢ trm_path q: T ->
     inert_typ T ->
