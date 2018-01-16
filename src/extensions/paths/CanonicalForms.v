@@ -137,7 +137,7 @@ Proof.
   introv Hi Hwt Hp.
   apply pf_precise_U in Hp.
   lets Hg: (precise_to_general Hp).
-  destruct (typed_path_lookup Hwt Hg) as [v Hs].
+  destruct (typed_path_lookup Hi Hwt Hg) as [v Hs].
   lets Hi': (pf_inert_T Hi Hp). inversions Hs.
   lets Ht: (lookup_preservation_typ_all Hi Hwt H1 Hg). eauto.
 Qed.

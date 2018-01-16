@@ -624,6 +624,12 @@ Proof.
   intros. destruct* d.
 Qed.
 
+Lemma subst_label_of_dec: forall x y D,
+  label_of_dec D = label_of_dec (subst_dec x y D).
+Proof.
+  intros. destruct* D.
+Qed.
+
 (** [l \notin labels(ds)]     #<br>#
     [――――――――――――――――――――――] #<br>#
     [l \notin labels(ds[y/x]] *)
@@ -712,4 +718,25 @@ Lemma defs_has_typing: forall z bs P G d a T,
     exists t, d = {a := t}.
 Proof.
   introv Hd. dependent induction Hd; eauto.
+Qed.
+
+Lemma inert_subst_mut:
+  (forall D, record_dec D -> forall x p,
+        record_dec (subst_dec x p D)) /\
+  (forall T ls, record_typ T ls -> forall x p,
+        record_typ (subst_typ x p T) ls) /\
+  (forall T, inert_typ T -> forall x p,
+        inert_typ (subst_typ x p T)).
+Proof.
+  apply rcd_mutind; intros; try solve [constructor*].
+  - subst. apply rt_one. apply H. apply* subst_label_of_dec.
+  - constructor*. rewrite* <- subst_label_of_dec.
+  - apply* inert_typ_bnd.
+Qed.
+
+Lemma inert_subst: forall x p T,
+    inert_typ T ->
+    inert_typ (subst_typ x p T).
+Proof.
+  introv Hi. apply* inert_subst_mut.
 Qed.

@@ -126,7 +126,9 @@ Lemma subst_rules: forall p S,
 Proof.
   introv. apply rules_mutind; intros; subst; simpl;
             try (subst_fresh_solver || rewrite subst_open_commut_typ_p);
-            simpl in *; autounfold; eauto 4. Admitted. (*
+            simpl in *; autounfold;
+              try assert (named_path p) as Hn by apply* typed_paths_named;
+              eauto 4.
   - Case "ty_var".
     cases_if.
     + apply binds_middle_eq_inv in b; subst*. destruct* p.
@@ -135,34 +137,85 @@ Proof.
       constructor. rewrite <- H1.
       unfold subst_ctx. rewrite <- map_concat.
       apply binds_map; auto. apply ok_concat_map. apply* ok_remove.
-
-  - Case "ty_new_intro".
+  - Case "ty_all_intro".
     fresh_constructor.
     subst_open_fresh.
     destruct p as [p_x p_bs].
-  match goal with
-  | [ H: forall z, z \notin ?L -> forall G, _
-      |- context [_ & subst_ctx ?x ?p ?G2 & ?z ~ subst_typ ?x ?p ?V] ] =>
-    assert (subst_ctx x p G2 & z ~ subst_typ x p V = subst_ctx x p (G2 & z ~ V)) as B
-        by (unfold subst_ctx; rewrite map_concat, map_single; reflexivity);
-    rewrite <- concat_assoc; rewrite B;
-    subst_open_fresh;
-    rewrite* <- subst_open_commut_trm_p;
-    rewrite* <- subst_open_commut_typ_p;
-    rewrite <- open_var_typ_eq, <- open_var_trm_eq;
-    apply* H; try rewrite* concat_assoc;
-    rewrite <- B, concat_assoc; unfold subst_ctx;
-    auto using weaken_ty_trm, ok_push, ok_concat_map
-  end.
-
+    match goal with
+    | [ H: forall z, z \notin ?L -> forall G, _
+        |- context [_ & subst_ctx ?x ?p ?G2 & ?z ~ subst_typ ?x ?p ?V] ] =>
+      assert (subst_ctx x p G2 & z ~ subst_typ x p V = subst_ctx x p (G2 & z ~ V)) as B
+          by (unfold subst_ctx; rewrite map_concat, map_single; reflexivity);
+        rewrite <- concat_assoc; rewrite B;
+          subst_open_fresh;
+          rewrite* <- subst_open_commut_trm_p;
+          rewrite* <- subst_open_commut_typ_p;
+          rewrite <- open_var_trm_eq, <- open_var_typ_eq;
+          apply* H; try rewrite* concat_assoc;
+            rewrite <- B, concat_assoc; unfold subst_ctx;
+              auto using weaken_ty_trm, ok_push, ok_concat_map
+    end.
+  - Case "ty_new_intro".
+    fresh_constructor.
+    subst_open_fresh.
+    match goal with
+            | [ |- _; _; _; _ ⊢ _ _ _ :: _ ] =>
+              assert (pvar z = subst_var_p x p z) as Hxyz by (unfold subst_var_p; rewrite~ If_r);
+                rewrite Hxyz at 1
+    end.
+    rewrite <- Hxyz.
+    subst_open_fresh.
+    rewrite* <- subst_open_commut_typ_p.
+    rewrite* <- subst_open_commut_defs_p.
+    assert (subst_ctx x p G2 & z ~ subst_typ x p (open_typ_p (pvar z) T) =
+                               subst_ctx x p (G2 & z ~ open_typ_p (pvar z) T)) as Heq by
+          (unfold subst_ctx; rewrite map_concat, map_single; reflexivity).
+    rewrite <- concat_assoc. rewrite Heq.
+    destruct p as [p_x p_bs].
+    assert (exists p_x0, p_x = avar_f p_x0) as Heq'. {
+      inversions Hn. destruct_all. inversions H0. eauto.
+    }
+    destruct Heq' as [p_x0 Heq']; subst.
+    assert (z = subst_var x p_x0 z) as Heq'. {
+      unfolds subst_var; rewrite~ If_r.
+    }
+    rewrite Heq' at 1.
+    rewrite <- open_var_typ_eq, <- open_var_defs_eq.
+    apply* H; try rewrite* concat_assoc.
+    unfolds subst_ctx. rewrite map_concat. rewrite concat_assoc.
+    apply* weaken_ty_trm. assert (z <> x) as Hneq by auto. case_if*.
   - Case "ty_new_elim".
     asserts_rewrite (subst_path x p p0 • a = (subst_path x p p0) • a).
-    destruct p0. apply sel_fields_subst. auto. Admitted. (*
+    destruct p0. apply sel_fields_subst. auto.
+  - Case "ty_let".
+    fresh_constructor.
+    subst_open_fresh.
+    match goal with
+    | [ H: forall z, z \notin ?L -> forall G, _
+        |- context [_ & subst_ctx ?x ?p ?G2 & ?z ~ subst_typ ?x ?p ?V] ] =>
+      assert (subst_ctx x p G2 & z ~ subst_typ x p V = subst_ctx x p (G2 & z ~ V)) as B
+          by (unfold subst_ctx; rewrite map_concat, map_single; reflexivity);
+        rewrite <- concat_assoc; rewrite B;
+          rewrite* <- subst_open_commut_trm_p;
+        rewrite <- open_var_trm_eq;
+          apply* H; try rewrite* concat_assoc;
+            rewrite <- B, concat_assoc; unfold subst_ctx;
+              auto using weaken_ty_trm, ok_push, ok_concat_map
+    end.
   - Case "ty_rec_intro".
-    constructor. rewrite <- subst_open_commut_typ_p. simpl in *. auto.
+    constructor. rewrite* <- subst_open_commut_typ_p.
   - Case "ty_def_lambda".
-    subst_tydef_solver. admit.
+    subst_tydef_solver.
+    constructor*. apply* inert_subst.
   - Case "ty_def_new".
+    specialize (H _ _ _ _ _ _ eq_refl H1 H2 H3 eq_refl eq_refl).
+    assert (named_path (p_sel (avar_f p_x) p_bs)) as Hn by repeat eexists.
+    rewrite* subst_open_commut_defs_p in H.
+    rewrite* subst_open_commut_typ_p in H.
+    unfolds subst_var.
+    case_if.
+    * subst.
+
     subst_tydef_solver. admit.
   - Case "ty_def_path".
     subst_tydef_solver. admit.
