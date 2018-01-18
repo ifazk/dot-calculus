@@ -648,6 +648,16 @@ Proof.
   - apply (binds_inert H0) in Hi. inversion Hi.
   - A*)
 
+Lemma precise_sngl_var : forall G x p T,
+    inert G ->
+    G ⊢! pvar x : typ_sngl p ⪼ T ->
+    False.
+Proof.
+  introv Hi Hx. dependent induction Hx; eauto.
+  apply (binds_inert H0) in Hi. inversion Hi.
+  unfolds sel_fields. destruct p0. inversion x.
+Qed.
+
 Lemma sngl_diff_pf: forall G p a T,
     inert G ->
     G ⊢! p • a : typ_sngl p•a ⪼ T ->

@@ -11,7 +11,8 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Definitions Narrowing PreciseTyping RecordAndInertTypes TightTyping Subenvironments.
+Require Import Definitions Binding Narrowing PreciseTyping RecordAndInertTypes
+               TightTyping Subenvironments.
 
 (** ** Invertible typing *)
 
@@ -107,10 +108,10 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
   G ⊢## p : T ->
   G ⊢## p : typ_top
 
-| ty_sngl_inv : forall G p q T,
+(*| ty_sngl_inv : forall G p q T,
     G ⊢## p : typ_sngl q ->
     G ⊢## q : T ->
-    G ⊢## p: T
+    G ⊢## p: T*)
 
 where "G '⊢##' p ':' T" := (ty_path_inv G p T).
 
@@ -171,21 +172,24 @@ Hint Constructors ty_path_inv ty_val_inv.
 
 (** *** Invertible to Precise Typing [|-## to |-!] *)
 
-
-(* we will later prove this when we have a corresponding store *)
-Definition sngl_diff := forall G p a,
-    G ⊢ trm_path p • a : typ_sngl p•a -> False.
-
-Lemma invertible_to_precise_sngl : forall G p q,
+Lemma invertible_to_precise_sngl : forall G p a q,
     inert G ->
-    G ⊢## p : typ_sngl q ->
-    sngl_diff ->
-    G ⊢! p : typ_sngl q ⪼ typ_sngl q.
+    G ⊢## p•a : typ_sngl q ->
+    G ⊢! p•a : typ_sngl q ⪼ typ_sngl q.
 Proof.
-  introv Hi Hp H. dependent induction Hp; eauto.
+  introv Hi Hp. dependent induction Hp; eauto.
   - lets Ht: (pf_sngl_T Hi H). subst*.
-  - unfolds sngl_diff. specialize (H0 _ _ _
-  - specialize (IHHp1 _ eq_refl Hn).
+  - unfolds sel_fields. destruct p. inversion x.
+Qed.
+
+Lemma invertible_sngl_var : forall G x p,
+    inert G ->
+    G ⊢## pvar x : typ_sngl p ->
+    p = pvar x.
+Proof.
+  introv Hi Hx. dependent induction Hx; eauto.
+  lets Ht: (pf_sngl_T Hi H). subst. false* precise_sngl_var.
+Qed.
 
 (** Invertible-to-precise typing for field declarations: #<br>#
     [G |-## p: {a: T}]            #<br>#
@@ -204,7 +208,6 @@ Proof.
   - specialize (IHHinv _ _ eq_refl). destruct IHHinv as [V [V' [Hx Hs]]].
     exists V V'. split; auto.
     eapply subtyp_trans_t; eassumption.
-  - specialize (IHHinv2 _ _ eq_refl). destruct IHHinv2 as [T' [U [Hp Hs]]]. clear IHHinv1.
 Qed.
 
 (** Invertible-to-precise typing for function types: #<br>#
@@ -268,14 +271,22 @@ Proof.
       destruct_all. inversion H1. destruct_all. inversion H0.
 Qed.
 
+Lemma precise_to_tight: forall G p T U,
+    G ⊢! p : T ⪼ U ->
+    G ⊢# trm_path p : T /\ G ⊢# trm_path p : U.
+Proof.
+  introv Hp. dependent induction Hp; split*. constructor*.  constructor*.
+Qed.
+
 (** Invertible typing implies tight typing. *)
 Lemma inv_to_tight: forall G p T,
     G ⊢## p: T ->
     G ⊢# trm_path p: T.
 Proof.
   introv Ht. induction Ht; eauto. dependent induction H; eauto. constructor; auto.
-  lets Hu: (pf_sngl_U H). subst.
- admit. apply* ty_sngl_var_t.
+  lets Hu: (pf_sngl_U H). subst. destruct (precise_to_tight H0) as [Hq1 Hq2].
+  apply* ty_sngl_t.
+  apply* ty_sngl_var_t.
 Qed.
 
 (** *** Tight-to-Invertible Lemma for Paths [|-# to |-##]
@@ -296,8 +307,18 @@ Proof.
     * apply pf_fld in H. eauto.
     * apply invertible_typing_closure_tight with (T:=T0); auto. eapply IHIHHty; auto.
       apply* inv_to_tight.
-  - specialize (IHHty1 _ Hi eq_refl). specialize (IHHty2 _ Hi eq_refl). apply
-  - apply IHIHHty; auto. apply* inv_to_tight.
+  - Case "ty_sngl_t".
+    specialize (IHHty1 _ Hi eq_refl). specialize (IHHty2 _ Hi eq_refl).
+    destruct x. destruct f. apply tight_to_general in Hty1. apply typed_paths_named in Hty1.
+    inversions Hty1. destruct H as [bs Heq]. inversions Heq.
+    apply (invertible_sngl_var Hi) in IHHty1. subst. assumption.
+    assert (p_sel a (t :: f)%list = (p_sel a f) • t) as Heq by auto.
+    rewrite Heq in *.
+    apply (invertible_to_precise_sngl _ _ Hi) in IHHty1. rename t into a'.
+    clear Hty1 Hty2 Heq.
+    induction IHHty2; eauto.
+    * SCase "ty_precise_inv".
+    * specialize (IHIHHty2 IHHty1 Hi). admit.
   - Case "ty_rec_elim_t".
     inversion IHHty; subst; eauto.
   - Case "ty_sub_t".
