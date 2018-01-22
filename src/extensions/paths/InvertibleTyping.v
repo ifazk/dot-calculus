@@ -39,9 +39,9 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
   G ⊢! p : T ⪼ U ->
   G ⊢## p : U
 
-| ty_sngl_var_inv : forall G x T,
-    binds x T G ->
-    G ⊢## pvar x : typ_sngl (pvar x)
+| ty_sngl_refl_inv : forall G p T,
+    G ⊢## p : T ->
+    G ⊢## p : typ_sngl p
 
 (** [G ⊢## p: {a: T}] #<br>#
     [G ⊢# T <: U]     #<br>#
@@ -171,7 +171,7 @@ where "G '⊢##v' v ':' T" := (ty_val_inv G v T).
 Hint Constructors ty_path_inv ty_val_inv.
 
 (** *** Invertible to Precise Typing [|-## to |-!] *)
-
+(*
 Lemma invertible_to_precise_sngl : forall G p a q,
     inert G ->
     G ⊢## p•a : typ_sngl q ->
@@ -179,8 +179,8 @@ Lemma invertible_to_precise_sngl : forall G p a q,
 Proof.
   introv Hi Hp. dependent induction Hp; eauto.
   - lets Ht: (pf_sngl_T Hi H). subst*.
-  - unfolds sel_fields. destruct p. inversion x.
-Qed.
+  -
+Qed.*)
 
 Lemma invertible_sngl_var : forall G x p,
     inert G ->
@@ -287,7 +287,6 @@ Proof.
   introv Ht. induction Ht; eauto. dependent induction H; eauto. constructor; auto.
   lets Hu: (pf_sngl_U H). subst. destruct (precise_to_tight H0) as [Hq1 Hq2].
   apply* ty_sngl_t.
-  apply* ty_sngl_var_t.
 Qed.
 
 (** *** Tight-to-Invertible Lemma for Paths [|-# to |-##]
@@ -314,12 +313,12 @@ Proof.
     inversions Hty1. destruct H as [bs Heq]. inversions Heq.
     apply (invertible_sngl_var Hi) in IHHty1. subst. assumption.
     assert (p_sel a (t :: f)%list = (p_sel a f) • t) as Heq by auto.
-    rewrite Heq in *.
-    apply (invertible_to_precise_sngl _ _ Hi) in IHHty1. rename t into a'.
+    rewrite Heq in *. (*
+    apply ( invertible_to_precise_sngl _ _ Hi) in IHHty1. rename t into a'.
     clear Hty1 Hty2 Heq.
     induction IHHty2; eauto.
     * SCase "ty_precise_inv". admit.
-    * specialize (IHIHHty2 IHHty1 Hi). admit.
+    * specialize (IHIHHty2 IHHty1 Hi). *) admit.
   - Case "ty_rec_elim_t".
     inversion IHHty; subst; eauto.
   - Case "ty_sub_t".

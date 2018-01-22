@@ -137,9 +137,6 @@ Proof.
       constructor. rewrite <- H1.
       unfold subst_ctx. rewrite <- map_concat.
       apply binds_map; auto. apply ok_concat_map. apply* ok_remove.
-  - Case "ty_sngl_var".
-    inversions Hn. destruct_all. subst.
-    cases_if. assert (trm_path (sel_fields p nil) = tvar p). eapply ty_sngl_var.
   - Case "ty_all_intro".
     fresh_constructor.
     subst_open_fresh.
@@ -207,7 +204,7 @@ Proof.
     end.
   - Case "ty_rec_intro".
     constructor. rewrite* <- subst_open_commut_typ_p.
-  - Case "ty_def_lambda".
+  - Case "ty_def_all".
     subst_tydef_solver.
     constructor*. apply* inert_subst.
   - Case "ty_def_new".
@@ -217,17 +214,18 @@ Proof.
     rewrite* subst_open_commut_typ_p in H.
     unfolds subst_var.
     case_if.
-    * subst.
-
-    subst_tydef_solver. admit.
+    * subst. admit. (*  subst_tydef_solver. *)
+    * admit.
   - Case "ty_def_path".
     subst_tydef_solver. admit.
     (*apply* ty_def_path. intro. case_if; case_if*. *)
+  - Case "ty_defs_one".
+    admit.
   - Case "ty_defs_cons".
-    admit. constructor*.
-    rewrite <- subst_label_of_def.
-    apply subst_defs_hasnt. assumption.*)
-Qed.*)
+    admit.
+  - Case "subtyp_all".
+    admit.
+Qed.
 
 (** The substitution lemma for term typing.
     This lemma corresponds to Lemma 3.14 in the paper. *)

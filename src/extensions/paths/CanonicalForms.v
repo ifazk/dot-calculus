@@ -66,7 +66,7 @@ Proof.
       destruct_all. exists x1. constructor. apply* lookup_push_neq. inversion* H4.
     * specialize (IHprecise_flow _ _ _ JMeq_refl H0 Hi Hwt H H1 IHHwt Hok).
       destruct IHprecise_flow as [v' Hl].
-      inversions Hl. dependent induction H5.
+      inversions Hl. dependent induction H5. Admitted.
 
 Lemma lookup_step_preservation_prec: forall G s p T T' t,
     inert G ->
@@ -93,7 +93,10 @@ Proof.
         inversions Hs; unfolds sel_fields; simpls. destruct p. inversions H1.
         inversions H2. specialize (IHHp _ _ H0 _ _ Hi Hwt H IHHwt eq_refl JMeq_refl _ _ Hv H1).
         apply (general_to_tight_typing Hi) in IHHp. apply (tight_to_invertible_v Hi) in IHHp.
-        assert (inert_typ T0) as HT0 by apply* pf_inert_T.
+        assert (inert_typ T0) as HT0. {
+          lets His: (pf_inert_T Hi Hp). destruct His. auto. destruct_all. subst.
+          inversions IHHp. inversion H2.
+        }
         lets Heq: (invertible_to_precise_v_obj IHHp HT0). subst. inversions IHHp.
         inversions H2.
       (* deal with renaming *)
@@ -112,6 +115,12 @@ Proof.
         eauto.
       + Case "pf_and2".
         eauto.
+      + Case "pf_sngl".
+        specialize (IHHp1 _ _ H0 _ _ Hi Hwt H IHHwt eq_refl JMeq_refl _ _ Hv Hs).
+        destruct (lookup_inv_path_u Hs) as [[r Heq] | [w Heq]]; subst.
+        ++ destruct (precise_to_general_h Hp2) as [Hg _]. apply* ty_sngl.
+        ++ apply (general_to_tight_typing Hi) in IHHp1.
+           apply (tight_to_invertible_v Hi) in IHHp1. inversions IHHp1. inversion H1.
    * apply pf_strengthen in Hp; auto.
      assert (inert G) as Hi' by apply* inert_prefix.
      lets Hn: (lookup_strengthen Hs n). apply* weaken_ty_trm.

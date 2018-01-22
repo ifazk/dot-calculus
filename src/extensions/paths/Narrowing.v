@@ -72,10 +72,6 @@ Proof.
     induction H; auto. apply binds_push_inv in b; destruct_all; subst.
     apply ty_sub with (T:=T0); auto. apply* weaken_subtyp.
     apply* weaken_ty_trm.
-  - Case "ty_sngl_var".
-    induction H; eauto.
-    destruct (binds_push_inv b) as [[Heq b'] | [Hneq b']]; subst. apply* ty_sngl_var.
-    specialize (IHsubenv b'). apply* weaken_ty_trm.
 Qed.
 
 (** The narrowing lemma, formulated only for term typing. *)
