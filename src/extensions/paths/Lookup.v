@@ -102,12 +102,18 @@ Proof.
   apply binds_push_eq_inv in H1. subst*.
 Qed.
 
-Lemma lookup_push_neq : forall s x bs v y t,
+Lemma lookup_step_push_neq : forall s x bs v y t,
     s ⟦ trm_path (p_sel (avar_f x) bs) ⟼ t ⟧ ->
-    x <> y ->
+    y # s ->
     s & y ~ v ⟦ trm_path (p_sel (avar_f x) bs) ⟼ t ⟧.
 Proof.
   introv Hp Hn. dependent induction Hp.
+(*
+  assert (x <> y) as Hxy. {
+    lets Hb: (lookup_implies_binds H). destruct_all. intro. subst.
+      lets Hb: (binds_destruct). apply binds_destruct in H0.
+      destruct_all. subst. simpl_dom. apply notin_union_r in Hn. destruct_all. apply notin_union_r in H0.
+      destruct_all. apply* notin_same.*)
   Admitted.
 
 Lemma lookup_strengthen: forall s y v x bs t,
@@ -117,104 +123,36 @@ Lemma lookup_strengthen: forall s y v x bs t,
 Proof.
 Admitted.
 
-(*
-Lemma named_path_lookup:
-    (forall s t ps,
-        s ∋ t // ps -> forall p v,
-        t = (p, v) ->
-        exists x bs, p = p_sel (avar_f x) bs) /\
-    (forall s p ds ps,
-        s ↓ p == ds // ps ->
-        exists x bs, p = p_sel (avar_f x) bs).
-Proof.
-  apply lookup_mutind; intros.
-  - inversions H. repeat eexists.
-  - destruct_all. inversions H0. repeat eexists.
-  - inversions H1. destruct_all. subst. repeat eexists.
-  - eauto.
-Qed.
-
-Lemma named_path_lookup_l: forall s p ps v,
-    s ∋ (p, v) // ps ->
-    exists x bs, p = p_sel (avar_f x) bs.
-Proof.
-  intros. apply* (proj21 named_path_lookup).
-Qed.
-
-(** * Testing lookup definition *)
-
-Variables a b c d: trm_label.
-Variables x y z: var.
-Hypothesis Hab: a <> b.
-Hypothesis Hxy: y <> x.
-
-(* λ(z: ⊤)0.c *)
-Definition lambda := val_lambda typ_top (trm_path (p_sel (avar_b 0) (c :: nil))).
-
-(* ν(z: {d: ⊤}) {d = z.d} *)
-Definition zObj :=
-  val_new (typ_rcd (dec_trm d typ_top))
-          (defs_cons defs_nil
-                     (def_trm d (trm_path (p_sel (avar_b 0) (d :: nil))))).
-
-(* ν(y: {c: ⊤})
-        {c = λ(z: ⊤)y.c} *)
-Definition yObj :=
-  val_new (typ_rcd (dec_trm c typ_top))
-          (defs_cons defs_nil
-                     (def_trm c (trm_val lambda))).
-
-(* ν(x: {a: ⊤}    ∧ {b: ⊤})
-        {a = x.b} ∧ {b = y.c} *)
-Definition xObj :=
-  val_new (typ_and
-             (typ_rcd (dec_trm a typ_top))
-             (typ_rcd (dec_trm b typ_top)))
-          (defs_cons (defs_cons defs_nil
-             (def_trm b (trm_path (p_sel (avar_f y) (c :: nil)))))
-             (def_trm a (trm_path (p_sel (avar_b 0) (b :: nil))))).
-
-(* {y = yObj, x = xObj} *)
-Definition s := (y ~ yObj & x ~ xObj).
-
-(* s ∋ (x.a, λ(x: ⊤)y.c) // [x.b]*)
-Lemma test_lookup_x:
-  exists ps,
-  s ∋ ((pvar x) • a, open_val y lambda) // ps. (*(((pvar x) • b) :: ((pvar y) • c) :: nil).*)
-Proof.
-  simpl. eexists. rewrite proj_rewrite.
-  apply* lookup_path; unfold s.
-  - econstructor. apply* lookup_var. apply binds_push_eq.
-  - unfold defs_has. simpl. repeat case_if. eauto.
-  - rewrite proj_rewrite. apply* lookup_path.
-    * econstructor. apply* lookup_var. apply binds_push_eq.
-    * unfold defs_has. simpl. repeat case_if*. inversions C. false* Hab.
-    * assert (p_sel (avar_f y) (c :: nil) = (pvar y) • c) as Heq by auto. rewrite Heq.
-      apply* lookup_val.
-      econstructor. apply* lookup_var. apply binds_push_neq. apply binds_single_eq. apply Hxy.
-      unfold defs_has. simpl. repeat case_if. unfold lambda, open_val. simpl. case_if*.
-Qed.
-
-Definition s2 := z ~ zObj.
-
-Lemma test_lookup_z: forall ps v,
-  s2 ∋ (p_sel (avar_f z) (d :: nil), v) // ps -> False.
-Proof.
-  introv H.
-  dependent induction H; assert (s2 ∋ (pvar z, zObj) // nil) as Hb by (apply* lookup_var; apply* binds_single_eq).
-  - unfolds sel_fields. destruct p. inversions x.
-    inversions H. unfolds zObj.
-    lets Hl: (lookup_func Hb H1). inversions Hl. unfolds defs_has. simpls. repeat case_if.
-  - inversions H. unfolds sel_fields. destruct p. inversions x. simpls.
-    lets Hl: (lookup_func H2 Hb). inversions Hl. inversions H0. repeat case_if. inversions H3. eauto.
-Qed.
-*)
-
 Lemma lookup_inv_path_t: forall s t u,
     s ⟦ t ⟼ u ⟧ ->
     exists p, t = trm_path p.
 Proof.
   introv Hs. induction Hs; eauto.
+Qed.
+
+Lemma named_path_lookup_step_mut:
+    (forall s t1 t2,
+        s ⟦ t1 ⟼ t2 ⟧ -> forall p,
+        t2 = trm_path p ->
+        exists x bs, p = p_sel (avar_f x) bs) /\
+    (forall s p ds,
+        s ↓ p == ds ->
+        exists x bs, p = p_sel (avar_f x) bs).
+Proof.
+  apply lookup_mutind; intros; eauto. Admitted.
+
+Lemma named_path_lookup_step: forall s t p,
+        s ⟦ t ⟼ trm_path p ⟧ ->
+        exists x bs, p = p_sel (avar_f x) bs.
+Proof.
+  intros. apply* (proj21 named_path_lookup_step_mut).
+Qed.
+
+Lemma named_path_lookup: forall s p v,
+    s ∋ (p, v) ->
+    exists x bs, p = p_sel (avar_f x) bs.
+Proof.
+  intros. inversions H. dependent induction H2; eauto. admit.
 Qed.
 
 Lemma lookup_inv_path_u: forall s t u,
@@ -298,4 +236,23 @@ Proof.
   assert (irred (lookup_step s) (trm_val v1)) as Hirr1 by apply* lookup_irred.
   assert (irred (lookup_step s) (trm_val v2)) as Hirr2 by apply* lookup_irred.
   lets Hf: (finseq_unique H H2 Hirr1 H3 Hirr2). inversion* Hf.
+Qed.
+
+Lemma lookup_implies_binds : forall s x bs t,
+    s ⟦ trm_path (p_sel (avar_f x) bs) ⟼ t ⟧ ->
+    exists v, binds x v s.
+Proof.
+  introv Hl. dependent induction Hl. eauto. Admitted.
+
+Lemma lookup_push_neq : forall s x bs v y t,
+    s ⟦ trm_path (p_sel (avar_f x) bs) ⟼* t ⟧ ->
+    y # s ->
+    s & y ~ v ⟦ trm_path (p_sel (avar_f x) bs) ⟼* t ⟧.
+Proof.
+  introv Hl Hn. gen y. dependent induction Hl; introv Hn.
+  - apply star_refl.
+  - destruct (lookup_inv_path_u H) as [[p Heq] | [v' Heq]]; subst.
+    * lets Hnl: (named_path_lookup_step H). destruct_all. subst.
+      apply* star_trans. apply star_one. apply* lookup_step_push_neq.
+    * apply lookup_val_inv in Hl. subst. apply star_one. apply* lookup_step_push_neq.
 Qed.

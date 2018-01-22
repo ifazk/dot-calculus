@@ -739,3 +739,13 @@ Lemma inert_subst: forall x p T,
 Proof.
   introv Hi. apply* inert_subst_mut.
 Qed.
+
+Lemma binds_destruct: forall x {A} (v:A) (E:env A),
+    binds x v E ->
+    exists E1 E2, E = E1 & x ~ v & E2.
+Proof.
+  introv Hb. induction E using env_ind. false* binds_empty_inv.
+  destruct (binds_push_inv Hb) as [[H1 H2] | [H1 H2]]; subst.
+  repeat eexists. rewrite* concat_empty_r.
+  specialize (IHE H2). destruct_all. subst. exists x1 (x2 & x0 ~ v0). rewrite* concat_assoc.
+Qed.

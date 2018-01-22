@@ -58,7 +58,15 @@ Lemma typed_path_lookup : forall G s p T,
 Proof.
   introv Hi Hwt. gen p T. induction Hwt; introv Hp.
   - false* typing_empty_false.
-  - proof_recipe. Admitted.
+  - proof_recipe. dependent induction Hp; eauto. dependent induction H2; eauto.
+    * destruct (binds_push_inv H0) as [[Heq1 Heq2] | [Hneq Hb]].
+      subst. exists v. constructor. apply star_one. constructor*.
+      apply inert_prefix in Hi. lets Hok': (inert_ok Hi).
+      lets Ht: (ty_var Hb Hok'). unfolds tvar.  specialize (IHHwt Hi _ _ Ht).
+      destruct_all. exists x1. constructor. apply* lookup_push_neq. inversion* H4.
+    * specialize (IHprecise_flow _ _ _ JMeq_refl H0 Hi Hwt H H1 IHHwt Hok).
+      destruct IHprecise_flow as [v' Hl].
+      inversions Hl. dependent induction H5.
 
 Lemma lookup_step_preservation_prec: forall G s p T T' t,
     inert G ->

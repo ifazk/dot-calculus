@@ -606,17 +606,6 @@ Proof.
 Qed.
 *)
 
-
-Lemma binds_destruct: forall x v (G:ctx),
-    binds x v G ->
-    exists G1 G2, G = G1 & x ~ v & G2.
-Proof.
-  introv Hb. induction G using env_ind. false* binds_empty_inv.
-  destruct (binds_push_inv Hb) as [[H1 H2] | [H1 H2]]; subst.
-  repeat eexists. rewrite* concat_empty_r.
-  specialize (IHG H2). destruct_all. subst. exists x1 (x2 & x0 ~ v0). rewrite* concat_assoc.
-Qed.
-
 Lemma pf_strengthen: forall G y V x bs T U,
     ok (G & y ~ V) ->
     G & y ~ V ⊢! p_sel (avar_f x) bs : T ⪼ U ->
