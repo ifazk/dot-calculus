@@ -137,6 +137,9 @@ Proof.
       constructor. rewrite <- H1.
       unfold subst_ctx. rewrite <- map_concat.
       apply binds_map; auto. apply ok_concat_map. apply* ok_remove.
+  - Case "ty_sngl_var".
+    inversions Hn. destruct_all. subst.
+    cases_if. assert (trm_path (sel_fields p nil) = tvar p). eapply ty_sngl_var.
   - Case "ty_all_intro".
     fresh_constructor.
     subst_open_fresh.

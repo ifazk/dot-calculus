@@ -263,10 +263,11 @@ Proof.
   - inversion HT; auto. apply pf_and2 in H. eauto.
   - inversions HT.
     + false* pf_psel_false.
-    + destruct (pf_inert_rcd_U Hi H) as [U' Heq]. destruct (pf_inert_rcd_U Hi H5) as [T0' Heq'].
+    + destruct (pf_inert_rcd_U Hi H) as [U' Heq].
+      destruct (pf_inert_rcd_U Hi H5) as [T0' Heq'].
       subst. lets His: (pf_inert_T Hi H). destruct His.
       lets His': (pf_inert_T Hi H5). destruct His'.
-      pose proof (p_bound_unique Hi H0 H1 H H5). inversions H2.
+      lets Heq: (p_bound_rec_unique Hi H H5). subst.
       lets Hu: (pf_record_unique_tight_bounds_rec Hi H H5). subst*.
       destruct_all. inversion H1. destruct_all. inversion H0.
 Qed.
@@ -317,7 +318,7 @@ Proof.
     apply (invertible_to_precise_sngl _ _ Hi) in IHHty1. rename t into a'.
     clear Hty1 Hty2 Heq.
     induction IHHty2; eauto.
-    * SCase "ty_precise_inv".
+    * SCase "ty_precise_inv". admit.
     * specialize (IHIHHty2 IHHty1 Hi). admit.
   - Case "ty_rec_elim_t".
     inversion IHHty; subst; eauto.
@@ -339,8 +340,13 @@ Proof.
   introv Hi HT Hsub.
   dependent induction Hsub; eauto; inversions HT; auto; try solve [inversion* H].
   - inversions H0.
-  - pose proof (p_bound_unique Hi H H5). subst.
-    pose proof (pf_inert_unique_tight_bounds Hi H H5). subst. auto.
+  - lets Hb1: (pf_inert_rcd_U Hi H). lets Hb2: (pf_inert_rcd_U Hi H5).
+    destruct_all. subst.
+    destruct (pf_inert_rcd_U Hi H) as [U' Heq].
+    destruct (pf_inert_rcd_U Hi H5) as [T0' Heq'].
+    subst. inversions Heq. inversions Heq'.
+    lets Heq: (p_bound_rec_unique Hi H H5). subst.
+    lets Hu: (pf_record_unique_tight_bounds_rec Hi H H5). subst*.
 Qed.
 
 (** ** Tight-to-Invertible Lemma for Values

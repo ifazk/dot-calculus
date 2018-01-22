@@ -525,7 +525,6 @@ Proof.
     apply* unique_rcd_trm.*)
 Qed.
 
-(*
 (* todo: prove that p goes through a series of singleton types after which it
          terminates at a unique value *)
 Lemma p_bound_rec_unique: forall G p T1 T2 U1 U2,
@@ -545,25 +544,6 @@ Proof.
       specialize (IHHp2 _ _ eq_refl Hp1 Hi). Admitted. (*
   - lets Hs: (pf_sngl_U Hp1_1). subst. specialize (IHHp1_2 _ Hi eq_refl). clear IHHp1_1.
     specialize (IHHp1_2 _ _ Hp1_2).*)
- *)
-(* todo: prove that p goes through a series of singleton types after which it
-         terminates at a unique value *)
-(** The type to which a variable is bound in an environment is unique. *)
-Lemma p_bound_unique: forall G p T1 T2 U1 U2,
-    inert G ->
-    inert_typ T1 ->
-    inert_typ T2 ->
-    G ⊢! p: T1 ⪼ U1 ->
-    G ⊢! p: T2 ⪼ U2 ->
-    T1 = T2.
-Proof.
-  introv Hi Hi1 Hi2 Pf1. gen T2 U2. induction Pf1; intros; try solve [apply* IHPf1]; auto.
-  - apply pf_binds in H1. apply (binds_func H0 H1). auto.
-  - dependent induction H; eauto.
-    * symmetry in x. destruct (last_field _ _ x) as [bs Hbs]. inversions Hbs.
-    * destruct (invert_path_sel _ _ _ _ x) as [Heq1 Heq2].
-      destruct (pf_inert_rcd_U Hi H) as [T0' Heq]. subst.
-      destruct (pf_inert_rcd_U Hi Pf1) as [T' Heq]. Admitted.
 
 (** If a typing context is inert, then the variables in its domain are distinct. #<br>#
     Note: [ok] is defined in [TLC.LibEnv.v]. *)
