@@ -104,7 +104,7 @@ Ltac proof_recipe :=
       Hi: inert ?G |- _ ] =>
     apply (general_to_tight_typing Hi) in Hg;
     apply (tight_to_invertible Hi) in Hg;
-    lets Hok: (inert_ok Hi);
+    try lets Hok: (inert_ok Hi);
     try match goal with
         | [ Hinv: ?G ⊢## _ : typ_all _ _,
             Hok: ok ?G |- _ ] =>
