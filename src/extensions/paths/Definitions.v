@@ -591,7 +591,7 @@ with ty_def : var -> fields -> paths -> ctx -> def -> dec -> Prop :=
     inert_typ T ->
     q = p_sel (avar_f y) cs ->
     (x = y -> path_precedes P cs (b :: bs)) ->
-    x; bs; P; G ⊢ { b := trm_path q } : { b ⦂ T }
+    x; bs; P; G ⊢ { b := trm_path q } : { b ⦂ typ_sngl q }
 
 where "x ';' bs ';' P ';' G '⊢' d ':' D" := (ty_def x bs P G d D)
 
