@@ -11,7 +11,7 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Definitions Narrowing PreciseTyping RecordAndInertTypes TightTyping Subenvironments.
+Require Import Definitions PreciseTyping RecordAndInertTypes TightTyping Subenvironments Narrowing.
 
 (** ** Invertible typing *)
 
@@ -213,6 +213,35 @@ Proof.
       assert (Hnarrow: G & y ~ S ⊢ open_typ y T' <: open_typ y T0).
       { eapply narrow_subtyping; auto using subenv_last. }
       eauto.
+Qed.
+
+(** [G ⊢##v v: forall(S)T]                 #<br>#
+    [inert G]                          #<br>#
+    [――――――――――――――――――――――――――――――――] #<br>#
+    [exists S', T', G ⊢! v: forall(S')T']      #<br>#
+    [G ⊢ S <: S']                      #<br>#
+    [forall fresh y, G, y: S ⊢ T'^y <: T^y] *)
+Lemma invertible_val_to_precise_lambda: forall G v S T,
+    inert G ->
+    G ⊢##v v : typ_all S T ->
+    exists L S' T',
+      G ⊢!v v : typ_all S' T' /\
+      G ⊢ S <: S' /\
+      (forall y, y \notin L ->
+                 G & y ~ S ⊢ open_typ y T' <: open_typ y T).
+Proof.
+  introv Hi Ht. dependent induction Ht.
+  - exists (dom G) S T. split*.
+  - destruct (IHHt S0 T0 Hi eq_refl) as [L' [S1 [T1 [Hp [Hss Hst]]]]].
+    exists (L \u L' \u dom G) S1 T1. split. assumption. split. apply subtyp_trans with (T:=S0).
+    apply* tight_to_general. assumption. intros.
+    assert (ok (G & y ~ S)) as Hok. {
+      apply* ok_push.
+    }
+    apply subtyp_trans with (T:=open_typ y T0).
+    eapply narrow_subtyping. apply* Hst. apply subenv_last. apply* tight_to_general.
+    assumption.
+    apply* H0.
 Qed.
 
 (** ** Invertible Subtyping Closure *)
