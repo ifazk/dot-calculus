@@ -535,9 +535,9 @@ Tactic Notation "apply_fresh" constr(T) "as" ident(x) :=
 
 Ltac fresh_constructor :=
   match goal with
-  | [ |- _ ⊢ trm_val (val_new _ _) : typ_bnd _ ] =>
+  | [ |- _ ⊢ trm_new _ _ : typ_bnd _ ] =>
     apply_fresh ty_new_intro as z
-  | [ |- _ ⊢ trm_val (val_lambda _ _) : typ_all _ _ ] =>
+  | [ |- _ ⊢ trm_lambda _ _ : typ_all _ _ ] =>
     apply_fresh ty_all_intro as z
   | [ |- _ ⊢ trm_let _ _ : _ ] =>
     apply_fresh ty_let as z
