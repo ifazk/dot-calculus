@@ -34,6 +34,13 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     ok G ->
     G ⊢# tvar x : T
 
+(** [G(x) = T      ]   #<br>#
+    [――――――――――――――]   #<br>#
+    [G ⊢# x: x.type]  *)
+| ty_sngl_refl_t: forall p T G,
+    G ⊢# trm_path p : T ->
+    G ⊢# trm_path p : typ_sngl p
+
 (** [G, x: T ⊢ t^x: U^x]       #<br>#
     [x fresh]                  #<br>#
     [――――――――――――――――――――――――] #<br>#
@@ -65,7 +72,7 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     [―――――――――――――]   #<br>#
     [G ⊢# p.a: T]        *)
 | ty_new_elim_t : forall G p a T,
-    G ⊢# trm_path p : typ_rcd (dec_trm a T) ->
+    G ⊢# trm_path p : typ_rcd {a ⦂ T} ->
     G ⊢# trm_path p • a : T
 
 (** [G ⊢# t: T]             #<br>#
@@ -78,6 +85,15 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     (forall x, x \notin L ->
       G & x ~ T ⊢ open_trm x u : U) ->
     G ⊢# trm_let t u : U
+
+(** [G ⊢# p: q.type]   #<br>#
+    [G ⊢# q: T]        #<br>#
+    [―――――――――――――――] #<br>#
+    [G ⊢# p: T]            *)
+| ty_sngl_t : forall G p q T,
+    G ⊢# trm_path p : typ_sngl q ->
+    G ⊢# trm_path q : T ->
+    G ⊢# trm_path p : T
 
 (** [G ⊢# p: T^p]   #<br>#
     [――――――――――――] #<br>#
@@ -158,7 +174,7 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
     [G ⊢# {a: T} <: {a: U}]     *)
 | subtyp_fld_t: forall G T U a,
     G ⊢# T <: U ->
-    G ⊢# typ_rcd (dec_trm a T) <: typ_rcd (dec_trm a U)
+    G ⊢# typ_rcd {a ⦂ T} <: typ_rcd {a ⦂ U}
 
 (** [G ⊢# S2 <: S1]                   #<br>#
     [G ⊢# T1 <: T2]                   #<br>#
@@ -167,20 +183,20 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
 | subtyp_typ_t: forall G S1 S2 T1 T2 A,
     G ⊢# S2 <: S1 ->
     G ⊢# T1 <: T2 ->
-    G ⊢# typ_rcd (dec_typ A S1 T1) <: typ_rcd (dec_typ A S2 T2)
+    G ⊢# typ_rcd { A >: S1 <: T1 } <: typ_rcd { A >: S2 <: T2 }
 
 (** [G ⊢! p: {A: T..T}] #<br>#
     [――――――――――――――――――] #<br>#
     [G ⊢# T <: p.A]         *)
 | subtyp_sel2_t: forall G p A T U,
-    G ⊢! p : U ⪼ typ_rcd (dec_typ A T T) ->
+    G ⊢! p : U ⪼ typ_rcd { A >: T <: T } ->
     G ⊢# T <: typ_path p A
 
 (** [G ⊢! p: {A: T..T}] #<br>#
     [――――――――――――――――――] #<br>#
     [G ⊢# p.A <: T]         *)
 | subtyp_sel1_t: forall G p A T U,
-    G ⊢! p : U ⪼ typ_rcd (dec_typ A T T) ->
+    G ⊢! p : U ⪼ typ_rcd { A >: T <: T } ->
     G ⊢# typ_path p A <: T
 
 (** [G ⊢# S2 <: S1]                #<br>#

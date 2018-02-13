@@ -46,13 +46,13 @@ Inductive lc_typ : typ -> Prop :=
     lc_typ T1 ->
     lc_typ (typ_all T1 T2)
 with lc_dec : dec -> Prop :=
-| lc_dec_typ : forall L T U,
+| lc_dec_typ : forall A T U,
     lc_typ T ->
     lc_typ U ->
-    lc_dec (dec_typ L T U)
+    lc_dec { A >: T <: U }
 | lc_dec_trm : forall a T,
     lc_typ T ->
-    lc_dec (dec_trm a T).
+    lc_dec {a ⦂ T}
 
 Hint Constructors lc_var lc_path lc_typ lc_dec.
 

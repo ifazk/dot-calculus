@@ -2,7 +2,7 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Binding CanonicalForms Definitions GeneralToTight InvertibleTyping Narrowing
+Require Import Binding CanonicalForms Definitions GeneralToTight InvertibleTyping Lookup Narrowing
             OperationalSemantics PreciseTyping RecordAndInertTypes Substitution Weakening.
 
 (** The typing of a term with a stack *)
@@ -23,8 +23,8 @@ Notation "'⊢' t ':' T" := (sta_trm_typ t T) (at level 40, t at level 59).
 
 Ltac lookup_eq :=
   match goal with
-  | [Hl1: ?P ⊢ ?s ∋ ?t1,
-     Hl2: ?P' ⊢ ?s ∋ ?t2 |- _] =>
+  | [Hl1: ?s ∋ ?t1,
+     Hl2: ?s ∋ ?t2 |- _] =>
      apply (lookup_func Hl1) in Hl2; inversions Hl2
   end.
 
@@ -73,7 +73,7 @@ Proof.
   - Case "ty_all_elim".
     match goal with
     | [Hp: _ ⊢ trm_path _ : typ_all _ _ |- _] =>
-        pose proof (canonical_forms_fun Hin Hwt Hp) as [L [T' [t [P [Bis [Hsub Hty]]]]]];
+        pose proof (canonical_forms_fun Hin Hwt Hp) as [L [T' [t [Hl [Hsub Hty]]]]];
         inversions Hred
     end.
     lookup_eq.

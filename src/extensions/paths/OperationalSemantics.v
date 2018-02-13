@@ -2,7 +2,7 @@ Set Implicit Arguments.
 
 Require Import Coq.Program.Equality.
 Require Import LibLN.
-Require Import Definitions Binding.
+Require Import Definitions Binding Lookup.
 
 (** * Stack-Based Operational Semantics *)
 
@@ -13,8 +13,8 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
 (** [s ∋ (p, lambda(T)t)  ]      #<br>#
     [―――――――――――――――――――――]      #<br>#
     [(s, p q) |-> (s, t^q)]      *)
-| red_app: forall s p q T t P,
-    P ⊢ s ∋ (p, val_lambda T t) ->
+| red_app: forall s p q T t,
+    s ∋ (p, val_lambda T t) ->
     (s, trm_app p q) |-> (s, open_trm_p q t)
 
 (** [(s, let x = v in t) |-> ((s, x = v), t^x)] *)

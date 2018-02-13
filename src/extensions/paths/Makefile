@@ -2,13 +2,21 @@ FILES=Safety.v
 OBJECTS=$(FILES:.v=.vo)
 
 TLCDIR=../../../lib/tlc
+LEROYDIR=../../../lib/leroy
+LFDIR=../../../lib/lf
 DOCDIR=doc
 
 TLCSRC=$(TLCDIR)
 LIBLN=$(TLCSRC)/LibLN.vo
 TLCNAME=TLC
 
-COQINCLUDE=-R $(TLCSRC) $(TLCNAME) -R . \"\"
+LEROYSRC=$(LEROYDIR)
+LEROYNAME=compiler
+
+LFSRC=$(LFDIR)
+LFNAME=LF
+
+COQINCLUDE=-R $(TLCSRC) $(TLCNAME) -R $(LFSRC) $(LFNAME) -R $(LEROYSRC) $(LEROYNAME) -R . \"\"
 COQMAKEFILE=$(COQBIN)coq_makefile
 
 PROOFMAKEFILE=Makefile.coq

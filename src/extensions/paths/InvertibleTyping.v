@@ -11,7 +11,8 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Definitions Narrowing PreciseTyping RecordAndInertTypes TightTyping Subenvironments.
+Require Import Definitions Binding Narrowing PreciseTyping RecordAndInertTypes
+               TightTyping Subenvironments.
 
 (** ** Invertible typing *)
 
@@ -38,14 +39,18 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
   G ⊢! p : T ⪼ U ->
   G ⊢## p : U
 
+| ty_sngl_refl_inv : forall G p T,
+    G ⊢## p : T ->
+    G ⊢## p : typ_sngl p
+
 (** [G ⊢## p: {a: T}] #<br>#
     [G ⊢# T <: U]     #<br>#
     [――――――――――――――――] #<br>#
     [G ⊢## p: {a: U}]     *)
 | ty_dec_trm_inv : forall G p a T U,
-  G ⊢## p : typ_rcd (dec_trm a T) ->
+  G ⊢## p : typ_rcd {a ⦂ T} ->
   G ⊢# T <: U ->
-  G ⊢## p : typ_rcd (dec_trm a U)
+  G ⊢## p : typ_rcd {a ⦂ U}
 
 (** [G ⊢## p: {A: T1..S1}]   #<br>#
     [G ⊢# T2 <: T1]         #<br>#
@@ -53,10 +58,10 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
     [―――――――――――――――――――――] #<br>#
     [G ⊢## p: {A: T2..S2}]     *)
 | ty_dec_typ_inv : forall G p A T1 T2 S1 S2,
-  G ⊢## p : typ_rcd (dec_typ A T1 S1) ->
+  G ⊢## p : typ_rcd {A >: T1 <: S1} ->
   G ⊢# T2 <: T1 ->
   G ⊢# S1 <: S2 ->
-  G ⊢## p : typ_rcd (dec_typ A T2 S2)
+  G ⊢## p : typ_rcd {A >: T2 <: S2}
 
 (** [G ⊢## p: T^p]   #<br>#
     [―――――――――――――――] #<br>#
@@ -93,7 +98,7 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
     [G ⊢## p: q.A           *)
 | ty_sel_inv : forall G p q A T S,
   G ⊢## p : S ->
-  G ⊢! q : T ⪼ typ_rcd (dec_typ A S S) ->
+  G ⊢! q : T ⪼ typ_rcd {A >: S <: S} ->
   G ⊢## p : typ_path q A
 
 (** [G ⊢## p: T]   #<br>#
@@ -102,6 +107,12 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
 | ty_top_inv : forall G p T,
   G ⊢## p : T ->
   G ⊢## p : typ_top
+
+(*| ty_sngl_inv : forall G p q T,
+    G ⊢## p : typ_sngl q ->
+    G ⊢## q : T ->
+    G ⊢## p: T*)
+
 where "G '⊢##' p ':' T" := (ty_path_inv G p T).
 
 (** ** Invertible typing for values [G ⊢##v v: T] *)
@@ -136,7 +147,7 @@ Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
     [G ⊢##v v: q.A]         *)
 | ty_path_inv_v : forall G v T S q A,
   G ⊢##v v : S ->
-  G ⊢! q : T ⪼ typ_rcd (dec_typ A S S) ->
+  G ⊢! q : T ⪼ typ_rcd {A >: S <: S} ->
   G ⊢##v v : typ_path q A
 
 (** [G ⊢##v v : T]        #<br>#
@@ -154,11 +165,31 @@ Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
 | ty_top_inv_v : forall G v T,
   G ⊢##v v : T ->
   G ⊢##v v : typ_top
+
 where "G '⊢##v' v ':' T" := (ty_val_inv G v T).
 
 Hint Constructors ty_path_inv ty_val_inv.
 
 (** *** Invertible to Precise Typing [|-## to |-!] *)
+(*
+Lemma invertible_to_precise_sngl : forall G p a q,
+    inert G ->
+    G ⊢## p•a : typ_sngl q ->
+    G ⊢! p•a : typ_sngl q ⪼ typ_sngl q.
+Proof.
+  introv Hi Hp. dependent induction Hp; eauto.
+  - lets Ht: (pf_sngl_T Hi H). subst*.
+  -
+Qed.*)
+
+Lemma invertible_sngl_var : forall G x p,
+    inert G ->
+    G ⊢## pvar x : typ_sngl p ->
+    p = pvar x.
+Proof.
+  introv Hi Hx. dependent induction Hx; eauto.
+  lets Ht: (pf_sngl_T Hi H). subst. false* precise_sngl_var.
+Qed.
 
 (** Invertible-to-precise typing for field declarations: #<br>#
     [G |-## p: {a: T}]            #<br>#
@@ -166,9 +197,9 @@ Hint Constructors ty_path_inv ty_val_inv.
     [exists T', G |-! p: {a: T'}]      #<br>#
     [G |-# T' <: T]. *)
 Lemma invertible_to_precise_trm_dec: forall G p a T,
-  G ⊢## p : typ_rcd (dec_trm a T) ->
+  G ⊢## p : typ_rcd {a ⦂ T} ->
   exists T' U,
-    G ⊢! p : U ⪼ typ_rcd (dec_trm a T') /\
+    G ⊢! p : U ⪼ typ_rcd {a ⦂ T'} /\
     G ⊢# T' <: T.
 Proof.
   introv Hinv.
@@ -178,14 +209,6 @@ Proof.
     exists V V'. split; auto.
     eapply subtyp_trans_t; eassumption.
 Qed.
-
-Lemma invertible_to_precise_typ_bnd: forall G p T ls,
-    G ⊢## p: typ_bnd T ->
-    record_typ T ls ->
-    exists U,
-      G ⊢! p: typ_bnd U ⪼ typ_bnd U /\
-      G ⊢ open_typ_p p U <: open_typ_p p T.
-Proof. Admitted.
 
 (** Invertible-to-precise typing for function types: #<br>#
     [ok G]                        #<br>#
@@ -240,8 +263,20 @@ Proof.
   - inversion HT; auto. apply pf_and2 in H. eauto.
   - inversions HT.
     + false* pf_psel_false.
-    + pose proof (p_bound_unique Hi H H5). subst.
-      pose proof (pf_inert_unique_tight_bounds Hi H H5) as Hu. subst. assumption.
+    + destruct (pf_inert_rcd_U Hi H) as [U' Heq].
+      destruct (pf_inert_rcd_U Hi H5) as [T0' Heq'].
+      subst. lets His: (pf_inert_T Hi H). destruct His.
+      lets His': (pf_inert_T Hi H5). destruct His'.
+      lets Heq: (p_bound_rec_unique Hi H H5). subst.
+      lets Hu: (pf_record_unique_tight_bounds_rec Hi H H5). subst*.
+      destruct_all. inversion H1. destruct_all. inversion H0.
+Qed.
+
+Lemma precise_to_tight: forall G p T U,
+    G ⊢! p : T ⪼ U ->
+    G ⊢# trm_path p : T /\ G ⊢# trm_path p : U.
+Proof.
+  introv Hp. dependent induction Hp; split*. constructor*.  constructor*.
 Qed.
 
 (** Invertible typing implies tight typing. *)
@@ -250,6 +285,8 @@ Lemma inv_to_tight: forall G p T,
     G ⊢# trm_path p: T.
 Proof.
   introv Ht. induction Ht; eauto. dependent induction H; eauto. constructor; auto.
+  lets Hu: (pf_sngl_U H). subst. destruct (precise_to_tight H0) as [Hq1 Hq2].
+  apply* ty_sngl_t.
 Qed.
 
 (** *** Tight-to-Invertible Lemma for Paths [|-# to |-##]
@@ -268,8 +305,20 @@ Proof.
   - Case "ty_new_elim_t".
     dependent induction IHHty.
     * apply pf_fld in H. eauto.
-    * apply invertible_typing_closure_tight with (T:=T0); auto.
-      apply IHIHHty; auto. apply* inv_to_tight.
+    * apply invertible_typing_closure_tight with (T:=T0); auto. eapply IHIHHty; auto.
+      apply* inv_to_tight.
+  - Case "ty_sngl_t".
+    specialize (IHHty1 _ Hi eq_refl). specialize (IHHty2 _ Hi eq_refl).
+    destruct x. destruct f. apply tight_to_general in Hty1. apply typed_paths_named in Hty1.
+    inversions Hty1. destruct H as [bs Heq]. inversions Heq.
+    apply (invertible_sngl_var Hi) in IHHty1. subst. assumption.
+    assert (p_sel a (t :: f)%list = (p_sel a f) • t) as Heq by auto.
+    rewrite Heq in *. (*
+    apply ( invertible_to_precise_sngl _ _ Hi) in IHHty1. rename t into a'.
+    clear Hty1 Hty2 Heq.
+    induction IHHty2; eauto.
+    * SCase "ty_precise_inv". admit.
+    * specialize (IHIHHty2 IHHty1 Hi). *) admit.
   - Case "ty_rec_elim_t".
     inversion IHHty; subst; eauto.
   - Case "ty_sub_t".
@@ -290,8 +339,13 @@ Proof.
   introv Hi HT Hsub.
   dependent induction Hsub; eauto; inversions HT; auto; try solve [inversion* H].
   - inversions H0.
-  - pose proof (p_bound_unique Hi H H5). subst.
-    pose proof (pf_inert_unique_tight_bounds Hi H H5). subst. auto.
+  - lets Hb1: (pf_inert_rcd_U Hi H). lets Hb2: (pf_inert_rcd_U Hi H5).
+    destruct_all. subst.
+    destruct (pf_inert_rcd_U Hi H) as [U' Heq].
+    destruct (pf_inert_rcd_U Hi H5) as [T0' Heq'].
+    subst. inversions Heq. inversions Heq'.
+    lets Heq: (p_bound_rec_unique Hi H H5). subst.
+    lets Hu: (pf_record_unique_tight_bounds_rec Hi H H5). subst*.
 Qed.
 
 (** ** Tight-to-Invertible Lemma for Values
@@ -309,4 +363,20 @@ Proof.
   dependent induction Hty; eauto.
   specialize (IHHty v Hgd eq_refl).
   apply* invertible_typing_closure_tight_v.
+Qed.
+
+Lemma invertible_obj_fun_type: forall G T ds U V,
+    G ⊢##v val_new T ds : (typ_all U V) -> False.
+Proof.
+  introv Hv. dependent induction Hv. inversion H. eauto.
+Qed.
+
+Lemma invertible_to_precise_v_obj: forall G T ds U,
+    G ⊢##v val_new T ds : U ->
+    inert_typ U ->
+    U = typ_bnd T.
+Proof.
+  introv Hv Hi. dependent induction Hv; try solve [inversion Hi].
+  - inversion* H.
+  - false* invertible_obj_fun_type.
 Qed.
