@@ -61,8 +61,8 @@ Lemma open_record:
   (forall T, inert_typ T ->
         forall x k, inert_typ (open_rec_typ k x T)).
 Proof.
-  apply rcd_mutind; intros; try constructor; auto;
-    try solve [erewrite open_dec_preserves_label in e; eauto].
+  apply rcd_mutind; intros; try solve [constructor; auto;
+    try solve [erewrite open_dec_preserves_label in e; eauto]].
   unfold open_typ. simpl. eauto.
 Qed.
 
@@ -74,8 +74,8 @@ Lemma open_record_p:
   (forall T, inert_typ T ->
         forall p k, inert_typ (open_rec_typ_p k p T)).
 Proof.
-  apply rcd_mutind; intros; try constructor; auto;
-    try solve [erewrite open_dec_preserves_label_p in e; eauto].
+  apply rcd_mutind; intros; try solve [constructor; auto;
+    try solve [erewrite open_dec_preserves_label_p in e; eauto]].
   unfold open_typ. simpl. eauto.
 Qed.
 
@@ -137,7 +137,7 @@ Proof.
           destruct H
         | [ Hd: _; _; _; _ ⊢ _ : { _ >: _ <: _ } |- _ ] =>
           inversions Hd
-        | [ Hd: _; _; _; _ ⊢ _ : dec_trm _ _  |- _ ] =>
+        | [ Hd: _; _; _; _ ⊢ _ : { _ ⦂ _ } |- _ ] =>
           inversions Hd
     end;
     match goal with
@@ -195,6 +195,7 @@ Lemma record_open:
 Proof.
   apply rcd_mutind; intros; invert_open; simpls.
   - apply open_fresh_typ_dec_injective in H4; auto. subst. constructor.
+  - destruct t0; inversions H3. eauto.
   - constructor*. rewrite* <- open_dec_preserves_label.
   - invert_open. simpls. constructor*. rewrite* <- open_dec_preserves_label.
 Qed.
@@ -219,8 +220,8 @@ Qed.
     [T1 = T2] *)
 Lemma unique_rcd_typ: forall T A T1 T2,
   record_type T ->
-  record_has T (dec_typ A T1 T1) ->
-  record_has T (dec_typ A T2 T2) ->
+  record_has T {A >: T1 <: T1} ->
+  record_has T {A >: T2 <: T2} ->
   T1 = T2.
 Proof.
   introv Htype Has1 Has2.
@@ -228,10 +229,10 @@ Proof.
   destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Has1; inversion Has2; subst.
   - inversion* H3.
   - inversion* H5.
-  - apply record_typ_has_label_in with (D:=dec_typ A T1 T1) in Htyp.
+  - apply record_typ_has_label_in with (D:={A >: T1 <: T1}) in Htyp.
     + inversions H9. false* H1.
     + assumption.
-  - apply record_typ_has_label_in with (D:=dec_typ A T2 T2) in Htyp.
+  - apply record_typ_has_label_in with (D:={A >: T2 <: T2}) in Htyp.
     + inversions H5. false* H1.
     + assumption.
   - inversions H5. inversions* H9.
@@ -239,8 +240,8 @@ Qed.
 
 Lemma unique_rcd_trm: forall T a U1 U2,
     record_type T ->
-    record_has T (dec_trm a U1) ->
-    record_has T (dec_trm a U2) ->
+    record_has T {a ⦂ U1} ->
+    record_has T {a ⦂ U2} ->
     U1 = U2.
 Proof.
   introv Htype Has1 Has2.
@@ -248,10 +249,10 @@ Proof.
   destruct Htype as [ls Htyp]. induction Htyp; intros; inversion Has1; inversion Has2; subst.
   - inversion* H3.
   - inversion* H5.
-  - eapply record_typ_has_label_in with (D:=dec_trm a U1) in Htyp.
+  - eapply record_typ_has_label_in with (D:={a ⦂ U1}) in Htyp.
     + inversions H9. false* H1.
     + assumption.
-  - apply record_typ_has_label_in with (D:=dec_trm a U2) in Htyp.
+  - apply record_typ_has_label_in with (D:={a ⦂ U2}) in Htyp.
     + inversions H5. false* H1.
     + inversions H5. lets Hr: (record_typ_has_label_in Htyp H9).
       false* H1.
@@ -260,7 +261,7 @@ Qed.
 
 Lemma record_has_sel_typ: forall G p T a U,
     G ⊢ trm_path p : T ->
-    record_has T (dec_trm a U) ->
+    record_has T {a ⦂ U} ->
     G ⊢ trm_path (p • a) : U.
 Proof.
   introv Hp Hr. dependent induction Hr; eauto.

@@ -21,9 +21,9 @@ Require Import Definitions RecordAndInertTypes PreciseTyping TightTyping Inverti
     [G |-# S <: T]                    *)
 Lemma sel_premise: forall G p A S U,
   inert G ->
-  G ⊢## p : typ_rcd (dec_typ A S U) ->
+  G ⊢## p : typ_rcd {A >: S <: U} ->
   exists T V,
-    G ⊢! p : V ⪼ typ_rcd (dec_typ A T T) /\
+    G ⊢! p : V ⪼ typ_rcd {A >: T <: T} /\
     G ⊢# T <: U /\
     G ⊢# S <: T.
 Proof.
@@ -46,7 +46,7 @@ Qed.
     [G ⊢# S <: x.A]            *)
 Lemma sel_replacement: forall G p A S U,
     inert G ->
-    G ⊢# trm_path p : typ_rcd (dec_typ A S U) ->
+    G ⊢# trm_path p : typ_rcd {A >: S <: U} ->
     (G ⊢# typ_path p A <: U /\
      G ⊢# S <: typ_path p A).
 Proof.
@@ -97,3 +97,19 @@ Lemma general_to_tight_typing: forall G t T,
 Proof.
   intros. apply* general_to_tight.
 Qed.
+
+Ltac proof_recipe :=
+  match goal with
+  | [ Hg: ?G ⊢ _ : _,
+      Hi: inert ?G |- _ ] =>
+    apply (general_to_tight_typing Hi) in Hg;
+    apply (tight_to_invertible Hi) in Hg;
+    try lets Hok: (inert_ok Hi);
+    try match goal with
+        | [ Hinv: ?G ⊢## _ : typ_all _ _,
+            Hok: ok ?G |- _ ] =>
+          destruct (invertible_to_precise_typ_all Hok Hinv) as [Spr [Tpr [Upr [Lpr [Hpr [Hspr1 Hspr2]]]]]]
+        | [ Hinv: ?G ⊢## _ : typ_rcd { _ ⦂ _ } |- _ ] =>
+          destruct (invertible_to_precise_trm_dec Hinv) as [Tpr [Upr [Hpr Hspr]]]
+        end
+  end.
