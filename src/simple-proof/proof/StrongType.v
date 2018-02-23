@@ -183,6 +183,16 @@ Proof.
   eauto using binds_to_dom.
 Qed.
 
+Lemma strong_corresponding_types_s: forall G s x v,
+    strong_typed G s ->
+    binds x v s ->
+    ty_val_s G s x.
+Proof.
+  intros. unfold strong_typed in H.
+  destruct_all. apply H3.
+  rewrite H2. eauto using binds_to_dom.
+Qed.
+
 Lemma strong_canonical_forms_fun: forall G s x T U,
   inert G ->
   strong_typed G s ->

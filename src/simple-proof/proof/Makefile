@@ -1,4 +1,4 @@
-FILES=Safety.v
+FILES=StrongSafety.v
 OBJECTS=$(FILES:.v=.vo)
 
 TLCDIR=../../../lib/tlc
