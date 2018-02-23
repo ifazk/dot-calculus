@@ -125,21 +125,22 @@ Hint Resolve strong_typed_empty.
 Lemma strong_typed_push_fun: forall G s x T T' e,
     strong_typed G s ->
     x # G ->
-    x # s ->
     G ⊢ trm_lambda T' e : T ->
     strong_typed (G & x ~ T) (s & x ~ val_fun T' e).
 Proof.
   intros. unfold strong_typed in *.
   destruct_all. repeat_split_right; auto.
+  - apply ok_push; try assumption.
+    rewrite <- H3. auto.
   - simpl_dom. fequal. auto.
   - intros x0 Hd.
     pose proof (dom_to_binds Hd) as [?T ?]; clear Hd.
     assert (binds x (val_fun T' e) (s & x ~ (val_fun T' e))) by auto.
-    destruct (binds_push_inv H6) as [[? ?] | [? ?]]; subst.
-    + apply (ty_val_fun_s H6 H7).
+    destruct (binds_push_inv H5) as [[? ?] | [? ?]]; subst.
+    + apply (ty_val_fun_s H5 H6).
       apply weaken_ty_trm; auto.
     + apply ty_val_s_push; auto.
-      apply H5. eauto using binds_to_dom.
+      apply H4. eauto using binds_to_dom.
 Qed.
 
 Lemma strong_typed_push_precise: forall G s x T v,
@@ -184,25 +185,27 @@ Qed.
 
 Lemma strong_canonical_forms_fun: forall G s x T U,
   inert G ->
-  well_typed G s ->
+  strong_typed G s ->
   G ⊢ trm_var (avar_f x) : typ_all T U ->
   (exists L T' t, binds x (val_fun T' t) s /\ G ⊢ T <: T' /\
   (forall y, y \notin L -> G & y ~ T ⊢ open_trm y t : open_typ y U)).
 Proof.
-  introv Hin Hwt Hty.
+  introv Hin Hst Hty.
   destruct (var_typ_all_to_binds Hin Hty) as [L [S [T' [BiG [Hs1 Hs2]]]]].
-  destruct (corresponding_types Hwt BiG) as [v [Bis Ht]].
-  destruct (val_typ_all_to_lambda _ Hin Ht) as [L' [S' [t [Heq [Hs1' Hs2']]]]].
-  subst.
-  exists (L \u L' \u (dom G)) S' t. repeat split~.
-  - eapply subtyp_trans; eauto.
-  - intros.
+  pose proof (strong_corresponding_types Hst BiG).
+  inversions H.
+  - pose proof (binds_func BiG H0). subst T0.
+    destruct (val_typ_all_to_lambda _ Hin H2) as [L' [S' [t' [Heq [Hs1' Hs2']]]]].
+    exists (L \u L' \u (dom G)) S' t'. inversions Heq.
+    repeat_split_right; eauto.
+    intros.
     assert (HL: y \notin L) by auto.
     assert (HL': y \notin L') by auto.
     specialize (Hs2 y HL).
     specialize (Hs2' y HL').
     apply narrow_typing with (G':=G & y ~ T) in Hs2'; auto.
     eapply ty_sub; eauto.
+  - pose proof (binds_func BiG H0). congruence.
 Qed.
 
 Lemma strong_typed_ctx_val: forall G s x,
@@ -241,7 +244,7 @@ Lemma strong_canonical_forms_obj: forall G s x a T,
 Proof.
   introv Hi Hst Hty.
   destruct (var_typ_rcd_to_binds Hi Hty) as [?S [?T' [?H [?H ?H]]]].
-  pose proof (strong_typed_ctx_val Hst (binds_to_dom H)) as Hts.
+  pose proof (strong_corresponding_types Hst H) as Hts.
   destruct (strong_typed_mu_to_new Hi Hts H) as [?ds [?Bis ?]].
   pose proof (record_has_ty_defs H2 H0) as [?d [? ?]].
   inversions H4.
