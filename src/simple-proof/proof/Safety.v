@@ -2,14 +2,16 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Binding CanonicalForms Definitions GeneralToTight InvertibleTyping Narrowing
-            OperationalSemantics PreciseTyping RecordAndInertTypes Substitution Weakening.
+Require Import
+        Binding Definitions RecordAndInertTypes PreciseTyping
+        OperationalSemantics Substitution Weakening
+        StronglyTypedStores CanonicalForms.
 
 (** The typing of a term with a stack *)
 Inductive sta_trm_typ : sta * trm -> typ -> Prop :=
 | sta_trm_typ_c : forall G s t T,
     inert G ->
-    well_typed G s ->
+    strongly_typed G s ->
     G ⊢ t : T ->
     sta_trm_typ (s, t) T.
 
@@ -64,10 +66,10 @@ Ltac trm_val_contra :=
 
 Ltac solve_IH :=
   match goal with
-  | [IH: well_typed _ _ ->
+  | [IH: strongly_typed _ _ ->
          inert _ ->
          forall t', (_, _) |-> (_, _) -> _,
-       Wf: well_typed _ _,
+       Wf: strongly_typed _ _,
        In: inert _,
        Hr: (_, _) |-> (_, ?t') |- _] =>
     specialize (IH Wf In t' Hr); destruct_all
@@ -89,39 +91,29 @@ Ltac solve_let :=
     [s': G, G']             #<br>#
     [G, G' ⊢ t': T]         *)
 Lemma preservation_helper: forall G s t s' t' T,
-    well_typed G s ->
+    strongly_typed G s ->
     inert G ->
     (s, t) |-> (s', t') ->
     G ⊢ t : T ->
     exists G', inert G' /\
-          well_typed (G & G') s' /\
+          strongly_typed (G & G') s' /\
           G & G' ⊢ t' : T.
 Proof.
   introv Hwf Hin Hred Ht. gen t'.
   induction Ht; intros; try solve [invert_red; trm_val_contra].
   - Case "ty_all_intro".
-    red_trm_to_val.
-    rewrite <- H1 in Hred.
-    invert_red.
-      match goal with
-        | [Hn: ?x # ?s |- _] =>
-          pose proof (well_typed_notin_dom Hwf Hn) as Hng
-      end.
-      assert (Ht: G ⊢ trm_lambda T t : typ_all T U) by eauto.
-      rewrite <- H4 in Ht.
-      pose proof (val_typing _ Ht) as [V [Hv Hs]].
-      exists (x ~ V). repeat_split_right.
-      ** rewrite <- concat_empty_l. constructor~. apply (precise_inert_typ Hv).
-      ** apply~ well_typed_push. apply (precise_to_general_v Hv).
-      ** assert (G & x ~ V ⊢ trm_var (avar_f x) : V) by auto.
-         eapply ty_sub. apply H2. apply* weaken_subtyp.
+    invert_red. unfold trm_val in H3.
+    destruct v. congruence. inversions H3.
+    exists (x ~ typ_all T U). repeat_split_right; auto.
+    + rewrite <- concat_empty_l; eauto.
+    + assert (dom G = dom s) by apply Hwf.
+      assert (x # G) by (rewrite H1; auto). clear H2; clear H1.
+      assert (G ⊢ trm_lambda T t : typ_all T U) by eauto.
+      apply (strongly_typed_push_fun Hwf H3 H1).
   - Case "ty_all_elim".
-    match goal with
-    | [Hx: _ ⊢ trm_var (avar_f _) : typ_all _ _ |- _] =>
-        pose proof (canonical_forms_fun Hin Hwf Hx) as [L [T' [t [Bis [Hsub Hty]]]]];
-          inversions Hred; trm_val_contra;
-          binds_eq
-    end.
+    invert_red; try trm_val_contra.
+    destruct (canonical_forms_fun Hin Hwf Ht1) as [?L [?T [?t [?Bis [?Hsub ?Hty]]]]].
+    binds_eq.
     exists (@empty typ). rewrite concat_empty_r. repeat_split_right; auto.
     pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
     eapply renaming_typ; eauto.
@@ -131,15 +123,15 @@ Proof.
     invert_red.
       match goal with
         | [Hn: ?x # ?s |- _] =>
-          pose proof (well_typed_notin_dom Hwf Hn) as Hng
+          pose proof (strongly_typed_notin_dom Hwf Hn) as Hng
       end.
       assert (Ht: G ⊢ trm_new T ds : typ_bnd T) by eauto.
       rewrite <- H3 in Ht.
       pose proof (val_typing _ Ht) as [V [Hv Hs]].
       exists (x ~ V). repeat_split_right.
-      ** rewrite <- concat_empty_l. constructor~. apply (precise_inert_typ Hv).
-      ** apply~ well_typed_push. apply (precise_to_general_v Hv).
-      ** assert (G & x ~ V ⊢ trm_var (avar_f x) : V) by auto.
+      + rewrite <- concat_empty_l. constructor~. apply (precise_inert_typ Hv).
+      + apply~ strongly_typed_push_precise.
+      + assert (G & x ~ V ⊢ trm_var (avar_f x) : V) by auto.
          eapply ty_sub. apply H1. apply* weaken_subtyp.
   - Case "ty_new_elim".
     pose proof (canonical_forms_obj Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
@@ -188,9 +180,9 @@ Ltac solve_let_prog :=
   match goal with
       | [IH: ⊢ (?s, ?t) : ?T ->
              inert _ ->
-             well_typed _ _ -> _,
+             strongly_typed _ _ -> _,
          Hi: inert _,
-         Hwt: well_typed _ _ |- _] =>
+         Hwt: strongly_typed _ _ |- _] =>
         assert (⊢ (s, t): T) as Hs by eauto;
         specialize (IH Hs Hi Hwt) as [IH | [s' [t' Hr]]];
         eauto; inversion IH
