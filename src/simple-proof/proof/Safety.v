@@ -8,16 +8,16 @@ Require Import
         StronglyTypedStores CanonicalForms.
 
 (** The typing of a term with a stack *)
-Inductive sta_trm_typ : sta * trm -> typ -> Prop :=
-| sta_trm_typ_c : forall G s t T,
+Inductive sto_trm_typ : sto * trm -> typ -> Prop :=
+| sto_trm_typ_c : forall G s t T,
     inert G ->
     strongly_typed G s ->
     G ⊢ t : T ->
-    sta_trm_typ (s, t) T.
+    sto_trm_typ (s, t) T.
 
-Hint Constructors sta_trm_typ.
+Hint Constructors sto_trm_typ.
 
-Notation "'⊢' t ':' T" := (sta_trm_typ t T) (at level 40, t at level 59).
+Notation "'⊢' t ':' T" := (sto_trm_typ t T) (at level 40, t at level 59).
 
 (** * Preservation *)
 
@@ -170,7 +170,7 @@ Theorem preservation : forall s s' t t' T,
 Proof.
   introv Ht Hr. destruct Ht as [* Hi Hwf Ht].
   lets Hp: (preservation_helper Hwf Hi Hr Ht). destruct Hp as [G' [Hi' [Hwf' Ht']]].
-  apply sta_trm_typ_c with (G:=G & G'); auto. apply* inert_concat.
+  apply sto_trm_typ_c with (G:=G & G'); auto. apply* inert_concat.
 Qed.
 
 (** * Progress *)

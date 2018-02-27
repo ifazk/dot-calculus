@@ -4,11 +4,11 @@ Require Import Coq.Program.Equality.
 Require Import LibLN.
 Require Import Definitions Binding.
 
-(** * Stack-Based Operational Semantics *)
+(** * Store-Based Operational Semantics *)
 
 Reserved Notation "t1 '|->' t2" (at level 40, t2 at level 39).
 
-Inductive red : sta * trm -> sta * trm -> Prop :=
+Inductive red : sto * trm -> sto * trm -> Prop :=
 (** [s(x) = nu(T)...{a = t}...]  #<br>#
     [―――――――――――――――――――――――――]  #<br>#
     [(s, x.a) |-> (s, t)      ]  *)

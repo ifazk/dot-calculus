@@ -137,15 +137,11 @@ Definition defs_hasnt(ds: defs)(l: label) := get_def l ds = None.
 (** Typing environment ([G]) *)
 Definition ctx := env typ.
 
-(** A stack, represented as the sequence of variable-to-value
-    let bindings, [(let x = v in)*], that is represented as a value environment
-    which maps variables to values.
+(** A store, represents as a value environment which maps locations to values.
     The operational semantics will be defined in terms of pairs [(s, t)] where
-    [s] is a stack and [t] is a term.
-    For example, the term [let x1 = v1 in let x2 = v2 in t] is represented as
-    [({(x1 = v1), (x2 = v2)}, t)].
+    [s] is a store and [t] is a term.
     *)
-Definition sta := env val.
+Definition sto := env val.
 
 (** * Opening *)
 (** Opening takes a bound variable that is represented with a de Bruijn index [k]
@@ -268,7 +264,7 @@ Definition fv_val (v: val) : vars :=
 
 (** Free variables in the range (types) of a context *)
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
-Definition fv_sta_vals(s: sta): vars := (fv_in_values (fun v => fv_val v) s).
+Definition fv_sto_vals(s: sto): vars := (fv_in_values (fun v => fv_val v) s).
 
 (** * Typing Rules *)
 
@@ -518,7 +514,7 @@ Ltac gather_vars :=
   let A := gather_vars_with (fun x : vars      => x         ) in
   let B := gather_vars_with (fun x : var       => \{ x }    ) in
   let C := gather_vars_with (fun x : ctx       => (dom x) \u (fv_ctx_types x)) in
-  let D := gather_vars_with (fun x : sta       => dom x \u fv_sta_vals x) in
+  let D := gather_vars_with (fun x : sto       => dom x \u fv_sto_vals x) in
   let E := gather_vars_with (fun x : avar      => fv_avar  x) in
   let F := gather_vars_with (fun x : trm       => fv_trm   x) in
   let G := gather_vars_with (fun x : val       => fv_val   x) in

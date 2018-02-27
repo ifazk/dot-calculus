@@ -33,7 +33,7 @@ Require Import
     - if [s(x)] is an object [nu(y: U)ds] for some [U], then [T = mu(U)] and
       [G ⊢ ds^x :: U^x] *)
 
-Inductive ty_val_s : ctx -> sta -> var -> Prop :=
+Inductive ty_val_s : ctx -> sto -> var -> Prop :=
 | ty_val_fun_s : forall G s x S t T,
     binds x T G ->
     binds x (val_fun S t) s ->
@@ -70,7 +70,7 @@ Qed.
 
 (** [s:G] if [s] and [G] have the same domain and every location in [s] is
     strongly bound *)
-Definition strongly_typed (G : ctx) (s : sta) : Prop :=
+Definition strongly_typed (G : ctx) (s : sto) : Prop :=
   ok G /\
   ok s /\
   (dom G = dom s) /\
