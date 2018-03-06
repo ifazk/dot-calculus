@@ -37,7 +37,7 @@ Inductive ty_val_s : ctx -> sto -> var -> Prop :=
 | ty_val_fun_s : forall G s x S t T,
     binds x T G ->
     binds x (val_fun S t) s ->
-    G ⊢ trm_val (val_fun S t) : T ->
+    G ⊢ trm_lambda S t : T ->
     ty_val_s G s x
 | ty_val_obj_s : forall G s x U ds T,
     binds x T G ->
@@ -60,7 +60,7 @@ Proof.
     intros ?H. subst x.
     inversions H; eauto using binds_fresh_inv. }
   induction H.
-  - assert (G & y ~ T ⊢ trm_val (val_fun S t) : T0) by eauto using weaken_ty_trm.
+  - assert (G & y ~ T ⊢ trm_lambda S t : T0) by eauto using weaken_ty_trm.
     eauto.
   - assert (G & y ~ T /- open_defs x ds :: open_typ x U) by eauto using weaken_ty_defs.
     eapply ty_val_obj_s; eauto.

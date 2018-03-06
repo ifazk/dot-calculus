@@ -62,20 +62,21 @@ Qed.
     [v = lambda(T')t]              #<br>#
     [G ⊢ T <: T']                   #<br>#
     [forall fresh y, G, y: T ⊢ t^y: U^y] *)
-Lemma val_typ_all_to_lambda: forall G v T U,
+Lemma val_typ_all_to_lambda: forall G v t T U,
     inert G ->
-    G ⊢ trm_val v : typ_all T U ->
-    (exists L T' t,
-        v = val_fun T' t /\
+    trm_val v t ->
+    G ⊢ t : typ_all T U ->
+    (exists L T' t',
+        v = val_fun T' t' /\
         G ⊢ T <: T' /\
-        (forall y, y \notin L -> G & y ~ T ⊢ (open_trm y t) : open_typ y U)).
+        (forall y, y \notin L -> G & y ~ T ⊢ (open_trm y t') : open_typ y U)).
 Proof.
-  introv Hin Ht.
+  introv Hin Htv Ht.
   lets Htt: (general_to_tight_typing Hin Ht).
-  lets Hinv: (tight_to_invertible_v _ Hin Htt).
+  lets Hinv: (tight_to_invertible_v Hin Htv Htt).
   destruct (invertible_val_to_precise_lambda Hin Hinv) as [L [T' [U' [Htp [Hs1 Hs2]]]]].
   inversions Htp.
-  exists (L0 \u L \u (dom G)) T' t. repeat split~.
+  exists (L0 \u L \u (dom G)) T' t0. repeat split~.
   intros. assert (HL: y \notin L) by auto. assert (HL0: y \notin L0) by auto.
   specialize (Hs2 y HL).
   specialize (H2 y HL0).
@@ -119,25 +120,26 @@ Qed.
     [exists t, ds, v = nu(T)ds     ] #<br>#
     [ds^x = ... /\ {a = t} /\ ...] #<br>#
     [G ⊢ t: U] *)
-Lemma val_mu_to_new: forall G v T U a x,
+Lemma val_mu_to_new: forall G v t T U a x,
     inert G ->
-    G ⊢ trm_val v: typ_bnd T ->
+    trm_val v t ->
+    G ⊢ t: typ_bnd T ->
     G ⊢ trm_var (avar_f x) : open_typ x T ->
     record_has (open_typ x T) (dec_trm a U) ->
-    exists t ds,
+    exists t' ds,
       v = val_obj T ds /\
-      defs_has (open_defs x ds) (def_trm a t) /\
-      G ⊢ t: U.
+      defs_has (open_defs x ds) (def_trm a t') /\
+      G ⊢ t': U.
 Proof.
-  introv Hi Ht Hx Hr.
+  introv Hi Htv Ht Hx Hr.
   lets Htt: (general_to_tight_typing Hi Ht).
-  lets Hinv: (tight_to_invertible_v _ Hi Htt).
+  lets Hinv: (tight_to_invertible_v Hi Htv Htt).
   inversions Hinv. inversions H.
   pick_fresh z. assert (z \notin L) as Hz by auto.
   specialize (H3 z Hz).
   assert (G /- open_defs x ds :: open_typ x T) as Hds by apply* renaming_def.
   destruct (record_has_ty_defs Hds Hr) as [d [Hh Hd]]. inversions Hd.
-  exists t ds. split*.
+  exists t0 ds. split*.
 Qed.
 
 Lemma strong_mu_to_new: forall G s x T,
@@ -151,7 +153,7 @@ Proof.
   inversions Hts.
   - pose proof (binds_func Bi H); subst T0; clear H.
     pose proof (general_to_tight_typing Hi H1).
-    pose proof (tight_to_invertible_v _ Hi H).
+    pose proof (tight_to_invertible_v Hi (trm_val_fun _ _) H).
     inversions H2. inversions H3.
   - pose proof (binds_func Bi H). inversions H1.
     exists ds; split; auto.
@@ -178,7 +180,8 @@ Proof.
   pose proof (corresponding_types Hst BiG).
   inversions H.
   - pose proof (binds_func BiG H0). subst T0.
-    destruct (val_typ_all_to_lambda _ Hin H2) as [L' [S' [t' [Heq [Hs1' Hs2']]]]].
+    destruct (val_typ_all_to_lambda Hin (trm_val_fun _ _) H2)
+      as [L' [S' [t' [Heq [Hs1' Hs2']]]]].
     exists (L \u L' \u (dom G)) S' t'. inversions Heq.
     repeat_split_right; eauto.
     intros.

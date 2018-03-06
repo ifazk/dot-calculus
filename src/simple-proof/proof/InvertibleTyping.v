@@ -315,13 +315,14 @@ Qed.
        [G ⊢# v: T]         #<br>#
        [――――――――――――――――]   #<br>#
        [G ⊢##v v: T] *)
-Lemma tight_to_invertible_v : forall G v T,
+Lemma tight_to_invertible_v : forall G v t T,
     inert G ->
-    G ⊢# trm_val v : T ->
+    trm_val v t ->
+    G ⊢# t : T ->
     G ⊢##v v : T.
 Proof.
-  introv Hi Hty.
-  destruct v; dependent induction Hty; eauto;
-  specialize (IHHty _ _ Hi eq_refl);
+  introv Hi Htv Hty.
+  inversions Htv; dependent induction Hty; eauto;
+  specialize (IHHty Hi _ _ eq_refl);
   apply* invertible_typing_closure_tight_v.
 Qed.

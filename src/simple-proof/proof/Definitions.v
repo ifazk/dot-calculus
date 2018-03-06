@@ -105,12 +105,11 @@ Inductive val : Set :=
   | val_obj : typ -> defs -> val
   | val_fun : typ -> trm -> val.
 
-Definition trm_val (v : val) : trm :=
-  match v with
-  | val_obj T ds => trm_new T ds
-  | val_fun T e  => trm_lambda T e
-  end.
-Hint Unfold trm_val.
+Inductive trm_val : val -> trm -> Prop :=
+| trm_val_obj : forall T ds,
+    trm_val (val_obj T ds) (trm_new T ds)
+| trm_val_fun : forall T t,
+    trm_val (val_fun T t) (trm_lambda T t).
 
 (** Helper functions to retrieve labels of declarations and definitions *)
 
@@ -482,6 +481,7 @@ where "G '⊢' T '<:' U" := (subtyp G T U).
 (** * Infrastructure *)
 
 Hint Constructors
+     trm_val
      ty_trm ty_def ty_defs subtyp.
 
 (** ** Mutual Induction Principles *)

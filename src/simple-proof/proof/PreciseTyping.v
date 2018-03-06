@@ -394,9 +394,10 @@ Proof.
 Qed.
 
 (** - for values *)
-Lemma precise_to_general_v: forall G v T,
+Lemma precise_to_general_v: forall G v t T,
     G ⊢!v v : T ->
-    G ⊢ trm_val v: T.
+    trm_val v t ->
+    G ⊢ t : T.
 Proof.
-  intros. induction H; simpl; eauto.
+  introv H H1. induction H; inversions H1; simpl; eauto.
 Qed.

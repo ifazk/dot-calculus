@@ -24,12 +24,13 @@ Notation "'⊢' t ':' T" := (sto_trm_typ t T) (at level 40, t at level 59).
 (** If a value [v] has type [T], then [v] has a precise type [T']
     that is a subtype of [T].
     This lemma corresponds to Lemma 3.15 in the paper. *)
-Lemma val_typing: forall G v T,
-  G ⊢ trm_val v : T ->
+Lemma val_typing: forall G v t T,
+  trm_val v t ->
+  G ⊢ t : T ->
   exists T', G ⊢!v v : T' /\
         G ⊢ T' <: T.
 Proof.
-  intros G v T H. destruct v; simpl; dependent induction H; eauto;
+  intros G v t T Htv H. inversions Htv; simpl; dependent induction H; eauto;
   destruct (IHty_trm _ _ eq_refl); destruct_all; eauto.
 Qed.
 
@@ -51,16 +52,16 @@ Ltac red_trm_to_val :=
   match goal with
   | [ H : (_, trm_lambda ?T ?e) |-> _ |- _ ] =>
     remember (val_fun T e);
-    assert (trm_val (val_fun T e) = trm_lambda T e) by auto
+    assert (trm_val (val_fun T e) (trm_lambda T e)) by auto
   | [ H : (_, trm_new ?T ?ds) |-> _ |- _ ] =>
-    assert (trm_val (val_obj T ds) = trm_new T ds) by auto
+    assert (trm_val (val_obj T ds) (trm_new T ds)) by auto
   | _ => idtac
   end.
 
 Ltac trm_val_contra :=
   match goal with
-  | [ H : trm_val ?v = _ |- _ ] =>
-      try solve [induction v; simpl in *; congruence]
+  | [ H : trm_val _ _ |- _ ] =>
+      try solve [inversions H; simpl in *; congruence]
   | _ => idtac
   end.
 
@@ -102,14 +103,13 @@ Proof.
   introv Hwf Hin Hred Ht. gen t'.
   induction Ht; intros; try solve [invert_red; trm_val_contra].
   - Case "ty_all_intro".
-    invert_red. unfold trm_val in H3.
-    destruct v. congruence. inversions H3.
+    invert_red. inversions H6.
     exists (x ~ typ_all T U). repeat_split_right; auto.
     + rewrite <- concat_empty_l; eauto.
     + assert (dom G = dom s) by apply Hwf.
-      assert (x # G) by (rewrite H1; auto). clear H2; clear H1.
+      assert (x # G) by (rewrite H1; auto). clear H4; clear H1.
       assert (G ⊢ trm_lambda T t : typ_all T U) by eauto.
-      apply (strongly_typed_push_fun Hwf H3 H1).
+      apply (strongly_typed_push_fun Hwf H2 H1).
   - Case "ty_all_elim".
     invert_red; try trm_val_contra.
     destruct (canonical_forms_fun Hin Hwf Ht1) as [?L [?T [?t [?Bis [?Hsub ?Hty]]]]].
@@ -118,21 +118,18 @@ Proof.
     pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
     eapply renaming_typ; eauto.
   - Case "ty_new_intro".
-    red_trm_to_val.
-    rewrite <- H0 in Hred.
     invert_red.
       match goal with
         | [Hn: ?x # ?s |- _] =>
           pose proof (strongly_typed_notin_dom Hwf Hn) as Hng
       end.
       assert (Ht: G ⊢ trm_new T ds : typ_bnd T) by eauto.
-      rewrite <- H3 in Ht.
-      pose proof (val_typing _ Ht) as [V [Hv Hs]].
+      pose proof (val_typing H5 Ht) as [V [Hv Hs]].
       exists (x ~ V). repeat_split_right.
       + rewrite <- concat_empty_l. constructor~. apply (precise_inert_typ Hv).
       + apply~ strongly_typed_push_precise.
       + assert (G & x ~ V ⊢ trm_var (avar_f x) : V) by auto.
-         eapply ty_sub. apply H1. apply* weaken_subtyp.
+         eapply ty_sub. apply H0. apply* weaken_subtyp.
   - Case "ty_new_elim".
     pose proof (canonical_forms_obj Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
     invert_red; trm_val_contra. binds_eq.
@@ -202,14 +199,12 @@ Proof.
   introv Ht. inversion Ht as [G s' t' T' Hi Hwt HT]. subst.
   induction HT; eauto.
   - Case "trm_lambda".
-    assert (trm_lambda T t = trm_val (val_fun T t)) by auto.
-    rewrite H1. pick_fresh x.
+    pick_fresh x.
     right. exists (s & x ~ (val_fun T t)) (trm_var (avar_f x)). auto.
   - Case "ty_all_elim".
     pose proof (canonical_forms_fun Hi Hwt HT1). destruct_all. right*.
   - Case "trm_new".
-    right. assert (trm_new T ds = trm_val (val_obj T ds)) by auto.
-    rewrite H0. pick_fresh x.
+    right. pick_fresh x.
     exists (s & x ~ (val_obj T ds)) (trm_var (avar_f x)). auto.
   - Case "ty_new_elim".
     pose proof (canonical_forms_obj Hi Hwt HT). destruct_all. right*.
