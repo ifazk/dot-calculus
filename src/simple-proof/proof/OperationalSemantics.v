@@ -13,7 +13,7 @@ Inductive red : sto * trm -> sto * trm -> Prop :=
     [―――――――――――――――――――――――――]  #<br>#
     [(s, x.a) |-> (s, t)      ]  *)
 | red_sel : forall x m s t T ds,
-    binds x (val_obj T ds) s ->
+    binds x (val_obj T (open_defs x ds)) s ->
     defs_has (open_defs x ds) (def_trm m t) ->
     (s, trm_sel (avar_f x) m) |-> (s, t)
 
@@ -27,7 +27,7 @@ Inductive red : sto * trm -> sto * trm -> Prop :=
 (** [(s, let x = v in t) |-> ((s, x = v), t^x)] *)
 | red_let_val : forall v t s x,
     x # s ->
-    trm_val v t ->
+    trm_val x v t ->
     (s, t) |-> (s & x ~ v, trm_var (avar_f x))
 
 (** [(s, let y = x in t) |-> (s, t^x)] *)

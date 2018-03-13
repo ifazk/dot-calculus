@@ -41,7 +41,7 @@ Inductive ty_val_s : ctx -> sto -> var -> Prop :=
     ty_val_s G s x
 | ty_val_obj_s : forall G s x U ds T,
     binds x T G ->
-    binds x (val_obj U ds) s ->
+    binds x (val_obj U (open_defs x ds)) s ->
     T = typ_bnd U ->
     G /- open_defs x ds :: open_typ x U ->
     ty_val_s G s x.
@@ -148,7 +148,7 @@ Lemma strongly_typed_push_precise: forall G s x T v,
     strongly_typed G s ->
     x # G ->
     x # s ->
-    G ⊢!v v : T ->
+    G ⊢!v v ^^ x : T ->
     strongly_typed (G & x ~ T) (s & x ~ v).
 Proof.
   intros. inversions H2.
@@ -158,9 +158,9 @@ Proof.
     + simpl_dom. fequal. auto.
     + intros x0 Hd.
       pose proof (dom_to_binds Hd) as [?T ?]; clear Hd.
-      assert (binds x (val_obj T0 ds) (s & x ~ (val_obj T0 ds))) by auto.
-      destruct (binds_push_inv H6) as [[? ?] | [? ?]]; subst.
-      * apply (ty_val_obj_s H6 H7); auto.
+      assert (binds x (val_obj T0 (open_defs x ds)) (s & x ~ (val_obj T0 (open_defs x ds)))) by auto.
+      destruct (binds_push_inv H8) as [[? ?] | [? ?]]; subst.
+      * apply (ty_val_obj_s _ H8 H9); auto.
         assert (ok (G & x ~ typ_bnd T0)) by auto.
         pick_fresh z.
         assert (z # (G & x ~ typ_bnd T0)) by auto.
@@ -168,10 +168,9 @@ Proof.
         { eapply (proj43 weaken_rules); auto. }
         assert (G & x ~ typ_bnd T0 ⊢ trm_var (avar_f x) : open_typ x T0) by auto.
         assert (z \notin fv_typ (typ_bnd T0)) by (simpl; auto).
-        eapply (renaming_def _ _ H8 H9); auto.
+        eapply (renaming_def _ _ H10 H11); auto.
         rewrite fv_ctx_types_push_eq; auto.
-      * apply ty_val_s_push; auto.
-        apply H5. eauto using binds_to_dom.
+      * apply ty_val_s_push; eauto using binds_to_dom.
 Qed.
 
 (** ** Inversion lemmas for [s:G] *)

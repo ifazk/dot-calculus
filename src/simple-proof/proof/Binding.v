@@ -122,6 +122,39 @@ Proof.
     f_equal; eauto using open_fresh_avar_injective.
 Qed.
 
+(** - trms and definitions *)
+Lemma open_fresh_trm_def_defs_injective:
+  (forall t t' k x,
+      x \notin fv_trm t ->
+      x \notin fv_trm t' ->
+      open_rec_trm k x t = open_rec_trm k x t' ->
+      t = t') /\
+  (forall d d' k x,
+      x \notin fv_def d ->
+      x \notin fv_def d' ->
+      open_rec_def k x d = open_rec_def k x d' ->
+      d = d') /\
+  (forall ds ds' k x,
+      x \notin fv_defs ds ->
+      x \notin fv_defs ds' ->
+      open_rec_defs k x ds = open_rec_defs k x ds' ->
+      ds = ds').
+Proof.
+
+  Ltac invert_open_trm :=
+    match goal with
+    | [ H: open_rec_trm _ _ _ = open_rec_trm _ _ ?t' |- _ ] =>
+       destruct t'; inversions* H
+    | [ H: open_rec_def _ _ _ = open_rec_def _ _ ?d' |- _ ] =>
+       destruct d'; inversions* H
+    | [ H: open_rec_defs _ _ _ = open_rec_defs _ _ ?ds' |- _ ] =>
+       destruct ds'; inversions* H
+    end.
+
+  apply trm_mutind; intros; invert_open_trm; simpl in *;
+    f_equal; eauto using (proj1 open_fresh_typ_dec_injective), open_fresh_avar_injective.
+Qed.
+
 (** * Variable Substitution Lemmas *)
 
 (** The following [subst_fresh_XYZ] lemmas state that if [x] is not free
@@ -257,14 +290,14 @@ Proof.
     (apply subst_open_commut_avar || apply subst_open_commut_typ_dec).
 Qed.
 
-Lemma subst_open_commut_val: forall x y u,
-  (forall v : val, forall n: Datatypes.nat,
-     subst_val x y (open_rec_val n u v)
-     = open_rec_val n (subst_fvar x y u) (subst_val x y v)).
-Proof.
-  intros. induction v; simpl; f_equal~;
-    (apply subst_open_commut_typ_dec || apply subst_open_commut_trm_def_defs).
-Qed.
+(* Lemma subst_open_commut_val: forall x y u, *)
+(*   (forall v : val, forall n: Datatypes.nat, *)
+(*      subst_val x y (open_rec_val n u v) *)
+(*      = open_rec_val n (subst_fvar x y u) (subst_val x y v)). *)
+(* Proof. *)
+(*   intros. induction v; simpl; f_equal~; *)
+(*     (apply subst_open_commut_typ_dec || apply subst_open_commut_trm_def_defs). *)
+(* Qed. *)
 
 (** - terms only *)
 Lemma subst_open_commut_trm: forall x y u t,

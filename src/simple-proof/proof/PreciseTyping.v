@@ -10,7 +10,7 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Definitions RecordAndInertTypes.
+Require Import Definitions Binding RecordAndInertTypes.
 
 (** * Precise Typing
 
@@ -31,29 +31,31 @@ Require Import Definitions RecordAndInertTypes.
       [G ⊢! x: {B: S..U}].                *)
 
 (** ** Precise typing for values *)
-Reserved Notation "G '⊢!v' v ':' T" (at level 40, v at level 59).
+Reserved Notation "G '⊢!v' v '^^' x ':' T" (at level 40, v,x at level 59).
 
-Inductive ty_val_p : ctx -> val -> typ -> Prop :=
+Inductive ty_val_p : ctx -> val -> var -> typ -> Prop :=
 
 (** [G, x: T ⊢ t^x: U^x]       #<br>#
     [x fresh]                  #<br>#
     [――――――――――――――――――――――――] #<br>#
     [G ⊢! lambda(T)t: forall(T) U]     *)
-| ty_all_intro_p : forall L G T t U,
+| ty_all_intro_p : forall L G T t U y,
     (forall x, x \notin L ->
       G & x ~ T ⊢ open_trm x t : open_typ x U) ->
-    G ⊢!v val_fun T t : typ_all T U
+    G ⊢!v val_fun T t ^^ y : typ_all T U
 
 (** [G, x: T^x ⊢ ds^x :: T^x]   #<br>#
     [x fresh]                   #<br>#
     [―――――――――――――――――――――――]   #<br>#
     [G ⊢! nu(T)ds :: mu(T)]        *)
-| ty_new_intro_p : forall L G T ds,
+| ty_new_intro_p : forall L G T ds y,
     (forall x, x \notin L ->
       G & (x ~ open_typ x T) /- open_defs x ds :: open_typ x T) ->
-    G ⊢!v val_obj T ds : typ_bnd T
+    y \notin fv_defs ds ->
+    y # G ->
+    G ⊢!v val_obj T (open_defs y ds) ^^ y : typ_bnd T
 
-where "G '⊢!v' v ':' T" := (ty_val_p G v T).
+where "G '⊢!v' v '^^' x ':' T" := (ty_val_p G v x T).
 
 Hint Constructors ty_val_p.
 
@@ -131,8 +133,8 @@ Proof.
 Qed.
 
 (** The precise type of a value is inert. *)
-Lemma precise_inert_typ : forall G v T,
-    G ⊢!v v : T ->
+Lemma precise_inert_typ : forall G v x T,
+    G ⊢!v v ^^ x : T ->
     inert_typ T.
 Proof.
   introv Ht. inversions Ht; constructor; rename T0 into T.
@@ -394,10 +396,12 @@ Proof.
 Qed.
 
 (** - for values *)
-Lemma precise_to_general_v: forall G v t T,
-    G ⊢!v v : T ->
-    trm_val v t ->
+Lemma precise_to_general_v: forall G v x t T,
+    G ⊢!v v ^^ x : T ->
+    trm_val x v t ->
     G ⊢ t : T.
 Proof.
   introv H H1. induction H; inversions H1; simpl; eauto.
+  assert (ds0 = ds) by eauto using (proj33 open_fresh_trm_def_defs_injective).
+  subst; eauto.
 Qed.

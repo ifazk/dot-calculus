@@ -105,12 +105,6 @@ Inductive val : Set :=
   | val_obj : typ -> defs -> val
   | val_fun : typ -> trm -> val.
 
-Inductive trm_val : val -> trm -> Prop :=
-| trm_val_obj : forall T ds,
-    trm_val (val_obj T ds) (trm_new T ds)
-| trm_val_fun : forall T t,
-    trm_val (val_fun T t) (trm_lambda T t).
-
 (** Helper functions to retrieve labels of declarations and definitions *)
 
 Definition label_of_def(d: def): label := match d with
@@ -192,20 +186,20 @@ with open_rec_defs (k: nat) (u: var) (ds: defs): defs :=
   | defs_cons tl d => defs_cons (open_rec_defs k u tl) (open_rec_def k u d)
   end.
 
-Definition open_rec_val (k: nat) (u: var) (v: val): val :=
-  match v with
-  | val_obj T ds => val_obj (open_rec_typ (S k) u T) (open_rec_defs (S k) u ds)
-  | val_fun T e  => val_fun (open_rec_typ k u T) (open_rec_trm (S k) u e)
-  end.
+(* Definition open_rec_val (k: nat) (u: var) (v: val): val := *)
+(*   match v with *)
+(*   | val_obj T ds => val_obj (open_rec_typ (S k) u T) (open_rec_defs (S k) u ds) *)
+(*   | val_fun T e  => val_fun (open_rec_typ k u T) (open_rec_trm (S k) u e) *)
+(*   end. *)
 
 Definition open_avar u a := open_rec_avar  0 u a.
 Definition open_typ  u T := open_rec_typ   0 u T.
 Definition open_dec  u D := open_rec_dec   0 u D.
 Definition open_trm  u e := open_rec_trm   0 u e.
-Definition open_val  u v := open_rec_val   0 u v.
+(* Definition open_val  u v := open_rec_val   0 u v. *)
 Definition open_def  u d := open_rec_def   0 u d.
 Definition open_defs u l := open_rec_defs  0 u l.
-Hint Unfold open_avar open_typ open_dec open_trm open_val open_def open_defs.
+Hint Unfold open_avar open_typ open_dec open_trm open_def open_defs.
 
 (** * Free variables
       Functions that retrieve the free variables of a symbol. *)
@@ -264,6 +258,13 @@ Definition fv_val (v: val) : vars :=
 (** Free variables in the range (types) of a context *)
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
 Definition fv_sto_vals(s: sto): vars := (fv_in_values (fun v => fv_val v) s).
+
+Inductive trm_val : var -> val -> trm -> Prop :=
+| trm_val_obj : forall x T ds,
+    x \notin fv_defs ds ->
+    trm_val x (val_obj T (open_defs x ds)) (trm_new T ds)
+| trm_val_fun : forall x T t,
+    trm_val x (val_fun T t) (trm_lambda T t).
 
 (** * Typing Rules *)
 

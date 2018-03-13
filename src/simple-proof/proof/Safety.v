@@ -24,14 +24,14 @@ Notation "'⊢' t ':' T" := (sto_trm_typ t T) (at level 40, t at level 59).
 (** If a value [v] has type [T], then [v] has a precise type [T']
     that is a subtype of [T].
     This lemma corresponds to Lemma 3.15 in the paper. *)
-Lemma val_typing: forall G v t T,
-  trm_val v t ->
+Lemma val_typing: forall G v x t T,
+  trm_val x v t ->
+  x # G ->
   G ⊢ t : T ->
-  exists T', G ⊢!v v : T' /\
-        G ⊢ T' <: T.
+  exists T', G ⊢!v v ^^ x : T' /\ G ⊢ T' <: T.
 Proof.
-  intros G v t T Htv H. inversions Htv; simpl; dependent induction H; eauto;
-  destruct (IHty_trm _ _ eq_refl); destruct_all; eauto.
+  intros G v x t T Htv Hfr H. inversions Htv; simpl; dependent induction H; eauto;
+  destruct (IHty_trm _ _ Hfr eq_refl); destruct_all; eauto.
 Qed.
 
 (** Helper tactics for proving Preservation *)
@@ -60,7 +60,7 @@ Ltac red_trm_to_val :=
 
 Ltac trm_val_contra :=
   match goal with
-  | [ H : trm_val _ _ |- _ ] =>
+  | [ H : trm_val _ _ _ |- _ ] =>
       try solve [inversions H; simpl in *; congruence]
   | _ => idtac
   end.
@@ -124,7 +124,7 @@ Proof.
           pose proof (strongly_typed_notin_dom Hwf Hn) as Hng
       end.
       assert (Ht: G ⊢ trm_new T ds : typ_bnd T) by eauto.
-      pose proof (val_typing H5 Ht) as [V [Hv Hs]].
+      pose proof (val_typing H5 Hng Ht) as [V [Hv Hs]].
       exists (x ~ V). repeat_split_right.
       + rewrite <- concat_empty_l. constructor~. apply (precise_inert_typ Hv).
       + apply~ strongly_typed_push_precise.
@@ -134,6 +134,7 @@ Proof.
     pose proof (canonical_forms_obj Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
     invert_red; trm_val_contra. binds_eq.
     exists (@empty typ). rewrite concat_empty_r. repeat_split_right; auto.
+    rewrite <- H2 in H5.
     match goal with
     | [Hd: defs_has _ (def_trm _ ?t') |- G ⊢ t': T] =>
       rewrite* <- (defs_has_inv Has Hd)
@@ -205,7 +206,7 @@ Proof.
     pose proof (canonical_forms_fun Hi Hwt HT1). destruct_all. right*.
   - Case "trm_new".
     right. pick_fresh x.
-    exists (s & x ~ (val_obj T ds)) (trm_var (avar_f x)). auto.
+    exists (s & x ~ (val_obj T (open_defs x ds))) (trm_var (avar_f x)). auto.
   - Case "ty_new_elim".
     pose proof (canonical_forms_obj Hi Hwt HT). destruct_all. right*.
   - Case "ty_let".

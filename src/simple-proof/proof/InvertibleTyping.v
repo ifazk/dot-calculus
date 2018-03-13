@@ -11,7 +11,9 @@ Set Implicit Arguments.
 
 Require Import LibLN.
 Require Import Coq.Program.Equality.
-Require Import Definitions PreciseTyping RecordAndInertTypes TightTyping Subenvironments Narrowing.
+Require Import Definitions PreciseTyping RecordAndInertTypes
+        TightTyping Subenvironments Narrowing
+        InertTightSubtyping.
 
 (** ** Invertible typing *)
 
@@ -106,16 +108,16 @@ where "G '⊢##' x ':' T" := (ty_var_inv G x T).
 
 (** ** Invertible typing for values [G ⊢##v v: T] *)
 
-Reserved Notation "G '⊢##v' v ':' T" (at level 40, v at level 59).
+Reserved Notation "G '⊢##v' v '^^' x ':' T" (at level 40, v,x at level 59).
 
-Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
+Inductive ty_val_inv : ctx -> val -> var -> typ -> Prop :=
 
 (** [G ⊢! v: T]    #<br>#
     [―――――――――――――] #<br>#
     [G ⊢##v v: T] *)
-| ty_precise_inv_v : forall G v T,
-  G ⊢!v v : T ->
-  G ⊢##v v : T
+| ty_precise_inv_v : forall G v x T,
+  G ⊢!v v ^^ x : T ->
+  G ⊢##v v ^^ x : T
 
 (** [G ⊢##v v: forall(S)T]          #<br>#
     [G ⊢# S' <: S]             #<br>#
@@ -123,38 +125,38 @@ Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
     [y fresh]                   #<br>#
     [――――――――――――――――――――――]    #<br>#
     [G ⊢##v v: forall(S')T']            *)
-| ty_all_inv_v : forall L G v S T S' T',
-  G ⊢##v v : typ_all S T ->
+| ty_all_inv_v : forall L G v x S T S' T',
+  G ⊢##v v ^^ x : typ_all S T ->
   G ⊢# S' <: S ->
   (forall y, y \notin L ->
    G & y ~ S' ⊢ open_typ y T <: open_typ y T') ->
-  G ⊢##v v : typ_all S' T'
+  G ⊢##v v ^^ x : typ_all S' T'
 
 (** [G ⊢##v v: S]       #<br>#
     [G ⊢! y: {A: S..S}] #<br>#
     [――――――――――――――――――] #<br>#
     [G ⊢##v v: y.A]         *)
-| ty_sel_inv_v : forall G v y A S U,
-  G ⊢##v v : S ->
+| ty_sel_inv_v : forall G v x y A S U,
+  G ⊢##v v ^^ x : S ->
   G ⊢! y : U ⪼ typ_rcd (dec_typ A S S) ->
-  G ⊢##v v : typ_sel (avar_f y) A
+  G ⊢##v v ^^ x : typ_sel (avar_f y) A
 
 (** [G ⊢##v v : T]        #<br>#
     [G ⊢##v v : U]        #<br>#
     [―――――――――――――]        #<br>#
     [G ⊢##v v : T /\ U]        *)
-| ty_and_inv_v : forall G v T U,
-  G ⊢##v v : T ->
-  G ⊢##v v : U ->
-  G ⊢##v v : typ_and T U
+| ty_and_inv_v : forall G v x T U,
+  G ⊢##v v ^^ x : T ->
+  G ⊢##v v ^^ x : U ->
+  G ⊢##v v ^^ x : typ_and T U
 
 (** [G ⊢##v v: T]   #<br>#
     [――――――――――――――] #<br>#
     [G ⊢##v v: top]     *)
-| ty_top_inv_v : forall G v T,
-  G ⊢##v v : T ->
-  G ⊢##v v : typ_top
-where "G '⊢##v' v ':' T" := (ty_val_inv G v T).
+| ty_top_inv_v : forall G v x T,
+  G ⊢##v v ^^ x : T ->
+  G ⊢##v v ^^ x : typ_top
+where "G '⊢##v' v '^^' x ':' T" := (ty_val_inv G v x T).
 
 Hint Constructors ty_var_inv ty_val_inv.
 
@@ -221,11 +223,11 @@ Qed.
     [exists S', T', G ⊢! v: forall(S')T']      #<br>#
     [G ⊢ S <: S']                      #<br>#
     [forall fresh y, G, y: S ⊢ T'^y <: T^y] *)
-Lemma invertible_val_to_precise_lambda: forall G v S T,
+Lemma invertible_val_to_precise_lambda: forall G v x S T,
     inert G ->
-    G ⊢##v v : typ_all S T ->
+    G ⊢##v v ^^ x : typ_all S T ->
     exists L S' T',
-      G ⊢!v v : typ_all S' T' /\
+      G ⊢!v v ^^ x : typ_all S' T' /\
       G ⊢ S <: S' /\
       (forall y, y \notin L ->
                  G & y ~ S ⊢ open_typ y T' <: open_typ y T).
@@ -296,17 +298,17 @@ Qed.
 (** ** Invertible Subtyping Closure *)
 
 (** Invertible value typing is closed under tight subtyping. *)
-Lemma invertible_typing_closure_tight_v: forall G v T U,
+Lemma invertible_typing_closure_tight_v: forall G v x T U,
   inert G ->
-  G ⊢##v v : T ->
+  G ⊢##v v ^^ x : T ->
   G ⊢# T <: U ->
-  G ⊢##v v : U.
+  G ⊢##v v ^^ x : U.
 Proof.
   introv Hi HT Hsub.
   dependent induction Hsub; eauto; inversions HT; try solve [assumption | inversion* H].
   - inversions H0.
-  - lets Hu: (x_bound_unique H H5). subst.
-    lets Hb: (pf_inert_unique_tight_bounds Hi H H5). subst*.
+  - lets Hu: (x_bound_unique H H6). subst.
+    lets Hb: (pf_inert_unique_tight_bounds Hi H H6). subst*.
 Qed.
 
 (** ** Tight-to-Invertible Lemma for Values [|-# to |-##]
@@ -315,14 +317,42 @@ Qed.
        [G ⊢# v: T]         #<br>#
        [――――――――――――――――]   #<br>#
        [G ⊢##v v: T] *)
-Lemma tight_to_invertible_v : forall G v t T,
+Lemma tight_to_invertible_v : forall G v x t T,
     inert G ->
-    trm_val v t ->
+    x # G ->
+    trm_val x v t ->
     G ⊢# t : T ->
-    G ⊢##v v : T.
+    G ⊢##v v ^^ x : T.
+Proof.
+  introv Hi HxG Htv Hty.
+  inversions Htv; dependent induction Hty; eauto;
+    apply* invertible_typing_closure_tight_v.
+Qed.
+
+Lemma tight_to_invertible_forall : forall G v x t T U,
+    inert G ->
+    trm_val x v t ->
+    G ⊢# t : typ_all T U ->
+    G ⊢##v v ^^ x : typ_all T U.
+Proof.
+  introv Hi Htv Hty.
+  inversions Htv.
+  - pose proof (inert_tight_new_typing Hi Hty) as Contra.
+    inversion Contra.
+  - inversions Hty. eauto.
+    pose proof (inert_tight_lambda_typing_precise Hi H) as [?T [?L [?H ?H]]].
+    assert (G ⊢!v val_fun T0 t0 ^^ x : typ_all T0 T2) by eauto.
+    pose proof (tight_all_sup Hi H0 H2).
+    inversions H4. eauto.
+Qed.
+
+Lemma tight_to_invertible_fun : forall G S tr x t T,
+    inert G ->
+    trm_val x (val_fun S tr) t ->
+    G ⊢# t : T ->
+    G ⊢##v (val_fun S tr) ^^ x : T.
 Proof.
   introv Hi Htv Hty.
   inversions Htv; dependent induction Hty; eauto;
-  specialize (IHHty Hi _ _ eq_refl);
-  apply* invertible_typing_closure_tight_v.
+    apply* invertible_typing_closure_tight_v.
 Qed.

@@ -8,8 +8,7 @@ Set Implicit Arguments.
 
 Require Import Coq.Program.Equality.
 Require Import LibLN.
-Require Import Definitions RecordAndInertTypes PreciseTyping TightTyping
-        GeneralToTight Subenvironments Weakening Narrowing Substitution.
+Require Import Definitions RecordAndInertTypes PreciseTyping TightTyping Narrowing.
 
 Local Hint Resolve x_bound_unique.
 Local Hint Resolve pf_inert_unique_tight_bounds.
@@ -97,18 +96,47 @@ Proof.
         by apply* narrow_subtyping; eauto.
 Qed.
 
-Lemma inert_subtyping: forall G,
+Lemma inert_tight_new_typing : forall G T ds U,
+    inert G ->
+    G ⊢# trm_new T ds : U ->
+    bnd_sup G (typ_bnd T) U.
+Proof.
+  introv Hi Hty. dependent induction Hty; eauto.
+  eapply tight_bnd_sup; eauto.
+Qed.
+
+Lemma inert_tight_lambda_typing : forall G S t U,
+    inert G ->
+    G ⊢# trm_lambda S t : U ->
+    exists T, all_sup G (typ_all S T) U.
+Proof.
+  introv Hi Hty. dependent induction Hty; eauto.
+  pose proof (IHHty _ _ Hi eq_refl) as [?T ?H].
+  exists T0. eapply tight_all_sup; eauto.
+Qed.
+
+Lemma inert_tight_lambda_typing_precise : forall G S t U,
+    inert G ->
+    G ⊢# trm_lambda S t : U ->
+    exists T L,
+      (forall x, x \notin L -> G & x ~ S ⊢ open_trm x t : open_typ x T) /\
+      all_sup G (typ_all S T) U.
+Proof.
+  introv Hi Hty. dependent induction Hty; eauto.
+  pose proof (IHHty _ _ Hi eq_refl) as [?T [?L ?H]].
+  exists T0 L. destruct_all; split; eauto using tight_all_sup.
+Qed.
+
+Lemma inert_tight_subtyping: forall G,
   inert G ->
-  (forall T S U, ~ G ⊢ (typ_bnd T) <: (typ_all S U)) /\
-  (forall T S U, ~ G ⊢ (typ_all S U) <: (typ_bnd T)).
+  (forall T S U, ~ G ⊢# (typ_bnd T) <: (typ_all S U)) /\
+  (forall T S U, ~ G ⊢# (typ_all S U) <: (typ_bnd T)).
 Proof.
   introv Hi; split; introv H.
-  - apply (proj2 (general_to_tight Hi)) in H; auto.
-    assert (Contra: bnd_sup G (typ_bnd T) (typ_all S U))
+  - assert (Contra: bnd_sup G (typ_bnd T) (typ_all S U))
       by eauto using tight_bnd_sup.
     inversion Contra.
-  - apply (proj2 (general_to_tight Hi)) in H; auto.
-    assert (Contra: all_sup G (typ_all S U) (typ_bnd T))
+  - assert (Contra: all_sup G (typ_all S U) (typ_bnd T))
       by eauto using tight_all_sup.
     inversions Contra.
 Qed.
