@@ -4,9 +4,58 @@
 **************************************************************************)
 
 Set Implicit Arguments.
-Require Import LibTactics.
+From TLC Require Import LibTactics.
+From TLC Require Import LibLogic LibEqual LibList LibRelation LibWf LibList LibLN.
 
-Require LibLogic LibList LibRelation LibWf LibList LibLN.
+
+(* ---------------------------------------------------------------------- *)
+(** ** Demo of extens tactics *)
+
+Lemma test_extensionality_1 : forall A1 (P Q :  A1->Prop),
+  (forall x1, P x1 <-> Q x1) -> 
+  P = Q.
+Proof using. 
+  intros. applys extensionality. hnf.
+Abort.
+  
+Lemma test_extensionality_2 : forall A1 (A2: A1->Type) (P Q : forall (x1:A1) (x2:A2 x1), Prop),
+  (forall x1 x2, P x1 x2 <-> Q x1 x2) -> 
+  P = Q.
+  intros. applys extensionality. hnf.
+Abort.
+
+Section FuncExtDepTest.
+Variables (A1 : Type).
+Variables (A2 : forall (x1 : A1), Type).
+Variables (A3 : forall (x1 : A1) (x2 : A2 x1), Type).
+Variables (A4 : forall (x1 : A1) (x2 : A2 x1) (x3 : A3 x2), Type).
+
+Lemma test_fun_ext_3 : forall (f g : forall (x1:A1) (x2:A2 x1) (x3:A3 x2), A4 x3),
+  (forall x1 x2 x3, f x1 x2 x3 = g x1 x2 x3) -> 
+  f = g.
+Proof using. intros. applys extensionality. hnf. Abort.
+
+End FuncExtDepTest.
+
+Lemma prop_ext_1_test : forall (P Q : Prop),
+  (P <-> Q) -> 
+  P = Q.
+Proof using. 
+  intros. applys extensionality. simpl extensionality_hyp. 
+Abort.
+
+
+(* ---------------------------------------------------------------------- *)
+(** ** Demo of LibLogic tactics *)
+Lemma absurds_demo : forall (P Q : Prop),  
+  P /\ (~ P) /\ (Q \/ ~ P).
+Proof using.
+  intros. splits. 
+  { absurds ;=> H. admit. }
+  { absurds ;=> H. admit. }
+  { absurds ;=> (H1&H2). admit. }
+Abort.
+
 
 (* ********************************************************************** *)
 (** * How to do recursion/induction on terms with list of subterms *)
@@ -134,15 +183,15 @@ Qed.
 Lemma tree_induct_mem : forall (P : tree -> Prop),
   (forall n : nat, P (leaf n)) ->
   (forall ts : list tree,
-    (forall t, Mem t ts -> P t) -> P (node ts)) ->
+    (forall t, mem t ts -> P t) -> P (node ts)) ->
   forall t : tree, P t.
 Proof using.
   introv Hl Hn. eapply tree_induct_gen with (Q := fun ts =>
-    forall t, Mem t ts -> P t); intros.
+    forall t, mem t ts -> P t); intros.
   auto. auto. inverts H. inverts~ H1.
 Qed.
 
-Hint Constructors Mem.
+Hint Constructors mem.
 
 (** Example of an inductive proof with Mem
     -- usually not as good as the one with [Forall] *)
@@ -165,7 +214,7 @@ Import LibRelation LibWf.
 
 Inductive subtree : binary tree :=
   | subtree_intro : forall t ts,
-     Mem t ts -> subtree t (node ts).
+     mem t ts -> subtree t (node ts).
   (* there is typically more than one case here *)
 
 Hint Constructors subtree.
@@ -367,3 +416,48 @@ End LibVarDemos.
 
 
 
+
+(* ---------------------------------------------------------------------- *)
+(** ** Demo of LibSet tactics *)
+
+From TLC Require Import LibSet.
+
+Lemma inter_union_disjoint_right:
+  forall A (E F G : set A),
+  F \# G ->
+  (E \u F) \n G = (E \n G).
+Proof using.
+  set_prove.
+  (* intros. set_norm. set_specialize. set_norm. tauto. *)
+Qed. (* demo *)
+
+Lemma inter_union_subset_right:
+  forall A (E F G : set A),
+  F \c G ->
+  (E \u F) \n G = (E \n G) \u F.
+Proof using.
+  set_prove.
+Qed. (* demo *)
+
+Lemma inter_covariant:
+  forall A (E E' F F' : set A),
+  E \c E' ->
+  F \c F' ->
+  (E \n F) \c (E' \n F').
+Proof using.
+  set_prove.
+Qed. (* demo *)
+
+Lemma set_decompose_inter_right :
+  forall A (E F : set A),
+  E = (E \n F) \u (E \- F).
+Proof using.
+  set_prove_classic.
+Qed. (* demo *)
+
+Lemma set_decompose_union_right :
+  forall A (E F : set A),
+  (E \u F) = E \u (F \- E).
+Proof using.
+  set_prove_classic.
+Qed. (* demo *)

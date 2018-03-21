@@ -11,8 +11,8 @@ SHELL := /usr/bin/env bash
 #
 #
 # This Makefile relies on the following variables:
+# ROOTDIR    (default: `pwd`)
 # COQBIN     (default: empty)
-# COQFLAGS   (default: empty) (passed to coqc and coqide, not coqdep)
 # COQINCLUDE (default: empty)
 # V          (default: *.v)
 # V_AUX      (default: undefined/empty)
@@ -31,9 +31,12 @@ SHELL := /usr/bin/env bash
 # We fix this by using ABSOLUTE PATHS EVERYWHERE. The paths used in targets,
 # in -R options, etc., must be absolute paths.
 
+ifndef ROOTDIR
+	ROOTDIR := $(shell pwd)
+endif
+
 ifndef V
-	PWD := $(shell pwd)
-	V := $(wildcard $(PWD)/*.v)
+	V := $(wildcard $(ROOTDIR)/*.v)
 endif
 
 # Typically, $(V) should list only the .v files that we are ultimately
@@ -58,6 +61,7 @@ SERIOUS := 1
 COQC   := $(COQBIN)coqc $(COQFLAGS)
 COQDEP := $(COQBIN)coqdep
 COQIDE := $(COQBIN)coqide $(COQFLAGS)
+COQCHK := $(COQBIN)coqchk
 
 ############################################################################
 # Targets
@@ -148,6 +152,8 @@ ifeq ($(SERIOUS),1)
 	@echo "Compiling `basename $*`..."
 	$(COQC) $(COQINCLUDE) $<
 
+# 	@echo "$(COQC) $(COQINCLUDE) $<"
+
 endif
 
 _CoqProject: .FORCE
@@ -179,10 +185,25 @@ ide: _CoqProject
 
 .PHONY: clean
 
+# In a multi-directory setting, it is not entirely clear how to find the
+# files that we wish to remove.
+# One approach is to view $(V) as the authoritative list of source files
+# and remove just the derived files $(VO), etc.
+# Another approach is to scan all subdirectories of $(ROOTDIR) and remove
+# all .vo files in them.
+# We combine both approaches.
+
+# Be careful to use regular expressions that work both with GNU find
+# and with BSD find (MacOS).
+
 clean::
-	rm -f *~
 	rm -f $(patsubst %.v,%.v.d,$(V)) # not $(VD)
 	rm -f $(VIO) $(VO) $(VQ)
-	rm -f *.aux .*.aux *.glob *.cache *.crashcoqide
-	rm -rf .coq-native .coqide
-# TEMPORARY *~, *.aux, etc. do not make sense in a multi-directory setting
+	find $(ROOTDIR) -regex ".*~" -exec rm {} +
+	find $(ROOTDIR) -regex ".*\.aux" -exec rm {} +
+	find $(ROOTDIR) -regex "\..*\.aux" -exec rm {} +
+	find $(ROOTDIR) -regex ".*\.glob" -exec rm {} +
+	find $(ROOTDIR) -regex ".*\.cache" -exec rm {} +
+	find $(ROOTDIR) -regex ".*\.crashcoqide" -exec rm {} +
+	find $(ROOTDIR) -regex ".*/\.coq-native" -exec rm -rf {} +
+	find $(ROOTDIR) -regex ".*/\.coqide" -exec rm -rf {} +

@@ -138,7 +138,8 @@ Proof.
   inversions Hinv. inversions H.
   pick_fresh z. assert (z \notin L) as Hz by auto.
   specialize (H1 z Hz).
-  assert (G /- open_defs x ds :: open_typ x T) as Hds by apply* renaming_def.
+  assert (Hds: G /- open_defs x ds :: open_typ x T)
+    by (destruct_notin; eapply renaming_def; eauto).
   destruct (record_has_ty_defs Hds Hr) as [d [Hh Hd]]. inversions Hd.
   exists t0 (open_defs x ds). split*.
 Qed.
@@ -152,11 +153,11 @@ Lemma strong_mu_to_new: forall G s x T,
 Proof.
   introv Hi Hts Bi.
   inversions Hts.
-  - pose proof (binds_func Bi H); subst T0; clear H.
+  - pose proof (binds_functional Bi H); subst T0; clear H.
     pose proof (general_to_tight_typing Hi H1).
     pose proof (tight_to_invertible_fun Hi (trm_val_fun x _ _) H).
     inversions H2. inversions H3.
-  - pose proof (binds_func Bi H). inversions H1.
+  - pose proof (binds_functional Bi H). inversions H1.
     exists ds; split; auto.
 Qed.
 
@@ -180,7 +181,7 @@ Proof.
   destruct (var_typ_all_to_binds Hin Hty) as [L [S [T' [BiG [Hs1 Hs2]]]]].
   pose proof (corresponding_types Hst BiG).
   inversions H.
-  - pose proof (binds_func BiG H0). subst T0.
+  - pose proof (binds_functional BiG H0). subst T0.
     destruct (val_typ_all_to_lambda Hin (trm_val_fun x _ _) H2)
       as [L' [S' [t' [Heq [Hs1' Hs2']]]]].
     exists (L \u L' \u (dom G)) S' t'. inversions Heq.
@@ -192,7 +193,7 @@ Proof.
     specialize (Hs2' y HL').
     apply narrow_typing with (G':=G & y ~ T) in Hs2'; auto.
     eapply ty_sub; eauto.
-  - pose proof (binds_func BiG H0). congruence.
+  - pose proof (binds_functional BiG H0). congruence.
 Qed.
 
 (** * Canonical Forms for Objects

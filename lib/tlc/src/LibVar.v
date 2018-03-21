@@ -1,11 +1,11 @@
 (**************************************************************************
 * TLC: A library for Coq                                                  *
-* Variable names                                                          *
+* Variable names, and freshness properties                                *
 **************************************************************************)
 
 Set Implicit Arguments.
-Require Import LibTactics LibList LibLogic LibNat LibEpsilon LibReflect.
-Require Export LibFset.
+From TLC Require Import LibTactics LibList LibLogic LibNat LibEpsilon LibReflect.
+From TLC Require Export LibFset.
 
 
 (* ********************************************************************** *)
@@ -19,11 +19,19 @@ Parameter var : Set.
 
 (** This type is inhabited. *)
 
-Parameter var_inhab : Inhab var.
+Parameter Inhab_var : Inhab var.
 
 (** This type is comparable. *)
-Parameter var_comp : Comparable var.
-Instance var_comparable : Comparable var := var_comp.
+
+Parameter var_compare : var -> var -> bool.
+
+Parameter var_compare_eq : forall (x y:var),
+  var_compare x y = isTrue (x = y).
+
+  (* DEPRECATED
+  Parameter var_comp : Comparable var.
+  Instance var_comparable : Comparable var := var_comp.
+  *)
 
 (** We can build sets of variables. *)
 
@@ -45,13 +53,31 @@ Module Export Variables : VariablesType.
 
 Definition var := nat.
 
-Lemma var_inhab : Inhab var.
-Proof using. apply (prove_Inhab 0). Qed.
+Lemma Inhab_var : Inhab var.
+Proof using. apply (Inhab_of_val 0). Qed.
 
-Lemma var_comp : Comparable var.
-Proof using. apply nat_comparable. Qed.
+(* --LATER: reuse nat_compare *)
+Fixpoint var_compare (x y : nat) :=
+  match x, y with
+  | O, O => true
+  | S x', S y' => var_compare x' y'
+  | _, _ => false
+  end.
 
-Instance var_comparable : Comparable var := var_comp.
+Lemma var_compare_eq : forall (x y:var),
+  var_compare x y = isTrue (x = y).
+Proof using.
+  unfold var. intros x; induction x; intros y; destruct y; 
+   simpl; rew_bool_eq; try nat_math.
+  rewrite IHx. rew_bool_eq. nat_math.
+Qed.
+
+  (* DEPRECATED
+  Lemma var_comp : Comparable var.
+  Proof using. apply nat_comparable. Qed.
+
+  Instance var_comparable : Comparable var := var_comp.
+  *)
 
 Definition vars := fset var.
 
@@ -62,8 +88,8 @@ Lemma var_gen_list_spec : forall n l,
   n \in from_list l -> n < var_gen_list l.
 Proof using.
   unfold var_gen_list. induction l; introv I.
-  rewrite from_list_nil in I. false (in_empty_elim I).
-  rewrite from_list_cons in I. rew_list.
+  rewrite from_list_nil in I. false (in_empty_inv I).
+  rewrite from_list_cons in I. rew_listx.
    rewrite in_union in I. destruct I as [H|H].
      rewrite in_singleton in H. subst. nat_math.
      specializes IHl H. nat_math.
@@ -74,8 +100,8 @@ Definition var_gen (E : vars) : var :=
 
 Lemma var_gen_spec : forall E, (var_gen E) \notin E.
 Proof using.
-  intros. unfold var_gen. spec_epsilon as l.
-  applys fset_finite. rewrite Hl. introv H.
+  intros. unfold var_gen. epsilon l. applys fset_finite.
+  intros Hl. rewrite Hl. introv H.
   forwards M: var_gen_list_spec H. nat_math.
 Qed.
 
@@ -174,10 +200,8 @@ Ltac pick_freshes_gen L n Y :=
   (destruct (var_freshes L n) as [Y Fr]).
 
 
-
-
 (* ********************************************************************** *)
-(** ** Tactics for notin *)
+(** ** Tactics for [notin] *)
 
 Implicit Types x : var.
 
@@ -219,13 +243,13 @@ Lemma notin_var_gen : forall E F,
   (var_gen E) \notin F.
 Proof using. intros. autos~ var_gen_spec. Qed.
 
-Implicit Arguments notin_singleton_r    [x y].
-Implicit Arguments notin_singleton_l    [x y].
-Implicit Arguments notin_singleton_swap [x y].
-Implicit Arguments notin_union_r  [x E F].
-Implicit Arguments notin_union_r1 [x E F].
-Implicit Arguments notin_union_r2 [x E F].
-Implicit Arguments notin_union_l  [x E F].
+Arguments notin_singleton_r [x] [y].
+Arguments notin_singleton_l [x] [y].
+Arguments notin_singleton_swap [x] [y].
+Arguments notin_union_r [x] [E] [F].
+Arguments notin_union_r1 [x] [E] [F].
+Arguments notin_union_r2 [x] [E] [F].
+Arguments notin_union_l [x] [E] [F].
 
 (** Tactics to deal with notin.  *)
 
@@ -264,19 +288,26 @@ Ltac notin_solve_one :=
      notin_solve_target y (\{x})
   | |- ?x \notin ?E =>
     notin_solve_target x E
-  (* If x is an evar, tries to instantiate it.
-     Problem: it might loop !
-  | |- ?x \notin ?E =>
-     match goal with y:var |- _ =>
-       match y with
-       | x => fail 1
-       | _ =>
-         let H := fresh in cuts H: (y \notin E);
-         [ apply H | notin_solve_target y E ]
-        end
-     end
-  *)
   end.
+  (*
+    LATER: add support for these special cases
+      | |- ?x \notin ?E =>
+            progress (unfold x); notin_simpl
+      | |- (var_gen ?x) \notin _ =>
+            apply notin_var_gen; intros; notin_simpl
+  *)
+  (* Remark: if x is an evar, we could try to instantiate it.
+     But, problem: it might loop !
+    | |- ?x \notin ?E =>
+       match goal with y:var |- _ =>
+         match y with
+         | x => fail 1
+         | _ =>
+           let H := fresh in cuts H: (y \notin E);
+           [ apply H | notin_solve_target y E ]
+          end
+       end
+  *)
 
 Ltac notin_simpl :=
   match goal with
@@ -303,12 +334,12 @@ Ltac notin_false :=
   | _ => intros_all; false; notin_solve_false
   end.
 
-Ltac notin_from_fresh_in_context :=
+Ltac notin_of_fresh_in_context :=
   repeat (match goal with H: fresh _ _ _ |- _ =>
     progress (simpl in H; destructs H) end).
 
 Ltac notin_solve :=
-  notin_from_fresh_in_context;
+  notin_of_fresh_in_context;
   first [ notin_simpl; try notin_solve_one
         | notin_false ].
 
@@ -316,18 +347,11 @@ Hint Extern 1 (_ \notin _) => notin_solve.
 Hint Extern 1 (_ <> _ :> var) => notin_solve.
 Hint Extern 1 ((_ \notin _) /\ _) => splits.
 
-(*
-LATER:
-  | |- ?x \notin ?E =>
-	progress (unfold x); notin_simpl
-  | |- (var_gen ?x) \notin _ =>
-        apply notin_var_gen; intros; notin_simpl
-*)
 
 (* ********************************************************************** *)
-(** ** Tactics for fresh *)
+(** ** Tactics for [fresh] *)
 
-(* todo: cleanup proofs of fresh using calc_fset *)
+(* --TODO: cleanup proofs of fresh using calc_fset *)
 
 Lemma fresh_union_r : forall xs L1 L2 n,
   fresh (L1 \u L2) n xs -> fresh L1 n xs /\ fresh L2 n xs.
@@ -378,7 +402,7 @@ Proof using.
   intros. gen n L. induction xs; simpl; intros n L Fr;
     destruct n; tryfalse*.
   auto.
-  rew_length. rewrite* <- (@IHxs n (L \u \{a})).
+  rew_list. rewrite* <- (@IHxs n (L \u \{a})).
 Qed.
 
 Lemma fresh_resize : forall L n xs,
@@ -393,14 +417,14 @@ Proof using.
   introv Fr. rewrite* <- (fresh_length _ _ _ Fr).
 Qed.
 
-Implicit Arguments fresh_union_r [xs L1 L2 n].
-Implicit Arguments fresh_union_r1 [xs L1 L2 n].
-Implicit Arguments fresh_union_r2 [xs L1 L2 n].
-Implicit Arguments fresh_union_l [xs L1 L2 n].
-Implicit Arguments fresh_empty  [L n xs].
-Implicit Arguments fresh_length [L n xs].
-Implicit Arguments fresh_resize [L n xs].
-Implicit Arguments fresh_resize_length [L n xs].
+Arguments fresh_union_r [xs] [L1] [L2] [n].
+Arguments fresh_union_r1 [xs] [L1] [L2] [n].
+Arguments fresh_union_r2 [xs] [L1] [L2] [n].
+Arguments fresh_union_l [xs] [L1] [L2] [n].
+Arguments fresh_empty [L] [n] [xs].
+Arguments fresh_length [L] [n] [xs].
+Arguments fresh_resize [L] [n] [xs].
+Arguments fresh_resize_length [L] [n] [xs].
 
 Lemma fresh_single_notin : forall x xs n,
   fresh \{x} n xs ->
@@ -470,7 +494,6 @@ Ltac fresh_solve :=
 
 Hint Extern 1 (fresh _ _ _) => fresh_solve.
 
-(* LATER: more automation of fresh_length properties *)
-
+(* --LATER: more automation of fresh_length properties *)
 
 

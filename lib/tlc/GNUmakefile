@@ -1,13 +1,8 @@
 # This Makefile is not shipped.
 
-# -------------------------------------------------------------------------
+include Makefile
 
-# Delegate these commands.
-
-.PHONY: all clean install uninstall
-
-all clean install uninstall:
-	@ $(MAKE) -C src $@
+.PHONY: package export opam tag
 
 # -------------------------------------------------------------------------
 
@@ -25,8 +20,6 @@ DATE     := $(shell /bin/date +%Y%m%d)
 PACKAGE  := tlc-$(DATE)
 PWD      := $(shell pwd)
 
-.PHONY: package
-
 package:
 # Archive creation.
 	rm -rf /tmp/$(PACKAGE)
@@ -35,19 +28,17 @@ package:
 	  -X $(PWD)/.gitignore \
 	  --exclude=.git \
 	  --exclude=.gitignore \
-	  --exclude=dev \
 	  --exclude=doc \
-	  --exclude=new \
 	  --exclude=old \
 	  --exclude=opam \
 	  --exclude=open.sh \
-	  --exclude=todo \
+	  --exclude=README.md \
 	  --exclude=GNUmakefile \
 	  -cvz -f $(PACKAGE).tar.gz $(PACKAGE)
 # Test the archive that we just created.
 	rm -rf /tmp/$(PACKAGE)
 	cd /tmp && tar xvfz $(PACKAGE).tar.gz
-	cd /tmp/$(PACKAGE) && make -j4
+	cd /tmp/$(PACKAGE) && make -j32
 
 # -------------------------------------------------------------------------
 
@@ -71,10 +62,12 @@ OPAMSUBDATE := $(OPAMSUB)/$(NAME).$(DATE)
 # Our checksum command.
 CSUM     = $(shell $(MD5SUM) /tmp/$(PACKAGE).tar.gz | $(CUT) -d ' ' -f 1)
 
-.PHONY: export opam
-
 export:
 	$(RSYNC) /tmp/$(PACKAGE).tar.gz $(TARGET)
+
+# -------------------------------------------------------------------------
+
+# Creating a new opam package description.
 
 opam:
 # Update my local copy of the opam repository.
@@ -103,3 +96,10 @@ opam:
 	@ echo "If happy, please run:"
 	@ echo "  cd $(OPAM) && git commit && git push && firefox https://github.com/"
 	@ echo "and issue a pull request."
+
+# -------------------------------------------------------------------------
+
+# Creating a git tag.
+
+tag:
+	git tag -a $(DATE) -m "Release $(DATE)."

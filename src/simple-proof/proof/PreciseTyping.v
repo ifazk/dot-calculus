@@ -361,7 +361,7 @@ Proof.
   introv Pf1 Pf2.
   apply pf_binds in Pf1.
   apply pf_binds in Pf2.
-  apply (binds_func Pf1 Pf2).
+  apply (binds_functional Pf1 Pf2).
 Qed.
 
 (** If a typing context is inert, then the variables in its domain are distinct. #<br>#

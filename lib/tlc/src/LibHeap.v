@@ -1,13 +1,16 @@
+(* -- DEPRECATED : should use LibMap instead,
+      or (yet to be written) LibMapX for computable version *)
+
+(*
+
 (**************************************************************************
 * TLC: A library for Coq                                                  *
 * Heaps: finite maps from keys to values                                  *
 **************************************************************************)
 
 Set Implicit Arguments.
-Require Import LibTactics LibReflect LibList LibSet.
+From TLC Require Import LibTactics LibReflect LibList LibSet LibExec.
 Generalizable Variable K V.
-
-(* FILE TO BE DEPRECATED SOON *)
 
 
 (***********************************************************)
@@ -27,7 +30,7 @@ Section HeapDef.
 Variables K V : Type.
 
 Parameter empty : heap K V.
-Parameter dom : heap K V -> set K. (* LATER: should be a finite set *)
+Parameter dom : heap K V -> set K. (* --LATER: should be a finite set *)
 Parameter binds : heap K V -> K -> V -> Prop.
 Parameter write : heap K V -> K -> V -> heap K V.
 Parameter to_list : heap K V -> list (K * V).
@@ -78,7 +81,7 @@ Parameter binds_rem : forall h k k' v,
 Parameter binds_rem_inv : forall h k v k',
   binds (rem h k') k v -> k <> k' /\ binds h k v.
 
-(* TODO: need to add the instance BagRemove to LibSet
+(* --TODO: need to add the instance BagRemove to LibSet
 Parameter dom_rem : forall h k,
   dom (rem h k) = (dom h) \- k.
 For now, we used this derived form:
@@ -124,7 +127,7 @@ Definition binds (l : heap K V) k v :=
   Assoc k v l.
 Definition to_list (l : heap K V) := l.
 
-(* TODO: move *)
+(* --TODO: move *)
 Generalizable Variable A B.
 Fixpoint assoc `{Comparable A} `{Inhab B} k (l:list (A*B)) : B :=
   match l with
@@ -152,7 +155,7 @@ Implicit Arguments empty [[K] [V]].
 Section HeapParameters.
 Context `{HK: Comparable K} `{IV: Inhab V}.
 Implicit Types h : heap K V.
-(* TODO: do the right proof using *)
+(* --TODO: do the right proof using *)
 
 Lemma indom_equiv_binds : forall h k,
   indom h k = (exists v, binds h k v).
@@ -196,7 +199,7 @@ Lemma binds_rem_inv : forall h k v k',
 Proof using HK.
 Admitted. (* File will be soon deprecated *)
 
-(* TODO: need to add the instance BagRemove to LibSet
+(* --TODO: need to add the instance BagRemove to LibSet
 Lemma dom_rem : forall h k,
   dom (rem h k) = (dom h) \- k.
 For now, we used this derived form:
@@ -224,7 +227,7 @@ Qed.
 Lemma not_indom_equiv_read_option : forall h k,
   (~ indom h k) = (read_option h k = None).
 Proof using.
-  introv. apply* not_cancel. rew_logic. rewrite indom_equiv_binds.
+  introv. apply* injective_not. rew_logic. rewrite indom_equiv_binds.
   splits ; intro N.
    lets (v & B): rm N.
     rewrite binds_equiv_read_option in B. rewrite* B. discriminate.
@@ -236,7 +239,7 @@ Qed.
 Lemma read_option_def : forall h k,
   read_option h k = (If indom h k then Some (read h k) else None).
 Proof using.
-(* TODO
+(* --TODO
   introv. cases_if.
    rewrite* <- binds_equiv_read_option.
     rewrites* binds_equiv_read.
@@ -244,7 +247,7 @@ Proof using.
 *)
 Admitted. (* File will be soon deprecated *)
 
-(* TODO: move *)
+(* --TODO: move *)
 Generalizable Variable A.
 Fixpoint mem_assoc B `{Comparable A} k (l : list (A * B)) : bool :=
   match l with
@@ -282,8 +285,8 @@ Export HeapList.
 (***********************************************************)
 (** Facts *)
 
-Global Instance heap_inhab : forall (K V : Type), Inhab (heap K V).
-Proof using. introv. apply (prove_Inhab empty). Qed.
+Global Instance Inhab_heap : forall (K V : Type), Inhab (heap K V).
+Proof using. introv. apply (Inhab_of_val empty). Qed.
 
 Section HeapFacts.
 Context `{HK:Comparable K} `{HV:Inhab V}.
@@ -301,7 +304,7 @@ Proof using. introv H. rewrite* @indom_equiv_binds. Qed.
 
 (** binds-func *)
 
-Lemma binds_func : forall h k v v',
+Lemma binds_functional : forall h k v v',
   binds h k v -> binds h k v' -> v = v'.
 Proof using HK HV.
   introv B1 B2. forwards: binds_indom B1. forwards: binds_indom B2.
@@ -404,7 +407,7 @@ Lemma not_indom_empty : forall k,
   ~ indom (@empty K V) k.
 Proof using HV. introv H. unfold indom in H. rewrite dom_empty in H.
 Admitted. (* File will be soon deprecated *)
-  (* TODO: add an instance for in_empty_eq in LibSet.
+  (* --TODO: add an instance for in_empty_eq in LibSet.
   apply* in_empty_eq. *)
 
 Lemma not_binds_empty : forall k v,
@@ -435,3 +438,5 @@ Proof using. introv. rewrite not_indom_equiv_read_option. autos*. Qed.
 
 End HeapFacts.
 
+
+*)

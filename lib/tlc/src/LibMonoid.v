@@ -1,11 +1,18 @@
+(** DISCLAIMER: the current presentation of monoids uses typeclasses,
+    but in fact it's not obvious that typeclasses are needed/useful here. 
+    Indeed, there is no overloading involved.
+    Thus, the interface might change in the near future. *)
+
+
 (**************************************************************************
 * TLC: A library for Coq                                                  *
 * Mathematical structures                                                 *
 **************************************************************************)
 
 Set Implicit Arguments.
-Require Import LibTactics LibLogic LibOperation Omega.
+From TLC Require Import LibTactics LibLogic LibOperation.
 Generalizable Variables A B.
+
 
 (* ********************************************************************** *)
 (** * Monoids *)
@@ -13,36 +20,58 @@ Generalizable Variables A B.
 (* --------------------------------------------------------------------- *)
 (** * Structures *)
 
-Record monoid_def (A:Type) : Type := monoid_ {
-   monoid_oper : oper2 A;
+(** Monoid structure: binary operator and neutral element *)
+
+Record monoid_op (A:Type) : Type := monoid_make {
+   monoid_oper : A -> A -> A;
    monoid_neutral : A }.
 
-Class Monoid (A:Type) (m:monoid_def A) : Prop := {
+(** Monoid properties 
+    Note that field names are suffixed by [_prop] because the corresponding
+    properties are also available through typeclass instances. *)
+(* -- LATER: factorize [let (o,n) := m] for the record definition *)
+
+Class Monoid A (m:monoid_op A) : Prop := Monoid_make {
    monoid_assoc_prop : let (o,n) := m in assoc o;
    monoid_neutral_l_prop : let (o,n) := m in neutral_l o n;
    monoid_neutral_r_prop : let (o,n) := m in neutral_r o n }.
 
-Class Monoid_commutative (A:Type) (m:monoid_def A) : Prop := {
-   monoid_commutative_monoid : Monoid m;
-   monoid_commutative_comm : let (o,n) := m in comm o }.
+(** Commutative monoid *)
 
+Class Comm_monoid A (m:monoid_op A) : Prop := Comm_monoid_make {
+   comm_monoid_monoid : Monoid m;
+   comm_monoid_comm : let (o,n) := m in comm o }.
+
+
+(* --------------------------------------------------------------------- *)
+(** * Examples *)
+
+(** Example:
+
+  Instance monoid_plus_zero:
+    Monoid (monoid_make plus 0).
+  Proof using.
+    constructor; repeat intro; omega.
+  Qed.
+
+*)
 
 (* --------------------------------------------------------------------- *)
 (** * Properties *)
 
 Section MonoidProp.
-Context {A:Type} {m:monoid_def A}.
+Context {A:Type}.
 
-Class Monoid_assoc := {
+Class Monoid_assoc {m:monoid_op A} := {
   monoid_assoc : assoc (monoid_oper m) }.
 
-Class Monoid_neutral_l := {
+Class Monoid_neutral_l {m:monoid_op A} := {
   monoid_neutral_l : neutral_l (monoid_oper m) (monoid_neutral m) }.
 
-Class Monoid_neutral_r := {
+Class Monoid_neutral_r {m:monoid_op A} := {
   monoid_neutral_r : neutral_r (monoid_oper m) (monoid_neutral m) }.
 
-Class Monoid_comm := {
+Class Monoid_comm {m:monoid_op A} := {
   monoid_comm : comm (monoid_oper m) }.
 
 End MonoidProp.
@@ -52,39 +81,34 @@ End MonoidProp.
 (** * Derived Properties *)
 
 Section MonoidInst.
-(* TODO: use M as explicit hypothesis *)
-Context {A:Type} {m:monoid_def A}.
+Variables (A:Type).
+Implicit Types m : monoid_op A.
 
-Global Instance Monoid_Monoid_assoc :
-  forall {M:Monoid m},
+Global Instance Monoid_assoc_of_Monoid : forall m (M:Monoid m),
   Monoid_assoc (m:=m).
 Proof using.
   introv M. constructor. destruct M as [U ? ?]. destruct m. simpl. apply U.
 Qed.
 
-Global Instance Monoid_Monoid_neutral_l :
-  forall {M:Monoid m},
+Global Instance Monoid_neutral_l_of_Monoid : forall m (M:Monoid m),
   Monoid_neutral_l (m:=m).
 Proof using.
   introv M. constructor. destruct M as [? U ?]. destruct m. simpl. apply U.
 Qed.
 
-Global Instance Monoid_Monoid_neutral_r :
-  forall {M:Monoid m},
+Global Instance Monoid_neutral_r_of_Monoid : forall m (M:Monoid m),
   Monoid_neutral_r (m:=m).
 Proof using.
   introv M. constructor. destruct M as [? ? U]. destruct m. simpl. apply U.
 Qed.
 
-Global Instance Monoid_commutative_Monoid :
-  forall {M:Monoid_commutative m},
+Global Instance Monoid_of_Comm_monoid : forall m (M:Comm_monoid m),
   Monoid m.
 Proof using.
   introv M. destruct M as [U ?]. destruct m. simpl. apply U.
 Qed.
 
-Global Instance Monoid_commutative_Monoid_comm :
-  forall {M:Monoid_commutative m},
+Global Instance Monoid_comm_of_Comm_Monoid : forall m (M:Comm_monoid m),
   Monoid_comm (m:=m).
 Proof using.
   introv M. constructor. destruct M as [? U]. destruct m. simpl. apply U.
@@ -92,13 +116,4 @@ Qed.
 
 End MonoidInst.
 
-
-(* --------------------------------------------------------------------- *)
-(** * Examples *)
-
-Instance monoid_plus_zero:
-  Monoid (monoid_ plus 0).
-Proof using.
-  constructor; repeat intro; omega.
-Qed.
 

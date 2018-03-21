@@ -3,30 +3,39 @@
 **************************************************************************)
 
 Set Implicit Arguments.
-Require Import LibTactics LibLogic LibReflect.
+From TLC Require Import LibTactics LibLogic LibReflect.
 
 
 (* ********************************************************************** *)
-(** * Inhabited  *)
+(** * Unit type *)
 
-Instance unit_inhab : Inhab unit.
-Proof using. intros. apply (prove_Inhab tt). Qed.
+(* ---------------------------------------------------------------------- *)
+(** ** Definition *)
+
+(** From the Prelude. 
+
+  Inductive unit : Type :=
+    | tt : unit.
+
+  Add Printing If bool.
+  Delimit Scope bool_scope with bool.
+
+*)
+
+(* ---------------------------------------------------------------------- *)
+(** ** Inhabited *)
+
+Instance Inhab_unit : Inhab unit.
+Proof using. intros. apply (Inhab_of_val tt). Qed.
 
 
 (* ********************************************************************** *)
-(** * Comparable *)
+(** * Properties *)
 
-Global Instance unit_comparable : Comparable unit.
-Proof using.
-  apply make_comparable. intros [] [].
-  rewrite* prop_eq_True_back. typeclass.
-Qed.
+(* ---------------------------------------------------------------------- *)
+(** ** Uniqueness *)
 
-
-(* ********************************************************************** *)
-(** * Structure *)
-
-Lemma unit_unique : forall tt1 tt2 : unit,
+Lemma unit_eq : forall (tt1 tt2 : unit),
   tt1 = tt2.
 Proof using. intros. destruct tt1. destruct~ tt2. Qed.
 

@@ -4,23 +4,20 @@
 **************************************************************************)
 
 Set Implicit Arguments.
-Require Import LibTactics.
+From TLC Require Import LibTactics.
+
+(* --LATER: eliminate the use of the section *)
+(* --LATER: add inversion lemmas *)
+
 
 (* ********************************************************************** *)
-(** * Types of unary and binary operators and relations *)
-
-Definition oper1 (A : Type) := A -> A.
-Definition oper2 (A : Type) := A -> A -> A.
-Definition predb (A:Type) := A -> bool.
-
-(* ********************************************************************** *)
-(** * Definition of the properties of operators *)
+(** * Definitions *)
 
 Section Definitions.
+Variables (A : Type).
+Implicit Types f g : A -> A -> A.
+Implicit Types i : A -> A.
 
-Variable (A : Type).
-Implicit Types f g : oper2 A.
-Implicit Types i : oper1 A.
 
 (* ---------------------------------------------------------------------- *)
 (** ** Commutativity, associativity *)
@@ -40,6 +37,7 @@ Definition assoc f := forall x y z,
 Definition comm_assoc f := forall x y z,
   f x (f y z) = f y (f x z).
 
+
 (* ---------------------------------------------------------------------- *)
 (** ** Distributivity *)
 
@@ -48,7 +46,7 @@ Definition comm_assoc f := forall x y z,
 Definition distrib i f := forall x y,
   i (f x y) = f (i x) (i y).
 
-(** Commutative distributivity of unary operator *)
+(** comm distributivity of unary operator *)
 
 Definition distrib_comm i f := forall x y,
   i (f x y) = f (i y) (i x).
@@ -62,6 +60,7 @@ Definition distrib_l f g := forall x y z,
 
 Definition distrib_r f g := forall x y z,
   f (g y z) x = g (f y x) (f z x).
+
 
 (* ---------------------------------------------------------------------- *)
 (** ** Neutral and absorbant *)
@@ -91,15 +90,6 @@ Definition absorb_r f a := forall x,
 Definition idempotent i := forall x,
   i (i x) = i x.
 
-Lemma use_idempotent : forall i x y,
-  idempotent i ->
-  y = i x ->
-  i y = y.
-  (* Expanded statement, for easier use by [eauto]. *)
-Proof using.
-  intros. subst. eauto.
-Qed.
-
 (** Idempotence *)
 
 Definition involutive i := forall x,
@@ -114,6 +104,7 @@ Definition idempotent2 f := forall x,
 
 Definition self_neutral f e x :=
   f x x = e.
+
 
 (* ---------------------------------------------------------------------- *)
 (** ** Inverses *)
@@ -145,18 +136,20 @@ Definition self_inverse i x :=
 
 End Definitions.
 
+
 (* ---------------------------------------------------------------------- *)
 (** ** Morphism and automorphism *)
 
 (** Morphism *)
 
-Definition morphism (A B : Type) (h : A -> B) (f : oper2 A) (g : oper2 B) :=
+Definition morphism (A B : Type) (h : A->B) (f : A->A->A) (g : B->B->B) :=
   forall x y, h (f x y) = g (h x) (h y).
 
 (** Auto-morphism *)
 
 Definition automorphism A := @morphism A A.
-Implicit Arguments automorphism [A].
+Arguments automorphism [A].
+
 
 (* ---------------------------------------------------------------------- *)
 (** ** Injectivity *)
@@ -166,36 +159,47 @@ Definition injective A B (f : A -> B) :=
 
 
 (* ********************************************************************** *)
-(** * Derived properties *)
+(** * Lemmas *)
 
 Section OpProperties.
+Variables (A : Type).
+Implicit Types h : A -> A.
+Implicit Types f g : A -> A -> A.
 
-Variable (A : Type).
-Implicit Types f g : oper2 A.
-Implicit Types h : oper1 A.
+Lemma idempotent_inv : forall h x y,
+  idempotent h ->
+  y = h x ->
+  h y = y.
+Proof using. intros. subst*. Qed.
 
-(** For commutative operators, right-properties can be derived from
+(** For comm operators, right-properties can be derived from
     corresponding left-properties *)
 
-Lemma neutral_r_from_comm_neutral_l : forall f e,
-  comm f -> neutral_l f e -> neutral_r f e.
+Lemma neutral_r_of_comm_neutral_l : forall f e,
+  comm f -> 
+  neutral_l f e -> 
+  neutral_r f e.
 Proof using. introv C N. intros_all. rewrite* C. Qed.
 
-Lemma inverse_r_from_comm_inverse_l : forall f e i,
-  comm f -> inverse_l f e i -> inverse_r f e i.
+Lemma inverse_r_of_comm_inverse_l : forall f e i,
+  comm f -> 
+  inverse_l f e i -> 
+  inverse_r f e i.
 Proof using. introv C I. intros_all. rewrite* C. Qed.
 
-Lemma distrib_r_from_comm_distrib_l : forall f g,
-  comm f -> distrib_l f g -> distrib_r f g.
+Lemma distrib_r_of_comm_distrib_l : forall f g,
+  comm f -> 
+  distrib_l f g -> 
+  distrib_r f g.
 Proof using.
   introv C N. intros_all. unfolds distrib_l.
   do 3 rewrite <- (C x). auto.
 Qed.
 
-(** [comm_assoc] derivable *)
-
-Lemma comm_assoc_prove : forall f,
-  comm f -> assoc f -> comm_assoc f.
+Lemma comm_assoc_of_comm_and_assoc : forall f,
+  comm f -> 
+  assoc f -> 
+  comm_assoc f.
 Proof using.
   introv C S. intros_all. rewrite C.
   rewrite <- S. rewrite~ (C x).

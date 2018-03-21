@@ -5,307 +5,51 @@
 
 Set Implicit Arguments.
 Generalizable Variables A B.
-Require Import LibTactics LibLogic LibReflect LibFunc LibEpsilon LibList
+From TLC Require Import LibTactics LibLogic LibReflect LibFun LibEpsilon LibList
   LibInt LibNat LibProd LibSum LibRelation LibWf LibFix LibStream.
-Require Import Div2.
+Require Coq.Arith.Even. (* for demo *)
 Open Scope nat_scope.
 Open Scope comp_scope.
-Open Scope func_scope.
+Open Scope fun_scope.
 
 (** Setting up of automation *)
 
-Hint Resolve lt_wf : wf.
+Hint Resolve wf_lt : wf.
 
 Ltac auto_tilde ::= auto with wf.
 Ltac auto_star ::= try solve [ auto | false | math | intuition eauto ].
 
-Hint Resolve list_equiv_equiv.
-
-
-
-(* ********************************************************************** *)
-(** * DFS *)
-
-Module DFS.
-
-Parameter marks : Type.
-Parameter marks_inhab : Inhab marks.
-Existing Instance marks_inhab.
-Implicit Type i : nat.
-
-Parameter is_marked : marks -> nat -> bool.
-Parameter add_mark : marks -> nat -> marks.
-Parameter nb_unmarked : marks -> nat.
-Parameter add_mark_nb_unmarked : forall m i,
-  is_marked m i = false ->
-  nb_unmarked (add_mark m i) < nb_unmarked m.
-
-Parameter neighbours : nat -> list nat.
-
-Definition Dfs dfs m i :=
-  'let m := add_mark m i in
-  'let v := neighbours i in
-  'let aux := (fun j m => if is_marked m j then m else dfs m j) in
-  fold_left aux m v.
-
-Definition dfs := FixFun2 Dfs.
-
-Lemma fix_dfs : forall m i,
-  is_marked m i = false ->
-  dfs m i = Dfs dfs m i.
-  (* Could be added to the statement:
-     /\ (forall m i, is_marked m i = false ->
-         nb_unmarked (Dfs dfs m i) < nb_unmarked m). *)
-Proof using.
-  applys~ FixFun2_fix_partial_inv
-    (measure2 (fun m i => nb_unmarked m))
-    (fun m i m' => nb_unmarked m' < nb_unmarked m).
-  intros m i f1 f2 Hi IH. unfolds Dfs.
-  unfold measure2 in IH. sets_eq N: (nb_unmarked m).
-  let_name_all. let_name_all.
-  let_name_all as aux1. let_name_all as aux2.
-  asserts L: (nb_unmarked m0 < N).
-    subst N m0. applys* add_mark_nb_unmarked.
-  clears m i. gen m0. induction v as [|i v]. simple*.
-  intros m Lt. simpl.
-  asserts [E F]: (aux1 i m = aux2 i m /\ nb_unmarked (aux1 i m) < N).
-    rewrite EQaux1, EQaux2. case_if as C.
-      auto.
-      forwards* [E L]: IH C. split. auto. math.
-  rewrite <- E. applys* IHv.
-Qed.
-
-(*
-Extraction Language Ocaml.
-Extraction Inline Dfs
-  FixFun2Mod FixFun2 curry2 uncurry2 FixFunMod.
-Set Extraction Optimize.
-Extraction dfs.
-*)
-
-End DFS.
-
-(* ********************************************************************** *)
-(** * COFE for streams *)
-
-(** Definition of stream ordered family of requiv *)
-
-Definition stream_mod_family A (E:binary A) : family nat (stream A) :=
-  nat_family (bisimilar_mod_upto E).
-
-(** Special case of comparing stream values wrt equality *)
-
-Definition stream_family A := stream_mod_family (@eq A).
-
-(** Similarity for this OFE is equal to stream bisimilarity *)
-
-Lemma stream_mod_similarity : forall A (E:binary A),
-  bisimilar_mod E = similar (stream_mod_family E).
-Proof using.
-  intros. apply prop_ext_2. intros s1 s2.
-  unfold similar. simpl. split.
-  intros. apply~ bisimilar_mod_to_upto.
-  intros. apply~ bisimilar_mod_take.
-Qed.
-
-Hint Resolve stream_mod_similarity.
-
-Lemma stream_similarity : forall A,
-  @bisimilar A = similar (stream_family A).
-Proof using. intros. apply stream_mod_similarity. Qed.
-
-Hint Resolve stream_similarity.
-
-(** Completeness of the OFE *)
-
-Hint Unfold list_equiv.
-Hint Constructors Forall2.
-
-Lemma stream_mod_cofe : forall A {IA:Inhab A} (E:binary A),
-  equiv E -> COFE (stream_mod_family E).
-Proof using.
-  introv IA Equiv. apply nat_cofe. typeclass.
-  intros. apply~ bisimilar_mod_upto_equiv.
-  introv H. exists (diagonal (fun i => u (S i)) 0).
-  induction i; unfolds.
-    simple~.
-    apply~ bisimilar_mod_upto_succ. apply~ (trans_sym_1 (u i)).
-    rewrite stream_diagonal_nth. math_rewrite~ (i + 0 = i).
-Qed.
-
-Lemma stream_cofe : forall A {IA:Inhab A}, COFE (stream_family A).
-Proof using. intros. apply~ stream_mod_cofe. Qed.
-
-Hint Resolve @stream_cofe.
-
-
-(* ********************************************************************** *)
-(** * Constant stream -- basic corecursive value *)
-
-Definition Const1 const1 := (1%nat) ::: const1.
-
-Definition const1 := FixValMod (@bisimilar nat) Const1.
-
-Lemma const1_fix : const1 === Const1 const1.
-Proof using.
-  applys~ (FixValMod_fix (stream_family nat)). typeclass.
-  intros i s1 s2 H. simpls. destruct~ i.
-  unfolds. simpl. constructor~. apply* H.
-Qed.
-
-
-(* ********************************************************************** *)
-(** * Constant stream -- basic corecursion *)
-
-Definition Const const (n:nat) := n ::: const n.
-
-Definition const := FixFunMod (@bisimilar nat) Const.
-
-Lemma const_fix : forall n, const n === Const const n.
-Proof using.
-  intros.
-  applys (FixFunMod_corec (stream_family nat) (@pred_true nat)); autos*.
-  apply stream_cofe.
-  clear n. intros i n s1 s2 _ H. simpls. destruct~ i.
-  unfolds. simpl. constructor~. apply* H.
-Qed.
-
-
-(* ********************************************************************** *)
-(** * Polymorphic Constant stream -- basic corecursion with polymorphism *)
-
-Definition PConst A pconst (n:A) := n ::: pconst n.
-
-Definition pconst `{IA:Inhab A} := FixFunMod (@bisimilar A) (@PConst A).
-
-Lemma pconst_fix : forall A {IA:Inhab A} (n:A),
-  pconst n === PConst pconst n.
-Proof using.
-  intros.
-  applys* (FixFunMod_corec (stream_family A) (@pred_true A)).
-  clears n. intros i n s1 s2 _ H. simpls. destruct~ i.
-  unfolds. simpl. constructor~. apply* H.
-Qed.
-
-Lemma pconst_spec : forall A {IA:Inhab A} (x:A),
-  LibStream.const x === pconst x.
-Proof using.
-  intros.
-  apply bisimilar_mod_take. induction i. simple~.
-  apply* sym_elim. apply* trans_sym_2.
-   apply bisimilar_mod_to_upto. apply pconst_fix.
-   simpl. constructor~.
-Qed.
-
-(* ********************************************************************** *)
-(** * Mutually-defined stream -- basic corecursion *)
-(* u = 1::2::3::1::2::3::1::2::3::1::2::3::1::2::3::...*)
-
-Definition MU (mu mv : stream nat) := (1%nat) ::: mv.
-Definition MV (mu mv : stream nat) := (2%nat) ::: ((3%nat) ::: mu).
-
-Definition muv := FixValModMut2 (@bisimilar nat) (@bisimilar nat) MU MV.
-Definition mu := fst muv.
-Definition mv := snd muv.
-
-Lemma uv_fix : mu === MU mu mv /\ mv === MV mu mv.
-Proof using.
-  applys (FixValModMut2_fix
-    (prod_family (stream_family nat) (stream_family nat))).
-  apply tuple2_from_proj.
-  unfold bisimilar. rewrite stream_mod_similarity. apply prod_similar.
-  apply prod_cofe; typeclass.
-  intros i u1 v1 u2 v2 H. simpls. destruct~ i. split.
-    unfolds. simpl. constructor~. apply* H.
-    unfolds. simpl. constructor~. destruct i. simple~. simpl.
-     constructor~. apply* H.
-Qed.
-
-(* ********************************************************************** *)
-(** * Stream of natural numbers *)
-
-Definition Nats nats (n:nat) := n ::: nats (S n).
-
-Definition nats := FixFunMod (@bisimilar nat) Nats.
-
-Lemma nats_fix : forall (n:nat),
-  nats n === Nats nats n.
-Proof using.
-  intros.
-  applys (FixFunMod_corec (stream_family nat) (@pred_true nat)); autos*.
-  apply stream_cofe.
-  clears n. intros i n s1 s2 _ H. simpls. destruct~ i.
-  unfolds. simpl. constructor~. apply* H.
-Qed.
-
-
-(* ********************************************************************** *)
-(** * Filter on streams *)
-
-Definition dist_to_next A (P:A->Prop) (s:stream A) :=
-  epsilon (first_st_at P s).
-
-Lemma eventually_to_dist : forall A (P:A->Prop) s,
-  eventually P s -> exists n, first_st_at P s n.
-Proof using.
-  introv H. induction H. exists 0. simple~.
-  destruct (classic (P x)).
-    exists 0. simple~.
-    destruct IHeventually as [n Pn]. exists (S n). simple~.
-Qed.
-
-Lemma eventually_dist_cons : forall A (P:A->Prop) s x,
-  eventually P s -> ~ P x ->
-  dist_to_next P s < dist_to_next P (x:::s).
-Proof using.
-  introv H Nx. unfold dist_to_next.
-  spec_epsilon as n Pn. apply~ eventually_to_dist.
-  spec_epsilon as n' Pn'. apply~ eventually_to_dist.
-   apply~ eventually_tail.
-  clearbody n n'. destruct n'; simpl in Pn'; tryfalse.
-  rewrite* (@first_st_at_unique n n' A P s).
-Qed.
-
-Section MyFilters.
-Context (A:Type) {IA:Inhab A}.
-Variable (P:A->Prop).
-
-Definition Filter filter s :=
-  let '(x:::s') := s in
-  let s'' := filter s' in
-  If P x then x:::s'' else s''.
-
-Definition filter := FixFunMod (@bisimilar A) Filter.
-
-Lemma filter_fix : forall s,
-  infinitely_often P s ->
-  filter s === Filter filter s.
-Proof using.
-  applys~ (FixFunMod_mixed_partial
-    (stream_family A)
-    (measure (dist_to_next P))
-    (infinitely_often P)
-    (@bisimilar A)).
-  intros i s f1 f2 Ps H. simpls.
-  destruct s. simpl. unfolds. destruct i. simple~.
-   inverts Ps as Ps' Ev. case_if as C.
-     simpl. constructor~. apply~ H. left*.
-     inverts Ev as Ev.
-       false.
-       apply~ H. right. split~. apply~ eventually_dist_cons.
-Qed.
-
-
-End MyFilters.
+Hint Resolve equiv_eq equiv_list_equiv.
 
 
 (* ********************************************************************** *)
 (** * The log function -- basic recursion *)
 
+(** Properties of div2 *)
+
+Lemma div2_lt : forall n m, m <= n -> n > 0 -> Nat.div2 m < n.
+Proof using. (* using stdlib *)
+  nat_comp_to_peano. introv Le Gt.
+  forwards: Nat.div2_decr m (n-1). omega. omega.
+Qed.
+
+Lemma div2_grows : forall n m, m <= n -> Nat.div2 m <= Nat.div2 n.
+Proof using.
+  nat_comp_to_peano.
+  induction n using peano_induction. introv Le.
+  destruct~ m. simpl. omega.
+  destruct~ n. simpl. omega.
+  destruct~ m. simpl. omega.
+  destruct~ n. simpl. omega.
+  simpl. forwards~: H n m. nat_math. nat_math. nat_math.
+Qed.
+
+Module LogBasic.
+
 (** Definition of the functional *)
 
 Definition Log log n :=
- If n <= 1 then 0 else 1 + log (div2 n).
+ If n <= 1 then 0 else 1 + log (Nat.div2 n).
 
 (** Construction of the fixed point *)
 
@@ -325,7 +69,7 @@ Lemma log_double : forall n, n > 0 ->
   log(2*n) = 1 + log n.
 Proof using.
   introv Pos. rewrite fix_log. unfold Log.
-  case_if*. fequals. rewrite~ div2_double.
+  case_if*. fequals. rewrite~ Nat.div2_double.
 Qed.
 
 (** Example of reasoning by induction *)
@@ -336,7 +80,9 @@ Proof using.
   induction n using peano_induction. introv Le.
   do 2 rewrite fix_log. unfolds Log.
   (do 2 case_if); autos*.
-  rew_nat. apply H. apply* div2_lt. apply~ div2_grows.
+  forwards: H (Nat.div2 n) (Nat.div2 m).
+    apply* div2_lt. apply~ div2_grows.
+  math.
 Qed.
 
 (*
@@ -346,16 +92,51 @@ Set Extraction Optimize.
 Extraction log.
 *)
 
+End LogBasic.
+
+
+(* ********************************************************************** *)
+(** * The log function, version that computes *)
+
+Module LogCompute.
+(** Example of computing inside Coq *)
+
+Definition Log log n :=
+  if le_dec n 1 then 0 else 1 + log (Nat.div2 n).
+
+Definition log := FixFun Log.
+
+Lemma fix_log : forall N n,
+  log n = func_iter N Log log n.
+Proof using.
+  applys~ (FixFun_fix_iter (@lt nat _)).
+  introv H. unfolds. case_if~.
+  fequals. apply H. apply* div2_lt.
+Qed.
+
+Definition many_steps := 10.
+
+Lemma log_compute : log 256 = 8.
+Proof using.
+  rewrite (@fix_log many_steps). dup.
+  { reflexivity. }
+  { applys eq_trans. unfold Log; simpl. eauto. eauto. }
+  (* --TODO: eauto bug: it should try reflexivity before applying lemmas *)
+Qed.
+
+End LogCompute.
+
+
 (* ********************************************************************** *)
 (** * Loop on odd numbers -- partial function *)
+
+Module OnlyEven.
 
 (** The function [F] defined in this module returns [1]
     on any even number and "loops" on any odd number.
     It does not actually loop, since when a recursive
     call is not made on a smaller argument, the recursion
     is stopped and a dummy value is returned. *)
-
-Require Import Even.
 
 Definition Only_even only_even n :=
   If n = 0 then 1 else
@@ -364,14 +145,58 @@ Definition Only_even only_even n :=
 
 Definition only_even := FixFun Only_even.
 
-Lemma only_even_fix : forall n, even n ->
+Lemma only_even_fix : forall n, Nat.even n ->
   only_even n = Only_even only_even n.
 Proof using.
   applys~ (FixFun_fix_partial (@lt nat _)).
   intros f1 f2 n Pn IH. unfolds. case_if~. case_if as C'.
+  subst. inverts Pn as Pn'.
+  apply* IH. math_rewrite (n = S (S (n - 2))) in Pn.
+  rewrite Nat.even_succ_succ in Pn. auto.
+  (* --TODO: revive the TLC definition of even to avoid dependency
+     on stdlib
+     inverts Pn as Pn'; tryfalse. inverts Pn'. simpl. rew_nat~. *)
+Qed.
+
+End OnlyEven.
+
+(** Same, but now computable version *)
+
+Module OnlyEvenCompute.
+
+Import Coq.Arith.Even.
+
+Definition Only_even only_even n :=
+  if eq_nat_dec n 0 then 1 else
+  if eq_nat_dec n 1 then 1 + only_even 1 else
+  only_even (n - 2).
+
+Definition only_even := FixFun Only_even.
+
+Lemma only_even_fix : forall N n, even n ->
+  only_even n = func_iter N Only_even only_even n.
+Proof using.
+  applys~ (FixFun_fix_partial_iter (@lt nat _)).
+  intros f1 f2 n Pn IH. unfolds. case_if~. case_if.
   subst. inverts Pn as Pn'. inverts Pn'.
   apply* IH. inverts Pn as Pn'; tryfalse. inverts Pn'. simpl. rew_nat~.
 Qed.
+
+Definition many_steps := 100.
+
+Lemma even_8 : even 8.
+Proof using. Hint Constructors even odd. eauto 18. Qed.
+
+Lemma only_even_compute : only_even 8 = 1.
+Proof using.
+  rewrite (@only_even_fix many_steps); [ | apply even_8 ].
+  { reflexivity. }
+Qed.
+
+(* Note: many_steps needs to exceed the number of levels of recursion,
+   else reflexivity fails. *)
+
+End OnlyEvenCompute.
 
 
 (* ********************************************************************** *)
@@ -405,12 +230,10 @@ Definition Zero zero n :=
 
 Definition zero := FixFun Zero.
 
-Implicit Arguments FixFun_fix_partial_inv [A B F f].
-
 Lemma zero_fix : forall x, zero x = Zero zero x
               /\ forall x, zero x = 0.
 Proof using.
-  forwards~ [H1 H2]: (FixFun_fix_partial_inv lt pred_true (fun (x y : nat) => y = 0) _ (F:=Zero)).
+  forwards~ [H1 H2]: (FixFun_fix_partial_inv lt pred_true (fun (x y : nat) => y = 0) (F:=Zero)).
   introv _ H. unfold Zero. case_if~.
   forwards* [H1 H2]: (H (x-1)). rewrite <- H1. rewrite H2. apply* H.
 Qed.
@@ -491,8 +314,6 @@ Qed.
 (* ********************************************************************** *)
 (** * Integer division (binary function) *)
 
-Require Import Arith. (* todo : needed?*)
-
 (** [div n m] returns a pair [(q,r)] such that
     [n = q*m + r] with [r < m]. Its definition involves
     non-structural recursion. *)
@@ -517,7 +338,7 @@ Qed.
 (* ********************************************************************** *)
 (** * A function on trees -- higher-order recursion *)
 
-Definition Mem A (x:A) l := Exists (=x) l. (* todo: move *)
+Definition Mem A (x:A) l := Exists (=x) l. (* --TODO: move *)
 
 (** The congruence rule for [map] on lists *)
 
@@ -525,7 +346,7 @@ Lemma map_congr : forall A B (f1 f2 : A->B) l,
   (forall x, Mem x l -> f1 x = f2 x) ->
   LibList.map f1 l = LibList.map f2 l.
 Proof using. Hint Constructors Exists. Hint Unfold Mem.
-  introv H. induction l. auto. rew_map. fequals~.
+  introv H. induction l. auto. rew_listx. fequals~.
 Qed.
 
 (** Definition of trees *)
@@ -534,8 +355,8 @@ Inductive tree : Type :=
   | leaf : nat -> tree
   | node : list tree -> tree.
 
-Instance tree_inhab : Inhab tree.
-Proof using. intros. apply (prove_Inhab (leaf 0)). Qed.
+Instance Inhab_tree : Inhab tree.
+Proof using. intros. apply (Inhab_of_val (leaf 0)). Qed.
 
 (** An induction principle for trees *)
 
@@ -609,9 +430,286 @@ Qed.
 
 
 (* ********************************************************************** *)
+(** * DFS *)
+
+Module DFS.
+
+Parameter marks : Type.
+Parameter marks_inhab : Inhab marks.
+Existing Instance marks_inhab.
+Implicit Type i : nat.
+
+Parameter is_marked : marks -> nat -> bool.
+Parameter add_mark : marks -> nat -> marks.
+Parameter nb_unmarked : marks -> nat.
+Parameter add_mark_nb_unmarked : forall m i,
+  ~ is_marked m i ->
+  nb_unmarked (add_mark m i) < nb_unmarked m.
+
+Parameter neighbours : nat -> list nat.
+
+Definition Dfs dfs m i :=
+  'let m := add_mark m i in
+  'let v := neighbours i in
+  'let aux := (fun j m => if is_marked m j then m else dfs m j) in
+  fold_left aux m v.
+
+Definition dfs := FixFun2 Dfs.
+
+Lemma fix_dfs : forall m i,
+  ~ is_marked m i ->
+  dfs m i = Dfs dfs m i.
+  (* Could be added to the statement:
+     /\ (forall m i, is_marked m i = false ->
+         nb_unmarked (Dfs dfs m i) < nb_unmarked m). *)
+Proof using.
+  applys~ FixFun2_fix_partial_inv
+    (measure2 (fun m i => nb_unmarked m))
+    (fun m i m' => nb_unmarked m' < nb_unmarked m).
+  intros m i f1 f2 Hi IH. unfolds Dfs.
+  unfold measure2 in IH. sets_eq N: (nb_unmarked m).
+  let_name_all. let_name_all.
+  let_name_all as aux1. let_name_all as aux2.
+  asserts L: (nb_unmarked m0 < N).
+    subst N m0. applys* add_mark_nb_unmarked.
+  clears m i. gen m0. induction v as [|i v]. simple*.
+  intros m Lt. simpl.
+  asserts [E F]: (aux1 i m = aux2 i m /\ nb_unmarked (aux1 i m) < N).
+    rewrite EQaux1, EQaux2. case_if as C.
+      auto.
+      forwards* [E L]: IH C. split. auto. math.
+  rewrite <- E. applys* IHv.
+Qed.
+
+(*
+Extraction Language Ocaml.
+Extraction Inline Dfs
+  FixFun2Mod FixFun2 curry2 uncurry2 FixFunMod.
+Set Extraction Optimize.
+Extraction dfs.
+*)
+
+End DFS.
+
+
+(* ********************************************************************** *)
+(** * COFE for streams *)
+
+(** Definition of stream ordered family of requiv *)
+
+Definition stream_mod_family A (E:binary A) : family nat (stream A) :=
+  nat_family (bisimilar_mod_upto E).
+
+(** Special case of comparing stream values wrt equality *)
+
+Definition stream_family A := stream_mod_family (@eq A).
+
+(** Similarity for this OFE is equal to stream bisimilarity *)
+
+Lemma stream_mod_similarity : forall A (E:binary A),
+  bisimilar_mod E = similar (stream_mod_family E).
+Proof using.
+  extens. intros s1 s2.
+  unfold similar. simpl. split.
+  intros. apply~ bisimilar_mod_to_upto.
+  intros. apply~ bisimilar_mod_take.
+Qed.
+
+Hint Resolve stream_mod_similarity.
+
+Lemma stream_similarity : forall A,
+  @bisimilar A = similar (stream_family A).
+Proof using. intros. apply stream_mod_similarity. Qed.
+
+Hint Resolve stream_similarity.
+
+(** Completeness of the OFE *)
+
+Hint Unfold list_equiv.
+Hint Constructors Forall2.
+
+Lemma stream_mod_cofe : forall A {IA:Inhab A} (E:binary A),
+  equiv E -> COFE (stream_mod_family E).
+Proof using.
+  introv IA Equiv. apply nat_cofe. typeclass.
+  intros. apply~ equiv_bisimilar_mod_upto.
+  introv H. exists (diagonal (fun i => u (S i)) 0).
+  induction i; unfolds.
+    simple~.
+    apply~ bisimilar_mod_upto_succ. apply~ (trans_sym_rl (u i)).
+    rewrite stream_diagonal_nth. math_rewrite~ (i + 0 = i).
+Qed.
+
+Lemma stream_cofe : forall A {IA:Inhab A}, COFE (stream_family A).
+Proof using. intros. apply~ stream_mod_cofe. Qed.
+
+Hint Resolve @stream_cofe.
+
+
+(* ********************************************************************** *)
+(** * Constant stream -- basic corecursive value *)
+
+Definition Const1 const1 := (1%nat) ::: const1.
+
+Definition const1 := FixValMod (@bisimilar nat) Const1.
+
+Lemma const1_fix : const1 === Const1 const1.
+Proof using.
+  applys~ (FixValMod_fix (stream_family nat)). typeclass.
+  intros i s1 s2 H. simpls. destruct~ i.
+  unfolds. simpl. constructor~. apply* H.
+Qed.
+
+
+(* ********************************************************************** *)
+(** * Constant stream -- basic corecursion *)
+
+Definition Const const (n:nat) := n ::: const n.
+
+Definition const := FixFunMod (@bisimilar nat) Const.
+
+Lemma const_fix : forall n, const n === Const const n.
+Proof using.
+  intros.
+  applys (FixFunMod_corec (stream_family nat) (@pred_true nat)); autos*.
+  apply stream_cofe.
+  clear n. intros i n s1 s2 _ H. simpls. destruct~ i.
+  unfolds. simpl. constructor~. apply* H.
+Qed.
+
+
+(* ********************************************************************** *)
+(** * Polymorphic Constant stream -- basic corecursion with polymorphism *)
+
+Definition PConst A pconst (n:A) := n ::: pconst n.
+
+Definition pconst `{IA:Inhab A} := FixFunMod (@bisimilar A) (@PConst A).
+
+Lemma pconst_fix : forall A {IA:Inhab A} (n:A),
+  pconst n === PConst pconst n.
+Proof using.
+  intros.
+  applys* (FixFunMod_corec (stream_family A) (@pred_true A)).
+  clears n. intros i n s1 s2 _ H. simpls. destruct~ i.
+  unfolds. simpl. constructor~. apply* H.
+Qed.
+
+Lemma pconst_spec : forall A {IA:Inhab A} (x:A),
+  LibStream.const x === pconst x.
+Proof using.
+  intros.
+  apply bisimilar_mod_take. induction i. simple~.
+  apply* sym_inv. apply* trans_sym_lr.
+   apply bisimilar_mod_to_upto. apply pconst_fix.
+   simpl. constructor~.
+Qed.
+
+(* ********************************************************************** *)
+(** * Mutually-defined stream -- basic corecursion *)
+(* u = 1::2::3::1::2::3::1::2::3::1::2::3::1::2::3::...*)
+
+Definition MU (mu mv : stream nat) := (1%nat) ::: mv.
+Definition MV (mu mv : stream nat) := (2%nat) ::: ((3%nat) ::: mu).
+
+Definition muv := FixValModMut2 (@bisimilar nat) (@bisimilar nat) MU MV.
+Definition mu := fst muv.
+Definition mv := snd muv.
+
+Lemma uv_fix : mu === MU mu mv /\ mv === MV mu mv.
+Proof using.
+  applys (FixValModMut2_fix
+    (prod_family (stream_family nat) (stream_family nat))).
+  rewrite~ prod2_eq_tuple_proj.
+  unfold bisimilar. rewrite stream_mod_similarity. apply prod_similar.
+  apply prod_cofe; typeclass.
+  intros i u1 v1 u2 v2 H. simpls. destruct~ i. split.
+    unfolds. simpl. constructor~. apply* H.
+    unfolds. simpl. constructor~. destruct i. simple~. simpl.
+     constructor~. apply* H.
+Qed.
+
+(* ********************************************************************** *)
+(** * Stream of natural numbers *)
+
+Definition Nats nats (n:nat) := n ::: nats (S n).
+
+Definition nats := FixFunMod (@bisimilar nat) Nats.
+
+Lemma nats_fix : forall (n:nat),
+  nats n === Nats nats n.
+Proof using.
+  intros.
+  applys (FixFunMod_corec (stream_family nat) (@pred_true nat)); autos*.
+  apply stream_cofe.
+  clears n. intros i n s1 s2 _ H. simpls. destruct~ i.
+  unfolds. simpl. constructor~. apply* H.
+Qed.
+
+
+(* ********************************************************************** *)
+(** * Filter on streams *)
+
+Definition dist_to_next A (P:A->Prop) (s:stream A) :=
+  epsilon (first_st_at P s).
+
+Lemma eventually_to_dist : forall A (P:A->Prop) s,
+  eventually P s -> exists n, first_st_at P s n.
+Proof using.
+  introv H. induction H. exists 0. simple~.
+  destruct (prop_inv (P x)).
+    exists 0. simple~.
+    destruct IHeventually as [n Pn]. exists (S n). simple~.
+Qed.
+
+Lemma eventually_dist_cons : forall A (P:A->Prop) s x,
+  eventually P s -> ~ P x ->
+  dist_to_next P s < dist_to_next P (x:::s).
+Proof using.
+  introv H Nx. unfold dist_to_next.
+  epsilon n. apply~ eventually_to_dist. intros Pn.
+  epsilon n'. apply~ eventually_to_dist. apply~ eventually_tail.
+  intros Pn'. clearbody n n'. destruct n'; simpl in Pn'; tryfalse.
+  rewrite* (@first_st_at_inj n n' A P s).
+Qed.
+
+Section MyFilters.
+Context (A:Type) {IA:Inhab A}.
+Variable (P:A->Prop).
+
+Definition Filter filter s :=
+  let '(x:::s') := s in
+  let s'' := filter s' in
+  If P x then x:::s'' else s''.
+
+Definition filter := FixFunMod (@bisimilar A) Filter.
+
+Lemma filter_fix : forall s,
+  infinitely_often P s ->
+  filter s === Filter filter s.
+Proof using.
+  applys~ (FixFunMod_mixed_partial
+    (stream_family A)
+    (measure (dist_to_next P))
+    (infinitely_often P)
+    (@bisimilar A)).
+  intros i s f1 f2 Ps H. simpls.
+  destruct s. simpl. unfolds. destruct i. simple~.
+   inverts Ps as Ps' Ev. case_if as C.
+     simpl. constructor~. apply~ H. left*.
+     inverts Ev as Ev.
+       false.
+       apply~ H. right. split~.
+         forwards~: eventually_dist_cons Ev C.
+Qed.
+
+
+End MyFilters.
+
+
+(* ********************************************************************** *)
 (** * An example with cofinite trees *)
 
-Require Import LibNat.
+Require Import TLC.LibNat.
 
 (** Definition of [itree], trees with possibly-infinite branches *)
 
@@ -621,8 +719,8 @@ CoInductive itree : Type :=
 
 (** The type [itree] is inhabited *)
 
-Instance itree_inhab : Inhab itree.
-Proof using. intros. apply (prove_Inhab (itree_leaf 0)). Qed.
+Instance Inhab_itree : Inhab itree.
+Proof using. intros. apply (Inhab_of_val (itree_leaf 0)). Qed.
 
 (** Similarity up to level [i] between two trees *)
 
@@ -698,7 +796,7 @@ Proof using.
   unfold itree_diagonal; fold itree_diagonal.
   sets_eq <- u0: (u 0). sets_eq <- uk: (u k).
   destruct u0 as [|t01 t02]; destruct uk as [|tk1 tk2]; auto_false.
-  split. (* todo: find a way to factorize both sides *)
+  split. (* --TODO: find a way to factorize both sides *)
   (* left subtree *)
   destruct i. simple~.
   sets u': (itree_left \o shifts u).
@@ -739,7 +837,7 @@ Hint Constructors itree_similar.
 
 Lemma itree_similar_eq : itree_similar = similar itree_family.
 Proof using.
-  apply prop_ext_2. intros t1 t2. iff H.
+  extens. intros t1 t2. iff H.
   intros i. hnf. gen t1 t2. induction i; simpl; introv H.
    auto. inversions~ H.
   hnf in H. gen t1 t2. cofix IH.
@@ -782,7 +880,7 @@ Lemma product_incr_similarity : forall i m1 m1' m2 m2',
 Proof using.
   induction i using peano_induction.
   change (itree_similar_upto) with (family_sim itree_family).
-  introv K1 K2. (* todo: setoid rewrite *)
+  introv K1 K2. (* --TODO: setoid rewrite *)
   eapply cofe_similar_modulo. apply itree_family_COFE.
     rewrite <- itree_similar_eq. apply product_fixpoint.
     rewrite <- itree_similar_eq. apply product_fixpoint.
@@ -954,7 +1052,7 @@ Hint Resolve regexp_sub_wf : wf.
 Definition text_sub : binary text := tclosure (@list_sub _).
 
 Lemma text_sub_wf : wf text_sub.
-Proof using. lets: tclosure_wf. unfold text_sub. prove_wf. Qed.
+Proof using. lets: wf_tclosure. unfold text_sub. solve_wf. Qed.
 
 Hint Resolve text_sub_wf : wf.
 
@@ -962,17 +1060,19 @@ Lemma text_sub_once : forall s c,
   text_sub s (c::s).
 Proof using. intros. apply~ tclosure_once. Qed.
 
-Lemma text_sub_trans : trans text_sub.
-Proof using. apply tclosure_trans. Qed.
+Lemma trans_text_sub : trans text_sub.
+Proof using. apply trans_tclosure. Qed.
 
-Hint Resolve text_sub_trans text_sub_once.
+Hint Resolve trans_text_sub text_sub_once.
 
 Lemma text_sub_app : forall s s1 s2,
-  s = s1 ++ s2 -> large text_sub s2 s.
+  s = s1 ++ s2 ->
+  rclosure text_sub s2 s.
 Proof using.
-  intros. subst. induction s1; rew_list. auto.
+  intros. rewrite rclosure_eq.
+  subst. induction s1; rew_list. auto.
   inverts IHs1.
-    left. applys~ (@trans_elim text) (s1++s2).
+    left. applys~ (@trans_inv text) (s1++s2).
     rewrite <- H. left. apply text_sub_once.
 Qed.
 
@@ -983,7 +1083,7 @@ Definition parse_sub : binary (regexp * text) :=
   lexico2 regexp_sub text_sub.
 
 Lemma parse_sub_wf : wf parse_sub.
-Proof using. prove_wf. Qed.
+Proof using. solve_wf. Qed.
 
 Hint Unfold parse_sub.
 Hint Resolve parse_sub_wf : wf.
@@ -1048,9 +1148,9 @@ Proof using.
   intros f1 f2 [[r s] k] H. unfolds. destruct r; auto.
   fequal; auto 7.
   rewrite H; [|auto 7]. fequals_rec.
-   apply func_ext_1. intros s'. apply~ H.
+   apply fun_ext_1. intros s'. apply~ H.
   fequal. rewrite H; [|auto 7]. fequals_rec.
-   apply func_ext_1. intros s'. case_asserts; auto 7.
+   apply fun_ext_1. intros s'. case_asserts; auto 7.
 Qed.
 
 
@@ -1062,7 +1162,7 @@ Qed.
     the large sub-text relation. *)
 
 Definition select_sub (r:regexp) : binary text :=
-  If productive r then text_sub else large text_sub.
+  If productive r then text_sub else rclosure text_sub.
 
 (** The key result consists in showing that, when [r] is is normal form,
     the computation of [parse' (r,s,k)] is not affected by the evaluations
@@ -1088,16 +1188,16 @@ Proof using.
   inverts N. applys~ IH. intros s' S'. applys~ IH.
     intros s'' S''. apply E. hnf in S',S''|-*. simpl.
     tests: (productive r1); tests: (productive r2).
-      rewrite~ If_l. applys* (@trans_elim text) s'.
-      rewrite~ If_l. applys* (@large_strict_trans text) s'.
-      rewrite~ If_l. applys* (@strict_large_trans text) s'.
-      rewrite If_r; [|rew_logic';auto]. applys~ (@large_trans text) s'.
+      rewrite~ If_l. applys* (@trans_inv text) s'.
+      rewrite~ If_l. applys* trans_rclosure_l s'.
+      rewrite~ If_l. applys* trans_rclosure_r s'.
+      rewrite If_r; [|rew_logic;auto]. applys~ trans_rclosure s'.
   fequals.
     apply E. unfold select_sub. simpl. rewrite~ If_r.
   inverts N. applys~ IH. auto 7. intros s' S'. case_asserts~.
    applys~ IH. hnf in S'. rewrite~ If_l in S'.
    intros s'' S''. apply E. hnf in S'' |- *. simpls. case_if; tryfalse.
-   inverts S''. left. applys* trans_elim. auto.
+   inverts S''. left. applys* trans_inv. auto.
 Qed.
 
 
@@ -1115,9 +1215,9 @@ Qed.
     other total function that behave like [parse'] on the domain. *)
 
 Lemma parse'_fix_Parse :
-  fixed_point (pfunc_equal parse_dom) Parse parse'.
+  fixed_point (pfun_equal parse_dom) Parse parse'.
 Proof using.
-  intros f Hf [[r s] k] N. asserts E: (pfunc_equal parse_dom f parse').
+  intros f Hf [[r s] k] N. asserts E: (pfun_equal parse_dom f parse').
     unfolds. apply~ equiv_sym. clear Hf.
   rewrite~ E. rewrite parse'_fix.
   unfold Parse, Parse'. destruct r; auto; simpl in N.
@@ -1260,7 +1360,10 @@ Definition is_nil (s:text) :=
     then the [parse] function applied to [r] and [s] returns true. *)
 
 Lemma sem_to_parse_ind : forall r s s' k,
-  sem r s -> normal r -> k s' = true -> parse (r, s ++ s', k) = true.
+  sem r s ->
+  normal r ->
+  k s' = true ->
+  parse (r, s ++ s', k) = true.
 Proof using.
   introv S N K. gen s' k N. induction S; intros;
    (rewrite parse_fix; [ | apply N ]); unfold Parse at 1; simpl in N;
@@ -1275,14 +1378,17 @@ Proof using.
 Qed.
 
 Corollary sem_to_parse : forall r s,
-  sem r s -> normal r -> parse (r,s,is_nil) = true.
+  sem r s ->
+  normal r ->
+  parse (r,s,is_nil) = true.
 Proof using. intros. forwards~ M: (@sem_to_parse_ind r s nil is_nil). rew_list~ in M. Qed.
 
 (** The second result asserts the reciprocal: if the parse function
     applied to [r] and [s] returns true, then [s] matches [r] semantically. *)
 
 Lemma parse_to_sem_ind : forall r s k,
-  normal r -> parse (r,s,k) = true ->
+  normal r ->
+  parse (r,s,k) = true ->
   exists s1 s2, s = s1 ++ s2 /\ sem r s1 /\ k s2 = true.
 Proof using.
   introv N P. sets_eq p: (r,s). gen r s k.
@@ -1292,7 +1398,7 @@ Proof using.
   false.
   exists (nil:text) s. splits~.
   destruct s; tryfalse. case_if; tryfalse.
-   exists (n0::nil) s. splits~.
+   exists (n0::nil) s. subst. splits~.
   case_eq (parse (r1,s,k)); intros P1.
     forwards~ (s1&s2&E&S&P'): IH P1. auto 7. exists~ s1 s2.
     rewrite P1 in P. rew_bool in P.
@@ -1306,12 +1412,14 @@ Proof using.
     forwards~ (s1&s2&E&S&P'): IH P. auto.
     forwards~ (s3&s4&E'&S'&K'): IH P'; try solve [hnfs~].
       forwards M: text_sub_app E. inverts M. auto. false.
-       applys~ sem_productive S. apply* app_eq_self_inv_r.
+       applys~ sem_productive S. apply* self_eq_app_r_inv.
     subst s s2. exists (s1++s3) s4. rew_list~.
 Qed.
 
 Corollary parse_to_sem : forall r s,
-  normal r -> parse (r,s,is_nil) = true -> sem r s.
+  normal r ->
+  parse (r,s,is_nil) = true ->
+  sem r s.
 Proof using.
   intros. forwards~ (s1&s2&E&S&K): (@parse_to_sem_ind r s is_nil).
   subst. destruct s2; tryfalse. rew_list~ in *.
@@ -1320,17 +1428,20 @@ Qed.
 (** We can reformulate those two results in the form of an
     equivalence between [sem] and [parse] *)
 
-Theorem parse_iff_sem : forall r s, normal r ->
-  (parse (r,s,is_nil) = true <-> sem r s).
-Proof using. split. apply~ parse_to_sem. intros. apply~ sem_to_parse. Qed.
+Theorem parse_eq_sem : forall r s, normal r ->
+    (parse (r,s,is_nil) = true)
+  = (sem r s).
+Proof using.
+  extens. iff. apply~ parse_to_sem. apply~ sem_to_parse.
+Qed.
 
 (** A similar, more general, result *)
 
-Theorem parse_iff_sem_ind : forall r s k, normal r ->
-  (parse (r,s,k) = true <-> (exists s1 s2, s = s1 ++ s2 /\ sem r s1 /\ k s2 = true)).
+Theorem parse_eq_sem_ind : forall r s k, normal r ->
+    (parse (r,s,k) = true)
+  = (exists s1 s2, s = s1 ++ s2 /\ sem r s1 /\ k s2 = true).
 Proof using.
-  split. intros. apply~ parse_to_sem_ind.
-  intros (s1&s2&?&?&?). subst. apply~ sem_to_parse_ind.
+  extens. iff M.
+  apply~ parse_to_sem_ind.
+  destruct M as (s1&s2&?&?&?). subst. apply~ sem_to_parse_ind.
 Qed.
-
-

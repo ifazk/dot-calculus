@@ -4,46 +4,69 @@
 **************************************************************************)
 
 Set Implicit Arguments.
-Require Import LibTactics LibLogic LibBool.
+From TLC Require Import LibTactics LibLogic LibBool.
 Generalizable Variables A B.
 
-(* ********************************************************************** *)
-(** * Fixing implicit types *)
-
-Implicit Arguments inl [[A] [B]].
-Implicit Arguments inr [[A] [B]].
-
 
 (* ********************************************************************** *)
-(** * Inhabited *)
+(** * Sum type *)
 
-Instance sum_inhab_left : forall `{Inhab A} B, Inhab (A + B).
-Proof using. intros. apply (prove_Inhab (inl arbitrary)). Qed.
-Instance sum_inhab_right : forall `{Inhab B} A, Inhab (A + B).
-Proof using. intros. apply (prove_Inhab (inr arbitrary)). Qed.
+(* ---------------------------------------------------------------------- *)
+(** ** Definition *)
 
-Definition sum_inhab : forall `{Inhab A, Inhab B}, Inhab (A + B).
+(** From the Prelude:
+
+    Inductive sum A B : Type :=
+      | inl : A -> sum A B
+      | inr : B -> sum A B.
+
+    Hint Constructors sum : core.
+    Notation "x + y" := (sum x y) : type_scope.
+
+  Remark: ideally, constructors would be renamed to [sum_l] and [sum_r];
+  to follow conventions.
+ 
+*)
+
+Arguments inl {A} {B}.
+Arguments inr {A} {B}.
+
+
+(* ---------------------------------------------------------------------- *)
+(** ** Inhabited *)
+
+Instance sum_inhab_l : forall `{Inhab A} B, Inhab (A + B).
+Proof using. intros. apply (Inhab_of_val (inl arbitrary)). Qed.
+
+Instance sum_inhab_r : forall `{Inhab B} A, Inhab (A + B).
+Proof using. intros. apply (Inhab_of_val (inr arbitrary)). Qed.
+
+Definition Inhab_sum : forall `{Inhab A, Inhab B}, Inhab (A + B).
 Proof using. typeclass. Qed.
+
 
 
 (* ********************************************************************** *)
 (** * Operations *)
 
-Section IsIn.
-Variables (A B : Type).
-Implicit Type x : A + B.
+(* ---------------------------------------------------------------------- *)
+(** ** Testing the branch of the sum *)
 
-Definition is_inl x :=
+Definition is_inl (A B : Type) (x : A + B) : bool :=
   match x with
   | inl _ => true
   | inr _ => false
   end.
 
-Definition is_inr x :=
+Definition is_inr (A B : Type) (x : A + B) : bool :=
   match x with
   | inl _ => false
   | inr _ => true
   end.
+
+Section IsIn.
+Variables (A B : Type).
+Implicit Type x : A + B.
 
 Lemma is_inl_neg_is_inr : forall x,
   is_inl x = ! (is_inr x).
@@ -56,14 +79,11 @@ Proof using. intros x. destruct~ x. Qed.
 End IsIn.
 
 
-(* ********************************************************************** *)
-(** * Projections *)
-
 (*-----------------------------------------------------*)
 (** ** Stripping of the branch tag *)
 
 Section Get.
-Variables (A1 A2 : Type) (DA1:Inhab A1) (DA2:Inhab A2).
+Context `{IA1:Inhab A1} `{IA2:Inhab A2}.
 Implicit Types x : A1+A2.
 
 Definition get21 x :=
@@ -80,25 +100,18 @@ Definition get22 x :=
 
 End Get.
 
-Implicit Arguments get21 [[A1] [A2] [DA1]].
-Implicit Arguments get22 [[A1] [A2] [DA2]].
-
 
 (*-----------------------------------------------------*)
 (** ** Lifting functions over sum types *)
 
 Section Fget.
-Variables (A1 A2 B1 B2 : Type)
-  (DB1:Inhab B1) (DB2:Inhab B2).
+Context {A1:Type} {A2:Type} `{IB1:Inhab B1} `{IB2:Inhab B2}.
 Implicit Types f : A1+A2->B1+B2.
 
-Definition func_get21 f :=
+Definition fun_get21 f :=
   fun x => get21 (f (inl x)).
-Definition func_get22 f :=
+Definition fun_get22 f :=
   fun x => get22 (f (inr x)).
 
 End Fget.
-
-Implicit Arguments func_get21 [[A1] [A2] [B1] [B2] [DB1]].
-Implicit Arguments func_get22 [[A1] [A2] [B1] [B2] [DB2]].
 

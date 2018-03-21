@@ -4,30 +4,43 @@
 **************************************************************************)
 
 Set Implicit Arguments.
-Require Import LibTactics LibLogic LibReflect.
+From TLC Require Import LibTactics LibLogic LibReflect.
 Generalizable Variables A B.
 
-(* ********************************************************************** *)
-(** * Inhabited *)
-
-Global Instance prod_inhab : forall `{Inhab A, Inhab B}, Inhab (A * B).
-Proof using. intros. apply (prove_Inhab (arbitrary, arbitrary)). Qed.
 
 
 (* ********************************************************************** *)
-(** * Comparable *)
+(** * Product type *)
 
-Definition prod_compare {A B : Type} `{Comparable A} `{Comparable B} (x y : A * B) :=
-  let (x1, x2) := x in let (y1, y2) := y in
-  decide (x1 = y1 /\ x2 = y2).
+(* ---------------------------------------------------------------------- *)
+(** ** Definition *)
 
-Global Instance prod_comparable : forall A B : Type,
-  Comparable A -> Comparable B -> Comparable (A * B).
-Proof using.
-  introv CA CB. applys comparable_beq (@prod_compare A B _ _). intros x y.
-  destruct x; destruct y; simpl; rew_refl; iff H; inverts~ H;
-   tryfalse; auto; try congruence.
-Qed.
+(** From the Prelude:
+
+    Inductive prod A B : Type :=
+      | pair : A -> B -> prod A B.
+
+    Hint Constructors prod : core.
+
+    Add Printing Let prod.
+    Notation "x * y" := (prod x y) : type_scope.
+    Notation "( x , y , .. , z )" := (pair .. (pair x y) .. z) : core_scope.
+
+    Definition fst A B (p:A*B) : A := 
+      match p with (x,y) => x end.
+
+    Definition snd A B (p:A*B) : B := 
+      match p with (x,y) => y end.
+ 
+  Remark: to follow conventions [pair] should be renamed to [prod_intro].
+
+*)
+
+(* ---------------------------------------------------------------------- *)
+(** ** Inhabited *)
+
+Global Instance Inhab_prod : forall `{Inhab A, Inhab B}, Inhab (A * B).
+Proof using. intros. apply (Inhab_of_val (arbitrary, arbitrary)). Qed.
 
 
 (* ********************************************************************** *)
@@ -35,8 +48,8 @@ Qed.
 
 (** Decomposition as projection *)
 
-Lemma tuple2_from_proj : forall A1 A2 (x:A1*A2),
-  (fst x, snd x) = x.
+Lemma prod2_eq_tuple_proj : forall A1 A2 (x:A1*A2),
+  x = (fst x, snd x).
 Proof using. intros. destruct~ x. Qed.
 
 (** Structural equality *)
@@ -44,15 +57,24 @@ Proof using. intros. destruct~ x. Qed.
 Section Properties.
 Variables (A1 A2 A3 A4 : Type).
 Lemma eq_prod2 : forall (x1 y1:A1) (x2 y2:A2),
-  x1 = y1 -> x2 = y2 -> (x1, x2) = (y1, y2).
+  x1 = y1 -> 
+  x2 = y2 -> 
+  (x1, x2) = (y1, y2).
 Proof using. intros. subst~. Qed.
 
 Lemma eq_prod3 : forall (x1 y1:A1) (x2 y2:A2) (x3 y3:A3),
-  x1 = y1 -> x2 = y2 -> x3 = y3 -> (x1, x2, x3) = (y1, y2, y3).
+  x1 = y1 -> 
+  x2 = y2 -> 
+  x3 = y3 -> 
+  (x1, x2, x3) = (y1, y2, y3).
 Proof using. intros. subst~. Qed.
 
 Lemma eq_prod4 : forall (x1 y1:A1) (x2 y2:A2) (x3 y3:A3) (x4 y4:A4),
-  x1 = y1 -> x2 = y2 -> x3 = y3 -> x4 = y4 -> (x1, x2, x3, x4) = (y1, y2, y3, y4).
+  x1 = y1 -> 
+  x2 = y2 -> 
+  x3 = y3 -> 
+  x4 = y4 -> 
+  (x1, x2, x3, x4) = (y1, y2, y3, y4).
 Proof using. intros. subst~. Qed.
 
 End Properties.
@@ -64,10 +86,21 @@ Hint Immediate eq_prod2 eq_prod3 eq_prod4.
 (* ********************************************************************** *)
 (** * Operations *)
 
-(** [fst] and [snd] are defined in the standard library *)
+(* ---------------------------------------------------------------------- *)
+(** ** Definition of projections *)
 
-Implicit Arguments fst [[A] [B]].
-Implicit Arguments snd [[A] [B]].
+(** [fst] and [snd] are defined in the Prelude 
+
+  Definition fst A B (p:A*B) : A := 
+    match p with (x,y) => x end.
+
+  Definition snd A B (p:A*B) : B := 
+    match p with (x,y) => y end.
+
+*)
+
+Arguments fst {A} {B}.
+Arguments snd {A} {B}.
 
 
 (* ---------------------------------------------------------------------- *)
@@ -98,6 +131,7 @@ Notation "'proj53' P" := (proj1 (proj2 (proj2 P))) (at level 69).
 Notation "'proj54' P" := (proj1 (proj2 (proj2 (proj2 P)))) (at level 69).
 Notation "'proj55' P" := (proj2 (proj2 (proj2 (proj2 P)))) (at level 69).
 
+
 (*-----------------------------------------------------*)
 (** ** Currying *)
 
@@ -114,6 +148,7 @@ Definition curry4 f : A1 -> A2 -> A3 -> A4 -> B :=
 Definition curry5 f : A1 -> A2 -> A3 -> A4 -> A5 -> B :=
   fun x1 x2 x3 x4 x5 => f (x1,x2,x3,x4,x5).
 End Currying.
+
 
 (*-----------------------------------------------------*)
 (** ** Uncurrying *)
@@ -135,6 +170,7 @@ Definition uncurry5 f : A1*A2*A3*A4*A5 -> B :=
   fun p => match p with (x1,x2,x3,x4,x5) =>
   f x1 x2 x3 x4 x5 end.
 End Uncurrying.
+
 
 (* ---------------------------------------------------------------------- *)
 (** ** Uncurrying for relations *)
@@ -168,7 +204,7 @@ Tactic Notation "unfolds_uncurryp" :=
 (* ---------------------------------------------------------------------- *)
 (** ** Inverse projections for relations *)
 
-(* TODO: rename to [unprojpNK] and define also [unprojNK] *)
+(* --TODO: rename to [unprojpNK] and define also [unprojNK] *)
 
 (** [unprojNK] turns a function of type [AK -> AK -> B]
     into a function of type [(A1*..*AN) -> (A1*..*AN) -> B]. *)
@@ -206,19 +242,35 @@ Definition unproj44 f : A1*A2*A3*A4 -> A1*A2*A3*A4 -> B :=
 Definition unproj51 f : A1*A2*A3*A4*A5 -> A1*A2*A3*A4*A5 -> B :=
   fun p1 p2 => match p1,p2 with (x1,x2,x3,x4,x5),(y1,y2,y3,y4,y5) =>
   f x1 y1 end.
-  (* TODO: complete *)
+Definition unproj52 f : A1*A2*A3*A4*A5 -> A1*A2*A3*A4*A5 -> B :=
+  fun p1 p2 => match p1,p2 with (x1,x2,x3,x4,x5),(y1,y2,y3,y4,y5) =>
+  f x2 y2 end.
+Definition unproj53 f : A1*A2*A3*A4*A5 -> A1*A2*A3*A4*A5 -> B :=
+  fun p1 p2 => match p1,p2 with (x1,x2,x3,x4,x5),(y1,y2,y3,y4,y5) =>
+  f x3 y3 end.
+Definition unproj54 f : A1*A2*A3*A4*A5 -> A1*A2*A3*A4*A5 -> B :=
+  fun p1 p2 => match p1,p2 with (x1,x2,x3,x4,x5),(y1,y2,y3,y4,y5) =>
+  f x4 y4 end.
+Definition unproj55 f : A1*A2*A3*A4*A5 -> A1*A2*A3*A4*A5 -> B :=
+  fun p1 p2 => match p1,p2 with (x1,x2,x3,x4,x5),(y1,y2,y3,y4,y5) =>
+  f x5 y5 end.
+
 End Unproj.
 
-Implicit Arguments unproj21 [ A1 B ].
-Implicit Arguments unproj22 [ A2 B ].
-Implicit Arguments unproj31 [ A1 B ].
-Implicit Arguments unproj32 [ A2 B ].
-Implicit Arguments unproj33 [ A3 B ].
-Implicit Arguments unproj41 [ A1 B ].
-Implicit Arguments unproj42 [ A2 B ].
-Implicit Arguments unproj43 [ A3 B ].
-Implicit Arguments unproj44 [ A4 B ].
-Implicit Arguments unproj51 [ A1 B ].
+Arguments unproj21 [A1] A2 [B].
+Arguments unproj22 A1 [A2] [B].
+Arguments unproj31 [A1] A2 A3 [B].
+Arguments unproj32 A1 [A2] A3 [B].
+Arguments unproj33 A1 A2 [A3] [B].
+Arguments unproj41 [A1] A2 A3 A4 [B].
+Arguments unproj42 A1 [A2] A3 A4 [B].
+Arguments unproj43 A1 A2 [A3] A4 [B].
+Arguments unproj44 A1 A2 A3 [A4] [B].
+Arguments unproj51 [A1] A2 A3 A4 A5 [B].
+Arguments unproj52 A1 [A2] A3 A4 A5 [B].
+Arguments unproj53 A1 A2 [A3] A4 A5 [B].
+Arguments unproj54 A1 A2 A3 [A4] A5 [B].
+Arguments unproj55 A1 A2 A3 A4 [A5] [B].
 
 (** Unfolding *)
 

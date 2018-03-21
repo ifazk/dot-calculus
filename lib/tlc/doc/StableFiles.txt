@@ -1,0 +1,75 @@
+
+Stable files:
+
+   LibTactics
+
+   LibAxioms
+   LibEqual
+   LibLogic
+
+   LibOperation
+   LibBool
+   LibReflect
+
+   LibRelation
+   LibEpsilon
+   LibChoice
+   LibOperation
+   LibOrder
+   LibWf
+   LibMonoid
+   LibMin (incomplete)
+   LibFix 
+
+   LibProd
+   LibSum
+   LibUnit
+   LibOption
+   LibString
+   LibInt
+   LibNat
+   LibList
+   LibListZ
+
+   LibContainer
+   LibSet
+   LibMap
+   LibCore
+
+
+Work-in-progess files (compile, but with material remaining to be polished)
+
+   LibListSub
+   LibMultiset
+   LibPer
+   LibFun
+   LibStream
+   LibGraph
+   LibFset
+   LibVar
+   LibEnv
+   LibLN
+   LibTacticsDemos
+   LibFixDemos
+   LibOtherDemos
+
+
+Future work:
+
+   LibListSub (for subsequences, in particular prefix/suffix of lists)
+   LibListSort
+   LibListExec (to be renamed to LibListX)
+
+
+Deprecated (contents commented out):
+
+   LibHeap
+   LibOld
+
+
+For future use (if TLC becomes one day independent from STDLIB):
+
+   LibLogicCore
+
+
+

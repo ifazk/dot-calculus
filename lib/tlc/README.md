@@ -1,16 +1,63 @@
-% The TLC library
-% Arthur Charguéraud, with contributions from others.
-% CeCILL B license (the French equivalent of the BSD license).
+# The TLC Coq library
 
 Description
 ===========
 
-TLC is a library for Coq based on classical logic and type classes.
+TLC is a general-purpose library that provides an alternative to Coq's standard library.
+
+   - TLC relies on the axioms of
+     functional extensionality,
+     propositional extensionality,
+     and indefinite description (also known as Hilbert's epsilon operator).
+     The consequences of these axioms include
+     the law of the excluded middle
+     as well as proof irrelevance.
+     Accepting these axioms often makes life significantly simpler.
+   - TLC takes advantage of Coq's type class mechanism.
+     In particular, this allows for common operators and lemma names
+     for all container data structures and all order relations.
+   - TLC includes the optimal fixed point combinator,
+     which allows arbitrarily-complex recursive and co-recursive definitions.
+   - TLC provides a collection of tactics that enhance the default tactics
+     provided by Coq. These tactics help construct more concise and more
+     robust proof scripts.
+
+Status:
+
+   - The current version of TLC works with Coq 8.6 and 8.7.
+   - TLC 2.0 (beta) was released in November 2017, with a complete polishing phase.
+
+
+Compatibility:
+
+   - Disclaimer: to allow improving the design of TLC, backward compatibility is not guaranteed.
+   - TLC should not be incompatible with use of the standard library.
 
 Compilation
 ===========
 
-To compile everything:
+The released versions of TLC are available via `opam`:
 
-    make
+    opam repo add coq-released http://coq.inria.fr/opam/released
+    opam install -j4 coq-tlc
+
+A working copy of TLC can also be compiled and installed as follows:
+
+    # first clone this repository, then descend into it, and:
+    make -j4
     make install
+
+Documentation
+=============
+
+Some (partial) documentation can be found in the directory [doc](doc/).
+
+License
+=======
+
+All files in TLC are distributed under the GNU-LGPL license.
+
+If you need a more permissive license, please contact the author.
+
+Authors: Arthur Charguéraud,
+with contributions from Armaël Guéneau and François Pottier.

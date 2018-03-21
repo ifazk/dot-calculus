@@ -1,10 +1,14 @@
+(** DEPRECATED?  
+    \o notation for composition is used in LibFixDemos
+*)
+
 (**************************************************************************
 * TLC: A library for Coq                                                  *
 * Functions                                                               *
 **************************************************************************)
 
 Set Implicit Arguments.
-Require Import LibTactics LibLogic LibBag LibSet.
+From TLC Require Import LibTactics LibLogic LibContainer LibSet.
 Generalizable Variables A.
 
 
@@ -31,6 +35,7 @@ Definition const4 {A1 A2 A3 A4 B} (v:B) : A1->A2->A3->A4->B :=
 Definition const5 {A1 A2 A3 A4 A5 B} (v:B) : A1->A2->A3->A4->A5->B :=
   fun _ _ _ _ _ => v.
 
+
 (* ********************************************************************** *)
 (** Function application *)
 
@@ -48,23 +53,23 @@ Definition compose {A B C} (g : B -> C) (f : A -> B) :=
   fun x => g (f x).
 
 Notation "f1 \o f2" := (compose f1 f2)
-  (at level 49, right associativity) : func_scope.
+  (at level 49, right associativity) : fun_scope.
 
 Section Combinators.
-Open Scope func_scope.
+Open Scope fun_scope.
 Variables (A B C D : Type).
 
 Lemma compose_id_l : forall (f:A->B),
   id \o f = f.
-Proof using. intros. apply~ func_ext_1. Qed.
+Proof using. intros. apply~ fun_ext_1. Qed.
 
 Lemma compose_id_r : forall (f:A->B),
   f \o id = f.
-Proof using. intros. apply~ func_ext_1. Qed.
+Proof using. intros. apply~ fun_ext_1. Qed.
 
 Lemma compose_assoc : forall (f:C->D) (g:B->C) (h:A->B),
   (f \o g) \o h = f \o (g \o h).
-Proof using. intros. apply~ func_ext_1. Qed.
+Proof using. intros. apply~ fun_ext_1. Qed.
 
 Lemma compose_eq_l : forall (f:B->C) (g1 g2:A->B),
   g1 = g2 -> f \o g1 = f \o g2.
@@ -76,19 +81,20 @@ Proof using. intros. subst~. Qed.
 
 (** Composition of [LibList.map] behaves well. **)
 (* Could not be put in [LibList] because of circular dependencies. *)
-Require Import LibList.
+From TLC Require Import LibList.
+
 Lemma list_map_compose : forall A B C (f : A -> B) (g : B -> C) l,
   LibList.map g (LibList.map f l) = LibList.map (g \o f) l.
-Proof.
+Proof using.
   introv. induction l.
    reflexivity.
-   rew_list. fequals~.
+   rew_listx. fequals~.
 Qed.
 
 End Combinators.
 
 (** Tactic for simplifying function compositions *)
-(* TODO: not used; might become deprecated *)
+(* --TODO: not used; might become deprecated *)
 
 Hint Rewrite compose_id_l compose_id_r compose_assoc : rew_compose.
 Tactic Notation "rew_compose" :=
@@ -107,13 +113,12 @@ Tactic Notation "rew_compose" "in" hyp(H) :=
 Definition fupdate A B (f : A -> B) (a : A) (b : B) : A -> B :=
   fun x => If (x = a) then b else f x.
 
-Lemma fupdate_def : forall A B (f:A->B) a b x,
-  fupdate f a b x = If (x = a) then b else f x.
-Proof. auto. Qed.
-
 Lemma fupdate_eq : forall A B (f:A->B) a b x,
-  x = a ->
-  fupdate f a b x = b.
+  fupdate f a b x = If (x = a) then b else f x.
+Proof using. auto. Qed.
+
+Lemma fupdate_same : forall A B (f:A->B) a b,
+  fupdate f a b a = b.
 Proof using. intros. unfold fupdate. case_if*. Qed.
 
 Lemma fupdate_neq : forall A B (f:A->B) a b x,
@@ -129,7 +134,7 @@ Proof using. intros. unfold fupdate. case_if*. Qed.
 
 Section FunctionImage.
 Open Scope set_scope.
-Require Import LibList.
+From TLC Require Import LibList.
 
 Definition image A B (f : A -> B) (E : set A) : set B :=
   \set{ y | exists_ x \in E, y = f x }.
@@ -150,9 +155,9 @@ Lemma finite_image : forall A B (f : A -> B) (E : set A),
   finite E ->
   finite (image f E).
 Proof using.
-  introv M. lets (L&H): finite_covers_basic M.
-  applys finite_prove_covers (LibList.map f L). introv N.
-  lets (y&Hy&Ey): in_image_inv (rm N). subst x. applys* Mem_map.
+  introv M. lets (L&H): finite_inv_list_covers M.
+  applys finite_of_list_covers (LibList.map f L). introv N.
+  lets (y&Hy&Ey): in_image_inv (rm N). subst x. applys* mem_map.
 Qed.
 
 Lemma image_covariant : forall A B (f : A -> B) (E F : set A),
@@ -180,14 +185,15 @@ Qed.
 Lemma image_singleton : forall A B (f : A -> B) (x : A),
   image f \{x} = \{f x}.
 Proof using.
-  intros. apply in_extens. intros z. iff N.
+  intros. apply in_extens. intros z. rewrite in_single_eq. iff N.
     lets (y&Hy&Ey): in_image_inv (rm N). rewrite in_single_eq in Hy. subst~.
-    rewrite in_single_eq in N. applys* in_image_prove; auto.
+    applys* in_image_prove. rewrite~ @in_single_eq. typeclass.
 Qed.
 
 End FunctionImage.
 
 Hint Resolve finite_image : finite.
+
 
 (* ********************************************************************** *)
 (** ** Function preimage *)
@@ -201,31 +207,29 @@ Definition preimage A B (f : A -> B) (E : set B) : set A :=
 End FunctionPreimage.
 
 
-
 (* ********************************************************************** *)
 (** ** Function iteration *)
 
 Fixpoint applyn A n (f : A -> A) x :=
   match n with
   | O => x
-  | S n' =>
-    f (applyn n' f x)
+  | S n' => f (applyn n' f x)
   end.
 
 Lemma applyn_fix : forall A n f (x : A),
   applyn (S n) f x = applyn n f (f x).
-Proof. introv. induction~ n. simpls. rewrite~ IHn. Qed.
+Proof using. introv. induction~ n. simpls. rewrite~ IHn. Qed.
 
 Lemma applyn_comp : forall A n m f (x : A),
   applyn n f (applyn m f x) = applyn (n + m) f x.
-Proof.
+Proof using.
   introv. gen m; induction n; introv; simpls~.
   rewrite~ IHn.
 Qed.
 
 Lemma applyn_nested : forall A n m f (x : A),
   applyn n (applyn m f) x = applyn (n * m) f x.
-Proof.
+Proof using.
   introv. gen m. induction n; introv; simpls~.
   rewrite IHn. rewrite~ applyn_comp.
 Qed.
@@ -233,11 +237,15 @@ Qed.
 Lemma applyn_altern : forall A B (f : A -> B) (g : B -> A) x n,
   applyn n (fun x => f (g x)) (f x) =
     f (applyn n (fun x => g (f x)) x).
-Proof. introv. gen x. induction~ n. introv. repeat rewrite applyn_fix. autos~. Qed.
+Proof using. introv. gen x. induction~ n. introv. repeat rewrite applyn_fix. autos~. Qed.
 
 Lemma applyn_ind : forall A (P : A -> Prop) (f : A -> A) x n,
   (forall x, P x -> P (f x)) ->
   P x ->
   P (applyn n f x).
-Proof. introv I. induction n; introv Hx; autos*. Qed.
+Proof using. introv I. induction n; introv Hx; autos*. Qed.
+
+
+(* --TODO: rename applyn to iter *)
+(* --TODO: migrate iteration of functionals from LibFix to here *)
 

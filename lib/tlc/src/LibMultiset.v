@@ -1,16 +1,17 @@
+(** DISCLAIMER: this file is under construction and still contains a 
+    couple admits. *)
+
 (**************************************************************************
 * TLC: A library for Coq                                                  *
-* MultiSets -- PROTOTYPE                                                  *
+* Multisets                                                               *
 **************************************************************************)
-
-(** FILE UNDER CONSTRUCTION *)
 
 Set Implicit Arguments.
 Generalizable Variables A B.
-Require Import LibTactics LibLogic LibReflect
+From TLC Require Import LibTactics LibLogic LibReflect
   LibRelation LibList LibInt LibNat LibOperation
-  LibEpsilon LibSet LibStruct.
-Require Export LibBag.
+  LibEpsilon LibSet LibMonoid.
+From TLC Require Export LibContainer.
 
 
 (* ********************************************************************** *)
@@ -27,22 +28,32 @@ Implicit Types x : A.
 Implicit Types E F G : multiset A.
 
 Definition empty_impl : multiset A := fun _ => 0.
+
 Definition single_impl x := fun y => If x = y then 1 else 0.
+
 Definition in_impl x E := E x > 0.
+
 Definition union_impl E F := fun x => (E x + F x)%nat.
+
 Definition incl_impl E F := forall x, E x <= F x.
+
 Definition dom_impl E := set_st (fun x => E x > 0).
-(* TODO: update these definitions to match those of finite sets *)
+
+(* -- TODO: update these definitions to match those of finite sets *)
 Definition list_repr_impl (E:multiset A) (l:list (A*nat)) :=
-     No_duplicates (LibList.map (@fst _ _) l)
-  /\ forall n x, In (x,n) l <-> (n = E x /\ n > 0).
+     noduplicates (LibList.map (@fst _ _) l)
+  /\ forall n x, mem (x,n) l <-> (n = E x /\ n > 0).
+
 Definition to_list_impl (E:multiset A) := epsilon (list_repr_impl E).
-Definition fold_impl (m:monoid_def B) (f:A->nat->B) (E:multiset A) :=
+
+Definition fold_impl (m:monoid_op B) (f:A->nat->B) (E:multiset A) :=
   LibList.fold_right (fun p acc => let (x,n) := p : A*nat in monoid_oper m (f x n) acc)
     (monoid_neutral m) (to_list_impl E).
+
 End Operations.
+
 Definition card_impl A (E:multiset A) :=
-  fold_impl (monoid_ plus 0) (fun _ n => n) E.
+  fold_impl (monoid_make plus 0) (fun _ n => n) E.
 
 
 (* ---------------------------------------------------------------------- *)
@@ -50,27 +61,33 @@ Definition card_impl A (E:multiset A) :=
 
 Lemma in_inst : forall A, BagIn A (multiset A).
 Proof using. constructor. exact (@in_impl A). Defined.
+
 Hint Extern 1 (BagIn _ (multiset _)) => apply in_inst
   : typeclass_instances.
 
 Instance empty_inst : forall A, BagEmpty (multiset A).
   constructor. rapply (@empty_impl A). Defined.
+
 Instance single_inst : forall A, BagSingle A (multiset A) .
   constructor. rapply (@single_impl A). Defined.
+
 Instance union_inst : forall A, BagUnion (multiset A).
   constructor. rapply (@union_impl A). Defined.
+
 Instance incl_inst : forall A, BagIncl (multiset A).
   constructor. rapply (@incl_impl A). Defined.
+
 Instance fold_inst : forall A B, BagFold B (A->nat->B) (multiset A).
   constructor. rapply (@fold_impl A B). Defined.
+
 Instance card_inst : forall A, BagCard (multiset A).
   constructor. rapply (@card_impl A). Defined.
 
 Global Opaque multiset empty_inst single_inst in_inst
  union_inst incl_inst fold_inst card_inst.
 
-Instance multiset_inhab : forall A, Inhab (multiset A).
-Proof using. intros. apply (prove_Inhab (@empty_impl A)). Qed.
+Instance Inhab_multiset : forall A, Inhab (multiset A).
+Proof using. intros. apply (Inhab_of_val (@empty_impl A)). Qed.
 
 
 (* ********************************************************************** *)
@@ -120,8 +137,8 @@ Proof using.
   unfold union_inst, union_impl, union, empty_impl,
    empty_inst, empty, empty_impl, multiset. introv N.
   split; extens~.
-  intros x. lets: func_same_1 x N. math.
-  intros x. lets: func_same_1 x N. math.
+  intros x. lets: fun_eq_1 x N. math.
+  intros x. lets: fun_eq_1 x N. math.
 Qed.
 
 Global Instance union_empty_l_eq_inst : Union_empty_l (T:=multiset A).
@@ -149,17 +166,15 @@ Proof using.
 Qed.
 
 Global Instance card_empty_inst : Card_empty (T:=multiset A).
-Proof using. admit. (*TODO: under construction *) Qed.
+Proof using. admit. (*-- TODO: under construction *) Qed.
 
 Global Instance card_single_inst : Card_single (A:=A) (T:=multiset A).
-Proof using. admit. (*TODO: under construction *) Qed.
+Proof using. admit. (*-- TODO: under construction *) Qed.
 
-Global Instance card_union_le_inst : Card_union_le (T:=multiset A).
-Proof using. admit. (*TODO: under construction *) Qed.
+Global Instance card_union_inst : Card_union (T:=multiset A).
+Proof using. admit. (*-- TODO: under construction *) Qed.
 
 End Instances.
-
-
 
 
 (* ********************************************************************** *)
@@ -167,6 +182,8 @@ End Instances.
 
 (* ---------------------------------------------------------------------- *)
 (** ** Foreach *)
+
+(** --TODO: foreach properties should be shared in LibContainer *)
 
 Section ForeachProp.
 Variables (A : Type).
@@ -178,7 +195,8 @@ Lemma foreach_empty : forall P,
 Proof using. intros_all. rewrite in_empty_eq in H. false. Qed.
 
 Lemma foreach_single : forall P X,
-  P X -> @foreach A (multiset A) _ P (\{ X }).
+  P X -> 
+  @foreach A (multiset A) _ P (\{ X }).
 Proof using. intros_all. rewrite in_single_eq in H0. subst*. Qed.
 
 Lemma foreach_union : forall P E F,
@@ -188,7 +206,8 @@ Proof using. intros_all. destruct~ (in_union_inv H1). Qed.
 Hint Resolve foreach_empty foreach_single foreach_union.
 
 Lemma foreach_union_inv : forall P E F,
-  foreach P (E \u F) -> foreach P E /\ foreach P F.
+  foreach P (E \u F) -> 
+  foreach P E /\ foreach P F.
 Proof using.
   introv H. split; introv K.
   apply H. rewrite~ @in_union_eq. typeclass.
@@ -211,31 +230,21 @@ Proof using.
 Qed.
 
 Lemma foreach_weaken : forall P Q E,
-  foreach P E -> pred_le P Q -> foreach Q E.
+  foreach P E -> 
+  pred_incl P Q -> 
+  foreach Q E.
 Proof using. introv H L K. apply~ L. Qed.
 
 End ForeachProp.
-
-Hint Resolve foreach_empty foreach_single foreach_union.
-
-Hint Rewrite foreach_union_eq : rew_foreach.
-Tactic Notation "rew_foreach" hyp(H) := autorewrite with rew_foreach in H.
-Tactic Notation "rew_foreach" := autorewrite with rew_foreach.
-
-Tactic Notation "rew_foreach" "~" constr(H) :=
-  rew_foreach H; auto_tilde.
-Tactic Notation "rew_foreach" "*" constr(H) :=
-  rew_foreach H; auto_star.
-
 
 
 (* ********************************************************************** *)
 (** * Tactics *)
 
+(** EXPERIMENTAL tactics -- TODO: add documentation *)
+
 (* ---------------------------------------------------------------------- *)
 (** ** Tactics to prove equalities on unions *)
-
-(* todo: doc *)
 
 Lemma for_multiset_union_assoc : forall A, assoc (union (T:=multiset A)).
 Proof using. intros. apply union_assoc. Qed.
@@ -313,7 +322,6 @@ Proof using.
   intros. do 2 rewrite (union_assoc l2). apply permut_get_7.
 Qed.
 
-
 Lemma permut_tactic_setup : forall C l1 l2,
    C (\{} \u l1 \u \{}) (l2 \u \{}) -> C l1 l2.
 Proof using. intros. rews_permut_simpl. eauto. Qed.
@@ -322,7 +330,6 @@ Lemma permut_tactic_keep : forall C l1 l2 l3 l4,
   C ((l1 \u l2) \u l3) l4 ->
   C (l1 \u (l2 \u l3)) l4.
 Proof using. intros. rews_permut_simpl. eauto. Qed.
-
 
 Lemma permut_tactic_trans : forall C l1 l2 l3,
   l3 = l2 -> C l1 l3 -> C l1 l2.
@@ -334,7 +341,7 @@ End PermutationTactic.
     for the given value of [n] *)
 
 Ltac permut_lemma_get n :=
-  match nat_from_number n with
+  match number_to_nat n with
   | 1%nat => constr:(permut_get_1)
   | 2%nat => constr:(permut_get_2)
   | 3%nat => constr:(permut_get_3)
@@ -354,7 +361,7 @@ Ltac permut_simpl_prepare :=
    apply permut_tactic_setup;
    repeat rewrite <- union_assoc.
 
-(* todo : doc *)
+(* --TODO : doc *)
 
 Ltac permut_index_of l lcontainer :=
   match constr:(lcontainer) with
@@ -411,7 +418,7 @@ Proof using. intros. subst. apply permut_get_2. Qed.
 Lemma permut_tactic_simpl_incl : forall A (l1 l2 l3 l4:multiset A),
   (l1 \u l3) \c l4 ->
   (l1 \u (l2 \u l3)) \c (l2 \u l4).
-Admitted. (* todo: reason on this tedious inclusion... *)
+Admitted. (* --TODO URGENT: reason on this tedious inclusion... *)
 
 
 Ltac get_premut_tactic_simpl tt :=
@@ -518,11 +525,11 @@ Proof using. intros. apply in_union_r. apply~ in_union_get_4. Qed.
 
 End InUnionGet.
 
-Implicit Arguments in_union_get_1 [A x l1 l2].
-Implicit Arguments in_union_get_2 [A x l1 l2 l3].
-Implicit Arguments in_union_get_3 [A x l1 l2 l3 l4].
-Implicit Arguments in_union_get_4 [A x l1 l2 l3 l4 l5].
-Implicit Arguments in_union_get_5 [A x l1 l2 l3 l4 l5 l6].
+Arguments in_union_get_1 [A] [x] [l1] [l2].
+Arguments in_union_get_2 [A] [x] [l1] [l2] [l3].
+Arguments in_union_get_3 [A] [x] [l1] [l2] [l3].
+Arguments in_union_get_4 [A] [x] [l1] [l2] [l3] [l4].
+Arguments in_union_get_5 [A] [x] [l1] [l2] [l3] [l4] [l5].
 
 (** [in_union_get] solves a goal of the form
     [x \in F1 \u ... \u FN] when there exists an
@@ -543,10 +550,8 @@ Ltac in_union_get :=
           go tt ]
   end end.
 
-
-(* todo: remove hint
-Hint Extern 3 (_ \in _ \u _) => in_union_get.
-*)
+(* -- DEPRECATED Removed hint:
+      Hint Extern 3 (_\in _ \u _) => in_union_get. *)
 
 Section InUnionExtract.
 Variables (A:Type).
@@ -603,15 +608,19 @@ Section InversionsTactic.
 Context (A:Type).
 Implicit Types l : multiset A.
 Implicit Types x : A.
+
 Lemma empty_eq_single_inv_1 : forall x l1 l2,
   l1 = l2 -> x \notin l1 -> x \in l2 -> False.
 Proof using. intros. subst*. Qed.
+
 Lemma empty_eq_single_inv_2 : forall x l1 l2,
   l1 = l2 -> x \notin l2 -> x \in l1 -> False.
 Proof using. intros. subst*. Qed.
+
 Lemma notin_empty : forall x,
   x \notin (\{}:multiset A).
 Proof using. intros. unfold notin. rewrite in_empty_eq. auto. Qed.
+
 End InversionsTactic.
 Hint Resolve notin_empty.
 
@@ -669,8 +678,8 @@ Proof using. introv H. rewrite @in_union_eq in H. auto. typeclass. Qed.
 
 End InUnionInv.
 
-Implicit Arguments in_single_inv [A x y].
-Implicit Arguments in_union_inv [A x l1 l2].
+Arguments in_single_inv [A] [x] [y].
+Arguments in_union_inv [A] [x] [l1] [l2].
 
 Ltac multiset_in_inv_base H M :=
   match type of H with
@@ -693,7 +702,7 @@ Lemma union_empty_inv_multiset : forall A (l1 l2:multiset A),
   l1 \u l2 = \{} -> l1 = \{} /\ l2 = \{}.
 Proof using. intros. eapply union_empty_inv_inst. eauto. Qed.
 
-Implicit Arguments union_empty_inv_multiset [A l1 l2].
+Arguments union_empty_inv_multiset [A] [l1] [l2].
 
 Ltac multiset_empty_core H :=
   match type of H with

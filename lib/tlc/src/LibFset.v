@@ -1,13 +1,18 @@
+
+(** DEPRECATED: the contents of this file is deprecated
+   it should be reimplemented using the finite property
+   from LibSet *)
+
+
 (**************************************************************************
 * TLC: A library for Coq                                                  *
 * Finite sets                                                             *
 **************************************************************************)
 
 Set Implicit Arguments.
-Require Import LibTactics LibList.
-Require Import LibSet LibLogic LibEqual LibReflect.
+From TLC Require Import LibTactics LibList.
+From TLC Require Import LibSet LibLogic LibEqual LibReflect.
 
-(** DISCLAIMER: under construction *)
 
 (* ********************************************************************** *)
 (** * Abstract interface for finite sets *)
@@ -43,7 +48,7 @@ Definition from_list L :=
 
 End Operations.
 
-Implicit Arguments empty [[A]].
+Arguments empty {A}.
 
 (** Notations *)
 
@@ -113,13 +118,10 @@ End FsetSig.
 
 Module Export FsetImpl : FsetSig.
 
-(** Note: most of the material contained in this module will ultimately
-    be moved into the TLC library in a file called LibFset. *)
-
 Close Scope container_scope.
 
 Definition finite A (U:set A) :=
-  exists L, forall x, is_in x U -> Mem x L.
+  exists L, forall x, is_in x U -> mem x L.
 
 Definition fset A := sig (@finite A).
 
@@ -130,16 +132,16 @@ Section Operations.
 Variables (A:Type).
 
 Definition mem (x:A) (E:fset A) :=
-  is_in x (proj1_sig E).
+  is_in x (sig_val E).
 
-Lemma finite_empty : @finite A LibBag.empty.
+Lemma finite_empty : @finite A LibContainer.empty.
 Proof using. exists (@nil A). intros x. rewrite in_empty_eq. auto_false. Qed.
 
 Definition empty : fset A :=
   build_fset finite_empty.
 
 Lemma singleton_finite : forall (x:A),
-  finite (LibBag.single x).
+  finite (LibContainer.single x).
 Proof using.
   intros. exists (x::nil). intros y.
   rewrite in_single_eq. intro_subst. constructor.
@@ -152,21 +154,21 @@ Lemma union_finite : forall U V : set A,
   finite U -> finite V -> finite (union U V).
 Proof using.
   introv [L1 E1] [L2 E2]. exists (L1 ++ L2). intros x.
-  rewrite in_union_eq. rewrite Mem_app_or_eq. introv [H|H]; auto.
+  rewrite in_union_eq. rewrite mem_app_eq. introv [H|H]; auto.
 Qed.
 
 Definition union (E F : fset A) :=
-  build_fset (union_finite (proj2_sig E) (proj2_sig F)).
+  build_fset (union_finite (sig_proof E) (sig_proof F)).
 
 Lemma inter_finite : forall U V : set A,
   finite U -> finite V -> finite (inter U V).
 Proof using.
   introv [L1 E1] [L2 E2]. exists (L1 ++ L2). intros x.
-  rewrite in_inter_eq. rewrite Mem_app_or_eq. autos*.
+  rewrite in_inter_eq. rewrite mem_app_eq. autos*.
 Qed.
 
 Definition inter (E F : fset A) :=
-  build_fset (inter_finite (proj2_sig E) (proj2_sig F)).
+  build_fset (inter_finite (sig_proof E) (sig_proof F)).
 
 Lemma remove_finite : forall U V : set A,
   finite U -> finite V -> finite (remove U V).
@@ -176,7 +178,7 @@ Proof using.
 Qed.
 
 Definition remove (E F : fset A) :=
-  build_fset (remove_finite (proj2_sig E) (proj2_sig F)).
+  build_fset (remove_finite (sig_proof E) (sig_proof F)).
 
 Definition subset E F :=
   forall x, mem x E -> mem x F.
@@ -192,7 +194,7 @@ Definition from_list L :=
 
 End Operations.
 
-Implicit Arguments empty [[A]].
+Arguments empty {A}.
 
 (** Notations *)
 
@@ -229,7 +231,7 @@ Lemma fset_extens_eq : forall E F,
   (forall x, x \in E = x \in F) -> E = F.
 Proof using.
   unfold mem. intros [U FU] [V FV] H. simpls.
-  apply exist_eq. apply in_extens. intros. rewrite* H.
+  apply exist_eq_exist. apply in_extens. intros. rewrite* H.
 Qed.
 
 Lemma fset_extens : forall E F,
@@ -257,14 +259,14 @@ Lemma in_remove : forall x E F,
 Proof using. unfold mem, remove. simpl. intros. rewrite in_remove_eq. autos*. Qed.
 
 Lemma from_list_spec : forall x L,
-  x \in from_list L = Mem x L.
+  x \in from_list L = LibList.mem x L.
 Proof using.
-  unfold from_list. induction L; rew_list.
-  rewrite in_empty. rewrite~ Mem_nil_eq.
-  rewrite in_union, in_singleton. rewrite~ Mem_cons_eq. congruence.
+  unfold from_list. induction L; rew_listx.
+  rewrite in_empty. auto.
+  rewrite in_union, in_singleton. congruence.
 Qed.
 
-Hint Constructors Mem.
+Local Hint Constructors LibList.mem.
 
 Lemma fset_finite : forall E,
   exists L, E = from_list L.
@@ -272,16 +274,16 @@ Proof using.
   intros [U [L' H]]. exists (filter (fun x => isTrue (is_in x U)) L').
   apply fset_extens_eq. intros x. rewrite from_list_spec.
   unfold mem at 1. simpl. extens. iff M.
-    specializes H M. induction L'.
-      inverts H.
-      rewrite filter_cons. inverts H.
-        rewrite (is_True M). rewrite~ isTrue_True.
-        case_if; fold_bool; fold_prop; auto.
-    clear H. induction L'.
-      rewrite filter_nil in M. inverts M.
-      rewrite filter_cons in M. cases_if; fold_bool; fold_prop.
-        inverts~ M.
-        apply~ IHL'.
+  { specializes H M. induction L'.
+    { inverts H. }
+    { rewrite filter_cons. inverts H.
+      { rewrite (prop_eq_True M). rewrite~ isTrue_True.
+        case_if; tryfalse*. auto. }
+      { case_if*. } } }
+  { clear H. induction L'.
+    { rewrite filter_nil in M. inverts M. }
+    { rewrite filter_cons in M. cases_if~. 
+      { inverts~ M. } } }
 Qed.
 
 End Properties.
@@ -300,8 +302,9 @@ Implicit Types E : fset A.
 
 (** Properties of [in] *)
 
-Lemma in_empty_elim : forall x,
-  x \in \{} -> False.
+Lemma in_empty_inv : forall x,
+  x \in \{} -> 
+  False.
 Proof using. introv H. rewrite~ in_empty in H. Qed.
 
 Lemma in_singleton_self : forall x,
@@ -380,8 +383,8 @@ Lemma inter_empty_l : forall E,
 Proof using.
   intros. apply fset_extens;
    intros x; rewrite_all in_inter.
-    intros. false* in_empty_elim.
-    intros. false* in_empty_elim.
+    intros. false* in_empty_inv.
+    intros. false* in_empty_inv.
 Qed.
 
 Lemma inter_empty_r : forall E,
@@ -415,7 +418,7 @@ Proof using. unfold disjoint. intros. rewrite~ inter_comm. Qed.
 Lemma disjoint_in_notin : forall E F x,
   disjoint E F -> x \in E -> x \notin F.
 Proof using.
-  unfold disjoint. introv H InE InF. applys in_empty_elim x.
+  unfold disjoint. introv H InE InF. applys in_empty_inv x.
   rewrite <- H. rewrite in_inter. auto.
 Qed.
 
@@ -469,11 +472,4 @@ Proof using.
 Qed.
 
 End Properties.
-
-
-
-
-
-
-
 

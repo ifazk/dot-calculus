@@ -577,6 +577,12 @@ Ltac destruct_all :=
   | [ H : ?A \/ ?B |- _ ] => destruct H
   end.
 
+Ltac destruct_notin :=
+  repeat match goal with
+         | [ H: ?z \notin ?E1 \u ?E2 |- _ ] =>
+           apply notin_union in H; destruct H
+         end.
+
 Ltac repeat_split_right :=
   match goal with
   | |- ?A /\ ?B => split; repeat_split_right

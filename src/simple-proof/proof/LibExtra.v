@@ -1,10 +1,14 @@
 Set Implicit Arguments.
 
-Require Import LibLN.
+Require Import LibVar LibLN.
 
-(** Decidable equality for variables *)
-Definition var_decide (x y : var) : {x = y} + {x <> y} :=
-  LibReflect.decidable_sumbool (LibReflect.comparable x y).
+Lemma var_decide : forall (x y : var), {x = y} + {x <> y}.
+Proof.
+  intros x y.
+  pose proof (var_compare_eq x y).
+  rewrite LibReflect.isTrue_eq_if in H.
+  cases_if; auto.
+Qed.
 
 (** Converting between binding and in dom *)
 Lemma dom_to_binds : forall A (E : env A) x,

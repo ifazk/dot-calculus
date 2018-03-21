@@ -1,48 +1,60 @@
 (**************************************************************************
 * TLC: A library for Coq                                                  *
-* Naturals -- TODO: use typeclasses                                       *
+* Naturals                                                                *
 **************************************************************************)
 
 Set Implicit Arguments.
-Require Export Arith Div2 Omega.
-Require Import Psatz.
-Require Import LibTactics LibReflect LibBool LibOperation LibRelation LibOrder.
-Require Export LibOrder.
+Require Export Coq.Arith.Arith Coq.omega.Omega.
+From TLC Require Import LibTactics LibReflect LibBool LibOperation LibRelation LibOrder.
+From TLC Require Export LibOrder.
 Global Close Scope positive_scope.
 
+
 (* ********************************************************************** *)
-(** * Inhabited and comparable *)
+(** * Nat type *)
 
-Instance nat_inhab : Inhab nat.
-Proof using. intros. apply (prove_Inhab 0). Qed.
+(* ---------------------------------------------------------------------- *)
+(** ** Definition *)
 
-Fixpoint nat_compare (x y : nat) :=
-  match x, y with
-  | O, O => true
-  | S x', S y' => nat_compare x' y'
-  | _, _ => false
-  end.
+(** From the Prelude:
 
-Instance nat_comparable : Comparable nat.
-Proof using.
-  applys (comparable_beq nat_compare).
-  induction x; destruct y; simpl.
-  autos*.
-  auto_false.
-  auto_false.
-  asserts_rewrite ((S x = S y) = (x = y)).
-    extens. iff; omega.
-  autos*.
-Qed.
+  Inductive nat : Set :=
+    | O : nat
+    | S : nat -> nat.
+
+  Remark: ideally, constructors would be renamed to [zero] and [succ],
+  or [nat_zero] and [nat_succ], with the notations 
+  [O] or [0%nat], and [S n] or [succ n].
+  It is indeed proablematic to prevent the use of single letter 
+  variables in pattern matching to the user who does not care about [nat].
+
+*)
+
+(* ---------------------------------------------------------------------- *)
+(** ** Inhabited *)
+
+Instance Inhab_nat : Inhab nat.
+Proof using. intros. apply (Inhab_of_val 0). Qed.
+
 
 
 (* ********************************************************************** *)
 (** * Order on natural numbers *)
 
+(* ---------------------------------------------------------------------- *)
+(** ** Definition *)
+
+(** The typeclass instance of [le] on [nat] is defined to be the [le]
+    relation on Peano numbers from Coq's standard library. *)
+
 Instance le_nat_inst : Le nat := Build_Le Peano.le.
 
+
 (* ---------------------------------------------------------------------- *)
-(** ** Relation to Peano, for tactic [omega] *)
+(** ** Translating typeclass instances to Peano relations *)
+
+(** These lemmas and tactics are useful to transform arithmetic goals 
+    into a form on which the [omega] decision procedure may apply. *)
 
 Lemma le_peano : le = Peano.le.
 Proof using. extens*. Qed.
@@ -58,16 +70,17 @@ Qed.
 Lemma ge_peano : ge = Peano.ge.
 Proof using.
   extens. rew_to_le. rewrite le_peano.
-  unfold flip. intros. omega.
+  unfold inverse. intros. omega.
 Qed.
 
 Lemma gt_peano : gt = Peano.gt.
 Proof using.
   extens. rew_to_le. rewrite le_peano.
-  unfold strict, flip. intros. omega.
+  unfold strict, inverse. intros. omega.
 Qed.
 
 Hint Rewrite le_peano lt_peano ge_peano gt_peano : rew_nat_comp.
+
 Ltac nat_comp_to_peano :=
   autorewrite with rew_nat_comp in *.
 
@@ -84,15 +97,12 @@ Ltac nat_math_setup :=
 Ltac nat_math :=
   nat_math_setup; omega.
 
-Ltac nat_math_lia :=
-  nat_math_setup; lia.
-
-Ltac nat_math_nia :=
-  nat_math_setup; nia.
 
 (* ---------------------------------------------------------------------- *)
-(** ** Hint externs for calling nat_math{_lia,_nia} in the hint base
-       [nat_maths]. *)
+(** ** The [nat_maths] database is used for registering automation
+       on mathematical goals. *)
+
+(* --TODO: rename [nat_maths] database to [nat_math] *)
 
 Ltac nat_math_hint := nat_math.
 
@@ -100,36 +110,25 @@ Hint Extern 3 (_ = _ :> nat) => nat_math_hint : nat_maths.
 Hint Extern 3 (_ <> _ :> nat) => nat_math_hint : nat_maths.
 Hint Extern 3 (istrue (isTrue (_ = _ :> nat))) => nat_math_hint : nat_maths.
 Hint Extern 3 (istrue (isTrue (_ <> _ :> nat))) => nat_math_hint : nat_maths.
-Hint Extern 3 (_ <= _) => nat_math_hint : nat_maths.
-Hint Extern 3 (_ >= _) => nat_math_hint : nat_maths.
-Hint Extern 3 (_ < _) => nat_math_hint : nat_maths.
-Hint Extern 3 (_ > _) => nat_math_hint : nat_maths.
+Hint Extern 3 ((_ <= _)%nat) => nat_math_hint : nat_maths.
+Hint Extern 3 ((_ >= _)%nat) => nat_math_hint : nat_maths.
+Hint Extern 3 ((_ < _)%nat) => nat_math_hint : nat_maths.
+Hint Extern 3 ((_ > _)%nat) => nat_math_hint : nat_maths.
 Hint Extern 3 (@le nat _ _ _) => nat_math_hint : nat_maths.
 Hint Extern 3 (@lt nat _ _ _) => nat_math_hint : nat_maths.
 Hint Extern 3 (@ge nat _ _ _) => nat_math_hint : nat_maths.
 Hint Extern 3 (@gt nat _ _ _) => nat_math_hint : nat_maths.
 
-(* ********************************************************************** *)
-(** * Operations *)
 
-Definition div (n q : nat) :=
-  match q with
-  | 0 => 0
-  | S predq =>
-  let aux := fix aux (m r : nat) {struct m} :=
-    match m,r with
-    | 0, _ => 0
-    | S m',0 => (1 + aux m' predq)%nat
-    | S m', S r' => aux m' r'
-    end in
-  aux n predq
-  end.
+(* ---------------------------------------------------------------------- *)
+(** ** Total order instance *)
 
-Fixpoint factorial (n:nat) : nat :=
-  match n with
-  | 0 => 1
-  | S n' => n * (factorial n')
-  end.
+Instance nat_le_total_order : Le_total_order (A:=nat).
+Proof using.
+  constructor. constructor. constructor; unfolds.
+  nat_math. nat_math. nat_math.
+  unfolds. intros. tests: (x <= y). left~. right. nat_math.
+Qed.
 
 
 (* ********************************************************************** *)
@@ -156,68 +155,41 @@ Proof using.
 Qed.
 
 
+
 (* ********************************************************************** *)
 (** * Simplification lemmas *)
 
 (* ---------------------------------------------------------------------- *)
-(** ** Addition and substraction *)
+(** ** Trivial monoid simplifications *)
 
 Lemma plus_zero_r : forall n,
   n + 0 = n.
 Proof using. nat_math. Qed.
+
 Lemma plus_zero_l : forall n,
   0 + n = n.
 Proof using. nat_math. Qed.
-Lemma minus_zero : forall n,
+
+Lemma minus_zero_r : forall n,
   n - 0 = n.
 Proof using. nat_math. Qed.
 
-Hint Rewrite plus_zero_r plus_zero_l minus_zero : rew_nat.
-
-(* ---------------------------------------------------------------------- *)
-(** ** Comparison *)
-
-Section CompProp.
-Implicit Types a b c n m : nat.
-
-Lemma le_SS : forall n m, (S n <= S m) = (n <= m).
-Proof using. nat_math. Qed.
-Lemma ge_SS : forall n m, (S n >= S m) = (n >= m).
-Proof using. nat_math. Qed.
-Lemma lt_SS : forall n m, (S n < S m) = (n < m).
-Proof using. nat_math. Qed.
-Lemma gt_SS : forall n m, (S n > S m) = (n > m).
+Lemma mult_zero_l : forall n,
+  0 * n = 0.
 Proof using. nat_math. Qed.
 
-Lemma plus_le_l : forall a b c,
-  (a + b <= a + c) = (b <= c).
-Proof using. nat_math. Qed.
-Lemma plus_ge_l : forall a b c,
-  (a + b >= a + c) = (b >= c).
-Proof using. nat_math. Qed.
-Lemma plus_lt_l : forall a b c,
-  (a + b < a + c) = (b < c).
-Proof using. nat_math. Qed.
-Lemma plus_gt_l : forall a b c,
-  (a + b > a + c) = (b > c).
+Lemma mult_zero_r : forall n,
+  n * 0 = 0.
 Proof using. nat_math. Qed.
 
-Lemma plus_le_r : forall a b c,
-  (b + a <= c + a) = (b <= c).
-Proof using. nat_math. Qed.
-Lemma plus_ge_r : forall a b c,
-  (b + a >= c + a) = (b >= c).
-Proof using. nat_math. Qed.
-Lemma plus_lt_r : forall a b c,
-  (b + a < c + a) = (b < c).
-Proof using. nat_math. Qed.
-Lemma plus_gt_r : forall a b c,
-  (b + a > c + a) = (b > c).
+Lemma mult_one_l : forall n,
+  1 * n = n.
 Proof using. nat_math. Qed.
 
-End CompProp.
+Lemma mult_one_r : forall n,
+  n * 1 = n.
+Proof using. nat_math. Qed.
 
-(* todo: negation *)
 
 (* ---------------------------------------------------------------------- *)
 (** ** Simplification tactic *)
@@ -225,9 +197,8 @@ End CompProp.
 (** [rew_nat] performs some basic simplification on
     expressions involving natural numbers *)
 
-Hint Rewrite le_SS ge_SS lt_SS gt_SS : rew_nat.
-Hint Rewrite plus_le_l plus_ge_l plus_lt_l plus_gt_l : rew_nat.
-Hint Rewrite plus_le_r plus_ge_r plus_lt_r plus_gt_r : rew_nat.
+Hint Rewrite plus_zero_r plus_zero_l minus_zero_r
+  mult_zero_l mult_zero_r mult_one_l mult_one_r : rew_nat.
 
 Tactic Notation "rew_nat" :=
   autorewrite with rew_nat.
@@ -238,7 +209,6 @@ Tactic Notation "rew_nat" "*" :=
 Tactic Notation "rew_nat" "in" "*" :=
   autorewrite_in_star_patch ltac:(fun tt => autorewrite with rew_nat).
   (* autorewrite with rew_nat in *. *)
-
 Tactic Notation "rew_nat" "~" "in" "*" :=
   rew_nat in *; auto_tilde.
 Tactic Notation "rew_nat" "*" "in" "*" :=
@@ -250,36 +220,3 @@ Tactic Notation "rew_nat" "~" "in" hyp(H) :=
 Tactic Notation "rew_nat" "*" "in" hyp(H) :=
   rew_nat in H; auto_star.
 
-
-(* ---------------------------------------------------------------------- *)
-(* Total order instance *)
-
-Instance nat_le_total_order : Le_total_order (A:=nat).
-Proof using.
-  constructor. constructor. constructor; unfolds.
-  nat_math. nat_math. unfolds. nat_math. unfolds.
-  intros. tests: (x <= y). left~. right. nat_math.
-Qed.
-
-(* ********************************************************************** *)
-(** * Other lemmas *)
-
-(* ---------------------------------------------------------------------- *)
-(** ** Div2 *)
-
-Lemma div2_lt : forall n m, m <= n -> n > 0 -> div2 m < n.
-Proof using. (* using stdlib *)
-  nat_comp_to_peano. introv Le Gt.
-  forwards: Nat.div2_decr m (n-1). omega. omega.
-Qed.
-
-Lemma div2_grows : forall n m, m <= n -> div2 m <= div2 n.
-Proof using.
-  nat_comp_to_peano.
-  induction n using peano_induction. introv Le.
-  destruct~ m. simpl. omega.
-  destruct~ n. simpl. omega.
-  destruct~ m. simpl. omega.
-  destruct~ n. simpl. omega.
-  simpl. rew_nat. apply~ H. nat_math. nat_math.
-Qed.

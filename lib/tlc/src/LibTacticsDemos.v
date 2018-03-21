@@ -5,14 +5,13 @@
 ***************************************************************************)
 
 Set Implicit Arguments.
-Require Import LibTactics.
+From TLC Require Import LibTactics.
 
 
 (* ********************************************************************** *)
 (** ** Definitions used in demos *)
 
-Variables H1 H2 H3 H4 H5 H6 : Prop.
-Variables P1 P2 P3 : nat -> Prop.
+Parameter H1 H2 H3 H4 H5 H6 : Prop.
 
 
 (* ********************************************************************** *)
@@ -290,7 +289,7 @@ End IntrovTest.
 
 Section ArrowTest.
 
-Variables P1 P2 P3 : nat -> Prop.
+Parameters P1 P2 P3 : nat -> Prop.
 
 Lemma demo_arrow_1 :
   forall a b, P1 a -> P2 b -> forall c d, P3 c -> P1 d -> c = b.
@@ -659,7 +658,7 @@ Proof using.
   lets_inverts (conj P P) as H1 H2. skip.
 Qed.
 
-(* TODO: false_invert *)
+(* --TODO: false_invert *)
 
 Inductive Behave : Type :=
   | Behave_intro :
@@ -754,7 +753,7 @@ Inductive natequal : nat -> nat -> Prop :=
   | natequal_O : natequal 0 0
   | natequal_S : forall n, natequal n n -> natequal (S n) (S n).
 
-(* TODO
+(* --TODO
 
 Lemma demo_inductions : forall n m p,
   natequal (n + m) (m + p) -> p = n.
@@ -787,11 +786,9 @@ Definition test_split_3 := test_split_2.
 
 Lemma demo_splits : test_split_3.
 Proof using.
-  dup 5.
+  dup 4.
   (* spliting a bunch of conjunction is a pain *)
   split. skip. split. skip. split. skip. split. skip. skip.
-  (* [splits_all] is short for [repeat split] *)
-  splits_all. skip. skip. skip. skip. skip. skip.
   (* but it is sometimes too aggressive. *)
   (* [splits N] splits a conjunction in N parts *)
   splits 4. skip. skip. skip. skip.
@@ -1157,7 +1154,7 @@ Qed.
 
 Lemma demo_ereplace_working : forall (P:nat->nat->Prop) x y,
   (forall n, P n n) -> (x > 0 -> x = y) -> (x > 0) -> P x y.
-Proof.
+Proof using.
   introv H E L. dup 4.
   (* here, the hypothesis [P n n] cannot be applied directly *)
   try apply H.
@@ -1235,7 +1232,7 @@ Inductive bigredh : nat -> trm -> trm -> Prop :=
       bigredh n (subst x v2 t3) v ->
       bigredh (S n) (trm_app t1 t2) v.
 
-Require Import Omega.
+Require Import Coq.omega.Omega.
 
 Hint Extern 1 ((_ < _)%nat) => omega.
 
@@ -1304,7 +1301,7 @@ Proof using.
   let_simpl.
   reflexivity.
   (* One can name the arguments of ['let] step by step *)
-  let_name. (* TODO: avoid naming of x in 12 *)
+  let_name. (* --TODO: avoid naming of x in 12 *)
   let_name as z.
   subst x. subst z. reflexivity.
 Qed.

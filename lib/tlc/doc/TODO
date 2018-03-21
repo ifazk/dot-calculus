@@ -1,4 +1,53 @@
++list.combine => should be arbitrary in case (nil,cons).
 
+++rename Constant TLC.LibEqual.exist_eq_exist
+
++++fix "cases_if" tactic so that it works on "if classicT(x=y) then...".
++++todo: "extens" tactic should not call simpl.
++++define nth_option, then nth_default, then nth.
+------------------
+
+
+Section Drop.
+Variables (A : Type).
+Implicit Types n : nat.
+Implicit Types x : A.
+Implicit Types l : list A.
+
+(* already in lib *)
+Lemma length_drop : forall n l,
+  n <= length l ->
+  length (drop n l) = length l - n :> int.
+Proof using.
+  intros n. induction n; introv H.
+  { rewrite drop_zero. math. }
+  { destruct l as [|x l'].
+    { rewrite drop_nil. rew_list in *. math. }
+    { rewrite drop_cons. rew_list in *. forwards: IHn l'; math. } }
+Qed.
+
+(* to add *)
+Lemma length_drop_le : forall n l,
+  length (drop n l) <= length l.
+Proof using.
+  intros n. induction n; intros.
+  { rewrite drop_zero. math. }
+  { destruct l as [|x l'].
+    { rewrite drop_nil. math. }
+    { rewrite drop_cons. rew_list. forwards: IHn l'. math. } }
+Qed.
+
+End Drop.
+------------------
+
+
+- destruct (prop_inv P) ==> should replace with the "test" tactic
+
+- prelude: right/left for classicT => rename
+
+
+
+-----------------------
 diff --git a/src/LibEnv.v b/src/LibEnv.v
 index 52f35cd..a1eca94 100644
 --- a/src/LibEnv.v
@@ -45,3 +94,4 @@ index 52f35cd..a1eca94 100644
 +      destruct IHE2 as [Hs' [Hv Hs'']]. subst. auto.
 +Qed.
 +
+-----------------------

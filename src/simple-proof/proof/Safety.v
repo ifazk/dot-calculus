@@ -40,7 +40,7 @@ Ltac binds_eq :=
   match goal with
   | [Hb1: binds ?x _ ?G,
      Hb2: binds ?x _ ?G |- _] =>
-     apply (binds_func Hb1) in Hb2; inversions Hb2
+     apply (binds_functional Hb1) in Hb2; inversions Hb2
   end.
 
 Ltac invert_red :=
@@ -115,8 +115,8 @@ Proof.
     destruct (canonical_forms_fun Hin Hwf Ht1) as [?L [?T [?t [?Bis [?Hsub ?Hty]]]]].
     binds_eq.
     exists (@empty typ). rewrite concat_empty_r. repeat_split_right; auto.
-    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
-    eapply renaming_typ; eauto.
+    pick_fresh y. destruct_notin. specialize (Hty y H).
+    eapply renaming_typ; try eassumption; eauto.
   - Case "ty_new_intro".
     invert_red.
       match goal with

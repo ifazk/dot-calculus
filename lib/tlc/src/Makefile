@@ -25,12 +25,11 @@ SERIOUS := 1
 export COQINCLUDE := -R $(shell pwd) TLC
 export SERIOUS
 export COQBIN
-export COQFLAGS   := -w -deprecated-implicit-arguments,-notation-overridden,-local-declaration
-  # Disabling these warnings, for now. This is TEMPORARY.
+export COQFLAGS
 
 .PHONY: all clean
 
-all clean _CoqProject:
+all depend clean _CoqProject:
 	$(MAKE) -f Makefile.coq $@
 
 ############################################################################

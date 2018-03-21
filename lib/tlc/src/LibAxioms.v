@@ -18,13 +18,15 @@ Set Implicit Arguments.
     injectivity of equality on dependent pairs, predicate extensionality,
     definite description, and all the versions of the axiom of choice. *)
 
+
 (* ********************************************************************** *)
 (** * Functional extensionality *)
 
 (** Two functions that yield equal results on equal arguments are equal. *)
 
-Axiom func_ext_dep : forall (A:Type) (B:A->Type) (f g : forall x, B x),
-  (forall x, f x = g x) -> f = g.
+Axiom fun_ext_dep : forall (A : Type) (B : A->Type) (f g : forall x, B x),
+  (forall x, f x = g x) -> 
+  f = g.
 
 
 (* ********************************************************************** *)
@@ -33,7 +35,8 @@ Axiom func_ext_dep : forall (A:Type) (B:A->Type) (f g : forall x, B x),
 (** Two propositions that are equivalent can be considered to be equal. *)
 
 Axiom prop_ext : forall (P Q : Prop),
-  (P <-> Q) -> P = Q.
+  (P <-> Q) -> 
+  P = Q.
 
 
 (* ********************************************************************** *)
@@ -43,4 +46,5 @@ Axiom prop_ext : forall (P Q : Prop),
     below is a concise statement for [(exists x, P x) -> { x : A | P x }]. *)
 
 Axiom indefinite_description : forall (A : Type) (P : A->Prop),
-   ex P -> sig P.
+  ex P -> 
+  sig P.

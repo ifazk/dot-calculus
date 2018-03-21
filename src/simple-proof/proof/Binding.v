@@ -8,7 +8,7 @@
 
 Set Implicit Arguments.
 
-Require Import LibLN.
+Require Import LibVar LibLN.
 Require Import Coq.Program.Equality.
 Require Import Definitions.
 
@@ -119,7 +119,7 @@ Proof.
     end.
 
   apply typ_mutind; intros; invert_open; simpl in *;
-    f_equal; eauto using open_fresh_avar_injective.
+    f_equal; destruct_notin; eauto using open_fresh_avar_injective.
 Qed.
 
 (** - trms and definitions *)
@@ -152,7 +152,8 @@ Proof.
     end.
 
   apply trm_mutind; intros; invert_open_trm; simpl in *;
-    f_equal; eauto using (proj1 open_fresh_typ_dec_injective), open_fresh_avar_injective.
+    f_equal; destruct_notin;
+      eauto using (proj1 open_fresh_typ_dec_injective), open_fresh_avar_injective.
 Qed.
 
 (** * Variable Substitution Lemmas *)

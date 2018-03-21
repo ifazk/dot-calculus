@@ -4,14 +4,12 @@
 **************************************************************************)
 
 Set Implicit Arguments.
-Require Import LibTactics LibReflect.
-Require Export String.
+From TLC Require Import LibTactics LibReflect.
+Require Export Coq.Strings.String.
+
 
 (* ********************************************************************** *)
-(** * Inhabited and comparable *)
+(** * Inhabited *)
 
-Instance string_inhab : Inhab string.
-Proof using. apply (prove_Inhab EmptyString). Qed.
-
-Instance string_comparable : Comparable string.
-Proof using. applys comparable_of_dec string_dec. Qed.
+Instance Inhab_string : Inhab string.
+Proof using. apply (Inhab_of_val EmptyString). Qed.

@@ -3,5 +3,6 @@
 *.v.d
 *.vo
 *.vo.aux
+*.aux
 makefile
 .DS_Store

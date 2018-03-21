@@ -1,0 +1,1732 @@
+convention:
+Lemma trans_strict_of_antisym : forall R,
+  trans R -> 
+  antisym R -> 
+  trans (strict R).
+=> trans_strict
+  because antisym is necessary.
+
+Lemma trans_large : forall R,
+  trans R -> 
+  trans (large R).
+Proof using. unfold large. introv Tr [H1|E1] [H2|E2]; subst*. Qed.
+=> because obvious that propagates from trans.
+
+
+
+=> "Heavy" operators are more likely to distribute over lighter ones.
+     
+Lemma map_app : forall f l1 l2,
+  map f (l1 ++ l2) = map f l1 ++ map f l2.
+
+Lemma rclosure_inverse_eq : forall R,
+  rclosure (inverse R) = inverse (rclosure R).
+=> here rclosure is "more complex" than inverse.
+
+
+(**************************************************************************
+* TLC: A library for Coq                                                  *
+* Backward Compatibility Hints                                            *
+**************************************************************************)
+
+(*
+
+Set Implicit Arguments.
+Generalizable Variables A B.
+Require Import LibList.
+
+
+
+(* ********************************************************************** *)
+(** Lists *)
+
+
+(* The head of a list is its first element. *)
+
+Definition head (xs : list A) : option A :=
+  match xs with
+  | nil => None
+  | x :: _ => Some x
+  end.
+
+(* The tail of a list is everything beyond its first element. *)
+
+Definition tail (xs : list A) : list A :=
+  match xs with
+  | nil => nil
+  | _ :: xs => xs
+  end.
+
+(* No list is cyclic. *)
+
+Lemma no_cyclic_list:
+  forall (xs : list A) x,
+  x :: xs = xs ->
+  False.
+Proof using.
+  induction xs; simpl; introv h.
+  { congruence. }
+  { injection h. clear h. intros h ?. subst x. eauto. }
+Qed.
+
+(* Only the empty list is its own tail. *)
+
+Lemma tail_self_inv:
+  forall (xs : list A),
+  tail xs = xs ->
+  xs = nil.
+Proof using.
+  destruct xs; simpl; intros.
+  { eauto. }
+  { false. eauto using no_cyclic_list. }
+Qed.
+
+
+(* Equivalence. *)
+
+Lemma head_hd_error (xs : list A) : head xs = List.hd_error xs.
+Proof. destruct xs; reflexivity. Qed.
+
+Lemma tail_tl (xs : list A) : tail xs = List.tl xs.
+Proof. destruct xs; reflexivity. Qed.
+
+(* Replaced with rev_mem *)
+Lemma rev_mem : forall l x,
+  mem x l = mem x (rev l).
+Proof using.
+  introv. induction~ l. rewrite mem_cons. rewrite rev_cons.
+  rewrite mem_last. extens. rew_refl. rewrite* IHl.
+Qed.
+
+(* replaced with Mem_concat *)
+Lemma concat_mem : forall Ls x,
+      mem x (concat Ls)
+  <-> exists L, mem L Ls /\ mem x L.
+Proof using.
+  introv. induction Ls.
+   simpl. iff I; inverts* I.
+  rewrite concat_cons. iff I.
+   rewrite mem_app in I. rew_refl in *. inverts I as I.
+    exists a. splits~. rewrite mem_cons. rew_refl*.
+    apply IHLs in I. lets (l&Il&Ix): (rm I).
+     exists l. rewrite mem_cons. rew_refl*.
+   rewrite mem_app. rew_refl. lets (l&Il&Ix): (rm I).
+    rewrite mem_cons in Il. rew_refl in Il. inverts Il as Il.
+     left~.
+     right~. apply* IHLs.
+Qed.
+
+Definition app_cons := app_cons_l.
+Definition app_last := app_cons_r.
+Definition app_last_sym := app_last_l.
+
+(* [fold_left_app] is no longer in [rew_list] *)
+
+(* simulate with [rew_list] using [rev_cons] and [app_cons_r] *)
+Lemma rev_cons_app : forall x l1 l2,
+  rev (x :: l1) ++ l2 = rev l1 ++ (x::l2).
+Proof using. intros. rewrite rev_cons. rew_list~. Qed.
+
+(* idem *)
+Lemma app_rev_cons : forall x l1 l2,
+  l1 ++ rev (x :: l2) = (l1 ++ rev l2) & x.
+Proof using. intros. rewrite rev_cons. rewrite~ app_assoc. Qed.
+
+Definition map_eq_nil := map_eq_nil_inv.
+
+(* use Mem_map *)
+Lemma map_mem : forall f l (x : B),
+  mem x (map f l) <->
+    exists y, mem y l /\ x = f y.
+Proof using. (* TODO: simplify proof *)
+  induction l; introv.
+   simpl. iff I; false*. inverts* I.
+   rewrite map_cons. iff I.
+     rewrite mem_cons in I. rew_refl in I. inverts I as I.
+     exists a. splits~. rewrite mem_cons in *. rew_refl. left~.
+     apply IHl in I. lets (y&Iy&E): (rm I). exists y. splits~.
+      rewrite mem_cons. rew_refl. right~.
+    lets (y&Iy&E): (rm I). substs. rewrite mem_cons in *. rew_refl in *.
+     inverts Iy as I. left~.
+     right. apply IHl. exists~ y.
+Qed.
+
+Definition filter_mem_eq := mem_filter.
+
+Definition for_all := forall_bool.
+Definition exists_st := exists_bool.
+
+Definition take_nil := take_zero.
+
+
+Definition take_app_length := take_prefix_length.
+Definition take_at_length := take_full_length.
+
+Definition take_and_drop := take_and_drop_struct.
+
+(* use [rew_listx] instead of [rew_list] for [map] and [concat] *)
+
+Definition update_cons := update_cons_match.
+
+Definition update_cons_zero := update_zero.
+
+Definition update_cons_succ := update_succ.
+Definition take_cons_pred := take_cons_pos.
+
+Lemma update_app_right := update_app_r. (* reformulated *)
+Lemma update_app_right_here := update_prefix_length. (* reformulated *)
+
+
+(* ********************************************************************** *)
+(** Lemmas about [head] *)
+
+(* The empty list, and only the empty list, has no head. *)
+
+Lemma use_None_head (xs : list A) : None = head xs -> xs = nil.
+Proof. destruct xs; simpl; congruence. Qed.
+
+Lemma use_Some_head x (xs : list A) : Some x = head xs -> xs <> nil.
+Proof. destruct xs; simpl; congruence. Qed.
+
+
+
+(* ********************************************************************** *)
+(** Renamings *)
+
+(* DEPRECATED: now [fold_right_rev] *)
+Lemma fold_left_eq_fold_right_rev : forall B (f : A -> B -> B) i l,
+  fold_left f i l = fold_right f i (rev l).
+Proof using. introv. gen i. induction~ l. introv. rewrite rev_cons. rewrite* fold_right_last. Qed.
+
+Definition nil_map := map_eq_nil.
+
+Definition map_mem := mem_map.
+
+(* NOW formulated differently *)
+Lemma split_cons : forall {A1 A2}
+ (l1:list A1) (l2:list A2) (x1:A1) (x2:A2) (l:list (A1*A2)),
+  (l1,l2) = split l ->
+  split ((x1,x2)::l) = (x1::l1,x2::l2).
+Proof using.
+  intros. destruct l; inverts H; simpl.
+    auto.
+    destruct p. simpl. destruct (split l). fequals.
+Qed.
+
+
+
+Arguments length_zero_inv [A] [l].
+
+Lemma cons_make: forall n (x : A),
+  0 < n ->
+  x :: make (n - 1) x = make n x.
+Proof.
+  induction n; intros; simpl.
+  { math. }
+  { rewrite <- minus_n_O. eauto. }
+Qed.
+
+
+
+Definition last_inv := last_inv_pos_length.
+
+(* ********************************************************************** *)
+
+Definition last_neq_nil := last_neq_nil_inv.
+Lemma cons_neq_nil : forall x l,
+  x::l <> nil.
+Proof using. auto_false. Qed.
+
+
+Definition app_cancel_nil_l := app_eq_self_inv_l
+
+Definition app_eq_prefix_inv_l := app_cancel_l. (* DEPRECATED *) 
+
+Definition length_neq_elim := length_neq_inv.
+
+
+Definition last_inv_pos_length := length_pos_inv_last
+
+Definition nil_eq_last_val_app_inv := nil_eq_middle_inv.
+
+Definition cons_eq_last_val_app_inv := cons_eq_middle_inv.
+
+Definition last_neq_nil_inv := list_neq_nil_inv_last.
+
+Definition concat_eq_nil := concat_eq_nil_mem_inv.
+
+Definition Update_here := udpate_zero.
+
+Definition Update_not_nil := Update_not_nil_r.
+
+Definition Mem := mem.
+Definition mem := memb.
+(* and same for all associated lemmas *)
+
+Definition Filter := filter.
+Definition filter := filterb.
+(* and same for all associated lemmas *)
+
+Definition No_duplicates := noduplicates.
+(* and same for all associated lemmas *)
+
+
+
+Definition mem_app_or := mem_app.
+
+Definition concat_mem := mem_concat_iff.
+
+Definition mem_inv := mem_cons_inv.
+
+Definition nil_mem := list_no_mem.
+
+Definition No_duplicates_inv_app := No_duplicates_app_inv.
+
+Definition No_duplicates_Nth := No_duplicates_Nth_same_inv.
+
+Definition Nth_No_duplicates := No_duplicates_Nth_same.
+
+Definition Nth_lt_length := Nth_inbound.
+
+Definition length_Nth_lt := Nth_inbound_inv.
+
+Definition Nth_cons_inv := Nth_inv_cons.
+
+(* See: Nth_cons_inv *)
+Lemma Nth_inv_cons : forall n x l,
+  Nth n l x ->
+     (exists q, l = x::q /\ n = 0%nat)
+  \/ (exists y q m, l = y::q /\ Nth m q x /\ n = (m+1)%nat).
+Proof using.
+  introv H. inverts H. left*.
+  right. eauto 8 with maths.
+Qed.
+
+Definition nth_def_if_in_length := nth_def_to_Nth. (* arguments swapped *)
+
+(** too specific *)
+Lemma Forall2_Nth_nth_def : forall A B (P : A -> B -> Prop) la lb n v d,
+  Forall2 P la lb ->
+  Nth n la v ->
+  Nth n lb (nth_def d n lb).
+Proof using.
+  introv F N. forwards L: Forall2_length F. forwards I: Nth_lt_length N.
+  rewrite L in I. forwards*: nth_def_if_in_length I.
+Qed.
+
+Definition filter_Mem := mem_filter.
+
+Definition filter_Mem_inv := mem_filter_inv.
+
+Definition filter_length_le := length_filter.
+
+Definition filter_eq_Mem_length := length_filter_eq_mem_ge_one.
+
+Definition filter_No_duplicates := No_duplicates_filter.
+
+Definition filter_disjoint_predicates_length := filter_length_two_disjoint.
+
+Definition filter_negated_predicates_length := filter_length_partition.
+
+Definition mem_filter_neq_inv := mem_remove_inv.
+
+Definition filter_neq_Mem_length := length_remove_mem.
+
+Definition remove_duplicates_mem := mem_remove_duplicates.
+
+Definition take_and_drop_struct := take_app_drop.
+
+
+
+Definition Forall_inv_tail := Forall_cons_inv_head.
+Definition Forall_inv_head := Forall_cons_inv_tail.
+Definition Forall_inv := Forall_cons_inv.
+
+Definition Forall_mem := Forall_mem_inv.
+
+Definition Exists_split := Exists_inv_middle_first.
+
+Definition Forall2_inv_length := Forall2_length.
+Definition Forall2_map := Forall2_map_r.
+
+
+Implicit Arguments Forall2_last_inv [A1 A2 P l1 r' x1].
+
+Lemma Forall2_forall_Nth : forall A B (P : A -> B -> Prop) la lb,
+  Forall2 P la lb -> forall n a b,
+    Nth n la a ->
+    Nth n lb b ->
+    P a b.
+Proof using. introv F N1 N2. gen n. induction~ F; introv N1 N2; inverts N1; inverts* N2. Qed.
+(* => reformulated ad Forall2_inv_Nth *)
+
+Definition Forall2_last_inv := Forall2_last_l_inv.
+
+Definition mem_remove_inv := mem_remove_same_inv.
+
+
+Hint Rewrite take_zero take_succ : rew_list.
+Hint Rewrite drop_zero drop_succ : rew_list.
+
+Definition Nth_here := Nth_zero.
+Definition Nth_next := Nth_succ.
+
+Definition Forall2_inv_Nth := Forall2_Nth_inv.
+
+
+Definition Exists_here := Exists_head.
+Definition Exists_next := Exists_tail.
+
+Definition app_cons_one := app_cons_one_r.
+
+Definition append := app.
+
+
+Definition app_eq_self_inv_r := self_eq_app_r_inv.
+Definition app_eq_self_inv_l := self_eq_app_l_inv.
+
+nth_update_same => nth_update_same
+
+Nth_app_r => Nth_app_r'
+update_prefix_length => update_middle
+
+(* ********************************************************************** *)
+(** too specific *)
+
+(* ** Function for mapping partial function on lists *)
+
+Definition map_partial (A B : Type) (f : A -> option B) :=
+  fix aux (l : list A) : option (list B) := match l with
+    | nil => Some nil
+    | x::l' => LibOption.apply_on (f x) (fun v =>
+                 LibOption.map (cons v) (aux l'))
+   end.
+
+
+Lemma map_partial_inv_none : forall (A B:Type) (f: A->option B) l,
+  map_partial f l = None ->
+  Exists (fun x => f x = None) l.
+Proof using.
+  induction l; simpl map_partial; introv Eq; tryfalse.
+  forwards [E|(b&E1&E2)]: apply_on_inv_none Eq.
+   apply* Exists_here.
+   apply Exists_next. apply~ IHl. destruct~ map_partial. false*.
+Qed.
+
+Lemma map_partial_none : forall (A B:Type) (f: A->option B) l,
+  Exists (fun x => f x = None) l ->
+  map_partial f l = None.
+Proof using.
+  induction l; simpl map_partial; introv Eq; inverts Eq as Eq.
+   rewrite~ Eq.
+   destruct~ (f a). rewrite~ IHl.
+Qed.
+
+Lemma map_partial_inv : forall (A B:Type) (f: A->option B) lx ly,
+  map_partial f lx = Some ly ->
+  Forall2 (fun x y => f x = Some y) lx ly.
+Proof using.
+  induction lx; simpl map_partial; introv Eq.
+   inverts Eq. apply Forall2_nil.
+   lets fa Fa Eq2: (apply_on_inv Eq).
+    lets ly1 Eqly ?: (map_on_inv Eq2). subst ly.
+    apply* Forall2_cons.
+Qed.
+
+Implicit Arguments map_partial_inv [A B f lx ly].
+
+Lemma update_app_r : forall m l1 l2 n v,
+  n = length l1 + m ->
+  update n v (l1 ++ l2) = l1 ++ update m v l2.
+Proof.
+  intros m l1. gen m. induction l1 as [| x l1' ]; introv E; rew_list in *.
+  { fequals. math. }
+  { math_rewrite (n = S (length l1' + m)). rewrite update_cons.
+    fequals. erewrite* IHl1'. }
+Qed.
+
+
+(* ********************************************************************** *)
+
+(** too specific *)
+
+(** [has pair x1 x2 l1 l2] asserts that there exists an
+    index [n] such that the n-th element of [l1] is [x1]
+    and the n-th element of [l2] is [x2] *)
+
+Definition has_pair A1 A2 (x1:A1) (x2:A2) l1 l2 :=
+  Exists2 (fun v1 v2 => v1 = x1 /\ v2 = x2) l1 l2.
+
+Lemma has_pair_here : forall A1 A2 (x1:A1) (x2:A2) l1 l2,
+  has_pair x1 x2 (x1::l1) (x2::l2).
+Proof using. intros. constructor~. Qed.
+
+Lemma has_pair_next : forall A1 A2 (x1:A1) (x2:A2) y1 y2 l1 l2,
+  has_pair x1 x2 l1 l2 ->
+  has_pair x1 x2 (y1::l1) (y2::l2).
+Proof using. introv H. apply* Exists2_next. Qed.
+
+Hint Resolve has_pair_here has_pair_next.
+
+
+
+(* ********************************************************************** *)
+(* simulate using rew_listx. *)
+
+Section ForallToConj.
+Variables (A : Type) (P : A->Prop).
+Hint Constructors Forall.
+
+Ltac forall_to_conj_prove :=
+  extens; iff H;
+  repeat (match goal with H: Forall _ _ |- _ => inversion H end);
+  repeat (first [constructor | auto_star ]).
+
+Lemma Forall_to_conj_1 : forall x1,
+  Forall P (x1::nil) = (P x1).
+Proof using. forall_to_conj_prove. Qed.
+
+Lemma Forall_to_conj_2 : forall x1 x2,
+  Forall P (x1::x2::nil) = (P x1 /\ P x2).
+Proof using. forall_to_conj_prove. Qed.
+
+Lemma Forall_to_conj_3 : forall x1 x2 x3,
+  Forall P (x1::x2::x3::nil) = (P x1 /\ P x2 /\ P x3).
+Proof using. forall_to_conj_prove. Qed.
+
+Lemma Forall_to_conj_4 : forall x1 x2 x3 x4,
+  Forall P (x1::x2::x3::x4::nil) = (P x1 /\ P x2 /\ P x3 /\ P x4).
+Proof using. forall_to_conj_prove. Qed.
+
+End ForallToConj.
+
+
+(* ********************************************************************** *)
+
+
+(** [filters P L L'] asserts that [L'] is the sublist of [L]
+    made exactly of the elements of [L] that satisfy [P]. *)
+   (* DEPRECATED: use Filter instead *)
+
+Inductive Filters A (P : A -> Prop)
+  : list A -> list A -> Prop :=
+  | Filters_nil : Filters P nil nil
+  | Filters_cons_yes : forall l l' x,
+      P x -> Filters P l l' ->
+      Filters P (x::l) (x::l')
+  | Filters_cons_no : forall l l' x,
+      ~ (P x) -> Filters P l l' ->
+      Filters P (x::l) l'.
+
+
+
+(* ********************************************************************** *)
+
+(* todo: use [suffix] instead (to be defined) *)
+(* todo: use [prefix] instead *)
+
+Definition is_head A (l:list A) (x:A) :=
+  exists t, l = x::t.
+
+Definition is_tail A (l:list A) (t:list A) :=
+  exists x, l = x::t.
+
+Definition is_last A (l:list A) (x:A) :=
+  exists t, l = t&x.
+
+Definition is_init A (l:list A) (t:list A) :=
+  exists x, l = t&x.
+
+Hint Unfold is_head is_tail is_last is_init.
+
+Section IsProp.
+Variables A : Type.
+Implicit Types x : A.
+
+Lemma is_last_one : forall x,
+  is_last (x::nil) x.
+Proof using. intros. unfolds. exists~ (@nil A). Qed.
+
+
+Lemma is_init_one : forall x,
+  is_init (x::nil) nil.
+Proof using. intros. unfolds. exists~ x. Qed.
+
+End IsProp.
+
+Hint Immediate is_last_one.
+Hint Immediate is_init_one.
+
+
+
+
+(* ********************************************************************** *)
+(* * Tactics for rewriting *)
+
+Hint Rewrite app_cons app_nil_l app_nil_r app_assoc
+ app_cons_one : rew_app. (* app_last *)
+Hint Rewrite fold_right_nil fold_right_cons fold_right_app
+ fold_right_last : rew_foldr.
+Hint Rewrite fold_left_nil fold_left_cons fold_left_app
+ fold_left_last : rew_foldl.
+Hint Rewrite length_nil length_cons length_app
+ length_last length_rev : rew_length.
+Hint Rewrite rev_nil rev_app rev_cons rev_last rev_rev : rew_rev.
+ (* +rev_cons_app *)
+Hint Rewrite concat_nil concat_app concat_cons concat_last : rew_concat.
+Hint Rewrite map_nil map_cons map_app map_last : rew_map.
+Hint Rewrite mem_nil mem_cons mem_app mem_last
+ mem_cons_eq mem_last_eq : rew_mem.
+Hint Rewrite keys_nil keys_cons keys_app keys_last : rew_keys.
+Hint Rewrite assoc_cons assoc_here : rew_assoc.
+
+(* TODO: rew_tactics other than [rew_app] and [rew_length]
+   will become deprecated; use [rew_list] instead. *)
+
+Tactic Notation "rew_app" :=
+  autorewrite with rew_app.
+Tactic Notation "rew_foldr" :=
+  autorewrite with rew_foldr rew_app.
+Tactic Notation "rew_foldl" :=
+  autorewrite with rew_foldl rew_app.
+Tactic Notation "rew_length" :=
+  autorewrite with rew_length.
+Tactic Notation "rew_rev" :=
+  autorewrite with rew_rev rew_app.
+Tactic Notation "rew_concat" :=
+  autorewrite with rew_concat rew_app.
+Tactic Notation "rew_map" :=
+  autorewrite with rew_map rew_app.
+Tactic Notation "rew_mem" :=
+  autorewrite with rew_mem rew_app.
+Tactic Notation "rew_keys" :=
+  autorewrite with rew_keys rew_app.
+Tactic Notation "rew_assoc" :=
+  autorewrite with rew_assoc rew_app.
+
+Tactic Notation "rew_app" "in" hyp(H) :=
+  autorewrite with rew_app in H.
+Tactic Notation "rew_foldr" "in" hyp(H) :=
+  autorewrite with rew_foldr rew_app in H.
+Tactic Notation "rew_foldl" "in" hyp(H) :=
+  autorewrite with rew_foldl rew_app in H.
+Tactic Notation "rew_length" "in" hyp(H) :=
+  autorewrite with rew_length in H.
+Tactic Notation "rew_rev" "in" hyp(H) :=
+  autorewrite with rew_rev rew_app in H.
+Tactic Notation "rew_concat" "in" hyp(H) :=
+  autorewrite with rew_concat rew_app in H.
+Tactic Notation "rew_map" "in" hyp(H) :=
+  autorewrite with rew_map rew_app in H.
+Tactic Notation "rew_mem" "in" hyp(H) :=
+  autorewrite with rew_mem rew_app in H.
+Tactic Notation "rew_keys" "in" hyp(H) :=
+  autorewrite with rew_keys rew_app in H.
+Tactic Notation "rew_assoc" "in" hyp(H) :=
+  autorewrite with rew_assoc rew_app in H.
+
+Tactic Notation "rew_app" "in" "*" :=
+  autorewrite_in_star_patch ltac:(fun tt => autorewrite with rew_app).
+  (* autorewrite with rew_app in *. *)
+
+  (* TODO: if those are kept, need the efficiency workaround *)
+Tactic Notation "rew_foldr" "in" "*" :=
+  autorewrite with rew_foldr rew_app in *.
+Tactic Notation "rew_foldl" "in" "*" :=
+  autorewrite with rew_foldl rew_app in *.
+Tactic Notation "rew_length" "in" "*" :=
+  autorewrite with rew_length in *.
+Tactic Notation "rew_rev" "in" "*" :=
+  autorewrite with rew_rev rew_app in *.
+Tactic Notation "rew_concat" "in" "*" :=
+  autorewrite with rew_concat rew_app in *.
+Tactic Notation "rew_map" "in" "*" :=
+  autorewrite with rew_map rew_app in *.
+Tactic Notation "rew_mem" "in" "*" :=
+  autorewrite with rew_mem rew_app in *.
+Tactic Notation "rew_keys" "in" "*" :=
+  autorewrite with rew_keys rew_app in *.
+Tactic Notation "rew_assoc" "in" "*" :=
+  autorewrite with rew_assoc rew_app in *.
+
+Tactic Notation "rew_app" "~" :=
+  rew_app; auto_tilde.
+Tactic Notation "rew_rev" "~" :=
+  rew_rev; auto_tilde.
+Tactic Notation "rew_mem" "~" :=
+  rew_mem; auto_tilde.
+Tactic Notation "rew_length" "~" :=
+  rew_length; auto_tilde.
+
+Hint Rewrite app_cons app_nil_l app_nil_r app_assoc
+ app_cons_one
+ fold_right_nil fold_right_cons fold_right_app
+ fold_right_last
+ fold_left_nil fold_left_cons fold_left_app
+ fold_left_last
+ length_nil length_cons length_app length_rev
+ length_last
+ rev_nil rev_app rev_cons rev_last rev_rev
+ concat_nil concat_app concat_cons concat_last
+  map_nil map_cons map_app map_last : rew_list.
+
+
+(* ********************************************************************** *)
+
+Definition if_t_x_y := if_true.
+Definition if_f_x_y := if_false.
+Definition if_x_t_f := if_then_true_else_false.
+Definition if_x_y_y := if_then_else_same.
+
+
+
+Definition neutral_l_and := and_true_l.
+Definition neutral_r_and := and_true_r.
+Definition absorb_l_and := and_false_l.
+Definition absorb_r_and := and_false_r.
+
+Definition neutral_l_or := or_false_l.
+Definition neutral_r_or := or_false_r.
+Definition absorb_l_or := or_true_l.
+Definition absorb_r_or := or_true_r.
+
+
+
+Definition beq_impl := eqb.
+
+Definition comm_assoc_prove := comm_assoc_of_comm_and_assoc.
+
+
+
+(* ---------------------------------------------------------------------- *)
+(* ** Update as a relation *)
+
+(** [Update n x L L'] asserts [L'] is the list obtained by substituting
+    in [L] the item at index [n] with [x]. *)
+
+Definition Update A (n:nat) (x:A) l l' :=
+    length l' = length l
+  /\ (forall y m, Nth m l y -> m <> n -> Nth m l' y)
+  /\ Nth n l' x.
+
+Section UpdateRel.
+Variables A : Type.
+Implicit Types x : A.
+Implicit Types l : list A.
+Implicit Types n : nat.
+Hint Constructors Nth.
+
+Lemma Update_zero : forall x y l,
+  Update 0 x (y::l) (x::l).
+Proof using.
+  intros. splits.
+  rew_list~.
+  introv M H. inverts* M.
+  autos*.
+Qed.
+
+Lemma Update_cons : forall i x y l l',
+  Update i x l l' -> 
+  Update (S i) x (y::l) (y::l').
+Proof using.
+  introv (L&O&E). splits.
+  rew_list~.
+  introv M H. inverts* M.
+  autos*.
+Qed.
+
+Definition Update_succ := Update_cons.
+
+Lemma Update_app_l : forall i x l1 l1' l2,
+  Update i x l1 l1' -> 
+  Update i x (l1++l2) (l1'++l2).
+Proof using.
+  introv (L&O&E). splits.
+  rew_list~.
+  introv M H. destruct (Nth_app_inv _ _ M).
+    apply~ Nth_app_l.
+    unpack. apply* Nth_app_r. math.
+  apply~ Nth_app_l.
+Qed.
+
+Lemma Update_app_r : forall i j x l1 l2 l2',
+  Update j x l2 l2' -> 
+  i = (j + length l1)%nat -> 
+  Update i x (l1++l2) (l1++l2').
+Proof using.
+  introv (L&O&E) Eq. splits.
+  rew_list~.
+  introv M H. destruct (Nth_app_inv _ _ M).
+    apply~ Nth_app_l.
+    unpack. apply* Nth_app_r. apply* O. math. math.
+  apply* Nth_app_r.
+Qed.
+
+Lemma Update_length : forall i x l l',
+  Update i x l l' -> 
+  length l = length l'.
+Proof using. introv (L&O&E). auto. Qed.
+
+Lemma Update_not_nil_l : forall i x l1 l2,
+  Update i x l1 l2 -> 
+  l1 <> nil.
+Proof using. introv (L&O&E) K. subst. inverts E; auto_false. Qed.
+
+Lemma Update_not_nil_r : forall i x l1 l2,
+  Update i x l1 l2 -> 
+  l2 <> nil.
+Proof using. introv (L&O&E) K. subst. inverts E. Qed.
+
+End UpdateRel.
+
+*)
+
+
+(* ---------------------------------------------------------------------- *)
+
+Definition head_of_le := head_le. 
+
+Definition head_le := heads_le. 
+(* and same for lemmas *)
+
+(* ---------------------------------------------------------------------- *)
+
+Definition foreach_weaken := foreach_pred_le.
+
+Definition Forall_weaken := Forall_pred_le.
+
+(* ---------------------------------------------------------------------- *)
+
+Definition sorted_sub := sorted_cons_inv_sorted.
+Definition sorted_inv := sorted_cons_inv.
+Definition sorted_cons_head_of := sorted_cons_inv_head_le.
+
+
+Definition sorted_cons_head := sorted_cons.
+Definition head_le_Forall_le := Forall_le_head_le.
+Definition sorted_Forall_le := Forall_le_of_sorted_head_le.
+Definition  := .
+Definition  := .
+Definition  := .
+Definition  := .
+Definition  := .
+
+Lemma sorted_flip_flip : forall l,
+  sorted le l ->
+  sorted (flip (flip le)) l.
+Proof using.
+  introv H. rewrite flip_flip. induction H.
+   constructor. constructor. apply~ sorted_cons.
+Qed.
+
+
+
+
+(* ********************************************************************** *)
+(** * List sorted in reverse order *)
+
+(* ********************************************************************** *)
+(** If [x::l2] is sorted and the head of [l1] is smaller than [x],
+   then [x] is smaller than the head of [l2] . *)
+
+Lemma heads_le_of_sorted : forall x l1 l2,
+  sorted le (x::l2) ->
+  heads_le le l1 (x::l2) ->
+  heads_le le (x::l1) l2.
+Proof using.
+  intros. destruct l2; simpl. auto. inverts~ H.
+Qed.
+
+
+
+
+
+(* ********************************************************************** *)
+
+
+(** [splits_all] will recursively split any conjunction, unfolding
+    definitions when necessary. Warning: this tactic will loop
+    on goals of the form [well_founded R]. Todo: fix this *)
+
+Ltac splits_all_base := repeat split.
+
+Tactic Notation "splits_all" :=
+  splits_all_base.
+
+Tactic Notation "splits_all" "*" :=
+  splits_all; auto_star.
+Tactic Notation "splits_all" "~" :=
+  splits_all; auto_tilde.
+
+(** New tactic [splits_all] that does not loop on well-founded goals *)
+(* TODO: deprecate [splits_all] *)
+
+Ltac splits_all_base ::=
+  match goal with
+  | |- wf _ => idtac
+  | |- well_founded => idtac
+  | _ => try (split; splits_all_base)
+  end.
+
+
+
+  (* [splits_all] is short for [repeat split] *)
+  splits_all. skip. skip. skip. skip. skip. skip.
+
+
+Definition int_downto_wf := downto_wf.
+Definition int_upto_wf := upto_wf.
+
+
+
+(* ---------------------------------------------------------------------- *)
+(** ** Definition of Xor on propositions *)
+
+(* TODO: should be defined simply as P <> Q *)
+
+Definition Xor (P Q : Prop) :=
+  (P /\ ~ Q) \/ (~ P /\ Q).
+
+Hint Unfold Xor.
+
+Notation "P '\+/' Q" := (Xor P Q)
+  (at level 76, right associativity) : Logic_scope.
+
+Open Scope Logic_scope.
+
+
+(* ---------------------------------------------------------------------- *)
+
+Definition is_True := prop_eq_True.
+Definition is_False := prop_eq_False.
+Definition is_True_inv := prop_eq_True_inv.
+Definition is_False_inv := prop_eq_False_inv.
+Definition prop_neq_l_inv := prop_neq_inv_l.
+Definition prop_neq_r_inv := prop_neq_inv_r.
+
+Definition not_not_elim := not_not_inv.
+Definition not_not_intro := not_not.
+Definition not_cancel := not_inj.
+
+Definition contrapose_elim := contrapose_inv.
+Definition contrapose_intro := contrapose.
+
+Definition case_classic_l := or_inv_classic_l.
+Definition case_classic_r := or_inv_classic_r.
+
+Definition iff_1 := iff_l.
+Definition iff_2 := iff_r.
+
+Definition iff_neg_1 := iff_not_l.
+Definition iff_neg_2 := iff_not_r.
+
+Definition iff_not_swap := iff_not_swap_eq.
+Definition iff_not_inj := iff_not_inj_eq.
+
+
+(* ---------------------------------------------------------------------- *)
+
+(** The tactic [rew_logic'] is similar except that it only
+    tries to apply the most frequently useful rules, in order
+    to run faster. *)
+
+Hint Rewrite not_not not_and not_or not_True not_False : rew_logic'.
+
+Tactic Notation "rew_logic'" :=
+  autorewrite with rew_logic'.
+Tactic Notation "rew_logic'" "in" hyp(H) :=
+  autorewrite with rew_logic' in H.
+Tactic Notation "rew_logic'" "in" "*" :=
+  autorewrite with rew_logic' in *.
+
+Tactic Notation "rew_logic'" "~" :=
+  rew_logic'; auto_tilde.
+Tactic Notation "rew_logic'" "~" "in" hyp(H) :=
+  rew_logic' in H; auto_tilde.
+Tactic Notation "rew_logic'" "~" "in" "*" :=
+  rew_logic' in *; auto_tilde.
+
+Tactic Notation "rew_logic'" "*" :=
+  rew_logic'; auto_star.
+Tactic Notation "rew_logic'" "*" "in" hyp(H) :=
+  rew_logic' in H; auto_star.
+Tactic Notation "rew_logic'" "*" "in" "*" :=
+  rew_logic' in *; auto_star.
+
+(* ---------------------------------------------------------------------- *)
+
+Ltac absurds_post H :=
+  rew_logic in H.
+
+Ltac absurds_core H :=
+  let N := fresh "TEMP" in apply not_not_inv;
+  intros N; absurds_post N; generalize N; intros H.
+
+Tactic Notation "absurds" "as" simple_intropattern(H) :=
+  absurds_core H.
+Tactic Notation "absurds" :=
+  let H := fresh "H" in absurds as H.
+
+(** [absurds_nosimpl as H], or simply [absurd_nosimpl] is like
+    [absurd] but does not perform any simplification of the negation. *)
+
+Ltac absurds_nosimpl_core H :=
+  apply not_not_inv; intros H.
+
+Tactic Notation "absurds_nosimpl" "as" simple_intropattern(H) :=
+  absurds_nosimpl_core H.
+Tactic Notation "absurds_nosimpl" :=
+  let H := fresh "H" in absurds_nosimpl as H.
+
+(* ---------------------------------------------------------------------- *)
+
+Lemma pred_le_refl : forall A (P : A -> Prop),
+  pred_le P P.
+Proof using. unfolds~ pred_le. Qed.
+(* LATER: could be reformulated as [refl pred_le], but this
+   might prevent use by [auto]. (?) *)
+
+(* ---------------------------------------------------------------------- *)
+(** ** A shorthand for [ex_intro] with more implicit arguments *)
+
+Definition ex_intro' A (x:A) (P:A->Prop) (H:P x) :=
+  @ex_intro A P x H.
+
+Arguments ex_intro' [A] {P} {H}.
+
+
+
+(* ---------------------------------------------------------------------- *)
+
+Definition comm_or := or_comm.
+Definition comm_and := and_comm.
+Definition assoc_or := or_assoc.
+Definition assoc_and := and_assoc.
+
+Lemma distribute_and : forall x y z,
+  (x ||| y) &&& z = x &&& z ||| y &&& z.
+Proof. tautob. Qed.
+
+Lemma distribute_or : forall x y z,
+  x &&& y ||| z = (x ||| z) &&& (y ||| z).
+Proof. tautob. Qed.
+
+
+
+(* ---------------------------------------------------------------------- *)
+(* ---------------------------------------------------------------------- *)
+
+
+(* ---------------------------------------------------------------------- *)
+(** ** DEPRECATED  --- Tactic [fold_bool] *)
+
+(** Tactic [fold_bool] simplifies goal and hypotheses of the form
+    [b = true] and [b = false], as well as their symmetric *)
+
+Section FoldingBool.
+Variables (b : bool).
+
+Lemma bool_eq_true :
+  b -> b = true.
+Proof using. auto. Qed.
+
+Lemma eq_true_l :
+  true = b -> b.
+Proof using. tautob. Qed.
+
+Lemma eq_true_r :
+  b = true -> b.
+Proof using. tautob. Qed.
+
+Lemma eq_false_l :
+  false = b -> !b.
+Proof using. tautob. Qed.
+
+Lemma eq_false_r :
+  b = false -> !b.
+Proof using. tautob. Qed.
+
+Lemma eq_true_l_back :
+  b -> true = b.
+Proof using. tautob. Qed.
+
+Lemma eq_true_r_back :
+  b -> b = true.
+Proof using. tautob. Qed.
+
+Lemma eq_false_l_back :
+  !b -> false = b.
+Proof using. tautob. Qed.
+
+Lemma eq_false_r_back :
+  !b -> b = false.
+Proof using. tautob. Qed.
+
+Lemma eq_false_r_back_not :
+  (~b) -> b = false.
+Proof using. destruct b; auto_false. Qed. (*todo:tautob.*)
+
+Lemma neg_neg_back :
+  b -> !!b.
+Proof using. tautob. Qed.
+
+Lemma neg_neg_forward :
+  !!b -> b.
+Proof using. tautob. Qed.
+
+Lemma eq_bool_prove : forall b' : bool,
+  (b -> b') -> (b' -> b) -> b = b'.
+Proof using. lets: false_to_False. tautob; tryfalse~. Qed.
+  (* todo: simplify *)
+
+Lemma eq_bool_iff : forall b' : bool,
+  b = b' -> (b <-> b').
+Proof using. tautob. Qed.
+
+End FoldingBool.
+
+Ltac fold_bool :=
+  repeat match goal with
+  | H: true = ?b |- _ => applys_to H eq_true_l
+  | H: ?b = true |- _ => applys_to H eq_true_r
+  | H: false = ?b |- _ => applys_to H eq_false_l
+  | H: ?b = false |- _ => applys_to H eq_false_r
+  | H: istrue (!! ?b) |- _ => applys_to H neg_neg_forward
+  | |- true = ?b => apply eq_true_l_back
+  | |- ?b = true => apply eq_true_r_back
+  | |- false = ?b => apply eq_false_l_back
+  | |- ?b = false => apply eq_false_r_back
+  | |- istrue (!! ?b) => apply neg_neg_back
+  end.
+
+
+(* ---------------------------------------------------------------------- *)
+(** ** DEPRECATED --- Tactic [fold_prop] *)
+
+(** Tactic [fold_prop] simplifies goal and hypotheses of the form
+    [istrue b] or [~ istrue b], or [P = True] or [P = False]
+    as well as their symmetric *)
+
+Section FoldingProp.
+Variables (P : Prop) (b : bool).
+
+Lemma istrue_isTrue_back :
+  P -> istrue (isTrue P).
+Proof using. rewrite~ istrue_isTrue. Qed.
+
+Lemma istrue_isTrue_forw :
+  istrue (isTrue P) -> P.
+Proof using. rewrite~ istrue_isTrue. Qed.
+
+Lemma istrue_not_isTrue_back :
+  ~ P -> istrue (! isTrue P).
+Proof using. rewrite~ istrue_neg_isTrue. Qed.
+
+Lemma istrue_not_isTrue_forw :
+  istrue (! isTrue P) -> ~ P.
+Proof using. rewrite~ istrue_neg_isTrue. Qed.
+
+Lemma prop_eq_True_forw :
+  (P = True) -> P.
+Proof using. intros. subst~. Qed.
+
+Lemma prop_eq_True_back :
+  P -> (P = True).
+Proof using. intros. extens*. Qed.
+
+Lemma prop_eq_False_forw :
+  (P = False) -> ~ P.
+Proof using. intro. subst*. Qed.
+
+Lemma prop_eq_False_back :
+  ~ P -> (P = False).
+Proof using. intros. extens*. Qed.
+
+Lemma prop_neq_True_forw :
+  (P <> True) -> ~ P.
+Proof using. intros_all. apply H. extens*. Qed.
+
+Lemma prop_neq_True_back :
+  ~ P -> (P <> True).
+Proof using. intros_all. subst~. Qed.
+
+Lemma prop_neq_False_forw :
+  (P <> False) -> P.
+Proof using.
+  intros_all. apply not_not_inv.
+  intros_all. apply H. extens*.
+Qed.
+
+Lemma prop_neq_False_back :
+  P -> (P <> False).
+Proof using. introv M K. rewrite~ <- K. Qed.
+
+Lemma not_istrue_isTrue_forw :
+  ~ istrue (isTrue P) -> ~ P.
+Proof using. apply contrapose. rewrite~ istrue_isTrue. Qed.
+
+Lemma not_istrue_not_isTrue_forw :
+  ~ istrue (! isTrue P) -> P.
+Proof using.
+  rewrite <- (@not_not_eq P). apply contrapose.
+  rewrite~ istrue_neg_isTrue.
+Qed. (* todo: missing lemma from lib logic about ~A->B *)
+
+Lemma not_istrue_isTrue_back :
+  ~ P -> ~ istrue (isTrue P).
+Proof using. apply contrapose. rewrite~ istrue_isTrue. Qed.
+
+Lemma not_istrue_not_isTrue_back :
+  P -> ~ istrue (! isTrue P).
+Proof using.
+  rewrite <- (@not_not_eq P). apply contrapose.
+  rewrite~ istrue_neg_isTrue.
+Qed.
+
+End FoldingProp.
+
+Ltac fold_prop :=
+  repeat match goal with
+  | H: istrue (isTrue ?P) |- _ => applys_to H istrue_isTrue_forw
+  | H: istrue (! isTrue ?P) |- _ => applys_to H istrue_not_isTrue_forw
+  | H: ~ istrue (isTrue ?P) |- _ => applys_to H not_istrue_isTrue_forw
+  | H: ~ istrue (! isTrue ?P) |- _ => applys_to H not_istrue_not_isTrue_forw
+  | H: (?P = True) |- _ => applys_to H prop_eq_True_forw
+  | H: (?P = False) |- _ => applys_to H prop_eq_False_forw
+  | H: (True = ?P) |- _ => symmetry in H; applys_to H prop_eq_True_forw
+  | H: (False = ?P) |- _ => symmetry in H; applys_to H prop_eq_False_forw
+  | H: ~ (~ ?P) |- _ => applys_to H not_not_inv
+  | |- istrue (isTrue ?P) => apply istrue_isTrue_back
+  | |- istrue (! isTrue ?P) => apply istrue_not_isTrue_back
+  | |- ~ istrue (isTrue ?P) => apply not_istrue_isTrue_back
+  | |- ~ istrue (! isTrue ?P) => apply not_istrue_not_isTrue_back
+  | |- (?P = True) => apply prop_eq_True_back
+  | |- (?P = False) => apply prop_eq_False_back
+  | |- (True = ?P) => symmetry; apply prop_eq_True_back
+  | |- (False = ?P) => symmetry; apply prop_eq_False_back
+  | |- ~ (~ ?P) => apply not_not
+  end.
+
+  (* todo: improve case_if so that there is no need for that *)
+
+
+
+
+
+
+(* Extension of [extens] -- DEPRECATED *)
+
+Ltac extens_base :=
+  first [ extens_core | intros; extens_core ]; logics.
+
+
+Definition eq_trans' := eq_trans_rl.
+
+
+
+Defintion prop_ext_nd_1 := prop_ext_nondep_1.
+Definition func_ext_dep_1 := fun_ext_1.
+Definition fun_ext_1 := func_ext_nondep_1.
+
+Definition func_eq_1 := args_eq_1.
+Definition func_same_1 := func_eq_1.
+
+(* ---------------------------------------------------------------------- *)
+(** ** Equal functions on equal arguments provide equal results *)
+
+(* Remark: is this really needed? maybe applying successively 
+   two lemmas [func_eq] and [func_same] is sufficient. *)
+
+Section FuncEqual.
+Variables (A1 A2 A3 A4 A5 B : Type).
+
+Lemma func_equal_1 : forall (f g:A1->B) x1 y1,
+  f = g ->
+  x1 = y1 ->
+  f x1 = g y1.
+Proof using. intros. subst~. Qed.
+
+Lemma func_equal_2 : forall (f g:A1->A2->B) x1 y1 x2 y2,
+  f = g -> 
+  x1 = y1 -> 
+  x2 = y2 ->
+  f x1 x2 = f y1 y2.
+Proof using. intros. subst~. Qed.
+
+Lemma func_equal_3 : forall (f g:A1->A2->A3->B) x1 y1 x2 y2 x3 y3,
+  f = g -> 
+  x1 = y1 -> 
+  x2 = y2 -> 
+  x3 = y3 ->
+  f x1 x2 x3 = f y1 y2 y3.
+Proof using. intros. subst~. Qed.
+
+Lemma func_equal_4 : forall (f g:A1->A2->A3->A4->B) x1 y1 x2 y2 x3 y3 x4 y4,
+  f = g -> 
+  x1 = y1 ->
+  x2 = y2 ->
+  x3 = y3 ->
+  x4 = y4 ->
+  f x1 x2 x3 x4 = f y1 y2 y3 y4.
+Proof using. intros. subst~. Qed.
+
+Lemma func_equal_5 : forall (f g:A1->A2->A3->A4->A5->B) x1 y1 x2 y2 x3 y3 x4 y4 x5 y5,
+  f = g ->
+  x1 = y1 ->
+  x2 = y2 ->
+  x3 = y3 ->
+  x4 = y4 ->
+  x5 = y5 ->
+  f x1 x2 x3 x4 x5 = f y1 y2 y3 y4 y5.
+Proof using. intros. subst~. Qed.
+
+End FuncEqual.
+
+
+
+
+---------
+
+
+  Record retract (A B : Prop) : Prop :=
+    { retract_f1 : A -> B;
+      retract_f2 : B -> A;
+      retract_comp : forall x, retract_f1 (retract_f2 x) = x }.
+
+  Lemma prop_retract_to_self_impl_when_true : forall A,
+    A ->
+    retract A (A -> A).
+  Proof using.
+    intros A a. rewrite <- (prop_eq_self_impl_when_true a).
+    apply~ (@Build_retract A A (fun x => x) (fun x => x)).
+  Qed.
+
+  Record has_fixpoint (A:Prop) : Prop := has_fixpoint_make
+    { has_fixpoint_F : (A -> A) -> A;
+      has_fixpoint_fix : forall f, has_fixpoint_F f = f (has_fixpoint_F f) }.
+
+  Lemma prop_has_fixpoint_when_true : forall A,
+    A -> 
+    has_fixpoint A.
+  Proof using.
+    intros A a. destruct (prop_retract_to_self_impl_when_true a) as [g1 g2 Fix].
+    set (Y := fun f => (fun x => f (g1 x x)) (g2 (fun x => f (g1 x x)))).
+    applys (has_fixpoint_make Y). (* TODO: why [applys has_fixpoint_make Y] fails *)
+    { intros f. unfold Y at 1. rewrite~ Fix. }
+  Qed.
+
+---------------------------------------------------------
+
+(** [extens] is a tactic that can be applied to exploit extensionality
+    on any goal of the form [x = y] when [x] and [y] are functions, or
+    predicates, or have a type [A] satisfying [Extensional A].
+    Note: the tactic [extens] automatically calls [intros] if needed. *)
+
+Ltac extens_core :=
+  hnf;
+  match goal with
+  | |- _ = _ :> ?T =>
+  match T with
+  | Prop => apply prop_ext
+  | forall _, Prop => apply prop_ext_1
+  | forall _ _, Prop => apply prop_ext_2
+  | forall _ _ _, Prop => apply prop_ext_3
+  | forall _ _ _ _, Prop => apply prop_ext_4
+  | forall _ _ _ _ _, Prop => apply prop_ext_5
+  | forall _ _ _ _ _ _, Prop => apply prop_ext_6
+  | forall _,_ =>
+     first [ apply fun_ext_4
+           | apply fun_ext_3
+           | apply fun_ext_2
+           | apply fun_ext_1 ]
+  | _ => apply extensional; try unfold extensional_hyp; simpl
+  end end.
+
+Ltac extens_base :=
+  first [ extens_core | intros; extens_core ].
+
+Tactic Notation "extens" :=
+  extens_base.
+Tactic Notation "extens" "~" :=
+  extens; auto_tilde.
+Tactic Notation "extens" "*" :=
+  extens; auto_star.
+
+
+
+--------------------------------------------------------
+
+Definition func_ext := func_ext_dep.
+
+rew_reflect => rew_istrue
+rew_unreflect => rew_isTrue
+
+rew_refl => rew_istrue (or sometimes rew_isTrue)
+
+
+logic => rew_case_if
+
+Definition istrue_not_false := not_istrue_false.
+
+Definition istrue_def := istrue_to_eq_true.
+
+Definition bool_cases_eq := bool_eq_true_or_eq_false
+
+Definition isTrue_if := isTrue_If.
+
+(* ---------------------------------------------------------------------- *)
+(** ** Tactics [rew_refl]  *)
+
+(** [rew_refl] distributes [istrue] and [isTrue]
+    and replaces [decide] with [isTrue]. *)
+
+Hint Rewrite isTrue_True isTrue_False isTrue_istrue
+ isTrue_not isTrue_and isTrue_or isTrue_if
+ istrue_true_eq istrue_false_eq istrue_isTrue_eq
+ istrue_neg istrue_and istrue_or : rew_refl.
+
+Tactic Notation "rew_refl" :=
+  autorewrite with rew_refl.
+Tactic Notation "rew_refl" "in" hyp(H) :=
+  autorewrite with rew_refl in H.
+Tactic Notation "rew_refl" "in" "*" :=
+  autorewrite_in_star_patch ltac:(fun tt => autorewrite with rew_refl).
+  (* autorewrite with rew_refl in *. *)
+
+Tactic Notation "rew_refl" "~" :=
+  rew_refl; auto_tilde.
+Tactic Notation "rew_refl" "~" "in" hyp(H) :=
+  rew_refl in H; auto_tilde.
+Tactic Notation "rew_refl" "~" "in" "*" :=
+  rew_refl in *; auto_tilde.
+
+Tactic Notation "rew_refl" "*" :=
+  rew_refl; auto_star.
+Tactic Notation "rew_refl" "*" "in" hyp(H) :=
+  rew_refl in H; auto_star.
+Tactic Notation "rew_refl" "*" "in" "*" :=
+  rew_refl in *; auto_star.
+
+
+(* ---------------------------------------------------------------------- *)
+(** ** Relations *)
+
+Definition incl := rel_le.
+
+Definition sym_flip := flip_sym.
+
+Definition trans_sym_2 := trans_sym_lr.
+Definition trans_sym_1 := trans_sym_rl.
+
+Definition use_idempotent := idempotent_inv.
+
+(* ---------------------------------------------------------------------- *)
+
+EVERYWHERE foo_elim => foo_inv
+
+(* ---------------------------------------------------------------------- *)
+
+AND SIMILAR
+	lexico2_app_1 => lexico2_1 
+
+Definition irrefl_neq := irrefl_inv_neq.
+Definition sym_to_eq := sym_inv_eq.
+pr
+Definition trans_strict := trans_strict_of_antisym.
+
+
+
+Definition inverse_image := preimage.
+Definition sequence := rel_seq.
+
+Definition flip := inverse.
+
+
+Definition large_strict_trans := large_trans_l.
+Definition strict_large_trans := large_trans_r.
+
+
+Definition eq_by_inverse_l := inverse_eq_l.
+Definition eq_by_inverse_r := inverse_eq_r.
+
+Definition eq_equiv := equiv_eq
+
+
+Definition tclosure_rtclosure := rtclosure_of_tclosure.
+Definition tclosure_right := tclosure_inv_r.
+
+Definition functional_empty := functional_rel_empty.
+
+Definition union_refl_left := refl_rel_union_l.
+
+Definition prove_rel_union_left := rel_union_l.
+
+Lemma inverse_inverse_applied : forall R x y,
+  (inverse (inverse R)) x y = R x y.
+Proof using. auto. Qed.
+
+Definition functional_characterization := functional_iff_seq_inverse_incl_eq.
+
+Definition double_incl := antisym_rel_incl.
+
+Hint Resolve rel_le_tclosure_self.
+Hint Resolve stclosure_step stclosure_sym stclosure_trans.
+
+Definition defined_rel_incl_functional := eq_of_incl_defined_functional.
+
+Definition incl_fr := incl_fun_rel.
+Definition incl_rf := incl_rel_fun.
+
+Definition binds_func := binds_functional.
+
+Definition Nth_func := Nth_functional.
+
+EVERYWHERE: func => fun.
+
+Definition .. := rel_in_fun_of_fun_in_rel_functional
+
+Definition prop_ext_1 := pred_ext_1.
+Definition prop_ext_2 := pred_ext_2.
+etc..
+
+Hint Resolve equiv_eq. (* TODO: remove
+
+
+EVERYWHERE: from -> of
+
+EVERYWHERE: once -> one
+
+Definition nat_of_number := number_to_nat.
+
+EVERYWHERE: iff -> eq
+
+Definition prove_Inhab := Inhab_of_val.
+
+
+Ltac prove_wf := solve_wf.
+
+EVERYWHERE left => l
+EVERYWHERE right => r
+
+EVERYWHERE: pred_le => pred_incl
+
+Definition not_inj := injective_not.
+
+Definition proj_lemma_1 := forall_conj_inv_1.
+
+
+
+
+Lemma rel_eq_inv : forall A (R1 R2:binary A),
+  R1 = R2 ->
+  (forall x y, R1 x y <-> R2 x y).
+Proof using. intros. subst*. Qed.
+(* Note: see [pred_eq_2] from LibEqual *)
+
+
+-----------
+
+
+Lemma epsilon_spec' : forall A (P:A->Prop) (x:A) (H:P x) {IA:Inhab A}, 
+  P (epsilon P).
+Proof using. intros. applys* epsilon_spec. Qed.
+
+Ltac spec_epsilon_post E X W I :=
+   first [ lets I: (>> (@epsilon_spec' _ E W) __ __)
+         | lets I: (>> (@epsilon_spec' _ E _ W) __)  ];
+   [ | sets X: (epsilon E) ].
+
+Tactic Notation "spec_epsilon" constr(W) "as" ident(X) simple_intropattern(I) :=
+  epsilon_find ltac:(fun E => spec_epsilon_post E X W I).
+
+Tactic Notation "spec_epsilon" constr(W) "in" hyp(H) "as" ident(X) simple_intropattern(I) :=
+  epsilon_find_in H ltac:(fun E => spec_epsilon_post E X W I).
+
+Tactic Notation "spec_epsilon" "~" constr(W) "as" ident(X) simple_intropattern(I) :=
+  spec_epsilon W as X I; auto_tilde.
+Tactic Notation "spec_epsilon" "~" constr(W) "in" hyp(H) "as" ident(X) simple_intropattern(I) :=
+  spec_epsilon W in H as X I; auto_tilde.
+Tactic Notation "spec_epsilon" "*" constr(W) "as" ident(X) simple_intropattern(I) :=
+  spec_epsilon W as X I; auto_star.
+Tactic Notation "spec_epsilon" "*" constr(W) "in" hyp(H) "as" ident(X) simple_intropattern(I) :=
+  spec_epsilon W in H as X I; auto_star.
+
+Ltac find_epsilon => epsilon_find
+
+
+
+
+LibInt
+ double => mult_2_eq_plus
+ triple => mult_3_eq_plus
+
+
+-----------
+
+Many lemmas from LibNat and LibInt now in LibOld
+
+
+
+abs_pos_nat => abs_nat
+
+abs_spos => abs_eq_succ_abs_minus_one
+
+succ_abs => succ_abs_eq_abs_one_plus
+
+
+int_nat_eq => eq_nat_of_eq_int
+eq_int_nat => eq_nat_of_eq_int
+nat_int_lt => lt_nat_of_lt_int
+int_nat_lt => lt_int_of_lt_nat
+
+Zabs_nat_lt => lt_abs_abs
+
+-----------
+
+total_order_le_or_gt => changed order or arguments
+
+order_of_strict => order_large_of_strict_order
+
+flip_trichotomous => trichotomous_inverse
+
+removed: Arguments nle_to_sle {A} {H} {NLe_to_SLe} [x] [y].
+
+
+ge_from_le => ge_of_le
+le_from_le => lt_of_le
+=> gt_of_le
+--
+
+my_Z_of_nat => nat_to_Z
+
+Ltac  math_debug => math_setup 
+
+
+---
+
+LibWf
+
+incl_wf => wf_of_rel_incl
+
+measure_trans => trans_measure 
+
+measure_wf => wf_measure 
+
+binary_map => rel_preimage
+
+
+---
+
+LibMonoid
+
+
+---
+
+List
+
+list_no_mem => eq_list_not_mem
+ 
+
+finite_prove_covers => finite_of_list_covers
+finite_prove_repr => finite_of_list_repr
+finite_prove_exists => finite_of_ex_list_covers
+
+
+==================================
+
+fupdate_def => fupdate_eq
+fupdate_eq => fupdate_same (changed)
+
+==================================
+
+disjoint_def => disjoint_eq_inter_empty
+
+fold_def => fold_eq_fold_to_list
+fold_eq => fold_eq_fold_list_repr
+
+Mem_to_list => mem_to_list [changed]
+
+foreach_pred_incl => foreach_of_pred_incl
+
+foreach_remove_simple => foreach_remove_of_foreach_all
+foreach_remove_pred_incl => foreach_remove
+
+foreach_notin_prove => notin_of_foreach_not
+
+card_incl_le => card_incl_le
+
+card_inter_left => card_inter_le_l
+card_inter_right => card_inter_le_r
+
+
+card_nonempty => card_ge_one
+
+set_isolate => eq_union_single_remove_one
+set_add_remove => set_remove_one_add_same
+
+list_repr_covers => list_covers_of_list_repr
+list_repr_no_duplicates => noduplicates_of_list_repr
+finite_list_repr => list_repr_to_list_of_finite
+to_list_spec => eq_to_list_inv
+
+==================================
+
+dom_update_index => dom_update_at_index
+in_dom_empty => indom_empty_inv
+no_binds_empty => eq_empty_of_not_binds
+indom_update => indom_update_eq
+indom_update_already_inv => indom_of_indom_update_at_indom
+indom_update_already => indom_update_of_indom
+update_read_if => read_update
+update_read_eq => read_update_same
+update_read_neq => read_update_neq
+update_update_eq => update_update
+binds_prove => binds_of_indom_read
+binds_indom => indom_of_binds
+binds_index => index_of_binds
+binds_read => read_of_binds
+
+
+update_remove_one_eq => remove_one_update
+remove_one_read_neq => read_remove_one_neq
+remove_one_update_neq => update_remove_one_neq
+split_restrict_remove => eq_union_restrict_remove
+split_restrict_remove_single => eq_union_restrict_remove_one
+binds_update_analysis => binds_update_inv[updated]
+binds_update_indom_eq => [same as above]
+binds_update_eq => binds_update_same
+binds_update_eq_inv => binds_update_same_inv
+indom_update_self => indom_update_same
+
+dom_def_binds => dom_eq_set_of_binds
+binds_def => binds_eq_indom_read
+
+unsome_def => unsome_default
+disjoint_def => disjoint_eq_disjoint_dom
+fold_def_binds => fold_eq_fold_pairs
+update_def_union => update_eq_union_single
+
+set_norm => rew_set in *
+
+
+===================
+
+cons_make_pred_same => make_eq_cons_make_pred
+rew_arr => rew_array_nocase 
+LibListZ_length_def => length_eq
+length_singleton => length_one
+length_le_1_implies_nil_tail => length_le_1_inv_tail_eq_nil
+index_def => index_eq_index_length
+index_length_unfold => index_of_index_length
+index_bounds => index_eq_inbound
+index_bounds_impl => index_of_inbound
+index_length_eq => index_of_index_length'
+read_zero => read_cons_zero
+read_succ => read_cons_succ
+ext_eq => extens_eq
+read_update_eq => read_update_same
+update_update_eq => update_update_same
+update_app_right => update_app_r
+update_app_right_here => update_app_middle
+index_zmake => index_make
+cons_make => cons_make_pred_same
