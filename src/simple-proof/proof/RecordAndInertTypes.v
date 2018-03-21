@@ -16,7 +16,7 @@ Require Import Definitions Binding.
     or a field declaration.*)
 Inductive record_dec : dec -> Prop :=
 | rd_typ : forall A T, record_dec (dec_typ A T T)
-| rd_trm : forall a T, record_dec (dec_trm a T).
+| rd_trm : forall a T, record_dec (dec_trm a T T).
 
 (** Given a record declaration, a [record_typ] keeps track of the declaration's
     field member labels (i.e. names of fields) and type member labels
@@ -173,7 +173,7 @@ Proof.
           destruct H
         | [ Hd: _ /- _ : dec_typ _ _ _ |- _ ] =>
           inversions Hd
-        | [ Hd: _ /- _ : dec_trm _ _ |- _ ] =>
+        | [ Hd: _ /- _ : dec_trm _ _ _ |- _ ] =>
           inversions Hd
     end;
     match goal with
@@ -217,13 +217,16 @@ Proof.
         { subst. constructor. }
         { simpl in Hz; auto. }
         { simpl in Hz; auto. }
-      * constructor.
+      * simpl in Hz; destruct_notin.
+        apply (proj21 open_fresh_typ_dec_injective) in H3; subst; auto.
+        constructor.
     + destruct d; inversions H.
       * apply (proj21 open_fresh_typ_dec_injective) in H3.
         { subst. constructor. }
         { simpl in Hz; auto. }
         { simpl in Hz; auto. }
-      * constructor.
+      * simpl in Hz; destruct_notin.
+        apply (proj21 open_fresh_typ_dec_injective) in H3; subst; auto.
   - destruct T; inversions x. simpl in Hz.
     assert (Hz': z \notin fv_typ T1) by auto.
     destruct (IHrecord_typ T1 z Hz' eq_refl) as [ls' ?]. clear Hz'.
@@ -239,7 +242,9 @@ Proof.
       * simpl in Hz; auto.
       * simpl in Hz; auto.
     + exists (ls' \u \{ label_trm t }). constructor*.
-      * constructor.
+      * simpl in Hz; destruct_notin.
+        apply (proj21 open_fresh_typ_dec_injective) in H6; subst; auto.
+        constructor.
       * simpl in H2. pose proof (opening_preserves_labels z H1 H).
         rewrite* H0.
 Qed.

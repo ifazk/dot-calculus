@@ -61,7 +61,7 @@ Inductive typ : Set :=
   - [dec_trm a T] represents a field declaration [{a: T}] . *)
 with dec : Set :=
   | dec_typ  : typ_label -> typ -> typ -> dec
-  | dec_trm  : trm_label -> typ -> dec.
+  | dec_trm  : trm_label -> typ -> typ -> dec.
 
 (** *** Terms
   Terms ([trm], [t], [u]), values ([val], [v]),
@@ -80,6 +80,7 @@ Inductive trm : Set :=
   | trm_sel  : avar -> trm_label -> trm
   | trm_app  : avar -> avar -> trm
   | trm_let  : trm -> trm -> trm
+  | trm_asn  : avar -> trm_label -> avar -> trm
 (**
   - [def_typ A T] represents a type-member definition [{A = T}];
   - [def_trm a t] represents a field definition [{a = t}]; *)
@@ -114,7 +115,7 @@ end.
 
 Definition label_of_dec(D: dec): label := match D with
 | dec_typ L _ _ => label_typ L
-| dec_trm m _   => label_trm m
+| dec_trm m _ _ => label_trm m
 end.
 
 Fixpoint get_def(l: label)(ds: defs): option def :=
@@ -163,7 +164,7 @@ Fixpoint open_rec_typ (k: nat) (u: var) (T: typ): typ :=
 with open_rec_dec (k: nat) (u: var) (D: dec): dec :=
   match D with
   | dec_typ L T U => dec_typ L (open_rec_typ k u T) (open_rec_typ k u U)
-  | dec_trm m T   => dec_trm m (open_rec_typ k u T)
+  | dec_trm m T U => dec_trm m (open_rec_typ k u T) (open_rec_typ k u U)
   end.
 
 Fixpoint open_rec_trm (k: nat) (u: var) (t: trm): trm :=
@@ -174,6 +175,7 @@ Fixpoint open_rec_trm (k: nat) (u: var) (t: trm): trm :=
   | trm_sel v m    => trm_sel (open_rec_avar k u v) m
   | trm_app f a    => trm_app (open_rec_avar k u f) (open_rec_avar k u a)
   | trm_let t1 t2  => trm_let (open_rec_trm k u t1) (open_rec_trm (S k) u t2)
+  | trm_asn v m v2 => trm_asn (open_rec_avar k u v) m (open_rec_avar k u v2)
   end
 with open_rec_def (k: nat) (u: var) (d: def): def :=
   match d with
@@ -225,7 +227,7 @@ Fixpoint fv_typ (T: typ) : vars :=
 with fv_dec (D: dec) : vars :=
   match D with
   | dec_typ L T U => (fv_typ T) \u (fv_typ U)
-  | dec_trm m T   => (fv_typ T)
+  | dec_trm m T U => (fv_typ T) \u (fv_typ U)
   end.
 
 (** Free variables in a term, value, or definition. *)
@@ -237,6 +239,7 @@ Fixpoint fv_trm (t: trm) : vars :=
   | trm_sel x m      => (fv_avar x)
   | trm_app f a      => (fv_avar f) \u (fv_avar a)
   | trm_let t1 t2    => (fv_trm t1) \u (fv_trm t2)
+  | trm_asn x m y    => (fv_avar x) \u (fv_avar y)
   end
 with fv_def (d: def) : vars :=
   match d with
@@ -313,8 +316,8 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
 (** [G ⊢ x: {a: T}] #<br>#
     [―――――――――――――] #<br>#
     [G ⊢ x.a: T]        *)
-| ty_new_elim : forall G x a T,
-    G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
+| ty_new_elim : forall G x a S T,
+    G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a S T) ->
     G ⊢ trm_sel (avar_f x) a : T
 
 (** [G ⊢ t: T]          #<br>#
@@ -372,7 +375,7 @@ with ty_def : ctx -> def -> dec -> Prop :=
     [G ⊢ {a = t}: {a: T}] *)
 | ty_def_trm : forall G a t T,
     G ⊢ t : T ->
-    G /- def_trm a t : dec_trm a T
+    G /- def_trm a t : dec_trm a T T
 where "G '/-' d ':' D" := (ty_def G d D)
 
 (** ** Multiple-definition typing [G ⊢ ds :: T] *)
@@ -440,9 +443,13 @@ with subtyp : ctx -> typ -> typ -> Prop :=
 (** [G ⊢ T <: U]           #<br>#
     [――――――――――――――――――――] #<br>#
     [G ⊢ {a: T} <: {a: U}] *)
-| subtyp_fld: forall G a T U,
+| subtyp_fld: forall G a S T U,
     G ⊢ T <: U ->
-    G ⊢ typ_rcd (dec_trm a T) <: typ_rcd (dec_trm a U)
+    G ⊢ typ_rcd (dec_trm a S T) <: typ_rcd (dec_trm a S U)
+
+| subtyp_fld_asn: forall G a S T U,
+    G ⊢ S <: T ->
+    G ⊢ typ_rcd (dec_trm a T U) <: typ_rcd (dec_trm a S U)
 
 (** [G ⊢ S2 <: S1]                   #<br>#
     [G ⊢ T1 <: T2]                   #<br>#

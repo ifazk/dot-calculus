@@ -92,22 +92,24 @@ Qed.
     [exists S, T', G(x) = mu(S)]       #<br>#
     [S^x = ... /\ {a: T'} /\ ...]  #<br>#
     [G ⊢ T' <: T]                *)
-Lemma var_typ_rcd_to_binds: forall G x a T,
+Lemma var_typ_rcd_to_binds: forall G x a T U,
     inert G ->
-    G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
+    G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a T U) ->
     (exists S T',
         binds x (typ_bnd S) G /\
-        record_has (open_typ x S) (dec_trm a T') /\
-        G ⊢ T' <: T).
+        record_has (open_typ x S) (dec_trm a T' T') /\
+        G ⊢ T <: T' /\
+        G ⊢ T' <: U).
 Proof.
   introv Hin Ht.
   destruct (typing_implies_bound Ht) as [S BiG].
   lets Htt: (general_to_tight_typing Hin Ht).
   lets Hinv: (tight_to_invertible Hin Htt).
-  destruct (invertible_to_precise_trm_dec Hinv) as [T' [U [Htp Hs]]].
-  destruct (pf_inert_rcd_U Hin Htp) as [U' Hr]. subst.
+  destruct (invertible_to_precise_trm_dec Hinv) as [S' [T' [U' [Htp [Hs1 Hs2]]]]].
+  destruct (pf_dec_trm_inv Hin Htp).
+  destruct (pf_inert_rcd_U Hin Htp) as [?U' Hr]. subst.
   lets Hr': (precise_flow_record_has Hin Htp). apply pf_binds in Htp.
-  exists U' T'. split. assumption. split. assumption. apply* tight_to_general.
+  exists U'0 S'. repeat_split_right; try assumption; apply* tight_to_general.
 Qed.
 
 (** This lemma corresponds to Lemma 3.10 ([mu] to [nu]) in the paper.
@@ -120,13 +122,13 @@ Qed.
     [exists t, ds, v = nu(T)ds     ] #<br>#
     [ds^x = ... /\ {a = t} /\ ...] #<br>#
     [G ⊢ t: U] *)
-Lemma val_mu_to_new: forall G v t T U a x,
+Lemma val_mu_to_new: forall G v t S T U a x,
     inert G ->
     x # G ->
     trm_val x v t ->
     G ⊢ t: typ_bnd T ->
     G ⊢ trm_var (avar_f x) : open_typ x T ->
-    record_has (open_typ x T) (dec_trm a U) ->
+    record_has (open_typ x T) (dec_trm a S U) ->
     exists t' ds,
       v = val_obj T ds /\
       defs_has ds (def_trm a t') /\
@@ -206,19 +208,19 @@ Qed.
     [s(x) = nu(S)ds] #<br>#
     [ds^x = ... /\ {a = t} /\ ...] #<br>#
     [G ⊢ t: T] *)
-Lemma canonical_forms_obj: forall G s x a T,
+Lemma canonical_forms_obj: forall G s x a S T,
   inert G ->
   strongly_typed G s ->
-  G ⊢ trm_var (avar_f x) : (typ_rcd (dec_trm a T)) ->
+  G ⊢ trm_var (avar_f x) : (typ_rcd (dec_trm a S T)) ->
   (exists S ds t, binds x (val_obj S (open_defs x ds)) s /\
                   defs_has (open_defs x ds) (def_trm a t) /\
                   G ⊢ t : T).
 Proof.
   introv Hi Hst Hty.
-  destruct (var_typ_rcd_to_binds Hi Hty) as [?S [?T' [?H [?H ?H]]]].
+  destruct (var_typ_rcd_to_binds Hi Hty) as [?S [?T' [?H [?H [?H ?H]]]]].
   pose proof (corresponding_types Hst H) as Hts.
   destruct (strong_mu_to_new Hi Hts H) as [?ds [?Bis ?]].
-  pose proof (record_has_ty_defs H2 H0) as [?d [? ?]].
-  inversions H4.
-  exists S ds t. repeat_split_right; eauto.
+  pose proof (record_has_ty_defs H3 H0) as [?d [? ?]].
+  inversions H5.
+  exists S0 ds t. repeat_split_right; eauto.
 Qed.

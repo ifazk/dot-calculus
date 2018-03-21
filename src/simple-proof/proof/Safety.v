@@ -131,7 +131,7 @@ Proof.
       + assert (G & x ~ V ⊢ trm_var (avar_f x) : V) by auto.
          eapply ty_sub. apply H0. apply* weaken_subtyp.
   - Case "ty_new_elim".
-    pose proof (canonical_forms_obj Hin Hwf Ht) as [S [ds [t [Bis [Has Ty]]]]].
+    pose proof (canonical_forms_obj Hin Hwf Ht) as [?S [ds [t [Bis [Has Ty]]]]].
     invert_red; trm_val_contra. binds_eq.
     exists (@empty typ). rewrite concat_empty_r. repeat_split_right; auto.
     rewrite <- H2 in H5.

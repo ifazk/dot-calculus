@@ -63,8 +63,8 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
 (** [G ⊢# x: {a: T}] #<br>#
     [―――――――――――――――] #<br>#
     [G ⊢# x.a: T]        *)
-| ty_new_elim_t : forall G x a T,
-    G ⊢# trm_var (avar_f x) : typ_rcd (dec_trm a T) ->
+| ty_new_elim_t : forall G x a S T,
+    G ⊢# trm_var (avar_f x) : typ_rcd (dec_trm a S T) ->
     G ⊢# trm_sel (avar_f x) a : T
 
 (** [G ⊢# t: T]             #<br>#
@@ -155,9 +155,13 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
 (** [G ⊢# T <: U]           #<br>#
     [――――――――――――――――――――――] #<br>#
     [G ⊢# {a: T} <: {a: U}]     *)
-| subtyp_fld_t: forall G a T U,
+| subtyp_fld_t: forall G a S T U,
     G ⊢# T <: U ->
-    G ⊢# typ_rcd (dec_trm a T) <: typ_rcd (dec_trm a U)
+    G ⊢# typ_rcd (dec_trm a S T) <: typ_rcd (dec_trm a S U)
+
+| subtyp_fld_asn_t: forall G a S T U,
+    G ⊢# S <: T ->
+    G ⊢# typ_rcd (dec_trm a T U) <: typ_rcd (dec_trm a S U)
 
 (** [G ⊢# S2 <: S1]                   #<br>#
     [G ⊢# T1 <: T2]                   #<br>#

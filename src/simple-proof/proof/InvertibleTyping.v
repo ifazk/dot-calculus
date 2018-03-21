@@ -44,10 +44,15 @@ Inductive ty_var_inv : ctx -> var -> typ -> Prop :=
     [G ⊢# T <: U]     #<br>#
     [――――――――――――――――] #<br>#
     [G ⊢## x: {a: U}]     *)
-| ty_dec_trm_inv : forall G x a T U,
-  G ⊢## x : typ_rcd (dec_trm a T) ->
+| ty_dec_trm_inv : forall G x a S T U,
+  G ⊢## x : typ_rcd (dec_trm a S T) ->
   G ⊢# T <: U ->
-  G ⊢## x : typ_rcd (dec_trm a U)
+  G ⊢## x : typ_rcd (dec_trm a S U)
+
+| ty_dec_trm_asn_inv : forall G x a S T U,
+  G ⊢## x : typ_rcd (dec_trm a T U) ->
+  G ⊢# S <: T ->
+  G ⊢## x : typ_rcd (dec_trm a S U)
 
 (** [G ⊢## x: {A: T..U}]   #<br>#
     [G ⊢# T' <: T]         #<br>#
@@ -167,17 +172,21 @@ Hint Constructors ty_var_inv ty_val_inv.
     [――――――――――――――――――――――]      #<br>#
     [exists T', G ⊢! x: {a: T'}]      #<br>#
     [G ⊢# T' <: T]. *)
-Lemma invertible_to_precise_trm_dec: forall G x a T,
-  G ⊢## x : typ_rcd (dec_trm a T) ->
-  exists T' U,
-    G ⊢! x : U ⪼ typ_rcd (dec_trm a T') /\
-    G ⊢# T' <: T.
+Lemma invertible_to_precise_trm_dec: forall G x a S T,
+  G ⊢## x : typ_rcd (dec_trm a S T) ->
+  exists S' T' U,
+    G ⊢! x : U ⪼ typ_rcd (dec_trm a S' T') /\
+    G ⊢# T' <: T /\
+    G ⊢# S <: S'.
 Proof.
   introv Hinv.
   dependent induction Hinv.
-  - exists T T0. auto.
-  - specialize (IHHinv _ _ eq_refl). destruct IHHinv as [V [V' [Hx Hs]]].
-    exists V V'. split; auto.
+  - exists S T T0. auto.
+  - specialize (IHHinv _ _ _ eq_refl). destruct IHHinv as [V [V' [V'' [Hx [Hs1 Hs2]]]]].
+    exists V V' V''. repeat_split_right; auto.
+    eapply subtyp_trans_t; eassumption.
+  - specialize (IHHinv _ _ _ eq_refl). destruct IHHinv as [V [V' [V'' [Hx [Hs1 Hs2]]]]].
+    exists V V' V''. repeat_split_right; auto.
     eapply subtyp_trans_t; eassumption.
 Qed.
 

@@ -386,6 +386,16 @@ Proof.
   destruct H as [?ls ?H]. inversions H. inversions* H1.
 Qed.
 
+Lemma pf_dec_trm_inv : forall G x T a S U,
+    inert G ->
+    G ⊢! x: T ⪼ typ_rcd (dec_trm a S U) ->
+    S = U.
+Proof.
+  introv Hi Pf. destruct (pf_inert_rcd_U Hi Pf) as [V H]. subst.
+  destruct (pf_bnd_same_or_rcd Hi Pf); try congruence.
+  destruct H as [?ls ?H]. inversions H. inversions* H1.
+Qed.
+
 (** Precise typing implies general typing. *)
 (** - for variables *)
 Lemma precise_to_general: forall G x T U,

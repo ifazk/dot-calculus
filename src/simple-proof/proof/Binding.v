@@ -35,7 +35,7 @@ Fixpoint subst_typ (z: var) (u: var) (T: typ) { struct T } : typ :=
 with subst_dec (z: var) (u: var) (D: dec) { struct D } : dec :=
   match D with
   | dec_typ L T U => dec_typ L (subst_typ z u T) (subst_typ z u U)
-  | dec_trm L U => dec_trm L (subst_typ z u U)
+  | dec_trm L T U => dec_trm L (subst_typ z u T) (subst_typ z u U)
   end.
 
 (** Substitution on terms, values, and definitions:
@@ -48,6 +48,7 @@ Fixpoint subst_trm (z: var) (u: var) (t: trm) : trm :=
   | trm_sel x1 L     => trm_sel (subst_avar z u x1) L
   | trm_app x1 x2    => trm_app (subst_avar z u x1) (subst_avar z u x2)
   | trm_let t1 t2    => trm_let (subst_trm z u t1) (subst_trm z u t2)
+  | trm_asn x1 L x2  => trm_asn (subst_avar z u x1) L (subst_avar z u x2)
   end
 with subst_def (z: var) (u: var) (d: def) : def :=
   match d with
