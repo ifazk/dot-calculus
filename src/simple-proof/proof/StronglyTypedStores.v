@@ -3,7 +3,7 @@ Set Implicit Arguments.
 Require Import Coq.Program.Equality.
 Require Import LibLN.
 Require Import
-        LibExtra Definitions Binding
+        LibExtra Definitions Binding StoreUpdate
         PreciseTyping Substitution Weakening.
 
 (** * Strongly Typed Stores *)
@@ -204,3 +204,33 @@ Proof.
   destruct_all. apply H3.
   rewrite H2. eauto using binds_to_dom.
 Qed.
+
+(* Lemma strongly_typed_update : forall G s s' x a y T, *)
+(*     strongly_typed G s -> *)
+(*     G ⊢ trm_asn (avar_f x) a (avar_f y) : T -> *)
+(*     sto_update s x a y s' -> *)
+(*     strongly_typed G s'. *)
+(* Proof. *)
+(*   introv Hst Hty Hsu. *)
+(*   unfold sto_update in *; destruct_all. rename x0 into S. *)
+(*   unfold strongly_typed in *; destruct_all; repeat_split_right; auto. *)
+(*   congruence. *)
+(*   intros. pose proof (var_decide x0 x) as [?H | ?H]. *)
+(*   - subst x0. assert (ty_val_s G s x) by auto. *)
+(*     inversions H11. pose proof (binds_functional H3 H13); congruence. *)
+(*     pose proof (binds_functional H3 H13); inversions H11. clear H13. *)
+(*     rename x2 into ds'. pose proof (defs_update_open x H4 _ eq_refl) as [?ds ?]. *)
+(*     subst ds'. eapply ty_val_obj_s; auto. *)
+(*     apply H12. apply H5. *)
+(*     inversions Hty. *)
+(*     admit. *)
+
+(*     inversions Hty. *)
+
+(* | ty_val_obj_s : forall G s x U ds T, *)
+(*     binds x T G -> *)
+(*     binds x (val_obj U (open_defs x ds)) s -> *)
+(*     T = typ_bnd U -> *)
+(*     G /- open_defs x ds :: open_typ x U -> *)
+(*     ty_val_s G s x. *)
+(* Definition sto_update (s : sto) (x : var) (a : trm_label) (y : var) (s' : sto) := *)

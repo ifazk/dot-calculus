@@ -287,6 +287,25 @@ Proof.
   - inversions H5. inversions* H9.
 Qed.
 
+Lemma unique_rcd_trm: forall T a T1 T2,
+  record_type T ->
+  record_has T (dec_trm a T1 T1) ->
+  record_has T (dec_trm a T2 T2) ->
+  T1 = T2.
+Proof.
+  introv [ls Htyp] Has1 Has2. gen T1 T2 a.
+  induction Htyp; intros; inversion Has1; inversion Has2; subst.
+  - inversion* H3.
+  - inversion* H5.
+  - apply record_typ_has_label_in with (D:=dec_trm a T1 T1) in Htyp.
+    + inversions H9. false* H1.
+    + assumption.
+  - apply record_typ_has_label_in with (D:=dec_trm a T2 T2) in Htyp.
+    + inversions H5. false* H1.
+    + assumption.
+  - inversions H5. inversions* H9.
+Qed.
+
 (** [ds = ... /\ {a = t} /\ ...]  #<br>#
     [ds = ... /\ {a = t'} /\ ...] #<br>#
     [―――――――――――――――――――――――――] #<br>#

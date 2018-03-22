@@ -5,7 +5,7 @@ Require Import Coq.Program.Equality.
 Require Import
         Binding Definitions RecordAndInertTypes PreciseTyping
         OperationalSemantics Substitution Weakening
-        StronglyTypedStores CanonicalForms.
+        StronglyTypedStores StoreUpdate CanonicalForms.
 
 (** The typing of a term with a stack *)
 Inductive sto_trm_typ : sto * trm -> typ -> Prop :=
@@ -139,6 +139,12 @@ Proof.
     | [Hd: defs_has _ (def_trm _ ?t') |- G ⊢ t': T] =>
       rewrite* <- (defs_has_inv Has Hd)
     end.
+  - Case "ty_fld_asn".
+    invert_red; trm_val_contra.
+    exists (@empty typ). rewrite concat_empty_r. repeat_split_right; auto.
+    eapply sto_update_inert; eauto.
+    pose proof (var_typ_rcd_to_binds Hin Ht1) as [_ [?T [_ [_ [?H ?H]]]]].
+    eauto.
   - Case "ty_let".
     destruct t; try solve [solve_let].
     + SCase "[t = (let x = a in u)] where a is a variable".
@@ -209,6 +215,10 @@ Proof.
     exists (s & x ~ (val_obj T (open_defs x ds))) (trm_var (avar_f x)). auto.
   - Case "ty_new_elim".
     pose proof (canonical_forms_obj Hi Hwt HT). destruct_all. right*.
+  - Case "ty_fld_asn".
+    right.
+    pose proof (sto_update_exists Hi Hwt HT1 HT2) as [?s' ?H].
+    exists s' (trm_var (avar_f y)); auto.
   - Case "ty_let".
     right. destruct t; try solve [solve_let_prog; trm_val_contra].
     pose proof (var_typing_implies_avar_f HT) as [x A]. subst*.

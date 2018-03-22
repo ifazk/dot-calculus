@@ -320,6 +320,11 @@ Inductive ty_trm : ctx -> trm -> typ -> Prop :=
     G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a S T) ->
     G ⊢ trm_sel (avar_f x) a : T
 
+| ty_fld_asn : forall G x y a S T,
+    G ⊢ trm_var (avar_f x) : typ_rcd (dec_trm a S T) ->
+    G ⊢ trm_var (avar_f y) : S ->
+    G ⊢ trm_asn (avar_f x) a (avar_f y) : T
+
 (** [G ⊢ t: T]          #<br>#
     [G, x: T ⊢ u^x: U]  #<br>#
     [x fresh]           #<br>#

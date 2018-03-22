@@ -2,7 +2,7 @@ Set Implicit Arguments.
 
 Require Import Coq.Program.Equality.
 Require Import LibLN.
-Require Import Definitions Binding.
+Require Import Definitions Binding StoreUpdate.
 
 (** * Store-Based Operational Semantics *)
 
@@ -16,6 +16,10 @@ Inductive red : sto * trm -> sto * trm -> Prop :=
     binds x (val_obj T (open_defs x ds)) s ->
     defs_has (open_defs x ds) (def_trm m t) ->
     (s, trm_sel (avar_f x) m) |-> (s, t)
+
+| red_asn : forall x m s y s',
+    sto_update s x m y s' ->
+    (s, trm_asn (avar_f x) m (avar_f y)) |-> (s', trm_var (avar_f y))
 
 (** [s(x) = lambda(T)t]      #<br>#
     [―――――――――――――――――――――]  #<br>#
