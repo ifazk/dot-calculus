@@ -3,7 +3,7 @@ Set Implicit Arguments.
 Require Import Coq.Program.Equality.
 Require Import LibLN.
 Require Import
-        LibExtra Definitions Binding StoreUpdate
+        LibExtra Definitions Binding
         PreciseTyping Substitution Weakening.
 
 (** * Strongly Typed Stores *)
