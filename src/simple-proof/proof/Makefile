@@ -126,7 +126,7 @@ DPDTEXT+=Set DependGraph File \"$(DPDFILENAME)\".
 DPDTEXT+=Print FileDependGraph $(DPDMODULES).
 
 $(DPDFILENAME): $(shell coqdep -sort $(FILES)) all
-	echo $(DPDTEXT) | coqtop -R $(TLCSRC) $(TLCNAME) -notop
+	echo $(DPDTEXT) | coqtop -R $(TLCSRC) $(TLCNAME)
 
 $(DPDDOT): $(DPDFILENAME)
 	dpd2dot -without-defs $<

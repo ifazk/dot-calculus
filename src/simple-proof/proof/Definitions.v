@@ -262,12 +262,14 @@ Definition fv_val (v: val) : vars :=
 Definition fv_ctx_types(G: ctx): vars := (fv_in_values (fun T => fv_typ T) G).
 Definition fv_sto_vals(s: sto): vars := (fv_in_values (fun v => fv_val v) s).
 
-Inductive trm_val : var -> val -> trm -> Prop :=
-| trm_val_obj : forall x T ds,
+Inductive trm_val_fun : val -> trm -> Prop :=
+  | trm_val_fun_c : forall T t,
+    trm_val_fun (val_fun T t) (trm_lambda T t).
+
+Inductive trm_val_obj : var -> val -> trm -> Prop :=
+| trm_val_obj_c : forall x T ds,
     x \notin fv_defs ds ->
-    trm_val x (val_obj T (open_defs x ds)) (trm_new T ds)
-| trm_val_fun : forall x T t,
-    trm_val x (val_fun T t) (trm_lambda T t).
+    trm_val_obj x (val_obj T (open_defs x ds)) (trm_new T ds).
 
 (** * Typing Rules *)
 
@@ -494,7 +496,7 @@ where "G '⊢' T '<:' U" := (subtyp G T U).
 (** * Infrastructure *)
 
 Hint Constructors
-     trm_val
+     trm_val_obj trm_val_fun
      ty_trm ty_def ty_defs subtyp.
 
 (** ** Mutual Induction Principles *)

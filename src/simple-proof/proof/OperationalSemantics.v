@@ -29,9 +29,13 @@ Inductive red : sto * trm -> sto * trm -> Prop :=
     (s, trm_app (avar_f f) (avar_f a)) |-> (s, open_trm a t)
 
 (** [(s, let x = v in t) |-> ((s, x = v), t^x)] *)
-| red_let_val : forall v t s x,
+| red_lambda : forall T t s x,
     x # s ->
-    trm_val x v t ->
+    (s, trm_lambda T t) |-> (s & x ~ (val_fun T t), trm_var (avar_f x))
+
+| red_new : forall v t s x,
+    x # s ->
+    trm_val_obj x v t ->
     (s, t) |-> (s & x ~ v, trm_var (avar_f x))
 
 (** [(s, let y = x in t) |-> (s, t^x)] *)

@@ -24,8 +24,8 @@ Notation "'⊢' t ':' T" := (sto_trm_typ t T) (at level 40, t at level 59).
 (** If a value [v] has type [T], then [v] has a precise type [T']
     that is a subtype of [T].
     This lemma corresponds to Lemma 3.15 in the paper. *)
-Lemma val_typing: forall G v x t T,
-  trm_val x v t ->
+Lemma val_obj_typing: forall G v x t T,
+  trm_val_obj x v t ->
   x # G ->
   G ⊢ t : T ->
   exists T', G ⊢!v v ^^ x : T' /\ G ⊢ T' <: T.
@@ -48,19 +48,11 @@ Ltac invert_red :=
   | [Hr: (_, _) |-> (_, _) |- _] => inversions Hr
   end.
 
-Ltac red_trm_to_val :=
-  match goal with
-  | [ H : (_, trm_lambda ?T ?e) |-> _ |- _ ] =>
-    remember (val_fun T e);
-    assert (trm_val (val_fun T e) (trm_lambda T e)) by auto
-  | [ H : (_, trm_new ?T ?ds) |-> _ |- _ ] =>
-    assert (trm_val (val_obj T ds) (trm_new T ds)) by auto
-  | _ => idtac
-  end.
-
 Ltac trm_val_contra :=
   match goal with
-  | [ H : trm_val _ _ _ |- _ ] =>
+  | [ H : trm_val_obj _ _ _ |- _ ] =>
+      try solve [inversions H; simpl in *; congruence]
+  | [ H : trm_val_fun _ _ |- _ ] =>
       try solve [inversions H; simpl in *; congruence]
   | _ => idtac
   end.
@@ -103,13 +95,14 @@ Proof.
   introv Hwf Hin Hred Ht. gen t'.
   induction Ht; intros; try solve [invert_red; trm_val_contra].
   - Case "ty_all_intro".
-    invert_red. inversions H6.
+    invert_red.
     exists (x ~ typ_all T U). repeat_split_right; auto.
     + rewrite <- concat_empty_l; eauto.
     + assert (dom G = dom s) by apply Hwf.
-      assert (x # G) by (rewrite H1; auto). clear H4; clear H1.
+      assert (x # G) by (rewrite H1; auto).
       assert (G ⊢ trm_lambda T t : typ_all T U) by eauto.
-      apply (strongly_typed_push_fun Hwf H2 H1).
+      apply~ strongly_typed_push_fun.
+    + inversions H6.
   - Case "ty_all_elim".
     invert_red; try trm_val_contra.
     destruct (canonical_forms_fun Hin Hwf Ht1) as [?L [?T [?t [?Bis [?Hsub ?Hty]]]]].
@@ -124,7 +117,7 @@ Proof.
           pose proof (strongly_typed_notin_dom Hwf Hn) as Hng
       end.
       assert (Ht: G ⊢ trm_new T ds : typ_bnd T) by eauto.
-      pose proof (val_typing H5 Hng Ht) as [V [Hv Hs]].
+      pose proof (val_obj_typing H5 Hng Ht) as [V [Hv Hs]].
       exists (x ~ V). repeat_split_right.
       + rewrite <- concat_empty_l. constructor~. apply (precise_inert_typ Hv).
       + apply~ strongly_typed_push_precise.

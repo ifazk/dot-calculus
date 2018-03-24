@@ -326,38 +326,24 @@ Qed.
        [G ⊢# v: T]         #<br>#
        [――――――――――――――――]   #<br>#
        [G ⊢##v v: T] *)
-Lemma tight_to_invertible_v : forall G v x t T,
-    inert G ->
-    x # G ->
-    trm_val x v t ->
-    G ⊢# t : T ->
-    G ⊢##v v ^^ x : T.
-Proof.
-  introv Hi HxG Htv Hty.
-  inversions Htv; dependent induction Hty; eauto;
-    apply* invertible_typing_closure_tight_v.
-Qed.
-
 Lemma tight_to_invertible_forall : forall G v x t T U,
     inert G ->
-    trm_val x v t ->
+    trm_val_fun v t ->
     G ⊢# t : typ_all T U ->
     G ⊢##v v ^^ x : typ_all T U.
 Proof.
   introv Hi Htv Hty.
   inversions Htv.
-  - pose proof (inert_tight_new_typing Hi Hty) as Contra.
-    inversion Contra.
-  - inversions Hty. eauto.
-    pose proof (inert_tight_lambda_typing_precise Hi H) as [?T [?L [?H ?H]]].
-    assert (G ⊢!v val_fun T0 t0 ^^ x : typ_all T0 T2) by eauto.
-    pose proof (tight_all_sup Hi H0 H2).
-    inversions H4. eauto.
+  inversions Hty. eauto.
+  pose proof (inert_tight_lambda_typing_precise Hi H) as [?T [?L [?H ?H]]].
+  assert (G ⊢!v val_fun T0 t0 ^^ x : typ_all T0 T2) by eauto.
+  pose proof (tight_all_sup Hi H0 H2).
+  inversions H4. eauto.
 Qed.
 
 Lemma tight_to_invertible_fun : forall G S tr x t T,
     inert G ->
-    trm_val x (val_fun S tr) t ->
+    trm_val_fun (val_fun S tr) t ->
     G ⊢# t : T ->
     G ⊢##v (val_fun S tr) ^^ x : T.
 Proof.

@@ -62,9 +62,9 @@ Qed.
     [v = lambda(T')t]              #<br>#
     [G ⊢ T <: T']                   #<br>#
     [forall fresh y, G, y: T ⊢ t^y: U^y] *)
-Lemma val_typ_all_to_lambda: forall G v x t T U,
+Lemma val_typ_all_to_lambda: forall G v t T U,
     inert G ->
-    trm_val x v t ->
+    trm_val_fun v t ->
     G ⊢ t : typ_all T U ->
     (exists L T' t',
         v = val_fun T' t' /\
@@ -73,14 +73,15 @@ Lemma val_typ_all_to_lambda: forall G v x t T U,
 Proof.
   introv Hin Htv Ht.
   lets Htt: (general_to_tight_typing Hin Ht).
-  lets Hinv: (tight_to_invertible_forall Hin Htv Htt).
+  pick_fresh x.
+  lets Hinv: (tight_to_invertible_forall x Hin Htv Htt).
   destruct (invertible_val_to_precise_lambda Hin Hinv) as [L [T' [U' [Htp [Hs1 Hs2]]]]].
   inversions Htp.
   exists (L0 \u L \u (dom G)) T' t0. repeat split~.
   intros. assert (HL: y \notin L) by auto. assert (HL0: y \notin L0) by auto.
   specialize (Hs2 y HL).
   specialize (H3 y HL0).
-  eapply ty_sub; eauto. eapply narrow_typing in H3; eauto.
+  eapply ty_sub; eauto. eauto using narrow_typing.
 Qed.
 
 (** * Objects under Inert Contexts *)
@@ -122,30 +123,6 @@ Qed.
     [exists t, ds, v = nu(T)ds     ] #<br>#
     [ds^x = ... /\ {a = t} /\ ...] #<br>#
     [G ⊢ t: U] *)
-Lemma val_mu_to_new: forall G v t S T U a x,
-    inert G ->
-    x # G ->
-    trm_val x v t ->
-    G ⊢ t: typ_bnd T ->
-    G ⊢ trm_var (avar_f x) : open_typ x T ->
-    record_has (open_typ x T) (dec_trm a S U) ->
-    exists t' ds,
-      v = val_obj T ds /\
-      defs_has ds (def_trm a t') /\
-      G ⊢ t': U.
-Proof.
-  introv Hi HxG Htv Ht Hx Hr.
-  lets Htt: (general_to_tight_typing Hi Ht).
-  lets Hinv: (tight_to_invertible_v Hi HxG Htv Htt).
-  inversions Hinv. inversions H.
-  pick_fresh z. assert (z \notin L) as Hz by auto.
-  specialize (H1 z Hz).
-  assert (Hds: G /- open_defs x ds :: open_typ x T)
-    by (destruct_notin; eapply renaming_def; eauto).
-  destruct (record_has_ty_defs Hds Hr) as [d [Hh Hd]]. inversions Hd.
-  exists t0 (open_defs x ds). split*.
-Qed.
-
 Lemma strong_mu_to_new: forall G s x T,
     inert G ->
     ty_val_s G s x ->
@@ -157,7 +134,7 @@ Proof.
   inversions Hts.
   - pose proof (binds_functional Bi H); subst T0; clear H.
     pose proof (general_to_tight_typing Hi H1).
-    pose proof (tight_to_invertible_fun Hi (trm_val_fun x _ _) H).
+    pose proof (tight_to_invertible_fun x Hi (trm_val_fun_c _ _) H).
     inversions H2. inversions H3.
   - pose proof (binds_functional Bi H). inversions H1.
     exists ds; split; auto.
@@ -184,7 +161,7 @@ Proof.
   pose proof (corresponding_types Hst BiG).
   inversions H.
   - pose proof (binds_functional BiG H0). subst T0.
-    destruct (val_typ_all_to_lambda Hin (trm_val_fun x _ _) H2)
+    destruct (val_typ_all_to_lambda Hin (trm_val_fun_c _ _) H2)
       as [L' [S' [t' [Heq [Hs1' Hs2']]]]].
     exists (L \u L' \u (dom G)) S' t'. inversions Heq.
     repeat_split_right; eauto.

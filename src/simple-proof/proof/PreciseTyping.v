@@ -406,9 +406,17 @@ Proof.
 Qed.
 
 (** - for values *)
-Lemma precise_to_general_v: forall G v x t T,
+Lemma precise_to_general_fun_v: forall G v x t T,
     G ⊢!v v ^^ x : T ->
-    trm_val x v t ->
+    trm_val_fun v t ->
+    G ⊢ t : T.
+Proof.
+  introv H H1. induction H; inversions H1; simpl; eauto.
+Qed.
+
+Lemma precise_to_general_obj_v: forall G v x t T,
+    G ⊢!v v ^^ x : T ->
+    trm_val_obj x v t ->
     G ⊢ t : T.
 Proof.
   introv H H1. induction H; inversions H1; simpl; eauto.
